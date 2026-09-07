@@ -1,0 +1,200 @@
+{% extends "representative_dashboard_base.html" %}
+{% load static %}
+
+
+{% block content %}
+
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')"><i class="fa-solid fa-bars"></i></button>
+        <div class="page-heading">
+          <h1>Dashboard</h1>
+          <p>Welcome back, Mayor's Office Representative!</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-button" id="notifBellBtn" type="button" aria-haspopup="true" aria-expanded="false"><i class="fa-regular fa-bell"></i><span class="dot">3</span></button>
+        <div class="user-chip">
+          <img src="{% if rep.photo %}{{ rep.photo.url }}{% else %}https://i.pravatar.cc/64?img=15{% endif %}" alt="">
+          <div class="who"><div class="name">{{ rep.user.get_full_name|default:rep.user.username }}</div><div class="role">{{ rep.position|default:"Office Representative" }}</div></div>
+          <i class="fa-solid fa-chevron-down chev"></i>
+        </div>
+      </div>
+    </header>
+
+    <nav class="breadcrumbs">
+      <span class="current">Dashboard</span>
+    </nav>
+
+    <main class="content">
+
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon blue"><i class="fa-solid fa-bullhorn"></i></span></div>
+          <div class="stat-value">8</div>
+          <div class="stat-label">Announcements</div>
+          <a class="stat-sub" style="color:var(--blue-600);font-weight:700;" href="#">View all ›</a>
+        </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon green"><i class="fa-solid fa-newspaper"></i></span></div>
+          <div class="stat-value">5</div>
+          <div class="stat-label">News &amp; Updates</div>
+          <a class="stat-sub" style="color:var(--blue-600);font-weight:700;" href="#">View all ›</a>
+        </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon amber"><i class="fa-regular fa-calendar"></i></span></div>
+          <div class="stat-value">3</div>
+          <div class="stat-label">Upcoming Events</div>
+          <a class="stat-sub" style="color:var(--blue-600);font-weight:700;" href="#">View all ›</a>
+        </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon" style="background:#7c4fe0;"><i class="fa-solid fa-download"></i></span></div>
+          <div class="stat-value">12</div>
+          <div class="stat-label">Downloadable Forms</div>
+          <a class="stat-sub" style="color:var(--blue-600);font-weight:700;" href="#">View all ›</a>
+        </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon" style="background:#12b3c4;"><i class="fa-regular fa-image"></i></span></div>
+          <div class="stat-value">25</div>
+          <div class="stat-label">Gallery Photos</div>
+          <a class="stat-sub" style="color:var(--blue-600);font-weight:700;" href="#">View all ›</a>
+        </div>
+      </div>
+
+      <div class="grid-3" style="margin-bottom:18px;">
+        <!-- Recent announcements -->
+        <section class="panel">
+          <div class="panel-header"><h2>Recent Announcements</h2><a class="link" href="#">View All</a></div>
+          <div class="panel-body" style="padding-top:6px;">
+            <div class="list-row">
+              <span class="list-icon" style="background:var(--blue-600);"><i class="fa-solid fa-bullhorn"></i></span>
+              <div style="flex:1;"><div class="list-title">Mayor's Listening Session</div><div class="list-meta">July 15, 2026 · 9:00 AM</div></div>
+              <span class="badge badge-green">Published</span>
+            </div>
+            <div class="list-row">
+              <span class="list-icon" style="background:var(--blue-600);"><i class="fa-solid fa-bullhorn"></i></span>
+              <div style="flex:1;"><div class="list-title">Schedule of Barangay Visits</div><div class="list-meta">July 10, 2026 · 2:30 PM</div></div>
+              <span class="badge badge-green">Published</span>
+            </div>
+            <div class="list-row">
+              <span class="list-icon" style="background:var(--blue-600);"><i class="fa-solid fa-bullhorn"></i></span>
+              <div style="flex:1;"><div class="list-title">Flag Raising Ceremony</div><div class="list-meta">July 8, 2026 · 7:30 AM</div></div>
+              <span class="badge badge-green">Published</span>
+            </div>
+            <div class="list-row">
+              <span class="list-icon" style="background:var(--blue-600);"><i class="fa-solid fa-bullhorn"></i></span>
+              <div style="flex:1;"><div class="list-title">Office Advisory: Work Schedule</div><div class="list-meta">July 5, 2026 · 10:00 AM</div></div>
+              <span class="badge badge-gray">Draft</span>
+            </div>
+          </div>
+          <div style="padding:0 20px 20px;"><button class="btn btn-secondary btn-block"><i class="fa-solid fa-plus"></i> Create Announcement</button></div>
+        </section>
+
+        <!-- Content overview chart -->
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Content Overview <span style="font-weight:500;color:var(--gray-400);font-size:12px;">(This Month)</span></h2>
+            <select class="field" style="font-size:12px;padding:6px 10px;">
+              <option>This Month</option>
+              <option>Last Month</option>
+            </select>
+          </div>
+          <div class="panel-body">
+            <div class="bar-chart">
+              <div class="bar-col"><span class="val">8</span><span class="bar" style="height:70%;background:var(--blue-600);"></span><span class="lbl">Announcements</span></div>
+              <div class="bar-col"><span class="val">5</span><span class="bar" style="height:44%;background:var(--green-600);"></span><span class="lbl">News</span></div>
+              <div class="bar-col"><span class="val">3</span><span class="bar" style="height:27%;background:var(--amber-600);"></span><span class="lbl">Events</span></div>
+              <div class="bar-col"><span class="val">12</span><span class="bar" style="height:100%;background:#7c4fe0;"></span><span class="lbl">Forms</span></div>
+              <div class="bar-col"><span class="val">25</span><span class="bar" style="height:100%;background:#12b3c4;"></span><span class="lbl">Gallery Photos</span></div>
+            </div>
+            <div class="metric-tiles">
+              <div class="metric-tile">
+                <span class="mi"><i class="fa-regular fa-eye"></i></span>
+                <div><div class="mv">1,248</div><div class="ml">Total Views (This Month) <span class="delta">↑ 15%</span></div></div>
+              </div>
+              <div class="metric-tile">
+                <span class="mi"><i class="fa-solid fa-users"></i></span>
+                <div><div class="mv">856</div><div class="ml">Total Users <span class="delta">↑ 12%</span></div></div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="grid-3">
+        <!-- Recent news -->
+        <section class="panel">
+          <div class="panel-header"><h2>Recent News &amp; Updates</h2><a class="link" href="#">View All</a></div>
+          <div class="panel-body" style="padding-top:6px;">
+            <div class="list-row">
+              <img class="list-thumb" src="https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=200&auto=format&fit=crop" alt="">
+              <div style="flex:1;"><div class="list-title">Tunga Conducts Community Clean-Up Drive</div><div class="list-meta">July 12, 2026 · 1:00 PM</div></div>
+              <span class="badge badge-green">Published</span>
+            </div>
+            <div class="list-row">
+              <img class="list-thumb" src="https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?q=80&w=200&auto=format&fit=crop" alt="">
+              <div style="flex:1;"><div class="list-title">Health Caravan Serves 350 Residents</div><div class="list-meta">July 7, 2026 · 9:15 AM</div></div>
+              <span class="badge badge-green">Published</span>
+            </div>
+            <div class="list-row">
+              <img class="list-thumb" src="https://images.unsplash.com/photo-1592982537447-6f2a6a0c9d47?q=80&w=200&auto=format&fit=crop" alt="">
+              <div style="flex:1;"><div class="list-title">LGU Tunga Supports Farmers' Training Program</div><div class="list-meta">July 3, 2026 · 4:30 PM</div></div>
+              <span class="badge badge-green">Published</span>
+            </div>
+          </div>
+          <div style="padding:0 20px 20px;"><button class="btn btn-secondary btn-block"><i class="fa-solid fa-plus"></i> Add News</button></div>
+        </section>
+
+        <!-- Upcoming events -->
+        <section class="panel">
+          <div class="panel-header"><h2>Upcoming Events</h2><a class="link" href="#">View All</a></div>
+          <div class="panel-body" style="padding-top:6px;">
+            <div class="list-row">
+              <span class="event-date"><span class="mon">JUL</span><span class="day">20</span></span>
+              <div><div class="list-title">Youth Leadership Training</div><div class="list-meta">July 20, 2026 · 8:00 AM · SB Hall, Tunga, Leyte</div></div>
+            </div>
+            <div class="list-row">
+              <span class="event-date"><span class="mon">JUL</span><span class="day">25</span></span>
+              <div><div class="list-title">Senior Citizens Day Celebration</div><div class="list-meta">July 25, 2026 · 9:00 AM · Municipal Grounds</div></div>
+            </div>
+            <div class="list-row">
+              <span class="event-date"><span class="mon">JUL</span><span class="day">30</span></span>
+              <div><div class="list-title">Coastal Clean-Up Activity</div><div class="list-meta">July 30, 2026 · 7:00 AM · Tunga Coastal Area</div></div>
+            </div>
+          </div>
+          <div style="padding:0 20px 20px;"><button class="btn btn-secondary btn-block"><i class="fa-solid fa-plus"></i> Add Event</button></div>
+        </section>
+
+        <!-- Quick actions -->
+        <section class="panel">
+          <div class="panel-header"><h2>Quick Actions</h2></div>
+          <div class="panel-body">
+            <div class="dash-quick-grid">
+              <div class="quick-action"><span class="qi"><i class="fa-solid fa-bullhorn"></i></span>Create Announcement</div>
+              <div class="quick-action"><span class="qi"><i class="fa-solid fa-newspaper"></i></span>Add News</div>
+              <div class="quick-action"><span class="qi"><i class="fa-regular fa-calendar"></i></span>Add Event</div>
+              <div class="quick-action"><span class="qi"><i class="fa-solid fa-upload"></i></span>Upload Form</div>
+              <div class="quick-action"><span class="qi"><i class="fa-regular fa-image"></i></span>Upload Photo</div>
+              <div class="quick-action"><span class="qi"><i class="fa-solid fa-building"></i></span>Edit Office Profile</div>
+            </div>
+
+            <div class="reminder-box">
+              <span class="ic"><i class="fa-solid fa-bell"></i></span>
+              <div>
+                <strong>Reminder</strong>
+                <p>Please keep your office information and content up to date.</p>
+                <p style="margin-top:6px;color:var(--gray-500);">Last updated: July 16, 2026 · 3:45 PM</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+    
+    </main>
+  </div>
+</div>
+
+{% endblock %}

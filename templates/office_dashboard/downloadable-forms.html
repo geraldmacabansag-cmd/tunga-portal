@@ -1,0 +1,140 @@
+{% extends "representative_dashboard_base.html" %}
+{% load static %}
+{% block body_page %}downloadable-forms{% endblock %}
+
+{% block content %}
+
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')"><i class="fa-solid fa-bars"></i></button>
+        <div class="page-heading">
+          <h1>Downloadable Forms</h1>
+          <p>Upload and manage forms residents can download</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-button" id="notifBellBtn" type="button" aria-haspopup="true" aria-expanded="false"><i class="fa-regular fa-bell"></i><span class="dot">3</span></button>
+        <div class="user-chip">
+          <img src="{% if rep.photo %}{{ rep.photo.url }}{% else %}https://i.pravatar.cc/64?img=15{% endif %}" alt="">
+          <div class="who"><div class="name">{{ rep.user.get_full_name|default:rep.user.username }}</div><div class="role">{{ rep.position|default:"Office Representative" }}</div></div>
+          <i class="fa-solid fa-chevron-down chev"></i>
+        </div>
+      </div>
+    </header>
+
+    <nav class="breadcrumbs">
+      <span>Dashboard</span><span class="sep">›</span><span class="current">Downloadable Forms</span>
+    </nav>
+
+    <main class="content">
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Downloadable Forms</h2>
+          <button class="btn btn-primary" id="open-add-form"><i class="fa-solid fa-plus"></i> Add Form</button>
+        </div>
+        <div class="filters-row">
+          <label class="field search" style="flex:1;"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search forms..."></label>
+          <select class="field"><option>All Categories</option><option>Permits</option><option>Clearance</option><option>Health</option></select>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Form</th><th>Category</th><th>File</th><th>Downloads</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+              <tr>
+                <td class="row-icon-name"><span class="row-thumb" style="background:var(--red-50);color:var(--red-600);"><i class="fa-solid fa-file-pdf"></i></span><span class="cell-primary">Business Permit Application Form</span></td>
+                <td><span class="tag">Permits</span></td>
+                <td>PDF · 245 KB</td>
+                <td>1,204</td>
+                <td><span class="badge badge-green">Published</span></td>
+                <td><div class="action-icons"><span class="ic"><i class="fa-solid fa-download"></i></span><span class="ic"><i class="fa-regular fa-pen-to-square"></i></span><span class="ic"><i class="fa-regular fa-trash-can"></i></span></div></td>
+              </tr>
+              <tr>
+                <td class="row-icon-name"><span class="row-thumb" style="background:var(--red-50);color:var(--red-600);"><i class="fa-solid fa-file-pdf"></i></span><span class="cell-primary">Barangay Clearance Form</span></td>
+                <td><span class="tag">Clearance</span></td>
+                <td>PDF · 210 KB</td>
+                <td>876</td>
+                <td><span class="badge badge-green">Published</span></td>
+                <td><div class="action-icons"><span class="ic"><i class="fa-solid fa-download"></i></span><span class="ic"><i class="fa-regular fa-pen-to-square"></i></span><span class="ic"><i class="fa-regular fa-trash-can"></i></span></div></td>
+              </tr>
+              <tr>
+                <td class="row-icon-name"><span class="row-thumb" style="background:var(--red-50);color:var(--red-600);"><i class="fa-solid fa-file-pdf"></i></span><span class="cell-primary">Occupancy / Location Clearance</span></td>
+                <td><span class="tag">Clearance</span></td>
+                <td>PDF · 198 KB</td>
+                <td>532</td>
+                <td><span class="badge badge-green">Published</span></td>
+                <td><div class="action-icons"><span class="ic"><i class="fa-solid fa-download"></i></span><span class="ic"><i class="fa-regular fa-pen-to-square"></i></span><span class="ic"><i class="fa-regular fa-trash-can"></i></span></div></td>
+              </tr>
+              <tr>
+                <td class="row-icon-name"><span class="row-thumb" style="background:var(--red-50);color:var(--red-600);"><i class="fa-solid fa-file-pdf"></i></span><span class="cell-primary">Certificate of Indigency</span></td>
+                <td><span class="tag">Assistance</span></td>
+                <td>PDF · 172 KB</td>
+                <td>--</td>
+                <td><span class="badge badge-amber">Pending Approval</span></td>
+                <td><div class="action-icons"><span class="ic"><i class="fa-solid fa-download"></i></span><span class="ic"><i class="fa-regular fa-pen-to-square"></i></span><span class="ic"><i class="fa-regular fa-trash-can"></i></span></div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <span>Showing 1 to 4 of 12 forms</span>
+          <div class="page-nums"><span class="page-btn"><i class="fa-solid fa-chevron-left"></i></span><span class="page-btn active">1</span><span class="page-btn">2</span><span class="page-btn">3</span><span class="page-btn"><i class="fa-solid fa-chevron-right"></i></span></div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+<div class="modal-backdrop" id="add-form-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Add Form</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form>
+        <div class="form-group">
+          <label class="form-label" for="df-title">Form Name <span class="req">*</span></label>
+          <input class="form-input" type="text" id="df-title" name="title" placeholder="e.g. Solid Waste Complaint Form" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="df-category">Category</label>
+          <select class="form-input" id="df-category" name="category">
+            <option>Permits</option>
+            <option>Clearance</option>
+            <option>Health</option>
+            <option>Assistance</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="ev-description">Description</label>
+          <input class="form-input" type="text" id="ev-description" name="description" placeholder="e.g. ">
+        </div>      
+        <div class="form-group">
+          <label class="form-label" for="df-version">Version</label>
+          <input class="form-input" type="text" id="df-version" name="version" placeholder="e.g. ">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="df-date up">Date Uploaded</label>
+          <input class="form-input" type="text" id="df-date up" name="date up" placeholder="e.g. ">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="df-uploaded by">Uploaded By</label>
+          <input class="form-input" type="text" id="df-uploaded by" name="uploaded by" placeholder="e.g. ">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="df-download count">Download Count</label>
+          <input class="form-input" type="text" id="df-download count" name="download count" placeholder="e.g. ">
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add Form</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

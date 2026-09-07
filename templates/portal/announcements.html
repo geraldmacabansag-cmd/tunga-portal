@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+Home | Digital Governance Portal
+{% endblock %}
+
+{% block content %}
+
+<section class="page-hero">
+  <img src="{% static 'images/lgu_bldg.jpeg' %}" alt="Tunga Municipal Hall" class="page-hero__bg">
+  <div class="page-hero__scrim"></div>
+  <div class="page-hero__inner">
+    <h1>Announcements, News<br>and Updates</h1>
+    <p>Stay informed with the latest announcements, news, events and updates from the Municipality of Tunga and all its offices.</p>
+  </div>
+</section>
+
+<section class="filter-bar-wrap">
+  <div class="container">
+    <div class="panel filter-bar">
+      <div class="filter-tabs">
+        <a href="#" class="filter-tab active"><i class="fa-regular fa-file-lines"></i> All Updates</a>
+        <a href="#" class="filter-tab"><i class="fa-solid fa-bullhorn"></i> Announcements</a>
+        <a href="#" class="filter-tab"><i class="fa-regular fa-newspaper"></i> News</a>
+        <a href="#" class="filter-tab"><i class="fa-regular fa-calendar"></i> Events</a>
+        <a href="#" class="filter-tab"><i class="fa-regular fa-building"></i> From Our Offices</a>
+      </div>
+      <div class="filter-actions">
+        <div class="search-input">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" placeholder="Search announcements, news...">
+        </div>
+        <button class="btn btn-outline filter-btn"><i class="fa-solid fa-filter"></i> Filter <i class="fa-solid fa-chevron-down" style="font-size:.7rem"></i></button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="announcements-body">
+  <div class="container announcements-grid">
+
+    <div class="announcements-main">
+      <div class="panel list-panel">
+        <div class="section-title--row">
+          <h2 class="section-title" style="margin:0;padding:0;">Latest Announcements</h2>
+          <a href="#" class="view-all">View All</a>
+        </div>
+        <ul class="update-list">
+          <li class="update-item">
+            <div class="update-item__date">JUL<strong>15</strong>2026</div>
+            <div class="update-item__body">
+              <span class="badge-new">NEW</span>
+              <a href="#" class="update-item__title">Mayor's Listening Session</a>
+              <p>The Mayor will hold a listening session with barangay representatives on July 15, 2026 at the Municipal Hall Conference Room.</p>
+              <div class="update-item__meta"><i class="fa-regular fa-user"></i> Mayor's Office &nbsp; <i class="fa-regular fa-clock"></i> 2 hours ago</div>
+            </div>
+            <img src="{% static 'images/photo-meeting.svg' %}" alt="Mayor's listening session with barangay representatives">
+          </li>
+          <li class="update-item">
+            <div class="update-item__date">JUL<strong>10</strong>2026</div>
+            <div class="update-item__body">
+              <a href="#" class="update-item__title">Schedule of Barangay Visits</a>
+              <p>Please be informed of the Mayor's schedule of barangay visits for the month of July 2026.</p>
+              <div class="update-item__meta"><i class="fa-regular fa-user"></i> Mayor's Office &nbsp; <i class="fa-regular fa-clock"></i> 1 day ago</div>
+            </div>
+            <img src="{% static 'images/photo-flagceremony.svg' %}" alt="Barangay visit group photo">
+          </li>
+          <li class="update-item">
+            <div class="update-item__date">JUL<strong>08</strong>2026</div>
+            <div class="update-item__body">
+              <a href="#" class="update-item__title">Flag Raising Ceremony</a>
+              <p>Monthly flag raising ceremony will be on July 1, 2026 at 7:30 AM in front of the Municipal Hall.</p>
+              <div class="update-item__meta"><i class="fa-regular fa-user"></i> Mayor's Office &nbsp; <i class="fa-regular fa-clock"></i> 2 days ago</div>
+            </div>
+            <img src="{% static 'images/photo-flagceremony.svg' %}" alt="Flag raising ceremony at the Municipal Hall">
+          </li>
+        </ul>
+      </div>
+
+      <div class="panel list-panel">
+        <div class="section-title--row">
+          <h2 class="section-title" style="margin:0;padding:0;">News and Updates</h2>
+          <a href="#" class="view-all">View All</a>
+        </div>
+        <ul class="update-list">
+          <li class="update-item">
+            <div class="update-item__date">JUL<strong>12</strong>2026</div>
+            <div class="update-item__body">
+              <a href="#" class="update-item__title">Tunga Conducts Community Clean-Up Drive</a>
+              <p>The Municipality of Tunga successfully conducted a community-wide clean-up drive with the participation of municipal employees, barangay officials, volunteers, and residents.</p>
+              <div class="update-item__meta"><i class="fa-regular fa-building"></i> Municipal Environment and Natural Resources Office &nbsp; <i class="fa-regular fa-clock"></i> 1 day ago</div>
+            </div>
+            <img src="{% static 'images/photo-cleanup.svg' %}" alt="Community clean-up drive volunteers">
+          </li>
+          <li class="update-item">
+            <div class="update-item__date">JUL<strong>07</strong>2026</div>
+            <div class="update-item__body">
+              <a href="#" class="update-item__title">Health Caravan Serves 350 Residents</a>
+              <p>The Municipal Health Office conducted a medical and dental mission at Brgy. Poblacion, benefiting 350 residents.</p>
+              <div class="update-item__meta"><i class="fa-regular fa-user"></i> Municipal Health Office &nbsp; <i class="fa-regular fa-clock"></i> 3 days ago</div>
+            </div>
+            <img src="images/photo-health.svg" alt="Health caravan medical mission">
+          </li>
+          <li class="update-item">
+            <div class="update-item__date">JUL<strong>03</strong>2026</div>
+            <div class="update-item__body">
+              <a href="#" class="update-item__title">LGU Tunga Supports Farmers' Training Program</a>
+              <p>The Municipal Agriculture Office, in partnership with DA-Leyte, conducted a training on organic farming for local farmers.</p>
+              <div class="update-item__meta"><i class="fa-regular fa-user"></i> Municipal Agriculture Office &nbsp; <i class="fa-regular fa-clock"></i> 4 days ago</div>
+            </div>
+            <img src="images/photo-training.svg" alt="Farmers' organic farming training program">
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <aside class="announcements-side">
+      <div class="panel offices-panel">
+        <div class="offices-panel__head">
+          <span>From Our Offices</span>
+          <a href="{% url 'offices' %}">View All Offices</a>
+        </div>
+        <ul class="offices-feed">
+          <li><i class="fa-solid fa-user-tie office-icon office-icon--navy"></i><div><a href="{% url 'mayor' %}">Mayor's Office</a><p>Latest: Mayor's Listening Session <span>2 hours ago</span></p></div></li>
+          <li><i class="fa-solid fa-house-medical office-icon office-icon--green"></i><div><a href="#">Municipal Health Office</a><p>Latest: Health Caravan Serves 350 Residents <span>3 days ago</span></p></div></li>
+          <li><i class="fa-solid fa-seedling office-icon office-icon--orange"></i><div><a href="#">Municipal Agriculture Office</a><p>Latest: LGU Tunga Supports Farmers' Training Program <span>4 days ago</span></p></div></li>
+          <li><i class="fa-solid fa-leaf office-icon office-icon--green2"></i><div><a href="#">Municipal Environment Office</a><p>Latest: Tunga Conducts Community Clean-Up Drive <span>1 day ago</span></p></div></li>
+          <li><i class="fa-solid fa-drafting-compass office-icon office-icon--gray"></i><div><a href="#">Municipal Engineering Office</a><p>Latest: Road Maintenance on Poblacion&ndash;San Roque Rd. <span>2 days ago</span></p></div></li>
+          <li><i class="fa-solid fa-hand-holding-heart office-icon office-icon--red"></i><div><a href="#">Municipal Social Welfare Office</a><p>Latest: Distribution of Food Packs to 120 Families <span>3 days ago</span></p></div></li>
+          <li><i class="fa-solid fa-coins office-icon office-icon--navy2"></i><div><a href="#">Municipal Treasurer's Office</a><p>Latest: Reminder: Real Property Tax Payment <span>4 days ago</span></p></div></li>
+          <li><i class="fa-solid fa-clipboard-list office-icon office-icon--purple"></i><div><a href="#">Municipal Assessor's Office</a><p>Latest: Schedule of Real Property Assessment <span>5 days ago</span></p></div></li>
+        </ul>
+        <a href="{% url 'offices' %}" class="view-all offices-panel__viewall">View All Offices <i class="fa-solid fa-arrow-right"></i></a>
+      </div>
+
+      <div class="panel subscribe-panel">
+        <i class="fa-regular fa-envelope subscribe-panel__icon"></i>
+        <h3>Subscribe to Updates</h3>
+        <p>Get the latest announcements and updates delivered straight to your email.</p>
+        <input type="email" placeholder="Enter your email address">
+        <button class="btn btn-primary btn-block">Subscribe</button>
+      </div>
+    </aside>
+
+  </div>
+</section>
+
+{% endblock %}

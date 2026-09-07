@@ -1,0 +1,437 @@
+{% extends "representative_dashboard_base.html" %}
+{% load static %}
+{% block body_page %}announcements{% endblock %}
+{% block content %}
+
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')"><i class="fa-solid fa-bars"></i></button>
+        <div class="page-heading">
+          <h1>Announcements</h1>
+          <p>Create and manage office announcements</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-button" id="notifBellBtn" type="button" aria-haspopup="true" aria-expanded="false"><i class="fa-regular fa-bell"></i><span class="dot">3</span></button>
+        <div class="user-chip">
+          <img src="{% if rep.photo %}{{ rep.photo.url }}{% else %}https://i.pravatar.cc/64?img=15{% endif %}" alt="">
+          <div class="who"><div class="name">{{ rep.user.get_full_name|default:rep.user.username }}</div><div class="role">{{ rep.position|default:"Office Representative" }}</div></div>
+          <i class="fa-solid fa-chevron-down chev"></i>
+        </div>
+      </div>
+    </header>
+
+    <nav class="breadcrumbs">
+      <span>Dashboard</span><span class="sep">›</span><span class="current">Announcements</span>
+    </nav>
+
+    <main class="content">
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>All Announcements</h2>
+          <button class="btn btn-primary" id="open-create-announcement"><i class="fa-solid fa-plus"></i> Create Announcement</button>
+        </div>
+          <form method="get" class="filters-row">
+            <label class="field search" style="flex:1;">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" name="q" value="{{ current_q }}" placeholder="Search announcements..." onchange="this.form.submit()">
+            </label>
+
+            <select class="field" name="status" onchange="this.form.submit()">
+              <option value="" {% if current_status == "" %}selected{% endif %}>All Status</option>
+              <option value="published" {% if current_status == "published" %}selected{% endif %}>Published</option>
+              <option value="pending" {% if current_status == "pending" %}selected{% endif %}>Pending Approval</option>
+              <option value="draft" {% if current_status == "draft" %}selected{% endif %}>Draft</option>
+              <option value="returned" {% if current_status == "returned" %}selected{% endif %}>Returned</option>
+            </select>
+
+            <select class="field" name="sort" onchange="this.form.submit()">
+              <option value="newest" {% if current_sort == "newest" %}selected{% endif %}>Newest First</option>
+              <option value="oldest" {% if current_sort == "oldest" %}selected{% endif %}>Oldest First</option>
+            </select>
+          </form>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Title</th><th>Date Published</th><th>Views</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+              {% for a in announcements %}
+              <tr>
+                <td class="row-icon-name">
+                  <span class="row-thumb" style="background:var(--blue-50);color:var(--blue-600);"><i class="fa-solid fa-bullhorn"></i></span>
+                  <div><div class="cell-primary">{{ a.title }}</div><div class="cell-sub">{{ a.category|default:"—" }}</div></div>
+                </td>
+                <td>{{ a.date_posted|default:a.created_at|date:"F j, Y" }}<br><span class="cell-sub">{{ a.created_at|date:"g:i A" }}</span></td>
+                <td>{{ a.views }}</td>
+                <td>
+                  <span class="badge
+                    {% if a.status == 'published' %}badge-green
+                    {% elif a.status == 'pending' %}badge-amber
+                    {% elif a.status == 'draft' %}badge-gray
+                    {% else %}badge-red{% endif %}">
+                    {{ a.get_status_display }}
+                  </span>
+                </td>
+                <td>
+                    <div class="action-icons">
+                      <span class="ic" data-view-target="view-modal-{{ a.id }}"><i class="fa-regular fa-eye"></i></span>
+                      <span class="ic" data-edit-target="edit-modal-{{ a.id }}"><i class="fa-regular fa-pen-to-square"></i></span>
+                      <span class="ic" data-delete-target="delete-modal-{{ a.id }}"><i class="fa-regular fa-trash-can"></i></span>
+                    </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="5" style="text-align:center;color:var(--gray-400);">No announcements yet.</td></tr>
+              {% endfor %}
+            </tbody>
+
+          </table>
+        </div>
+          <div class="pagination">
+            <span>
+              {% if page_obj.paginator.count == 0 %}
+                No announcements found
+              {% else %}
+                Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} announcements
+              {% endif %}
+            </span>
+            <div class="page-nums">
+              {% if page_obj.has_previous %}
+                <a class="page-btn" href="?page={{ page_obj.previous_page_number }}&q={{ current_q }}&status={{ current_status }}&sort={{ current_sort }}"><i class="fa-solid fa-chevron-left"></i></a>
+              {% else %}
+                <span class="page-btn"><i class="fa-solid fa-chevron-left"></i></span>
+              {% endif %}
+
+              {% for num in page_obj.paginator.page_range %}
+                {% if num == page_obj.number %}
+                  <span class="page-btn active">{{ num }}</span>
+                {% else %}
+                  <a class="page-btn" href="?page={{ num }}&q={{ current_q }}&status={{ current_status }}&sort={{ current_sort }}">{{ num }}</a>
+                {% endif %}
+              {% endfor %}
+
+              {% if page_obj.has_next %}
+                <a class="page-btn" href="?page={{ page_obj.next_page_number }}&q={{ current_q }}&status={{ current_status }}&sort={{ current_sort }}"><i class="fa-solid fa-chevron-right"></i></a>
+              {% else %}
+                <span class="page-btn"><i class="fa-solid fa-chevron-right"></i></span>
+              {% endif %}
+            </div>
+          </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="create-announcement-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Create Announcement</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+   <div class="modal-body">
+
+  <form id="announcement-form" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <!-- Title -->
+    <div class="form-group">
+      <label class="form-label" for="ann-title">
+        Announcement Title <span class="req">*</span>
+      </label>
+      <input
+        class="form-input"
+        type="text"
+        id="ann-title"
+        name="title"
+        placeholder="e.g. Office Advisory"
+        required
+      >
+    </div>
+
+    <!-- Subtitle -->
+    <div class="form-group">
+      <label class="form-label" for="ann-sub">
+        Subtitle / Short Description
+      </label>
+      <input
+        class="form-input"
+        type="text"
+        id="ann-sub"
+        name="subtitle"
+        placeholder="Enter a brief description"
+      >
+    </div>
+
+    <!-- Category -->
+    <div class="form-group">
+      <label class="form-label" for="ann-cat">Category</label>
+      <select class="form-input" id="ann-cat" name="category" required>
+        <option value="">Select Category</option>
+        <option value="Community Engagement">Community Engagement</option>
+        <option value="Public Notice">Public Notice</option>
+        <option value="Office Advisory">Office Advisory</option>
+        <option value="Event">Event</option>
+        <option value="Government Service">Government Service</option>
+        <option value="Emergency">Emergency</option>
+      </select>
+    </div>
+
+    <!-- Full Content -->
+    <div class="form-group">
+      <label class="form-label" for="ann-desc">
+        Content / Full Description
+      </label>
+      <textarea
+        class="form-input form-textarea"
+        id="ann-desc"
+        name="content"
+        rows="5"
+        placeholder="Enter the complete announcement details..."
+      ></textarea>
+    </div>
+
+    <!-- Featured Image -->
+    <div class="form-group">
+      <label class="form-label" for="ann-image">Featured Image</label>
+
+      <input
+        class="form-input file-input"
+        type="file"
+        id="ann-image"
+        name="image"
+        accept="image/*"
+      >
+
+      <small class="form-help">
+        Accepted formats: JPG, PNG, or WEBP.
+      </small>
+    </div>
+
+    <!-- Author -->
+    <div class="form-group">
+      <label class="form-label" for="ann-auth">
+        Author / Posted By
+      </label>
+      <input
+        class="form-input"
+        type="text"
+        id="ann-auth"
+        name="author"
+        placeholder="e.g. Office of the Mayor"
+      >
+    </div>
+
+   <!-- Date Posted -->
+    <div class="form-group">
+      <label class="form-label" for="ann-exp">
+        Date Posted
+      </label>
+
+      <input
+        class="form-input"
+        type="date"
+        id="ann-date-posted"
+        name="date_posted"
+      >
+    </div>
+
+
+    <!-- Expiration Date -->
+    <div class="form-group">
+      <label class="form-label" for="ann-ud">
+        Expiration Date
+      </label>
+      <input
+        class="form-input"
+        type="datetime-local"
+        id="ann-expiration"
+        name="expiration_date"
+      >
+    </div>
+
+    <!-- Priority -->
+    <div class="form-group">
+      <label class="form-label" for="ann-prio">
+        Priority Level
+      </label>
+
+      <select class="form-input" id="ann-prio" name="priority">
+        <option value="Normal">Normal</option>
+        <option value="Low">Low</option>
+        <option value="High">High</option>
+        <option value="Urgent">Urgent</option>
+      </select>
+    </div>
+
+    <!-- Actions -->
+    <div class="modal-actions">
+      <button
+        type="button"
+        class="btn btn-secondary"
+        data-act="cancel"
+      >
+        Cancel
+      </button>
+
+      <button
+        type="submit"
+        class="btn btn-primary"
+      >
+        <i class="fa-solid fa-plus"></i>
+        Create Announcement
+      </button>
+    </div>
+
+  </form>
+  </div>
+</div>
+</div>
+
+
+
+{% for a in announcements %}
+<div class="modal-backdrop" id="edit-modal-{{ a.id }}">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Edit Announcement</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+
+      <form method="post" enctype="multipart/form-data" action="{% url 'office_dashboard:edit_announcement' a.id %}">
+        {% csrf_token %}
+
+        <div class="form-group">
+          <label class="form-label" for="ann-title-{{ a.id }}">Announcement Title <span class="req">*</span></label>
+          <input class="form-input" type="text" id="ann-title-{{ a.id }}" name="title" value="{{ a.title }}" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="ann-sub-{{ a.id }}">Subtitle / Short Description</label>
+          <input class="form-input" type="text" id="ann-sub-{{ a.id }}" name="subtitle" value="{{ a.subtitle }}">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="ann-cat-{{ a.id }}">Category</label>
+          <select class="form-input" id="ann-cat-{{ a.id }}" name="category">
+            <option value="">Select Category</option>
+            <option value="Community Engagement" {% if a.category == "Community Engagement" %}selected{% endif %}>Community Engagement</option>
+            <option value="Public Notice" {% if a.category == "Public Notice" %}selected{% endif %}>Public Notice</option>
+            <option value="Office Advisory" {% if a.category == "Office Advisory" %}selected{% endif %}>Office Advisory</option>
+            <option value="Event" {% if a.category == "Event" %}selected{% endif %}>Event</option>
+            <option value="Government Service" {% if a.category == "Government Service" %}selected{% endif %}>Government Service</option>
+            <option value="Emergency" {% if a.category == "Emergency" %}selected{% endif %}>Emergency</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="ann-desc-{{ a.id }}">Content / Full Description</label>
+          <textarea class="form-input form-textarea" id="ann-desc-{{ a.id }}" name="content" rows="5">{{ a.content }}</textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="ann-image-{{ a.id }}">Featured Image</label>
+          {% if a.image %}
+            <div style="margin-bottom:8px;"><img src="{{ a.image.url }}" style="width:96px;height:96px;border-radius:10px;object-fit:cover;"></div>
+          {% endif %}
+          <input class="form-input file-input" type="file" id="ann-image-{{ a.id }}" name="image" accept="image/*">
+          <small class="form-help">Leave empty to keep the current image.</small>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="ann-auth-{{ a.id }}">Author / Posted By</label>
+          <input class="form-input" type="text" id="ann-auth-{{ a.id }}" name="author" value="{{ a.author }}">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="ann-date-posted-{{ a.id }}">Date Posted</label>
+          <input class="form-input" type="date" id="ann-date-posted-{{ a.id }}" name="date_posted" value="{{ a.date_posted|date:'Y-m-d' }}">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="ann-expiration-{{ a.id }}">Expiration Date</label>
+          <input class="form-input" type="datetime-local" id="ann-expiration-{{ a.id }}" name="expiration_date" value="{{ a.expiration_date|date:'Y-m-d\TH:i' }}">
+        </div>
+
+        <!-- Last Updated intentionally not here — set automatically by the server on save -->
+
+        <div class="form-group">
+          <label class="form-label" for="ann-prio-{{ a.id }}">Priority Level</label>
+          <select class="form-input" id="ann-prio-{{ a.id }}" name="priority">
+            <option value="Normal" {% if a.priority == "Normal" %}selected{% endif %}>Normal</option>
+            <option value="Low" {% if a.priority == "Low" %}selected{% endif %}>Low</option>
+            <option value="High" {% if a.priority == "High" %}selected{% endif %}>High</option>
+            <option value="Urgent" {% if a.priority == "Urgent" %}selected{% endif %}>Urgent</option>
+          </select>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Changes</button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+{% for a in announcements %}
+<div class="modal-backdrop" id="view-modal-{{ a.id }}">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Announcement Details</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+
+      {% if a.image %}
+        <img src="{{ a.image.url }}" style="width:100%;max-height:220px;object-fit:cover;border-radius:10px;margin-bottom:16px;">
+      {% endif %}
+
+      <div class="modal-view-row"><span class="k">Title</span><span class="v">{{ a.title }}</span></div>
+      <div class="modal-view-row"><span class="k">Subtitle</span><span class="v">{{ a.subtitle|default:"—" }}</span></div>
+      <div class="modal-view-row"><span class="k">Category</span><span class="v">{{ a.category|default:"—" }}</span></div>
+      <div class="modal-view-row"><span class="k">Content</span><span class="v">{{ a.content|default:"—"|linebreaksbr }}</span></div>
+      <div class="modal-view-row"><span class="k">Author</span><span class="v">{{ a.author|default:"—" }}</span></div>
+      <div class="modal-view-row"><span class="k">Date Posted</span><span class="v">{{ a.date_posted|date:"F j, Y"|default:"—" }}</span></div>
+      <div class="modal-view-row"><span class="k">Expiration Date</span><span class="v">{{ a.expiration_date|date:"F j, Y, g:i A"|default:"—" }}</span></div>
+      <div class="modal-view-row"><span class="k">Last Updated</span><span class="v">{{ a.last_updated|date:"F j, Y, g:i A" }}</span></div>
+      <div class="modal-view-row"><span class="k">Priority</span><span class="v">{{ a.priority }}</span></div>
+      <div class="modal-view-row"><span class="k">Status</span><span class="v">{{ a.get_status_display }}</span></div>
+      <div class="modal-view-row"><span class="k">Views</span><span class="v">{{ a.views }}</span></div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-act="cancel">Close</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+{% for a in announcements %}
+<div class="modal-backdrop" id="delete-modal-{{ a.id }}">
+  <div class="modal-box" style="max-width:400px;">
+    <div class="modal-head">
+      <h3>Delete Announcement</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <p>Are you sure you want to permanently delete <strong>"{{ a.title }}"</strong>? This cannot be undone.</p>
+
+      <form method="post" action="{% url 'office_dashboard:delete_announcement' a.id %}">
+        {% csrf_token %}
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" style="background:#dc2626;border-color:#dc2626;">Yes, Delete</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+{% endblock %}

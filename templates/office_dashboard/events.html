@@ -1,0 +1,313 @@
+{% extends "representative_dashboard_base.html" %}
+{% load static %}
+{% block body_page %}events{% endblock %}
+
+{% block content %}
+
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')"><i class="fa-solid fa-bars"></i></button>
+        <div class="page-heading">
+          <h1>Events</h1>
+          <p>Schedule and manage upcoming municipal events</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-button" id="notifBellBtn" type="button" aria-haspopup="true" aria-expanded="false"><i class="fa-regular fa-bell"></i><span class="dot">3</span></button>
+        <div class="user-chip">
+          <img src="{% if rep.photo %}{{ rep.photo.url }}{% else %}https://i.pravatar.cc/64?img=15{% endif %}" alt="">
+          <div class="who"><div class="name">{{ rep.user.get_full_name|default:rep.user.username }}</div><div class="role">{{ rep.position|default:"Office Representative" }}</div></div>
+          <i class="fa-solid fa-chevron-down chev"></i>
+        </div>
+      </div>
+    </header>
+
+    <nav class="breadcrumbs">
+      <span>Dashboard</span><span class="sep">›</span><span class="current">Events</span>
+    </nav>
+
+    <main class="content">
+
+      <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);">
+        <div class="stat-card"><div class="top"><span class="stat-icon blue"><i class="fa-regular fa-calendar"></i></span></div><div class="stat-value">3</div><div class="stat-label">Upcoming Events</div></div>
+        <div class="stat-card"><div class="top"><span class="stat-icon green"><i class="fa-solid fa-calendar-check"></i></span></div><div class="stat-value">14</div><div class="stat-label">Completed This Year</div></div>
+        <div class="stat-card"><div class="top"><span class="stat-icon amber"><i class="fa-solid fa-hourglass-half"></i></span></div><div class="stat-value">1</div><div class="stat-label">Pending Approval</div></div>
+      </div>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>All Events</h2>
+          <button class="btn btn-primary" id="open-add-event"><i class="fa-solid fa-plus"></i> Add Event</button>
+        </div>
+          <form method="get" class="filters-row">
+            <label class="field search" style="flex:1;">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" name="q" value="{{ current_q }}" placeholder="Search events..." onchange="this.form.submit()">
+            </label>
+
+            <select class="field" name="status" onchange="this.form.submit()">
+              <option value="" {% if current_status == "" %}selected{% endif %}>All Status</option>
+              <option value="pending" {% if current_status == "pending" %}selected{% endif %}>Pending Approval</option>
+              <option value="published" {% if current_status == "published" %}selected{% endif %}>Published</option>
+              <option value="completed" {% if current_status == "completed" %}selected{% endif %}>Completed</option>
+              <option value="returned" {% if current_status == "returned" %}selected{% endif %}>Returned</option>
+            </select>
+
+            <select class="field" name="when" onchange="this.form.submit()">
+              <option value="upcoming" {% if current_when == "upcoming" %}selected{% endif %}>Upcoming</option>
+              <option value="past" {% if current_when == "past" %}selected{% endif %}>Past</option>
+              <option value="all" {% if current_when == "all" %}selected{% endif %}>All</option>
+            </select>
+          </form>
+          <div class="panel-body" style="padding-top:6px;">
+            {% for e in events %}
+            <div class="list-row">
+              <span class="event-date" {% if e.status == 'completed' %}style="background:var(--gray-100);color:var(--gray-500);"{% endif %}>
+                <span class="mon">{{ e.event_date|date:"M"|upper }}</span><span class="day">{{ e.event_date|date:"d" }}</span>
+              </span>
+              <div style="flex:1;">
+                <div class="list-title">{{ e.title }}</div>
+                <div class="list-meta">
+                  <i class="fa-regular fa-clock"></i> {{ e.start_time|time:"g:i A" }}{% if e.end_time %} – {{ e.end_time|time:"g:i A" }}{% endif %}
+                  &nbsp; · &nbsp; <i class="fa-solid fa-location-dot"></i> {{ e.location|default:"—" }}
+                </div>
+              </div>
+              <span class="badge {% if e.status == 'published' %}badge-green{% elif e.status == 'pending' %}badge-amber{% elif e.status == 'completed' %}badge-gray{% else %}badge-red{% endif %}">
+                {{ e.get_status_display }}
+              </span>
+              <div class="action-icons">
+                <span class="ic" data-view-target="view-event-modal-{{ e.id }}"><i class="fa-regular fa-eye"></i></span>
+                <span class="ic" data-edit-target="edit-event-modal-{{ e.id }}"><i class="fa-regular fa-pen-to-square"></i></span>
+                <span class="ic" data-delete-target="delete-event-modal-{{ e.id }}"><i class="fa-regular fa-trash-can"></i></span>
+              </div>
+            </div>
+            {% empty %}
+            <p style="text-align:center;color:var(--gray-400);padding:24px;">No events yet.</p>
+            {% endfor %}
+          </div>
+
+          <div class="pagination">
+            <span>
+              {% if page_obj.paginator.count == 0 %}
+                No events found
+              {% else %}
+                Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} events
+              {% endif %}
+            </span>
+            <div class="page-nums">
+              {% if page_obj.has_previous %}
+                <a class="page-btn" href="?page={{ page_obj.previous_page_number }}&q={{ current_q }}&status={{ current_status }}&when={{ current_when }}"><i class="fa-solid fa-chevron-left"></i></a>
+              {% else %}
+                <span class="page-btn"><i class="fa-solid fa-chevron-left"></i></span>
+              {% endif %}
+
+              {% for num in page_obj.paginator.page_range %}
+                {% if num == page_obj.number %}
+                  <span class="page-btn active">{{ num }}</span>
+                {% else %}
+                  <a class="page-btn" href="?page={{ num }}&q={{ current_q }}&status={{ current_status }}&when={{ current_when }}">{{ num }}</a>
+                {% endif %}
+              {% endfor %}
+
+              {% if page_obj.has_next %}
+                <a class="page-btn" href="?page={{ page_obj.next_page_number }}&q={{ current_q }}&status={{ current_status }}&when={{ current_when }}"><i class="fa-solid fa-chevron-right"></i></a>
+              {% else %}
+                <span class="page-btn"><i class="fa-solid fa-chevron-right"></i></span>
+              {% endif %}
+            </div>
+          </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+<div class="modal-backdrop" id="add-event-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Add Event</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label" for="ev-title">Event Title <span class="req">*</span></label>
+          <input class="form-input" type="text" id="ev-title" name="title" placeholder="e.g. Barangay Sports Fest" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="ev-category">Event Category</label>
+          <input class="form-input" type="text" id="ev-category" name="category" placeholder="e.g. Sports">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="ev-description">Description</label>
+          <textarea class="form-input form-textarea" id="ev-description" name="description" rows="4" placeholder="Details about the event..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="ev-date">Event Date</label>
+          <input class="form-input" type="date" id="ev-date" name="event_date">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="ev-start">Start Time</label>
+          <input class="form-input" type="time" id="ev-start" name="start_time">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="ev-end">End Time</label>
+          <input class="form-input" type="time" id="ev-end" name="end_time">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="ev-location">Location / Venue</label>
+          <input class="form-input" type="text" id="ev-location" name="location" placeholder="e.g. Municipal Grounds">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="ev-organizer">Organizer</label>
+          <input class="form-input" type="text" id="ev-organizer" name="organizer" placeholder="e.g. SB Office">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="ev-contact-person">Contact Person</label>
+          <input class="form-input" type="text" id="ev-contact-person" name="contact_person" placeholder="e.g. Juan Dela Cruz">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="ev-contact-info">Contact Information</label>
+          <input class="form-input" type="text" id="ev-contact-info" name="contact_info" placeholder="e.g. 0917-xxx-xxxx">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="ev-poster">Event Poster / Image</label>
+          <input class="form-input" type="file" id="ev-poster" name="poster" accept="image/*">
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add Event</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% for e in events %}
+<div class="modal-backdrop" id="view-event-modal-{{ e.id }}">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Event Details</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+
+      {% if e.poster %}
+        <img src="{{ e.poster.url }}" style="width:100%;max-height:220px;object-fit:cover;border-radius:10px;margin-bottom:16px;">
+      {% endif %}
+
+      <div class="modal-view-row"><span class="k">Title</span><span class="v">{{ e.title }}</span></div>
+      <div class="modal-view-row"><span class="k">Category</span><span class="v">{{ e.category|default:"—" }}</span></div>
+      <div class="modal-view-row"><span class="k">Description</span><span class="v">{{ e.description|default:"—"|linebreaksbr }}</span></div>
+      <div class="modal-view-row"><span class="k">Event Date</span><span class="v">{{ e.event_date|date:"F j, Y"|default:"—" }}</span></div>
+      <div class="modal-view-row"><span class="k">Start Time</span><span class="v">{{ e.start_time|time:"g:i A"|default:"—" }}</span></div>
+      <div class="modal-view-row"><span class="k">End Time</span><span class="v">{{ e.end_time|time:"g:i A"|default:"—" }}</span></div>
+      <div class="modal-view-row"><span class="k">Location</span><span class="v">{{ e.location|default:"—" }}</span></div>
+      <div class="modal-view-row"><span class="k">Organizer</span><span class="v">{{ e.organizer|default:"—" }}</span></div>
+      <div class="modal-view-row"><span class="k">Contact Person</span><span class="v">{{ e.contact_person|default:"—" }}</span></div>
+      <div class="modal-view-row"><span class="k">Contact Info</span><span class="v">{{ e.contact_info|default:"—" }}</span></div>
+      <div class="modal-view-row"><span class="k">Status</span><span class="v">{{ e.get_status_display }}</span></div>
+      <div class="modal-view-row"><span class="k">Last Updated</span><span class="v">{{ e.last_updated|date:"F j, Y, g:i A" }}</span></div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-act="cancel">Close</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="edit-event-modal-{{ e.id }}">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Edit Event</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form method="post" enctype="multipart/form-data" action="{% url 'office_dashboard:edit_event' e.id %}">
+        {% csrf_token %}
+
+        <div class="form-group">
+          <label class="form-label" for="ev-title-{{ e.id }}">Event Title <span class="req">*</span></label>
+          <input class="form-input" type="text" id="ev-title-{{ e.id }}" name="title" value="{{ e.title }}" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="ev-category-{{ e.id }}">Event Category</label>
+          <input class="form-input" type="text" id="ev-category-{{ e.id }}" name="category" value="{{ e.category }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="ev-description-{{ e.id }}">Description</label>
+          <textarea class="form-input form-textarea" id="ev-description-{{ e.id }}" name="description" rows="4">{{ e.description }}</textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="ev-date-{{ e.id }}">Event Date</label>
+          <input class="form-input" type="date" id="ev-date-{{ e.id }}" name="event_date" value="{{ e.event_date|date:'Y-m-d' }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="ev-start-{{ e.id }}">Start Time</label>
+          <input class="form-input" type="time" id="ev-start-{{ e.id }}" name="start_time" value="{{ e.start_time|time:'H:i' }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="ev-end-{{ e.id }}">End Time</label>
+          <input class="form-input" type="time" id="ev-end-{{ e.id }}" name="end_time" value="{{ e.end_time|time:'H:i' }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="ev-location-{{ e.id }}">Location / Venue</label>
+          <input class="form-input" type="text" id="ev-location-{{ e.id }}" name="location" value="{{ e.location }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="ev-organizer-{{ e.id }}">Organizer</label>
+          <input class="form-input" type="text" id="ev-organizer-{{ e.id }}" name="organizer" value="{{ e.organizer }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="ev-contact-person-{{ e.id }}">Contact Person</label>
+          <input class="form-input" type="text" id="ev-contact-person-{{ e.id }}" name="contact_person" value="{{ e.contact_person }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="ev-contact-info-{{ e.id }}">Contact Information</label>
+          <input class="form-input" type="text" id="ev-contact-info-{{ e.id }}" name="contact_info" value="{{ e.contact_info }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="ev-poster-{{ e.id }}">Event Poster / Image</label>
+          {% if e.poster %}
+            <div style="margin-bottom:8px;"><img src="{{ e.poster.url }}" style="width:96px;height:96px;border-radius:10px;object-fit:cover;"></div>
+          {% endif %}
+          <input class="form-input" type="file" id="ev-poster-{{ e.id }}" name="poster" accept="image/*">
+          <small class="form-help">Leave empty to keep the current poster.</small>
+        </div>
+
+        <!-- Last Updated intentionally not here — set automatically by the server on save -->
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="delete-event-modal-{{ e.id }}">
+  <div class="modal-box" style="max-width:400px;">
+    <div class="modal-head">
+      <h3>Delete Event</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <p>Are you sure you want to permanently delete <strong>"{{ e.title }}"</strong>? This cannot be undone.</p>
+
+      <form method="post" action="{% url 'office_dashboard:delete_event' e.id %}">
+        {% csrf_token %}
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" style="background:#dc2626;border-color:#dc2626;">Yes, Delete</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+{% endblock %}

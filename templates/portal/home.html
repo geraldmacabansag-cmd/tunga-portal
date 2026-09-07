@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+Home | Digital Governance Portal
+{% endblock %}
+
+{% block content %}
+
+<section class="hero">
+  <img src="{% static 'images/lgu_bldg.jpeg' %}" alt="Tunga Municipal Hall" class="hero__bg">
+  <div class="hero__scrim"></div>
+  <div class="hero__content container">
+    <div class="hero__card">
+      <p class="hero__script">Building a Better</p>
+      <h1>Tunga</h1>
+      <p class="hero__sub">Your government is here to serve you. Transparent. Accessible. Reliable.</p>
+      <div class="hero__actions">
+        <a href="#services" class="btn btn-primary"><i class="fa-solid fa-border-all"></i> Discover Services</a>
+        <a href="{% url 'announcement' %}" class="btn btn-outline"><i class="fa-solid fa-bullhorn"></i> View Announcements</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="services-strip" id="services">
+  <div class="container services-strip__row">
+    <a href="#" class="service-link"><i class="fa-solid fa-file-lines"></i> Business Permits</a>
+    <a href="#" class="service-link"><i class="fa-solid fa-camera"></i> Tourism and Culture</a>
+    <a href="#" class="service-link"><i class="fa-solid fa-hand-holding-heart"></i> Financial Assistance</a>
+    <a href="#" class="service-link"><i class="fa-solid fa-briefcase"></i> Job Opportunities</a>
+    <a href="#" class="service-link"><i class="fa-solid fa-id-card"></i> Cedula</a>
+  </div>
+</section>
+
+<section class="emergency">
+  <div class="container">
+    <h2><i class="fa-solid fa-phone"></i> Emergency Contact Information</h2>
+    <div class="emergency__grid">
+      <div class="emergency__card emergency__card--red">
+        <i class="fa-solid fa-truck-medical"></i>
+        <h3>MDRRMO</h3>
+        <p>TNT: 0981 551 9256<br>Radio Frequency: 158.710</p>
+        <a href="tel:09815519256" class="btn emergency__btn emergency__btn--red">CALL</a>
+      </div>
+      <div class="emergency__card emergency__card--navy">
+        <i class="fa-solid fa-user-shield"></i>
+        <h3>Police Station</h3>
+        <p>TM: 0906 286 3422<br>PMAJ Jenyzen M. Veloso, Officer-in-Charge</p>
+        <a href="tel:09062863422" class="btn emergency__btn emergency__btn--navy">CALL</a>
+      </div>
+      <div class="emergency__card emergency__card--teal">
+        <i class="fa-solid fa-heart-pulse"></i>
+        <h3>RHU</h3>
+        <p>GLOBE: 0915 763 2405</p>
+        <a href="tel:09157632405" class="btn emergency__btn emergency__btn--teal">CALL</a>
+      </div>
+      <div class="emergency__card emergency__card--orange">
+        <i class="fa-solid fa-fire"></i>
+        <h3>Fire Station</h3>
+        <p>SMART: 0985 619 3119<br>SFO4 Noel V. Permejo, OIC&ndash;Municipal Fire Marshal</p>
+        <a href="tel:09856193119" class="btn emergency__btn emergency__btn--orange">CALL</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="home-feed">
+  <div class="container home-feed__grid">
+
+    <div class="panel feed-panel">
+      <div class="section-title--row">
+        <h2 class="section-title" style="margin-bottom:0;padding-bottom:0;">Latest Announcements</h2>
+        <a href="{% url 'announcement' %}" class="view-all">View All</a>
+      </div>
+      <ul class="feed-list">
+        <li class="feed-item">
+          <div class="feed-item__date">JUL<strong>17</strong>2026</div>
+          <div class="feed-item__body">
+            <span class="badge-new">NEW</span>
+            <a href="{% url 'announcement' %}" class="feed-item__title">Discussion for the Development of the Municipal Website</a>
+            <p>The public is invited to attend the meeting between the heads of the municipal offices and the students of EVSU-CC regarding the development of the Official Website of the Municipality of Tunga.</p>
+          </div>
+        </li>
+        <li class="feed-item">
+          <div class="feed-item__date">JUN<strong>12</strong>2026</div>
+          <div class="feed-item__body">
+            <a href="{% url 'announcement' %}" class="feed-item__title">Barangay Clean-Up Drive</a>
+            <p>Residents are encouraged to join the community clean-up drive this Saturday to promote a cleaner and healthier environment.</p>
+          </div>
+        </li>
+        <li class="feed-item">
+          <div class="feed-item__date">JUN<strong>17</strong>2026</div>
+          <div class="feed-item__body">
+            <a href="{% url 'announcement' %}" class="feed-item__title">Free Medical Consultation</a>
+            <p>The Municipal Health Office will provide free medical check-ups and basic consultations for all residents at the Municipal Hall.</p>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div class="panel feed-panel">
+      <div class="section-title--row">
+        <h2 class="section-title" style="margin-bottom:0;padding-bottom:0;">Upcoming Events</h2>
+        <a href="announcements.html" class="view-all">View All</a>
+      </div>
+      <div class="event-highlight">
+        <div class="event-highlight__date">
+          <div class="event-highlight__daterange">JUL<br>15-16<br>2026</div>
+          <div>
+            <p class="event-highlight__title">LGBTQIA+ Exhibition Basketball Game</p>
+            <p class="event-highlight__meta"><i class="fa-regular fa-clock"></i> 5:00 PM &nbsp; <i class="fa-solid fa-location-dot"></i> LGU Grounds, Tunga, Leyte</p>
+          </div>
+        </div>
+        <img src="{% static 'images/event-banner.svg' %}" alt="LGBTQIA+ Exhibition Basketball Game 2026 poster" class="event-highlight__img">
+      </div>
+    </div>
+
+    <div class="panel feed-panel">
+      <div class="section-title--row">
+        <h2 class="section-title" style="margin-bottom:0;padding-bottom:0;">News</h2>
+        <a href="announcements.html" class="view-all">View All</a>
+      </div>
+      <div class="news-item">
+        <img src="{% static 'images/photo-cleanup.svg' %}" alt="Community clean-up drive volunteers">
+        <div>
+          <p class="news-item__date">Published on: July 9, 2026, 5:00 PM</p>
+          <a href="#" class="news-item__title">Municipality Conducts Community Clean-Up Drive</a>
+          <p class="news-item__excerpt">The Municipality of Tunga successfully conducted a community-wide clean-up drive with the participation of municipal employees, barangay officials, volunteers, and residents. The activity aimed to promote environmental awareness and encourage active community involvement.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="gallery-section">
+  <div class="container">
+    <div class="section-title--row">
+      <h2 class="section-title" style="margin-bottom:0;padding-bottom:0;">Photo Gallery</h2>
+      <a href="#" class="view-all">View All</a>
+    </div>
+    <div class="gallery-strip">
+      <button class="gallery-nav gallery-nav--prev" aria-label="Previous photo"><i class="fa-solid fa-arrow-left"></i></button>
+      <div class="gallery-strip__track">
+        <img src="{% static 'images/hero-building.svg' %}" alt="Tunga Municipal Hall front view">
+        <img src="{% static 'images/photo-flagceremony.svg' %}" alt="Flag raising ceremony">
+        <img src="{% static 'images/photo-meeting.svg' %}" alt="Mayor delivering a speech">
+        <img src="{% static 'images/photo-training.svg' %}" alt="Municipal employees group photo">
+        <img src="{% static 'images/photo-health.svg' %}" alt="Residents during a community event">
+      </div>
+      <button class="gallery-nav gallery-nav--next" aria-label="Next photo"><i class="fa-solid fa-arrow-right"></i></button>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

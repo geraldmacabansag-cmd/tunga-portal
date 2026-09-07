@@ -1,0 +1,185 @@
+{% extends "representative_dashboard_base.html" %}
+{% load static %}
+{% block body_page %}office-profile{% endblock %}
+
+{% block content %}
+
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')"><i class="fa-solid fa-bars"></i></button>
+        <div class="page-heading">
+          <h1>Office Profile</h1>
+          <p>Manage how your office appears on the public website</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-button" id="notifBellBtn" type="button" aria-haspopup="true" aria-expanded="false"><i class="fa-regular fa-bell"></i><span class="dot">3</span></button>
+        <div class="user-chip">
+          <img src="{% if rep.photo %}{{ rep.photo.url }}{% else %}https://i.pravatar.cc/64?img=15{% endif %}" alt="">
+          <div class="who"><div class="name">{{ rep.user.get_full_name|default:rep.user.username }}</div><div class="role">{{ rep.position|default:"Office Representative" }}</div></div>
+          <i class="fa-solid fa-chevron-down chev"></i>
+        </div>
+      </div>
+    </header>
+
+    <nav class="breadcrumbs">
+      <span>Dashboard</span><span class="sep">›</span><span class="current">Office Profile</span>
+    </nav>
+
+    <main class="content">
+
+      <div class="grid-3">
+          <section class="panel">
+            <div class="panel-header">
+              <h2>Office Information</h2>
+              <button class="btn btn-secondary btn-sm" id="edit-office-profile-btn"><i class="fa-solid fa-pen-to-square"></i> Edit Office Profile</button>
+            </div>
+
+            <!-- VIEW MODE -->
+            <div class="panel-body" id="profile-view-mode">
+            <div class="avatar-upload" style="margin-bottom:22px;text-align:center;">
+              {% if office.logo %}
+                <img src="{{ office.logo.url }}" alt="" style="width:180px;height:180px;object-fit:cover;display:block;margin:0 auto;">
+              {% else %}
+                <img src="" alt="" style="visibility:hidden;width:180px;height:180px;display:block;margin:0 auto;">
+                <div class="form-hint">No logo uploaded yet.</div>
+              {% endif %}
+            </div>
+
+              <div class="info-row"><span class="k">Office Name</span><span class="v">{{ office.name|default:"None" }}</span></div>
+              <div class="info-row" style="align-items:flex-start;">
+                <span class="k" style="flex:0 0 170px;white-space:nowrap;">About Office</span>
+                <span class="v" style="flex:1;text-align:right;max-height:110px;overflow-y:auto;line-height:1.6;padding-left:8px;display:block;">{{ office.about|default:"None" }}</span>
+              </div>
+
+              <div class="info-row" style="align-items:flex-start;">
+                <span class="k" style="flex:0 0 170px;white-space:nowrap;">Office Description</span>
+                <span class="v" style="flex:1;text-align:right;max-height:110px;overflow-y:auto;line-height:1.6;padding-left:8px;display:block;">{{ office.description|default:"None" }}</span>
+              </div>
+              <div class="info-row"><span class="k">Office Head</span><span class="v">{{ office.head_name|default:"None" }}</span></div>
+              <div class="info-row"><span class="k">Position Title</span><span class="v">{{ office.position_title|default:"None" }}</span></div>
+              <div class="info-row"><span class="k">Office Hours</span><span class="v">{{ office.office_hours|default:"None" }}</span></div>
+              <div class="info-row"><span class="k">Location</span><span class="v">{{ office.location|default:"None" }}</span></div>
+              <div class="info-row"><span class="k">Email</span><span class="v">{{ office.email|default:"None" }}</span></div>
+              <div class="info-row" style="border-bottom:none;"><span class="k">Telephone</span><span class="v">{{ office.telephone|default:"None" }}</span></div>
+            </div>
+
+            <!-- EDIT MODE -->
+            <div class="panel-body" id="profile-edit-mode" style="display:none;">
+              <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                <div class="avatar-upload" style="margin-bottom:22px;text-align:center;">
+                  {% if office.logo %}
+                    <img src="{{ office.logo.url }}" alt="" style="width:180px;height:180px;object-fit:cover;display:block;margin:0 auto 12px;">
+                  {% else %}
+                    <img src="" alt="" onerror="this.style.visibility='hidden'" style="width:180px;height:180px;display:block;margin:0 auto 12px;">
+                  {% endif %}
+                  <div>
+                    <input type="file" name="logo" accept="image/*" class="form-input file-input">
+                    <div class="form-hint">PNG or JPG, at least 256×256px. Leave empty to keep the current logo.</div>
+                  </div>
+                </div>
+
+                <div class="form-grid">
+                  <div class="form-group full">
+                    <label class="form-label">Office Name <span class="req">*</span></label>
+                    <input class="form-input" type="text" name="name" value="{{ office.name }}" required>
+                  </div>
+                  <div class="form-group full">
+                    <label class="form-label">About Office</label>
+                    <textarea class="form-textarea" name="about">{{ office.about }}</textarea>
+                  </div>
+                  <div class="form-group full">
+                    <label class="form-label">Office Description</label>
+                    <textarea class="form-textarea" name="description">{{ office.description }}</textarea>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Office Head</label>
+                    <input class="form-input" type="text" name="head_name" value="{{ office.head_name }}">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Position Title</label>
+                    <input class="form-input" type="text" name="position_title" value="{{ office.position_title }}">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Office Hours</label>
+                    <input class="form-input" type="text" name="office_hours" value="{{ office.office_hours }}">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Location</label>
+                    <input class="form-input" type="text" name="location" value="{{ office.location }}">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <div class="input-icon-wrap"><i class="fa-regular fa-envelope"></i><input class="form-input" type="email" name="email" value="{{ office.email }}"></div>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Telephone</label>
+                    <div class="input-icon-wrap"><i class="fa-solid fa-phone"></i><input class="form-input" type="text" name="telephone" value="{{ office.telephone }}"></div>
+                  </div>
+                </div>
+
+                <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:6px;">
+                  <button type="button" class="btn btn-secondary" id="cancel-edit-office-profile">Cancel</button>
+                  <button type="submit" class="btn btn-primary"><i class="fa-regular fa-floppy-disk"></i> Save Changes</button>
+                </div>
+              </form>
+            </div>
+          </section>
+
+        <div class="stack">
+          <section class="panel">
+            <div class="panel-header"><h2>Services Offered</h2><button class="btn btn-secondary btn-sm" id="open-add-service"><i class="fa-solid fa-plus"></i> Add</button></div>
+            <div class="panel-body">
+              <div class="info-row"><span class="k"><i class="fa-solid fa-hands-holding-circle" style="color:var(--blue-600);margin-right:8px;"></i>Public Assistance</span></div>
+              <div class="info-row"><span class="k"><i class="fa-solid fa-file-signature" style="color:var(--blue-600);margin-right:8px;"></i>Endorsement</span></div>
+              <div class="info-row"><span class="k"><i class="fa-solid fa-comments" style="color:var(--blue-600);margin-right:8px;"></i>Complaints &amp; Inquiries</span></div>
+              <div class="info-row"><span class="k"><i class="fa-solid fa-star" style="color:var(--blue-600);margin-right:8px;"></i>Special Requests</span></div>
+              <div class="info-row"><span class="k"><i class="fa-solid fa-bullhorn" style="color:var(--blue-600);margin-right:8px;"></i>Proclamations</span></div>
+              <div class="info-row" style="border-bottom:none;"><span class="k"><i class="fa-regular fa-calendar-check" style="color:var(--blue-600);margin-right:8px;"></i>Appointments</span></div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header"><h2>Visibility</h2></div>
+            <div class="panel-body">
+              <div class="toggle-row">
+                <div><strong>Show on public website</strong><span class="d">Office page is visible to residents</span></div>
+                <label class="toggle"><input type="checkbox" checked><span class="slider"></span></label>
+              </div>
+              <div class="toggle-row">
+                <div><strong>Accept online appointments</strong><span class="d">Residents can request appointment slots</span></div>
+                <label class="toggle"><input type="checkbox" checked><span class="slider"></span></label>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+<div class="modal-backdrop" id="add-service-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Add Service</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form>
+        <div class="form-group">
+          <label class="form-label" for="svc-name">Service Name <span class="req">*</span></label>
+          <input class="form-input" type="text" id="svc-name" name="name" placeholder="e.g. Senior Citizen ID Issuance" required>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends "representative_dashboard_base.html" %}
+{% load static %}
+{% block body_page %}announcements{% endblock %}
+{% block content %}
+
+<div class="main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')"><i class="fa-solid fa-bars"></i></button>
+      <div class="page-heading">
+        <h1>Delete Announcement</h1>
+        <p>This action cannot be undone</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="panel" style="max-width:520px;margin:24px;padding:24px;">
+    <p>Are you sure you want to permanently delete <strong>"{{ announcement.title }}"</strong>?</p>
+
+    <form method="post">
+      {% csrf_token %}
+      <div class="modal-actions">
+        <a href="{% url 'office_dashboard:rep_announce' %}" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary" style="background:#dc2626;border-color:#dc2626;">Yes, Delete</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,127 @@
+{% extends "representative_dashboard_base.html" %}
+{% load static %}
+{% block body_page %}my-account{% endblock %}
+
+{% block content %}
+
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')"><i class="fa-solid fa-bars"></i></button>
+        <div class="page-heading">
+          <h1>My Account</h1>
+          <p>Manage your profile and notification preferences</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-button" id="notifBellBtn" type="button" aria-haspopup="true" aria-expanded="false"><i class="fa-regular fa-bell"></i><span class="dot">3</span></button>
+        <div class="user-chip">
+          <img src="{% if rep.photo %}{{ rep.photo.url }}{% else %}{% static 'images/icon/profile_logo.jpeg' %}{% endif %}" alt="">
+          <div class="who"><div class="name">{{ rep.user.get_full_name|default:rep.user.username }}</div><div class="role">{{ rep.position|default:"Office Representative" }}</div></div>
+          <i class="fa-solid fa-chevron-down chev"></i>
+        </div>
+      </div>
+    </header>
+
+    <nav class="breadcrumbs">
+      <span>Dashboard</span><span class="sep">›</span><span class="current">My Account</span>
+    </nav>
+
+    <main class="content">
+
+      <div class="grid-3">
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Personal Information</h2>
+        <button class="btn btn-secondary btn-sm" id="edit-account-btn"><i class="fa-solid fa-pen-to-square"></i> Edit Account</button>
+      </div>
+
+      <!-- VIEW MODE -->
+      <div class="panel-body" id="account-view-mode">
+        <div class="avatar-upload" style="margin-bottom:22px;text-align:center;">
+          <img src="{% if rep.photo %}{{ rep.photo.url }}{% else %}{% static 'images/icon/profile_logo.jpeg' %}{% endif %}" alt="" style="width:96px;height:96px;object-fit:cover;display:block;margin:0 auto;">
+        </div>
+        <div class="info-row"><span class="k">Full Name</span><span class="v">{{ rep.user.get_full_name|default:"None" }}</span></div>
+        <div class="info-row"><span class="k">Position</span><span class="v">{{ rep.position|default:"None" }}</span></div>
+        <div class="info-row"><span class="k">Email Address</span><span class="v">{{ rep.user.email|default:"None" }}</span></div>
+        <div class="info-row"><span class="k">Mobile Number</span><span class="v">{{ rep.mobile_number|default:"None" }}</span></div>
+        <div class="info-row" style="border-bottom:none;"><span class="k">Assigned Office</span><span class="v">{{ rep.office.name|default:"None" }}</span></div>
+      </div>
+
+      <!-- EDIT MODE -->
+      <div class="panel-body" id="account-edit-mode" style="display:none;">
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+
+          <div class="avatar-upload" style="margin-bottom:22px;text-align:center;">
+            <img id="account-photo-preview" src="{% if rep.photo %}{{ rep.photo.url }}{% else %}{% static 'images/avatar-male-1.svg' %}{% endif %}" alt="" style="width:96px;height:96px;object-fit:cover;display:block;margin:0 auto 12px;">
+            <div>
+              <label class="btn btn-secondary btn-sm" style="cursor:pointer;">
+                <i class="fa-solid fa-upload"></i> Change Photo
+                <input type="file" name="photo" id="account-photo-input" accept="image/*" style="display:none;">
+              </label>
+              <div class="form-hint">JPG or PNG, at least 200×200px.</div>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Full Name</label>
+              <input class="form-input" type="text" name="full_name" value="{{ rep.user.get_full_name }}">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Position</label>
+              <input class="form-input" type="text" name="position" value="{{ rep.position }}">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email Address</label>
+              <div class="input-icon-wrap"><i class="fa-regular fa-envelope"></i><input class="form-input" type="email" name="email" value="{{ rep.user.email }}" ></div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Mobile Number</label>
+              <div class="input-icon-wrap"><i class="fa-solid fa-phone"></i><input class="form-input" type="tel" name="mobile_number" maxlength="11" minlength="11" pattern="[0-9]{11}" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')" value="{{ rep.mobile_number }}" ></div>
+            </div>
+            <div class="form-group full">
+              <label class="form-label">Assigned Office</label>
+              <input class="form-input" type="text" value="{{ rep.office.name }}" disabled style="background:var(--gray-50);color:var(--gray-500);">
+              <div class="form-hint">Contact the Super Admin to change your assigned office.</div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:10px;justify-content:flex-end;">
+            <button type="button" class="btn btn-secondary" id="cancel-edit-account">Cancel</button>
+            <button type="submit" class="btn btn-primary"><i class="fa-regular fa-floppy-disk"></i> Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+        <div class="stack">
+          <section class="panel">
+            <div class="panel-header"><h2>Notification Preferences</h2></div>
+            <div class="panel-body">
+              <div class="toggle-row"><div><strong>Content approvals</strong><span class="d">When your submission is reviewed</span></div><label class="toggle"><input type="checkbox" checked><span class="slider"></span></label></div>
+              <div class="toggle-row"><div><strong>New messages</strong><span class="d">Direct messages from Super Admin</span></div><label class="toggle"><input type="checkbox" checked><span class="slider"></span></label></div>
+              <div class="toggle-row"><div><strong>Weekly summary</strong><span class="d">Views and activity digest</span></div><label class="toggle"><input type="checkbox"><span class="slider"></span></label></div>
+              <div class="toggle-row"><div><strong>System announcements</strong><span class="d">Platform updates and downtime</span></div><label class="toggle"><input type="checkbox" checked><span class="slider"></span></label></div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header"><h2>Account</h2></div>
+            <div class="panel-body">
+              <div class="info-row"><span class="k">Role</span><span class="v">Office Representative</span></div>
+              <div class="info-row"><span class="k">Status</span><span class="v"><span class="badge badge-green">Online</span></span></div>
+              <div class="info-row"><span class="k">Member Since</span><span class="v">{{ rep.user.date_joined|date:"M d, Y" }}</span></div>
+              <div class="info-row" style="border-bottom:none;"><span class="k">Last Login</span><span class="v">{{ rep.user.last_login|date:"M d, Y, g:i A"|default:"—" }}</span></div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+
+{% endblock %}

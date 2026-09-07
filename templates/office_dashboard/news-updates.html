@@ -1,0 +1,307 @@
+{% extends "representative_dashboard_base.html" %}
+{% load static %}
+{% block body_page %}news-updates{% endblock %}
+
+{% block content %}
+
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')"><i class="fa-solid fa-bars"></i></button>
+        <div class="page-heading">
+          <h1>News &amp; Updates</h1>
+          <p>Publish office news and community stories</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-button" id="notifBellBtn" type="button" aria-haspopup="true" aria-expanded="false"><i class="fa-regular fa-bell"></i><span class="dot">3</span></button>
+        <div class="user-chip">
+          <img src="{% if rep.photo %}{{ rep.photo.url }}{% else %}https://i.pravatar.cc/64?img=15{% endif %}" alt="">
+          <div class="who"><div class="name">{{ rep.user.get_full_name|default:rep.user.username }}</div><div class="role">{{ rep.position|default:"Office Representative" }}</div></div>
+          <i class="fa-solid fa-chevron-down chev"></i>
+        </div>
+      </div>
+    </header>
+
+    <nav class="breadcrumbs">
+      <span>Dashboard</span><span class="sep">›</span><span class="current">News &amp; Updates</span>
+    </nav>
+
+    <main class="content">
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>All News &amp; Updates</h2>
+          <button class="btn btn-primary" id="open-add-news"><i class="fa-solid fa-plus"></i> Add News</button>
+        </div>
+          <form method="get" class="filters-row">
+            <label class="field search" style="flex:1;">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" name="q" value="{{ current_q }}" placeholder="Search news..." onchange="this.form.submit()">
+            </label>
+
+            <select class="field" name="status" onchange="this.form.submit()">
+              <option value="" {% if current_status == "" %}selected{% endif %}>All Status</option>
+              <option value="pending" {% if current_status == "pending" %}selected{% endif %}>Pending Approval</option>
+              <option value="published" {% if current_status == "published" %}selected{% endif %}>Published</option>
+              <option value="draft" {% if current_status == "draft" %}selected{% endif %}>Draft</option>
+              <option value="returned" {% if current_status == "returned" %}selected{% endif %}>Returned</option>
+            </select>
+
+            <select class="field" name="sort" onchange="this.form.submit()">
+              <option value="newest" {% if current_sort == "newest" %}selected{% endif %}>Newest First</option>
+              <option value="oldest" {% if current_sort == "oldest" %}selected{% endif %}>Oldest First</option>
+            </select>
+          </form>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Story</th><th>Date Published</th><th>Views</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+              {% for n in news_items %}
+              <tr>
+                <td class="row-icon-name">
+                  {% if n.image %}
+                    <img src="{{ n.image.url }}" style="width:44px;height:44px;border-radius:9px;object-fit:cover;">
+                  {% else %}
+                    <span class="row-thumb" style="background:var(--blue-50);color:var(--blue-600);"><i class="fa-solid fa-newspaper"></i></span>
+                  {% endif %}
+                  <div><div class="cell-primary">{{ n.title }}</div><div class="cell-sub">{{ n.summary|default:"—" }}</div></div>
+                </td>
+                <td>{{ n.date_published|default:n.created_at|date:"F j, Y" }}<br><span class="cell-sub">{{ n.created_at|date:"g:i A" }}</span></td>
+                <td>{{ n.views }}</td>
+                <td>
+                  <span class="badge {% if n.status == 'published' %}badge-green{% elif n.status == 'pending' %}badge-amber{% else %}badge-gray{% endif %}">
+                    {{ n.get_status_display }}
+                  </span>
+                </td>
+                <td><div class="action-icons">
+                  <span class="ic" data-view-target="view-news-modal-{{ n.id }}"><i class="fa-regular fa-eye"></i></span>
+                  <span class="ic" data-edit-target="edit-news-modal-{{ n.id }}"><i class="fa-regular fa-pen-to-square"></i></span>
+                  <span class="ic" data-delete-target="delete-news-modal-{{ n.id }}"><i class="fa-regular fa-trash-can"></i></span>
+                </div></td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="5" style="text-align:center;color:var(--gray-400);">No news yet.</td></tr>
+              {% endfor %}
+            </tbody>
+
+          </table>
+        </div>
+        <div class="pagination">
+          <span>
+            {% if page_obj.paginator.count == 0 %}
+              No stories found
+            {% else %}
+              Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} stories
+            {% endif %}
+          </span>
+          <div class="page-nums">
+            {% if page_obj.has_previous %}
+              <a class="page-btn" href="?page={{ page_obj.previous_page_number }}&q={{ current_q }}&status={{ current_status }}&sort={{ current_sort }}"><i class="fa-solid fa-chevron-left"></i></a>
+            {% else %}
+              <span class="page-btn"><i class="fa-solid fa-chevron-left"></i></span>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+              {% if num == page_obj.number %}
+                <span class="page-btn active">{{ num }}</span>
+              {% else %}
+                <a class="page-btn" href="?page={{ num }}&q={{ current_q }}&status={{ current_status }}&sort={{ current_sort }}">{{ num }}</a>
+              {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+              <a class="page-btn" href="?page={{ page_obj.next_page_number }}&q={{ current_q }}&status={{ current_status }}&sort={{ current_sort }}"><i class="fa-solid fa-chevron-right"></i></a>
+            {% else %}
+              <span class="page-btn"><i class="fa-solid fa-chevron-right"></i></span>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+<div class="modal-backdrop" id="add-news-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Add News</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form id="news-form" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        {% for message in messages %}
+          <div class="toast-static {{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+
+        <div class="form-group">
+          <label class="form-label" for="news-title">News Headline <span class="req">*</span></label>
+          <input class="form-input" type="text" id="news-title" name="title" placeholder="e.g. New Health Program Launched" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="news-cat">Category</label>
+          <input class="form-input" type="text" id="news-cat" name="category" placeholder="e.g. Community">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="news-summary">Summary</label>
+          <input class="form-input" type="text" id="news-summary" name="summary" placeholder="One-line summary">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="news-content">Full News Content</label>
+          <textarea class="form-input form-textarea" id="news-content" name="content" rows="5" placeholder="Full story..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="news-image">Featured Image</label>
+          <input class="form-input" type="file" id="news-image" name="image" accept="image/*">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="news-author">Author / Reporter</label>
+          <input class="form-input" type="text" id="news-author" name="author" placeholder="e.g. Juan Dela Cruz">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="news-date">Date Published</label>
+          <input class="form-input" type="date" id="news-date" name="date_published">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="news-source">Source</label>
+          <input class="form-input" type="text" id="news-source" name="source" placeholder="e.g. Municipal Information Office">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="news-tags">Tags / Keywords</label>
+          <input class="form-input" type="text" id="news-tags" name="tags" placeholder="e.g. health, community">
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add News</button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+</div>
+
+{% for n in news_items %}
+<div class="modal-backdrop" id="view-news-modal-{{ n.id }}">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>News Details</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+
+      {% if n.image %}
+        <img src="{{ n.image.url }}" style="width:100%;max-height:220px;object-fit:cover;border-radius:10px;margin-bottom:16px;">
+      {% endif %}
+
+      <div class="modal-view-row"><span class="k">Headline</span><span class="v">{{ n.title }}</span></div>
+      <div class="modal-view-row"><span class="k">Category</span><span class="v">{{ n.category|default:"—" }}</span></div>
+      <div class="modal-view-row"><span class="k">Summary</span><span class="v">{{ n.summary|default:"—" }}</span></div>
+      <div class="modal-view-row"><span class="k">Content</span><span class="v">{{ n.content|default:"—"|linebreaksbr }}</span></div>
+      <div class="modal-view-row"><span class="k">Author</span><span class="v">{{ n.author|default:"—" }}</span></div>
+      <div class="modal-view-row"><span class="k">Date Published</span><span class="v">{{ n.date_published|date:"F j, Y"|default:"—" }}</span></div>
+      <div class="modal-view-row"><span class="k">Last Updated</span><span class="v">{{ n.last_updated|date:"F j, Y, g:i A" }}</span></div>
+      <div class="modal-view-row"><span class="k">Source</span><span class="v">{{ n.source|default:"—" }}</span></div>
+      <div class="modal-view-row"><span class="k">Tags</span><span class="v">{{ n.tags|default:"—" }}</span></div>
+      <div class="modal-view-row"><span class="k">Status</span><span class="v">{{ n.get_status_display }}</span></div>
+      <div class="modal-view-row"><span class="k">Views</span><span class="v">{{ n.views }}</span></div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-act="cancel">Close</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+{% for n in news_items %}
+<div class="modal-backdrop" id="edit-news-modal-{{ n.id }}">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Edit News</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form method="post" enctype="multipart/form-data" action="{% url 'office_dashboard:edit_news' n.id %}">
+        {% csrf_token %}
+
+        <div class="form-group">
+          <label class="form-label" for="news-title-{{ n.id }}">News Headline <span class="req">*</span></label>
+          <input class="form-input" type="text" id="news-title-{{ n.id }}" name="title" value="{{ n.title }}" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="news-cat-{{ n.id }}">Category</label>
+          <input class="form-input" type="text" id="news-cat-{{ n.id }}" name="category" value="{{ n.category }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="news-summary-{{ n.id }}">Summary</label>
+          <input class="form-input" type="text" id="news-summary-{{ n.id }}" name="summary" value="{{ n.summary }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="news-content-{{ n.id }}">Full News Content</label>
+          <textarea class="form-input form-textarea" id="news-content-{{ n.id }}" name="content" rows="5">{{ n.content }}</textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="news-image-{{ n.id }}">Featured Image</label>
+          {% if n.image %}
+            <div style="margin-bottom:8px;"><img src="{{ n.image.url }}" style="width:96px;height:96px;border-radius:10px;object-fit:cover;"></div>
+          {% endif %}
+          <input class="form-input" type="file" id="news-image-{{ n.id }}" name="image" accept="image/*">
+          <small class="form-help">Leave empty to keep the current image.</small>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="news-author-{{ n.id }}">Author / Reporter</label>
+          <input class="form-input" type="text" id="news-author-{{ n.id }}" name="author" value="{{ n.author }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="news-date-{{ n.id }}">Date Published</label>
+          <input class="form-input" type="date" id="news-date-{{ n.id }}" name="date_published" value="{{ n.date_published|date:'Y-m-d' }}">
+        </div>
+
+        <!-- Last Updated intentionally not here — set automatically by the server on save -->
+
+        <div class="form-group">
+          <label class="form-label" for="news-source-{{ n.id }}">Source</label>
+          <input class="form-input" type="text" id="news-source-{{ n.id }}" name="source" value="{{ n.source }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="news-tags-{{ n.id }}">Tags / Keywords</label>
+          <input class="form-input" type="text" id="news-tags-{{ n.id }}" name="tags" value="{{ n.tags }}">
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+{% for n in news_items %}
+<div class="modal-backdrop" id="delete-news-modal-{{ n.id }}">
+  <div class="modal-box" style="max-width:400px;">
+    <div class="modal-head">
+      <h3>Delete News</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <p>Are you sure you want to permanently delete <strong>"{{ n.title }}"</strong>? This cannot be undone.</p>
+
+      <form method="post" action="{% url 'office_dashboard:delete_news' n.id %}">
+        {% csrf_token %}
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" style="background:#dc2626;border-color:#dc2626;">Yes, Delete</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+{% endblock %}

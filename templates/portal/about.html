@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+Home | Digital Governance Portal
+{% endblock %}
+
+{% block content %}
+
+<section class="page-hero">
+  <img src="{% static 'images/lgu_bldg.jpeg' %}" alt="Tunga Municipal Hall" class="page-hero__bg">
+  <div class="page-hero__scrim"></div>
+  <div class="page-hero__inner">
+    <div class="breadcrumb"><a href="{% url 'home' %}">Home</a> <i class="fa-solid fa-chevron-right" style="font-size:.65rem"></i> <span class="current">About Us</span></div>
+    <h1>About Us</h1>
+    <p>The Municipality of Tunga is committed to good governance, transparent leadership, and the continuous progress and well-being of our people.</p>
+  </div>
+</section>
+
+<section class="vmv-wrap">
+  <div class="container">
+    <div class="panel vmv-panel">
+      <div class="vmv-col">
+        <i class="fa-solid fa-binoculars vmv-icon"></i>
+        <h3>Our Vision</h3>
+        <p>A progressive, resilient and peaceful municipality where every Tunganon enjoys a better quality of life.</p>
+      </div>
+      <div class="vmv-col">
+        <i class="fa-solid fa-bullseye vmv-icon"></i>
+        <h3>Our Mission</h3>
+        <p>To deliver efficient and responsive public services, promote sustainable development, and empower our communities through participatory governance.</p>
+      </div>
+      <div class="vmv-col">
+        <i class="fa-solid fa-gem vmv-icon"></i>
+        <h3>Our Core Values</h3>
+        <ul class="values-list">
+          <li><i class="fa-solid fa-circle-check"></i> Integrity</li>
+          <li><i class="fa-solid fa-circle-check"></i> Transparency</li>
+          <li><i class="fa-solid fa-circle-check"></i> Accountability</li>
+          <li><i class="fa-solid fa-circle-check"></i> Excellence</li>
+          <li><i class="fa-solid fa-circle-check"></i> Service to Others</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="history-wrap">
+  <div class="container">
+    <div class="panel history-panel">
+      <h2 class="section-title">Our History</h2>
+      <div class="history-grid">
+        <div class="history-text">
+          <p>The Municipality of Tunga was formerly a barrio of the Municipality of Barugo. Through Executive Order No. 266, signed by President Elpidio Quirino on September 26, 1949, Tunga was officially created as an independent municipality.</p>
+          <p>Since its creation, Tunga has continued to develop while preserving its agricultural heritage, close-knit community, and local traditions.</p>
+          <img src="{% static 'images/hero-building.svg' %}" alt="Historic Tunga welcome arch" class="history-text__img">
+        </div>
+        <ul class="timeline">
+          <li>
+            <span class="timeline__year">1949</span>
+            <p>Executive Order No. 266 was signed on September 26, 1949, creating Tunga as an independent municipality.</p>
+          </li>
+          <li>
+            <span class="timeline__year">1950s</span>
+            <p>Establishment of the municipal government and initial development of public services.</p>
+          </li>
+          <li>
+            <span class="timeline__year">1970s</span>
+            <p>Expansion of infrastructure, schools, and health services in the municipality.</p>
+          </li>
+          <li>
+            <span class="timeline__year">1990s</span>
+            <p>Growth of agriculture and local industries, improving the livelihood of residents.</p>
+          </li>
+          <li>
+            <span class="timeline__year">2000s</span>
+            <p>Strengthening of governance and community participation in local development.</p>
+          </li>
+          <li>
+            <span class="timeline__year timeline__year--present">Present</span>
+            <p>Tunga continues to progress towards a more resilient, inclusive, and sustainable future.</p>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="officials-wrap">
+  <div class="container">
+    <div class="panel officials-panel">
+      <h2 class="section-title">Our Officials</h2>
+      <div class="officials-strip">
+        <div class="official-card">
+          <img src="{% static 'images/avatar-male-1.svg' %}" alt="Hon. Pedro D. Dela Cruz, Municipal Mayor">
+          <p class="official-card__name">Hon. Pedro D. Dela Cruz</p>
+          <p class="official-card__role">Municipal Mayor</p>
+        </div>
+        <div class="official-card">
+          <img src="{% static 'images/avatar-female-1.svg' %}" alt="Hon. Maria L. Santos, Vice Mayor">
+          <p class="official-card__name">Hon. Maria L. Santos</p>
+          <p class="official-card__role">Vice Mayor</p>
+        </div>
+        <div class="official-card">
+          <img src="{% static 'images/avatar-male-2.svg' %}" alt="Hon. Juanito R. Reyes, SB Member">
+          <p class="official-card__name">Hon. Juanito R. Reyes</p>
+          <p class="official-card__role">SB Member</p>
+        </div>
+        <div class="official-card">
+          <img src="{% static 'images/avatar-female-2.svg' %}" alt="Hon. Liza M. Alegre, SB Member">
+          <p class="official-card__name">Hon. Liza M. Alegre</p>
+          <p class="official-card__role">SB Member</p>
+        </div>
+        <div class="official-card">
+          <img src="{% static 'images/avatar-male-3.svg' %}" alt="Hon. Ricardo P. Torres, SB Member">
+          <p class="official-card__name">Hon. Ricardo P. Torres</p>
+          <p class="official-card__role">SB Member</p>
+        </div>
+        <button class="gallery-nav officials-strip__next" aria-label="More officials"><i class="fa-solid fa-arrow-right"></i></button>
+      </div>
+      <div class="officials-panel__cta">
+        <a href="#" class="btn btn-outline"><i class="fa-solid fa-users"></i> View All Officials</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="glance-wrap">
+  <div class="container">
+    <div class="panel glance-panel">
+      <h2 class="section-title">The Municipality at a Glance</h2>
+      <div class="glance-grid">
+        <div class="glance-item">
+          <i class="fa-solid fa-hand-holding-heart"></i>
+          <div><strong>34,567+</strong><span>Population (2025 PSA Estimate)</span></div>
+        </div>
+        <div class="glance-item">
+          <i class="fa-solid fa-map-location-dot"></i>
+          <div><strong>78.45 km&sup2;</strong><span>Total Land Area</span></div>
+        </div>
+        <div class="glance-item">
+          <i class="fa-solid fa-church"></i>
+          <div><strong>24</strong><span>Barangays</span></div>
+        </div>
+        <div class="glance-item">
+          <i class="fa-solid fa-house-chimney"></i>
+          <div><strong>8,652+</strong><span>Households</span></div>
+        </div>
+        <div class="glance-item">
+          <i class="fa-regular fa-calendar-check"></i>
+          <div><strong>Established</strong><span>September 26, 1949 (E.O. No. 266)</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

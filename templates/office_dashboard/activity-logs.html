@@ -1,0 +1,75 @@
+{% extends "representative_dashboard_base.html" %}
+{% load static %}
+
+
+{% block content %}
+
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')"><i class="fa-solid fa-bars"></i></button>
+        <div class="page-heading">
+          <h1>Activity Logs</h1>
+          <p>A record of actions taken on your office account</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-button" id="notifBellBtn" type="button" aria-haspopup="true" aria-expanded="false"><i class="fa-regular fa-bell"></i><span class="dot">3</span></button>
+        <div class="user-chip">
+          <img src="{% if rep.photo %}{{ rep.photo.url }}{% else %}https://i.pravatar.cc/64?img=15{% endif %}" alt="">
+          <div class="who"><div class="name">{{ rep.user.get_full_name|default:rep.user.username }}</div><div class="role">{{ rep.position|default:"Office Representative" }}</div></div>
+          <i class="fa-solid fa-chevron-down chev"></i>
+        </div>
+      </div>
+    </header>
+
+    <nav class="breadcrumbs">
+      <span>Dashboard</span><span class="sep">›</span><span class="current">Activity Logs</span>
+    </nav>
+
+    <main class="content">
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Activity Logs</h2>
+          <select class="field" style="font-size:12.5px;"><option>Last 7 Days</option><option>Last 30 Days</option><option>This Year</option></select>
+        </div>
+        <div class="activity-day-label">Today · July 17, 2026</div>
+          <div class="activity-item">
+            <span class="activity-icon" style="background:var(--green-600);"><i class="fa-solid fa-check"></i></span>
+            <div><div class="activity-title">Announcement approved</div><div class="activity-desc">"Mayor's Listening Session" was approved and published by Super Admin</div></div>
+            <span class="activity-time">10:45 AM</span>
+          </div>
+          <div class="activity-item">
+            <span class="activity-icon" style="background:var(--blue-600);"><i class="fa-regular fa-pen-to-square"></i></span>
+            <div><div class="activity-title">Service updated</div><div class="activity-desc">Updated process steps for "Business Permit Application"</div></div>
+            <span class="activity-time">9:30 AM</span>
+          </div>
+          <div class="activity-item">
+            <span class="activity-icon" style="background:#7c4fe0;"><i class="fa-solid fa-upload"></i></span>
+            <div><div class="activity-title">Form uploaded</div><div class="activity-desc">Uploaded "Certificate of Indigency" for approval</div></div>
+            <span class="activity-time">8:52 AM</span>
+          </div>
+        <div class="activity-day-label">Yesterday · July 16, 2026</div>
+          <div class="activity-item">
+            <span class="activity-icon" style="background:var(--blue-600);"><i class="fa-solid fa-bullhorn"></i></span>
+            <div><div class="activity-title">Announcement submitted</div><div class="activity-desc">Submitted "Flag Raising Ceremony" for approval</div></div>
+            <span class="activity-time">4:20 PM</span>
+          </div>
+          <div class="activity-item">
+            <span class="activity-icon" style="background:#12b3c4;"><i class="fa-regular fa-image"></i></span>
+            <div><div class="activity-title">Photos uploaded</div><div class="activity-desc">Added 6 photos to "Tunga Summer Festival 2026" album</div></div>
+            <span class="activity-time">2:05 PM</span>
+          </div>
+          <div class="activity-item">
+            <span class="activity-icon" style="background:var(--gray-500);"><i class="fa-solid fa-right-to-bracket"></i></span>
+            <div><div class="activity-title">Signed in</div><div class="activity-desc">Logged in from Chrome on Windows</div></div>
+            <span class="activity-time">8:01 AM</span>
+          </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+{% endblock %}

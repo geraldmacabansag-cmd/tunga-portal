@@ -1,0 +1,219 @@
+{% extends "representative_dashboard_base.html" %}
+{% load static %}
+
+
+{% block content %}
+
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')"><i class="fa-solid fa-bars"></i></button>
+        <div class="page-heading">
+          <h1>Service Details</h1>
+          <p>Manage and edit service information</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-button" id="notifBellBtn" type="button" aria-haspopup="true" aria-expanded="false"><i class="fa-regular fa-bell"></i><span class="dot">3</span></button>
+        <div class="user-chip">
+          <img src="{% if rep.photo %}{{ rep.photo.url }}{% else %}https://i.pravatar.cc/64?img=15{% endif %}" alt="">
+          <div class="who"><div class="name">{{ rep.user.get_full_name|default:rep.user.username }}</div><div class="role">{{ rep.position|default:"Office Representative" }}</div></div>
+          <i class="fa-solid fa-chevron-down chev"></i>
+        </div>
+      </div>
+    </header>
+
+    <nav class="breadcrumbs">
+      <span>Dashboard</span><span class="sep">›</span><span>Services</span><span class="sep">›</span><span class="current">Business Permit Application</span>
+    </nav>
+
+    <main class="content">
+
+
+      <section class="panel" style="margin-bottom:18px;">
+        <div class="panel-body" style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;">
+          <div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+              <h2 style="margin:0;font-size:19px;">Business Permit Application</h2>
+              <span class="badge badge-green">Published</span>
+            </div>
+            <p style="margin:0;font-size:13px;color:var(--gray-500);max-width:620px;">This service allows individuals or businesses to apply for a business permit to operate legally within the Municipality of Tunga.</p>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;flex-shrink:0;">
+            <span style="font-size:11.5px;color:var(--gray-400);">Last updated: May 16, 2026 2:45 PM</span>
+            <button class="btn btn-secondary"><i class="fa-regular fa-eye"></i> Preview</button>
+            <button class="btn btn-primary"><i class="fa-regular fa-floppy-disk"></i> Save Changes</button>
+          </div>
+        </div>
+
+        <div class="subtabs">
+          <span class="subtab active"><i class="fa-solid fa-diagram-project"></i> Service Process</span>
+          <span class="subtab"><i class="fa-regular fa-file-lines"></i> Requirements</span>
+          <span class="subtab"><i class="fa-solid fa-sack-dollar"></i> Fees</span>
+          <span class="subtab"><i class="fa-solid fa-landmark"></i> Office Information</span>
+          <span class="subtab"><i class="fa-solid fa-gear"></i> Settings</span>
+        </div>
+      </section>
+
+      <div class="grid-3">
+        <div class="stack">
+          <!-- Process steps -->
+          <section class="panel">
+            <div class="panel-header"><h2>Process Steps</h2><button class="btn btn-secondary btn-sm"><i class="fa-solid fa-plus"></i> Add Step</button></div>
+            <div class="panel-body">
+              <div class="step-row">
+                <span class="step-num">1</span>
+                <div style="flex:1;"><div class="step-title">Get Application Form</div><div class="step-desc">Obtain the Business Permit Application Form from the Mayor's Office or download it online.</div></div>
+                <div class="step-actions"><span class="tag">Form Available</span><span class="ic" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:var(--gray-400);"><i class="fa-regular fa-pen-to-square"></i></span><span class="ic" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:var(--gray-400);"><i class="fa-regular fa-trash-can"></i></span></div>
+              </div>
+              <div class="step-row">
+                <span class="step-num">2</span>
+                <div style="flex:1;"><div class="step-title">Prepare Requirements</div><div class="step-desc">Prepare and secure all the required documents needed for the application.</div></div>
+                <div class="step-actions"><span class="ic" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:var(--gray-400);"><i class="fa-regular fa-pen-to-square"></i></span><span class="ic" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:var(--gray-400);"><i class="fa-regular fa-trash-can"></i></span></div>
+              </div>
+              <div class="step-row">
+                <span class="step-num">3</span>
+                <div style="flex:1;"><div class="step-title">Submit Application</div><div class="step-desc">Submit the accomplished application form along with the complete requirements to the Mayor's Office.</div></div>
+                <div class="step-actions"><span class="ic" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:var(--gray-400);"><i class="fa-regular fa-pen-to-square"></i></span><span class="ic" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:var(--gray-400);"><i class="fa-regular fa-trash-can"></i></span></div>
+              </div>
+              <div class="step-row">
+                <span class="step-num">4</span>
+                <div style="flex:1;"><div class="step-title">Assessment and Evaluation</div><div class="step-desc">The Mayor's Office will assess and evaluate your application and documents.</div></div>
+                <div class="step-actions"><span class="tag">Pay Fees</span><span class="ic" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:var(--gray-400);"><i class="fa-regular fa-pen-to-square"></i></span><span class="ic" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:var(--gray-400);"><i class="fa-regular fa-trash-can"></i></span></div>
+              </div>
+              <div class="step-row">
+                <span class="step-num">5</span>
+                <div style="flex:1;"><div class="step-title">Approval</div><div class="step-desc">Once approved, the Business Permit will be issued.</div></div>
+                <div class="step-actions"><span class="ic" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:var(--gray-400);"><i class="fa-regular fa-pen-to-square"></i></span><span class="ic" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:var(--gray-400);"><i class="fa-regular fa-trash-can"></i></span></div>
+              </div>
+              <div class="step-row">
+                <span class="step-num">6</span>
+                <div style="flex:1;"><div class="step-title">Release of Business Permit</div><div class="step-desc">Claim your Business Permit at the Mayor's Office.</div></div>
+                <div class="step-actions"><span class="ic" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:var(--gray-400);"><i class="fa-regular fa-pen-to-square"></i></span><span class="ic" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:var(--gray-400);"><i class="fa-regular fa-trash-can"></i></span></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Important reminders -->
+          <section class="panel">
+            <div class="panel-header"><h2>Important Reminders</h2><button class="btn btn-secondary btn-sm"><i class="fa-regular fa-pen-to-square"></i> Edit Reminders</button></div>
+            <div class="panel-body">
+              <ul class="reminder-list">
+                <li>Make sure all documents are complete and updated.</li>
+                <li>Applications with incomplete requirements will not be accepted.</li>
+                <li>Processing time may vary depending on the nature of the business.</li>
+              </ul>
+            </div>
+          </section>
+        </div>
+
+        <div class="stack">
+          <!-- Downloadable forms -->
+          <section class="panel">
+            <div class="panel-header"><h2>Downloadable Forms</h2><button class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Add Form</button></div>
+            <div class="panel-body">
+              <div class="attachment">
+                <span class="af"><i class="fa-solid fa-file-pdf"></i></span>
+                <div><div class="an">Business Permit Application Form</div><div class="as">PDF · 245 KB</div></div>
+                <span class="badge badge-green" style="margin-left:auto;">Published</span>
+              </div>
+              <div class="attachment">
+                <span class="af"><i class="fa-solid fa-file-pdf"></i></span>
+                <div><div class="an">Barangay Clearance Form</div><div class="as">PDF · 210 KB</div></div>
+                <span class="badge badge-green" style="margin-left:auto;">Published</span>
+              </div>
+              <div class="attachment">
+                <span class="af"><i class="fa-solid fa-file-pdf"></i></span>
+                <div><div class="an">Occupancy / Location Clearance</div><div class="as">PDF · 198 KB</div></div>
+                <span class="badge badge-green" style="margin-left:auto;">Published</span>
+              </div>
+              <a href="#" class="link" style="display:inline-block;margin-top:12px;font-size:12.5px;font-weight:700;color:var(--blue-600);">View all forms →</a>
+            </div>
+          </section>
+
+          <!-- Service information -->
+          <section class="panel">
+            <div class="panel-header"><h2>Service Information</h2><button class="btn btn-secondary btn-sm">Edit</button></div>
+            <div class="panel-body">
+              <div class="info-row"><span class="k">Office</span><span class="v">Mayor's Office</span></div>
+              <div class="info-row"><span class="k">Category</span><span class="v">Permits</span></div>
+              <div class="info-row"><span class="k">Availability</span><span class="v">Monday - Friday, 8:00 AM - 5:00 PM</span></div>
+              <div class="info-row"><span class="k">Processing Time</span><span class="v">3 - 5 Working Days</span></div>
+            </div>
+          </section>
+
+          <!-- Status -->
+          <section class="panel">
+            <div class="panel-header"><h2>Status</h2><button class="btn btn-secondary btn-sm">Edit</button></div>
+            <div class="panel-body">
+              <div class="info-row"><span class="k">Current Status</span><span class="v"><span class="badge badge-green">Published</span></span></div>
+              <div class="info-row"><span class="k">Visibility</span><span class="v">Public</span></div>
+              <div class="info-row"><span class="k">Date Published</span><span class="v">May 10, 2026 9:30 AM</span></div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <div class="footer-note"><i class="fa-solid fa-circle-info"></i>&nbsp; Changes you make will be saved as draft. Don't forget to save your changes.</div>
+
+    
+    </main>
+  </div>
+</div>
+<div class="modal-backdrop" id="add-step-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Add Process Step</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form>
+        <div class="form-group">
+          <label class="form-label" for="step-title">Step Title <span class="req">*</span></label>
+          <input class="form-input" type="text" id="step-title" name="title" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="step-desc">Step Description</label>
+          <textarea class="form-textarea" id="step-desc" name="desc"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add Step</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<div class="modal-backdrop" id="add-service-form-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Add Downloadable Form</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form>
+        <div class="form-group">
+          <label class="form-label" for="svc-form-title">Form Name <span class="req">*</span></label>
+          <input class="form-input" type="text" id="svc-form-title" name="title" placeholder="e.g. Certificate of Indigency" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="svc-form-size">File Size</label>
+          <input class="form-input" type="text" id="svc-form-size" name="size" placeholder="e.g. 200 KB" value="200 KB">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="svc-form-status">Status</label>
+          <select class="form-input" id="svc-form-status" name="status">
+            <option>Published</option>
+            <option>Pending Approval</option>
+          </select>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add Form</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

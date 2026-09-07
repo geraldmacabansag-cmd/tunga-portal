@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+Home | Digital Governance Portal
+{% endblock %}
+
+{% block content %}
+
+<section class="page-hero">
+  <img src="{% static 'images/lgu_bldg.jpeg' %}" alt="Tunga Municipal Hall" class="page-hero__bg">
+  <div class="page-hero__scrim"></div>
+  <div class="page-hero__inner">
+    <div class="breadcrumb"><a href="{% url 'home' %}">Home</a> <i class="fa-solid fa-chevron-right" style="font-size:.65rem"></i> <span class="current">History</span></div>
+    <h1>Our History</h1>
+    <p>From a quiet barrio of Barugo to an independent municipality &mdash; the story of Tunga's growth and resilience.</p>
+  </div>
+</section>
+
+<section class="history-wrap">
+  <div class="container">
+    <div class="panel history-panel">
+      <h2 class="section-title">The Founding of Tunga</h2>
+      <div class="history-grid">
+        <div class="history-text">
+          <p>The Municipality of Tunga was formerly a barrio of the Municipality of Barugo. Through Executive Order No. 266, signed by President Elpidio Quirino on September 26, 1949, Tunga was officially created as an independent municipality.</p>
+          <p>Since its creation, Tunga has continued to develop while preserving its agricultural heritage, close-knit community, and local traditions. Generations of Tunganons have built the municipality's institutions, from its first barangay councils to its modern local government offices.</p>
+          <img src="images/hero-building.svg" alt="Historic Tunga welcome arch" class="history-text__img">
+        </div>
+        <ul class="timeline">
+          <li>
+            <span class="timeline__year">1949</span>
+            <p>Executive Order No. 266 was signed on September 26, 1949, creating Tunga as an independent municipality.</p>
+          </li>
+          <li>
+            <span class="timeline__year">1950s</span>
+            <p>Establishment of the municipal government and initial development of public services.</p>
+          </li>
+          <li>
+            <span class="timeline__year">1970s</span>
+            <p>Expansion of infrastructure, schools, and health services in the municipality.</p>
+          </li>
+          <li>
+            <span class="timeline__year">1990s</span>
+            <p>Growth of agriculture and local industries, improving the livelihood of residents.</p>
+          </li>
+          <li>
+            <span class="timeline__year">2000s</span>
+            <p>Strengthening of governance and community participation in local development.</p>
+          </li>
+          <li>
+            <span class="timeline__year timeline__year--present">Present</span>
+            <p>Tunga continues to progress towards a more resilient, inclusive, and sustainable future.</p>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="history-mayors-wrap">
+  <div class="container">
+    <div class="panel history-mayors-panel">
+      <h2 class="section-title">List of Municipal Mayors</h2>
+      <ul class="mayors-list">
+        <li><span class="mayors-list__term">1949 &ndash; 1955</span><span class="mayors-list__name">Hon. Fabian A. Ledesma</span></li>
+        <li><span class="mayors-list__term">1956 &ndash; 1967</span><span class="mayors-list__name">Hon. Cirilo M. Bacus</span></li>
+        <li><span class="mayors-list__term">1968 &ndash; 1980</span><span class="mayors-list__name">Hon. Ramon T. Villanueva</span></li>
+        <li><span class="mayors-list__term">1981 &ndash; 1998</span><span class="mayors-list__name">Hon. Salvador P. Enriquez</span></li>
+        <li><span class="mayors-list__term">1998 &ndash; 2013</span><span class="mayors-list__name">Hon. Corazon D. Mendoza</span></li>
+        <li><span class="mayors-list__term">2013 &ndash; 2022</span><span class="mayors-list__name">Hon. Bartolome S. Reyes</span></li>
+        <li><span class="mayors-list__term">2022 &ndash; Present</span><span class="mayors-list__name">Hon. Pedro D. Dela Cruz</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

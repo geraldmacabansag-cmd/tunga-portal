@@ -1,0 +1,42 @@
+/* ==========================================================================
+   HISTORY PAGE STYLES (extends aboutus.css for the timeline/history panel)
+   ========================================================================== */
+
+.history-wrap {
+  margin-top: -40px;
+  position: relative;
+  z-index: 5;
+}
+
+.history-mayors-wrap {
+  padding-bottom: 30px;
+}
+
+.history-mayors-panel {
+  padding: 32px 36px;
+}
+
+.mayors-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 0.92rem;
+}
+
+.mayors-list li:last-child {
+  border-bottom: none;
+}
+
+.mayors-list__term {
+  color: var(--text-muted);
+  font-weight: 600;
+  width: 140px;
+  flex-shrink: 0;
+}
+
+.mayors-list__name {
+  color: var(--navy);
+  font-weight: 600;
+  flex: 1;
+}

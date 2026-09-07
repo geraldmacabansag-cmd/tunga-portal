@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <circle cx="60" cy="60" r="58" fill="#fdf6e3" stroke="#f4c531" stroke-width="4"/>
+  <circle cx="60" cy="60" r="48" fill="#0d3a86" stroke="#e0332f" stroke-width="2"/>
+  <path d="M60 20 L72 45 L100 48 L78 66 L86 94 L60 78 L34 94 L42 66 L20 48 L48 45 Z" fill="#f4c531" opacity="0.9"/>
+  <rect x="42" y="52" width="36" height="26" fill="#ffffff" stroke="#0d3a86" stroke-width="2"/>
+  <rect x="48" y="58" width="6" height="6" fill="#1a56c4"/>
+  <rect x="57" y="58" width="6" height="6" fill="#1a56c4"/>
+  <rect x="66" y="58" width="6" height="6" fill="#1a56c4"/>
+  <rect x="54" y="68" width="12" height="10" fill="#3fae4a"/>
+  <text x="60" y="104" font-family="Poppins, sans-serif" font-size="9" fill="#0d3a86" text-anchor="middle" font-weight="700">TUNGA, LEYTE</text>
+</svg>

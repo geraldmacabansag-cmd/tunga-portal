@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+Home | Digital Governance Portal
+{% endblock %}
+
+{% block content %}
+
+<section class="page-hero">
+  <img src="{% static 'images/lgu_bldg.jpeg' %}" alt="Tunga Municipal Hall" class="page-hero__bg">
+  <div class="page-hero__scrim"></div>
+  <div class="page-hero__inner">
+    <div class="breadcrumb"><a href="{% url 'home' %}">Home</a> <i class="fa-solid fa-chevron-right" style="font-size:.65rem"></i> <span class="current">Offices</span></div>
+    <h1>Our Offices</h1>
+    <p>Explore the different offices of the Municipality of Tunga. Click any office to view information, services offered, announcements, and downloadable forms.</p>
+  </div>
+</section>
+
+<section class="offices-search-wrap">
+  <div class="container">
+    <div class="panel offices-search">
+      <div class="search-input">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" placeholder="Search offices...">
+      </div>
+      <button class="btn btn-outline filter-btn"><i class="fa-solid fa-filter"></i> All Offices <i class="fa-solid fa-chevron-down" style="font-size:.7rem"></i></button>
+    </div>
+  </div>
+</section>
+
+<section class="offices-list">
+  <div class="container offices-grid">
+
+    <a href="{% url 'mayor' %}" class="office-card office-card--navy">
+      <i class="fa-solid fa-user-tie office-card__icon"></i>
+      <h3>Mayor's Office</h3>
+      <p>Leads the municipal government in promoting good governance, transparency, and inclusive development.</p>
+      <span class="office-card__link">View Office <i class="fa-solid fa-arrow-right"></i></span>
+    </a>
+
+    <a href="#" class="office-card office-card--green">
+      <i class="fa-solid fa-house-medical office-card__icon"></i>
+      <h3>Municipal Health Office</h3>
+      <p>Provides quality health services and promotes the health and well-being of all residents.</p>
+      <span class="office-card__link">View Office <i class="fa-solid fa-arrow-right"></i></span>
+    </a>
+
+    <a href="#" class="office-card office-card--orange">
+      <i class="fa-solid fa-seedling office-card__icon"></i>
+      <h3>Municipal Agriculture Office</h3>
+      <p>Supports farmers and promotes sustainable agricultural development in the municipality.</p>
+      <span class="office-card__link">View Office <i class="fa-solid fa-arrow-right"></i></span>
+    </a>
+
+    <a href="#" class="office-card office-card--green2">
+      <i class="fa-regular fa-building office-card__icon"></i>
+      <h3>Municipal Environment Office</h3>
+      <p>Leads environmental protection programs and promotes a clean, green, and sustainable community.</p>
+      <span class="office-card__link">View Office <i class="fa-solid fa-arrow-right"></i></span>
+    </a>
+
+    <a href="#" class="office-card office-card--navy">
+      <i class="fa-solid fa-hard-hat office-card__icon"></i>
+      <h3>Municipal Engineering Office</h3>
+      <p>Oversees infrastructure projects and ensures the proper maintenance of public facilities.</p>
+      <span class="office-card__link">View Office <i class="fa-solid fa-arrow-right"></i></span>
+    </a>
+
+    <a href="#" class="office-card office-card--red">
+      <i class="fa-solid fa-hand-holding-heart office-card__icon"></i>
+      <h3>Municipal Social Welfare Office</h3>
+      <p>Implements social services and programs that support individuals and families in need.</p>
+      <span class="office-card__link">View Office <i class="fa-solid fa-arrow-right"></i></span>
+    </a>
+
+    <a href="#" class="office-card office-card--red">
+      <i class="fa-solid fa-coins office-card__icon"></i>
+      <h3>Municipal Treasurer's Office</h3>
+      <p>Manages the financial resources of the municipality with accountability and transparency.</p>
+      <span class="office-card__link">View Office <i class="fa-solid fa-arrow-right"></i></span>
+    </a>
+
+    <a href="#" class="office-card office-card--purple">
+      <i class="fa-regular fa-clipboard office-card__icon"></i>
+      <h3>Municipal Assessor's Office</h3>
+      <p>Assesses real properties and ensures fair and accurate property valuation.</p>
+      <span class="office-card__link">View Office <i class="fa-solid fa-arrow-right"></i></span>
+    </a>
+
+    <a href="#" class="office-card office-card--navy">
+      <i class="fa-solid fa-briefcase office-card__icon"></i>
+      <h3>Municipal Administrator's Office</h3>
+      <p>Supports the efficient operation of municipal offices and administrative services.</p>
+      <span class="office-card__link">View Office <i class="fa-solid fa-arrow-right"></i></span>
+    </a>
+
+    <a href="#" class="office-card office-card--red">
+      <i class="fa-solid fa-shield-halved office-card__icon"></i>
+      <h3>Municipal Police Office</h3>
+      <p>Maintains peace and order and ensures the safety and security of all residents.</p>
+      <span class="office-card__link">View Office <i class="fa-solid fa-arrow-right"></i></span>
+    </a>
+
+    <a href="#" class="office-card office-card--navy">
+      <i class="fa-solid fa-file-signature office-card__icon"></i>
+      <h3>Municipal Civil Registry Office</h3>
+      <p>Handles civil registration services including births, marriages, and deaths.</p>
+      <span class="office-card__link">View Office <i class="fa-solid fa-arrow-right"></i></span>
+    </a>
+
+    <a href="#" class="office-card office-card--green">
+      <i class="fa-solid fa-map office-card__icon"></i>
+      <h3>Municipal Planning and Development Office</h3>
+      <p>Formulates plans and programs for the sustainable development of the municipality.</p>
+      <span class="office-card__link">View Office <i class="fa-solid fa-arrow-right"></i></span>
+    </a>
+
+    <a href="#" class="office-card office-card--gold">
+      <i class="fa-solid fa-people-group office-card__icon"></i>
+      <h3>Municipal Youth, Sports and Culture Office</h3>
+      <p>Promotes youth development, sports, culture, and the arts in the community.</p>
+      <span class="office-card__link">View Office <i class="fa-solid fa-arrow-right"></i></span>
+    </a>
+
+    <a href="#" class="office-card office-card--navy">
+      <i class="fa-solid fa-triangle-exclamation office-card__icon"></i>
+      <h3>Municipal Disaster Risk Reduction and Management Office</h3>
+      <p>Prepares and implements disaster risk reduction and management programs.</p>
+      <span class="office-card__link">View Office <i class="fa-solid fa-arrow-right"></i></span>
+    </a>
+
+    <a href="#" class="office-card office-card--purple">
+      <i class="fa-solid fa-bullhorn office-card__icon"></i>
+      <h3>Public Information Office</h3>
+      <p>Disseminates accurate information and promotes transparency and public awareness.</p>
+      <span class="office-card__link">View Office <i class="fa-solid fa-arrow-right"></i></span>
+    </a>
+
+  </div>
+
+  <div class="container">
+    <div class="panel cta-panel">
+      <i class="fa-regular fa-building cta-panel__icon"></i>
+      <div class="cta-panel__text">
+        <h3>Can't find the office you're looking for?</h3>
+        <p>Use our Contact Directory to find contact details of all municipal offices.</p>
+      </div>
+      <a href="{% url 'contact' %}" class="btn btn-primary">View Contact Directory <i class="fa-solid fa-arrow-right"></i></a>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+Home | Digital Governance Portal
+{% endblock %}
+
+{% block content %}
+
+<section class="page-hero mayor-hero">
+  <img src="images/hero-office.svg" alt="Mayor's Office desk" class="page-hero__bg">
+  <div class="page-hero__scrim"></div>
+  <div class="page-hero__inner">
+    <div class="breadcrumb"><a href="{% url 'home' %}">Home</a> <i class="fa-solid fa-chevron-right" style="font-size:.65rem"></i> <a href="{% url 'offices' %}">Offices</a> <i class="fa-solid fa-chevron-right" style="font-size:.65rem"></i> <span class="current">Mayor's Office</span></div>
+    <h1>Mayor's Office</h1>
+    <p>The Mayor's Office leads the municipal government in promoting good governance, transparency, and inclusive development for all constituents.</p>
+  </div>
+</section>
+
+<section class="services-offered-wrap">
+  <div class="container">
+    <div class="panel services-offered-panel">
+      <h2 class="section-title services-offered-title">Services Offered</h2>
+      <div class="services-offered-grid">
+        <div class="service-offered">
+          <i class="fa-solid fa-hand-holding-heart"></i>
+          <strong>Public Assistance</strong>
+          <p>Provides assistance to individuals and groups in need.</p>
+        </div>
+        <div class="service-offered">
+          <i class="fa-regular fa-file-lines"></i>
+          <strong>Endorsement</strong>
+          <p>Endorses documents and requests for other offices and agencies.</p>
+        </div>
+        <div class="service-offered">
+          <i class="fa-regular fa-comments"></i>
+          <strong>Complaints and Inquiries</strong>
+          <p>Receives and endorses complaints and inquiries for appropriate action.</p>
+        </div>
+        <div class="service-offered">
+          <i class="fa-regular fa-hand"></i>
+          <strong>Special Requests</strong>
+          <p>Handles special requests for support and intervention.</p>
+        </div>
+        <div class="service-offered">
+          <i class="fa-solid fa-bullhorn"></i>
+          <strong>Proclamations</strong>
+          <p>Issues proclamations for events and important occasions.</p>
+        </div>
+        <div class="service-offered">
+          <i class="fa-regular fa-calendar"></i>
+          <strong>Appointments</strong>
+          <p>Sets schedules of the Mayor for meetings, visits, and events.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="mayor-mid-wrap">
+  <div class="container mayor-mid-grid">
+
+    <div class="panel announce-panel">
+      <div class="section-title--row">
+        <h2 class="section-title" style="margin:0;padding:0;">Announcements</h2>
+        <a href="{% url 'announcement' %}" class="view-all">View All</a>
+      </div>
+      <ul class="update-list">
+        <li class="update-item">
+          <div class="update-item__date">JUL<strong>10</strong>2026</div>
+          <div class="update-item__body">
+            <span class="badge-new">NEW</span>
+            <a href="{% url 'announcement' %}" class="update-item__title">Mayor's Listening Session</a>
+            <p>The Mayor will hold a listening session with barangay representatives on July 15, 2026 at the Municipal Hall Conference Room.</p>
+          </div>
+        </li>
+        <li class="update-item">
+          <div class="update-item__date">JUL<strong>03</strong>2026</div>
+          <div class="update-item__body">
+            <a href="#" class="update-item__title">Schedule of Barangay Visits</a>
+            <p>Please be informed of the Mayor's schedule of barangay visits for the month of July 2026.</p>
+          </div>
+        </li>
+        <li class="update-item">
+          <div class="update-item__date">JUN<strong>28</strong>2026</div>
+          <div class="update-item__body">
+            <a href="#" class="update-item__title">Flag Raising Ceremony</a>
+            <p>Monthly flag raising ceremony will be on July 1, 2026 at 7:30 AM in front of the Municipal Hall.</p>
+          </div>
+        </li>
+      </ul>
+      <a href="{% url 'announcement' %}" class="view-all announce-panel__viewall">View All Announcements <i class="fa-solid fa-arrow-right"></i></a>
+    </div>
+
+    <div class="panel forms-panel">
+      <div class="section-title--row">
+        <h2 class="section-title" style="margin:0;padding:0;">Downloadable Forms</h2>
+        <a href="#" class="view-all">View All</a>
+      </div>
+      <ul class="forms-list">
+        <li>
+          <i class="fa-regular fa-file-pdf"></i>
+          <div><a href="#">Zoning Certificate Form</a><span>PDF &middot; 256 KB</span></div>
+          <a href="#" class="btn btn-outline forms-list__dl"><i class="fa-solid fa-download"></i> Download</a>
+        </li>
+        <li>
+          <i class="fa-regular fa-file-pdf"></i>
+          <div><a href="#">Endorsement Request Form</a><span>PDF &middot; 198 KB</span></div>
+          <a href="#" class="btn btn-outline forms-list__dl"><i class="fa-solid fa-download"></i> Download</a>
+        </li>
+        <li>
+          <i class="fa-regular fa-file-pdf"></i>
+          <div><a href="#">Certificate of Indigency Form</a><span>PDF &middot; 210 KB</span></div>
+          <a href="#" class="btn btn-outline forms-list__dl"><i class="fa-solid fa-download"></i> Download</a>
+        </li>
+        <li>
+          <i class="fa-regular fa-file-pdf"></i>
+          <div><a href="#">Event Support Request Form</a><span>PDF &middot; 245 KB</span></div>
+          <a href="#" class="btn btn-outline forms-list__dl"><i class="fa-solid fa-download"></i> Download</a>
+        </li>
+        <li>
+          <i class="fa-regular fa-file-pdf"></i>
+          <div><a href="#">Special Permit Request Form</a><span>PDF &middot; 193 KB</span></div>
+          <a href="#" class="btn btn-outline forms-list__dl"><i class="fa-solid fa-download"></i> Download</a>
+        </li>
+      </ul>
+    </div>
+
+  </div>
+</section>
+
+<section class="mayor-mid-wrap">
+  <div class="container mayor-mid-grid">
+
+    <div class="panel gallery-panel">
+      <div class="section-title--row">
+        <h2 class="section-title" style="margin:0;padding:0;">Gallery</h2>
+        <a href="#" class="view-all">View All</a>
+      </div>
+      <div class="gallery-quad">
+        <img src="images/hero-building.svg" alt="Municipal Hall front view">
+        <img src="images/photo-flagceremony.svg" alt="Flag raising ceremony participants">
+        <img src="images/photo-meeting.svg" alt="Mayor delivering a speech at podium">
+        <img src="images/photo-training.svg" alt="Office staff group photo">
+      </div>
+    </div>
+
+    <div class="panel map-panel">
+      <div class="section-title--row">
+        <h2 class="section-title" style="margin:0;padding:0;">Interactive Map</h2>
+        <div class="search-input map-panel__search">
+          <input type="text" placeholder="Tell us what you're looking for...">
+          <i class="fa-solid fa-magnifying-glass"></i>
+        </div>
+      </div>
+      <div class="map-box">
+        <img src="images/map-placeholder.svg" alt="Interactive map near the Mayor's Office">
+        <div class="map-filter-card">
+          <strong>What's nearby?</strong>
+          <ul>
+            <li><i class="fa-solid fa-square-check"></i> Municipal Office</li>
+            <li><i class="fa-solid fa-square-check"></i> Health Facility</li>
+            <li><i class="fa-solid fa-square-check"></i> Schools</li>
+            <li><i class="fa-solid fa-square-check"></i> Tourist Spots</li>
+            <li><i class="fa-solid fa-square-check"></i> Barangay Halls</li>
+            <li><i class="fa-solid fa-square-check"></i> Restaurants</li>
+          </ul>
+          <button class="btn btn-outline btn-block">Reset Filter</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="about-office-wrap">
+  <div class="container">
+    <div class="panel about-office-panel">
+      <h2 class="section-title">About the Office</h2>
+      <p>The Mayor's Office is committed to providing responsive leadership, strengthening good governance, and working hand-in-hand with the community for the continuous progress and development of Tunga.</p>
+      <div class="about-office-meta">
+        <div><i class="fa-regular fa-clock"></i><div><strong>Office Hours</strong><span>Monday &ndash; Friday<br>8:00 AM &ndash; 5:00 PM</span></div></div>
+        <div><i class="fa-solid fa-location-dot"></i><div><strong>Location</strong><span>2nd Floor, Municipal Hall<br>Tunga, Leyte</span></div></div>
+        <div><i class="fa-regular fa-envelope"></i><div><strong>Email</strong><span>mayorsoffice@tunga.gov.ph</span></div></div>
+        <div><i class="fa-solid fa-phone"></i><div><strong>Telephone</strong><span>(053) 123-4567<br>Local 100</span></div></div>
+      </div>
+      <div class="easy-access-row">
+        <div class="easy-access"><i class="fa-regular fa-file-lines"></i><strong>Easy Access</strong><p>Find the information and services you need in just a few clicks</p></div>
+        <div class="easy-access"><i class="fa-regular fa-building"></i><strong>Easy Access</strong><p>Find the information and services you need in just a few clicks</p></div>
+        <div class="easy-access"><i class="fa-solid fa-compass"></i><strong>Easy Access</strong><p>Find the information and services you need in just a few clicks</p></div>
+        <div class="easy-access"><i class="fa-solid fa-people-group"></i><strong>Easy Access</strong><p>Find the information and services you need in just a few clicks</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

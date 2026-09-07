@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+Home | Digital Governance Portal
+{% endblock %}
+
+{% block content %}
+
+
+<main class="auth-wrap">
+  <div class="auth-visual">
+    <img src="{% static 'images/lgu_bldg.jpeg' %}" alt="Tunga Municipal Hall">
+    <div class="auth-visual__scrim"></div>
+    <div class="auth-visual__text">
+      <p class="hero__script">Building a Better</p>
+      <h2>Tunga</h2>
+      <p>Log in to access permits, requests, and updates from your municipal government &mdash; anytime, anywhere.</p>
+    </div>
+  </div>
+
+  <div class="auth-panel">
+    <div class="auth-card">
+      <div class="auth-card__head">
+        <img src="{% static 'images/tunga_leyte_logo.png' %}" alt="Municipality of Tunga seal" class="auth-card__seal">
+        <h1>Citizen Login</h1>
+        <p>Welcome back! Please sign in to continue to your account.</p>
+      </div>
+
+      <form class="auth-form" method="post">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ next }}">
+        <label>
+          Email Address
+          <div class="input-icon">
+            <i class="fa-regular fa-envelope"></i>
+            <input type="email" name="email" placeholder="you@example.com" required>
+          </div>
+        </label>
+        <label>
+          Password
+          <div class="input-icon">
+            <i class="fa-solid fa-lock"></i>
+            <input type="password" name="password" id="login-password" placeholder="Enter your password" required>
+            <i class="fa-regular fa-eye toggle-password" data-target="login-password"></i>
+          </div>
+        </label>
+
+        <div class="auth-form__row">
+          <label class="checkbox-label">
+            <input type="checkbox"> Remember me
+          </label>
+          <a href="#" class="auth-link">Forgot password?</a>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block">Log In</button>
+
+        <div class="auth-divider"><span>or continue with</span></div>
+
+        <button type="button" class="btn btn-outline btn-block auth-social">
+          <i class="fa-brands fa-google"></i> Continue with Google
+        </button>
+
+        <p class="auth-switch">Don't have an account? <a href="{% url 'signup' %}">Create one now</a></p>
+      </form>
+    </div>
+  </div>
+</main>
+
+<script>
+document.querySelectorAll('.toggle-password').forEach(function (icon) {
+  icon.addEventListener('click', function () {
+    var input = document.getElementById(icon.dataset.target);
+    if (!input) return;
+    var showing = input.type === 'text';
+    input.type = showing ? 'password' : 'text';
+    icon.classList.toggle('fa-eye', showing);
+    icon.classList.toggle('fa-eye-slash', !showing);
+  });
+});
+</script>
+
+{% endblock %}

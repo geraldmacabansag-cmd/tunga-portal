@@ -1,0 +1,147 @@
+{% extends "representative_dashboard_base.html" %}
+{% load static %}
+	{% block body_page %}gallery{% endblock %}
+
+{% block content %}
+
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')"><i class="fa-solid fa-bars"></i></button>
+        <div class="page-heading">
+          <h1>Gallery</h1>
+          <p>Upload and organize photos for the public website</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-button" id="notifBellBtn" type="button" aria-haspopup="true" aria-expanded="false"><i class="fa-regular fa-bell"></i><span class="dot">3</span></button>
+        <div class="user-chip">
+          <img src="{% if rep.photo %}{{ rep.photo.url }}{% else %}https://i.pravatar.cc/64?img=15{% endif %}" alt="">
+          <div class="who"><div class="name">{{ rep.user.get_full_name|default:rep.user.username }}</div><div class="role">{{ rep.position|default:"Office Representative" }}</div></div>
+          <i class="fa-solid fa-chevron-down chev"></i>
+        </div>
+      </div>
+    </header>
+
+    <nav class="breadcrumbs">
+      <span>Dashboard</span><span class="sep">›</span><span class="current">Gallery</span>
+    </nav>
+
+    <main class="content">
+
+      <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);">
+        <div class="stat-card"><div class="top"><span class="stat-icon" style="background:#12b3c4;"><i class="fa-regular fa-image"></i></span></div><div class="stat-value">25</div><div class="stat-label">Total Photos</div></div>
+        <div class="stat-card"><div class="top"><span class="stat-icon green"><i class="fa-solid fa-layer-group"></i></span></div><div class="stat-value">6</div><div class="stat-label">Albums</div></div>
+        <div class="stat-card"><div class="top"><span class="stat-icon amber"><i class="fa-regular fa-clock"></i></span></div><div class="stat-value">2</div><div class="stat-label">Pending Approval</div></div>
+      </div>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Photo Gallery</h2>
+          <button class="btn btn-primary" id="open-upload-photo"><i class="fa-solid fa-upload"></i> Upload Photo</button>
+        </div>
+        <div class="filters-row">
+          <label class="field search" style="flex:1;"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search photos or albums..."></label>
+          <select class="field"><option>All Albums</option><option>Events</option><option>Office Life</option></select>
+        </div>
+        <div class="panel-body">
+          <div class="gallery-grid">
+            {% for p in photos %}
+            <div class="gallery-item" data-view-target="view-photo-modal-{{ p.id }}">
+              <img src="{{ p.image.url }}" alt="{{ p.title }}">
+              <span class="badge {% if p.status == 'published' %}badge-green{% else %}badge-amber{% endif %} gi-badge">{{ p.get_status_display }}</span>
+              <span class="gi-expand-hint"><i class="fa-solid fa-expand"></i></span>
+              <div class="gi-actions">
+                <span class="ic"><i class="fa-regular fa-pen-to-square"></i></span>
+                <span class="ic gi-delete" data-delete-target="delete-photo-modal-{{ p.id }}"><i class="fa-regular fa-trash-can"></i></span>
+              </div>
+              <div class="gi-overlay"><span class="gi-title">{{ p.title }}</span></div>
+            </div>
+            {% empty %}
+            <p style="text-align:center;color:var(--gray-400);padding:24px;grid-column:1/-1;">No photos yet.</p>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="pagination">
+          <span>Showing 1 to 8 of 25 photos</span>
+          <div class="page-nums"><span class="page-btn"><i class="fa-solid fa-chevron-left"></i></span><span class="page-btn active">1</span><span class="page-btn">2</span><span class="page-btn">3</span><span class="page-btn"><i class="fa-solid fa-chevron-right"></i></span></div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+<div class="modal-backdrop" id="upload-photo-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Upload Photo</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div class="form-group">
+          <label class="form-label" for="gal-photo">Photo <span class="req">*</span></label>
+          <input class="form-input" type="file" id="gal-photo" name="image" accept="image/*" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="gal-title">Caption / Title <span class="req">*</span></label>
+          <input class="form-input" type="text" id="gal-title" name="title" placeholder="e.g. Barangay Assembly 2026" required>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Upload</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% for p in photos %}
+<div class="modal-backdrop" id="view-photo-modal-{{ p.id }}">
+  <div class="modal-box modal-lightbox">
+    <div class="modal-head">
+      <h3>Photo Details</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="lightbox-img-wrap">
+      <img src="{{ p.image.url }}" alt="{{ p.title }}">
+    </div>
+    <div class="lightbox-details">
+      <div class="modal-view-row"><span class="k">Title</span><span class="v">{{ p.title }}</span></div>
+      <div class="modal-view-row"><span class="k">Status</span><span class="v">{{ p.get_status_display }}</span></div>
+      <div class="modal-view-row"><span class="k">Uploaded</span><span class="v">{{ p.created_at|date:"F j, Y, g:i A" }}</span></div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-act="cancel">Close</button>
+        <button type="button" class="btn btn-primary" style="background:#dc2626;border-color:#dc2626;" data-open-delete="delete-photo-modal-{{ p.id }}">
+          <i class="fa-regular fa-trash-can"></i> Delete Photo
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="delete-photo-modal-{{ p.id }}">
+  <div class="modal-box" style="max-width:400px;">
+    <div class="modal-head">
+      <h3>Delete Photo</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <p>Are you sure you want to permanently delete <strong>"{{ p.title }}"</strong>? This cannot be undone.</p>
+      <form method="post" action="{% url 'office_dashboard:delete_photo' p.id %}">
+        {% csrf_token %}
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" style="background:#dc2626;border-color:#dc2626;">Yes, Delete</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+{% endblock %}

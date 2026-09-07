@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+Home | Digital Governance Portal
+{% endblock %}
+
+{% block content %}
+
+<section class="page-hero">
+  <img src="{% static 'images/lgu_bldg.jpeg' %}" alt="Tunga Municipal Hall" class="page-hero__bg">
+  <div class="page-hero__scrim"></div>
+  <div class="page-hero__inner">
+    <div class="breadcrumb"><a href="{% url 'home' %}">Home</a> <i class="fa-solid fa-chevron-right" style="font-size:.65rem"></i> <span class="current">Contact Us</span></div>
+    <h1>Contact Us</h1>
+    <p>We are here to help! Reach out to us for inquiries, feedback, or assistance.</p>
+  </div>
+</section>
+
+<section class="contact-top-wrap">
+  <div class="container">
+    <div class="panel contact-top">
+
+      <div class="contact-info">
+        <h2 class="section-title">Get in Touch</h2>
+        <p class="contact-info__lead">You can contact us through the following channels. We will respond as soon as possible.</p>
+        <ul class="contact-channels">
+          <li>
+            <i class="fa-solid fa-phone contact-channel__icon"></i>
+            <div><strong>Phone</strong><span>(053) 456 789<br>Local 100</span></div>
+          </li>
+          <li>
+            <i class="fa-solid fa-envelope contact-channel__icon"></i>
+            <div><strong>Email</strong><span>tunga@gmail.com<br>info@tunga.gov.ph</span></div>
+          </li>
+          <li>
+            <i class="fa-solid fa-location-dot contact-channel__icon"></i>
+            <div><strong>Address</strong><span>2nd Floor, Municipal Hall<br>Tunga, Leyte</span></div>
+          </li>
+          <li>
+            <i class="fa-brands fa-facebook-f contact-channel__icon"></i>
+            <div><strong>Facebook Page</strong><span>Municipality of Tunga - Official</span></div>
+          </li>
+          <li>
+            <i class="fa-regular fa-clock contact-channel__icon"></i>
+            <div><strong>Office Hours</strong><span>Monday &ndash; Friday<br>8:00 AM &ndash; 5:00 PM</span></div>
+          </li>
+        </ul>
+      </div>
+
+      <form class="contact-form">
+        <h2 class="section-title">Send Us a Message</h2>
+        <div class="contact-form__row">
+          <input type="text" placeholder="Your Name *" required>
+          <input type="email" placeholder="Your Email *" required>
+        </div>
+        <input type="text" placeholder="Subject *" required>
+        <textarea rows="5" placeholder="Message *" required></textarea>
+        <div class="contact-form__footer">
+          <label class="recaptcha-mock">
+            <input type="checkbox">
+            <span>I'm not a robot</span>
+            <small><i class="fa-brands fa-google"></i> reCAPTCHA <br>Privacy &middot; Terms</small>
+          </label>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-paper-plane"></i> Send Message</button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+</section>
+
+<section class="contact-mid-wrap">
+  <div class="container contact-mid-grid">
+
+    <div class="panel directory-panel">
+      <h2 class="section-title">Office Directory</h2>
+      <p class="directory-panel__lead">Find the contact details of our offices.</p>
+      <ul class="directory-list">
+        <li>
+          <i class="fa-solid fa-user-tie directory-icon directory-icon--navy"></i>
+          <div><a href="{% url 'mayor' %}">Mayor's Office</a><span><i class="fa-solid fa-phone"></i> (053) 123-4567 loc. 100 &nbsp; <i class="fa-solid fa-envelope"></i> mayor@tunga.gov.ph</span></div>
+          <i class="fa-solid fa-arrow-right directory-arrow"></i>
+        </li>
+        <li>
+          <i class="fa-solid fa-house-medical directory-icon directory-icon--green"></i>
+          <div><a href="#">Municipal Health Office</a><span><i class="fa-solid fa-phone"></i> (053) 123-4567 loc. 101 &nbsp; <i class="fa-solid fa-envelope"></i> health@tunga.gov.ph</span></div>
+          <i class="fa-solid fa-arrow-right directory-arrow"></i>
+        </li>
+        <li>
+          <i class="fa-solid fa-seedling directory-icon directory-icon--green2"></i>
+          <div><a href="#">Municipal Agriculture Office</a><span><i class="fa-solid fa-phone"></i> (053) 123-4567 loc. 102 &nbsp; <i class="fa-solid fa-envelope"></i> agriculture@tunga.gov.ph</span></div>
+          <i class="fa-solid fa-arrow-right directory-arrow"></i>
+        </li>
+        <li>
+          <i class="fa-solid fa-hard-hat directory-icon directory-icon--navy"></i>
+          <div><a href="#">Municipal Engineering Office</a><span><i class="fa-solid fa-phone"></i> (053) 123-4567 loc. 103 &nbsp; <i class="fa-solid fa-envelope"></i> engineering@tunga.gov.ph</span></div>
+          <i class="fa-solid fa-arrow-right directory-arrow"></i>
+        </li>
+        <li>
+          <i class="fa-solid fa-coins directory-icon directory-icon--purple"></i>
+          <div><a href="#">Municipal Treasurer's Office</a><span><i class="fa-solid fa-phone"></i> (053) 123-4567 loc. 104 &nbsp; <i class="fa-solid fa-envelope"></i> treasurer@tunga.gov.ph</span></div>
+          <i class="fa-solid fa-arrow-right directory-arrow"></i>
+        </li>
+      </ul>
+      <a href="{% url 'offices' %}" class="view-all directory-viewall">View All Offices <i class="fa-solid fa-arrow-right"></i></a>
+    </div>
+
+    <div class="panel location-panel">
+      <h2 class="section-title">Our Location</h2>
+      <p class="directory-panel__lead">Visit us at the Municipal Hall, Tunga, Leyte.</p>
+      <div class="map-box">
+        <img src="images/map-placeholder.svg" alt="Map showing the location of the Municipal Hall of Tunga">
+        <div class="map-callout">
+          <strong>Municipal Hall of Tunga</strong>
+          <p>2nd Floor, Municipal Hall<br>Tunga, Leyte</p>
+          <a href="#">View larger map</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="contact-bottom-wrap">
+  <div class="container">
+    <div class="panel contact-bottom">
+      <div class="contact-bottom__hours">
+        <i class="fa-regular fa-clock"></i>
+        <div>
+          <strong>Office Hours</strong>
+          <p>Monday &ndash; Friday<br>8:00 AM &ndash; 5:00 PM<br>Closed on Saturdays, Sundays and Holidays.</p>
+        </div>
+      </div>
+      <div class="contact-bottom__help">
+        <strong>How Can We Help You?</strong>
+        <p>Choose a topic below so we can direct your inquiry to the right office.</p>
+      </div>
+      <div class="help-topics">
+        <div class="help-topic"><i class="fa-regular fa-comment-dots"></i><span>General Inquiry</span></div>
+        <div class="help-topic"><i class="fa-solid fa-pen-to-square"></i><span>Feedback / Suggestion</span></div>
+        <div class="help-topic"><i class="fa-solid fa-circle-info"></i><span>Request Information</span></div>
+        <div class="help-topic"><i class="fa-solid fa-circle-exclamation"></i><span>Report a Concern</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

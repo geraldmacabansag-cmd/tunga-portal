@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard · Office Representative · Municipality of Tunga</title>
+<link rel="stylesheet" href="{% static 'css/office_rep_style.css' %}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+
+<body data-page="{% block body_page %}dashboard{% endblock %}">
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/99/Ph_seal_leyte_tunga.png/120px-Ph_seal_leyte_tunga.png" alt="" onerror="this.style.visibility='hidden'">
+      <div class="sidebar-brand-text">
+        <div class="muni">Municipality of</div>
+        <div class="name">TUNGA</div>
+        <div class="place">Leyte, Philippines</div>
+      </div>
+    </div>
+
+    <div class="office-switcher">
+      <span class="icon"><i class="fa-solid fa-landmark"></i></span>
+      <span class="label">Mayor's Office</span>
+      <i class="fa-solid fa-chevron-down chev"></i>
+    </div>
+    <ul>
+      {% url 'office_dashboard:dashboard' as dashboard_url %}
+      <li class="nav-item{% if request.path == dashboard_url %} active{% endif %}"><a href="{% url 'office_dashboard:dashboard' %}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-gauge"></i></span> Dashboard</a></li>
+    </ul>
+
+    <ul>
+      <li class="nav-section-title">Content Management</li>
+      {% url 'office_dashboard:rep_announce' as announce_url %}
+      <li class="nav-item{% if request.path == announce_url %} active{% endif %}"><a href="{{ announce_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-bullhorn"></i></span> Announcements</a></li>
+      {% url 'office_dashboard:news_update' as news_url %}
+      <li class="nav-item{% if request.path == news_url %} active{% endif %}"><a href="{{ news_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-newspaper"></i></span> News &amp; Updates</a></li>
+      {% url 'office_dashboard:event' as event_url %}
+      <li class="nav-item{% if request.path == event_url %} active{% endif %}"><a href="{{ event_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-regular fa-calendar"></i></span> Events</a></li>
+      {% url 'office_dashboard:services' as services_url %}
+      <li class="nav-item{% if request.path == services_url %} active{% endif %}"><a href="{{ services_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-list-check"></i></span> Services</a></li>
+      {% url 'office_dashboard:downloadable_form' as forms_url %}
+      <li class="nav-item{% if request.path == forms_url %} active{% endif %}"><a href="{{ forms_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-file-arrow-down"></i></span> Downloadable Forms</a></li>
+      {% url 'office_dashboard:gallery' as gallery_url %}
+      <li class="nav-item{% if request.path == gallery_url %} active{% endif %}"><a href="{{ gallery_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-regular fa-images"></i></span> Gallery</a></li>
+    </ul>
+
+    <ul>
+      <li class="nav-section-title">Office Management</li>
+      {% url 'office_dashboard:profile' as profile_url %}
+      <li class="nav-item{% if request.path == profile_url %} active{% endif %}"><a href="{{ profile_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-regular fa-id-card"></i></span> Office Profile</a></li>
+      {% url 'office_dashboard:directory' as directory_url %}
+      <li class="nav-item{% if request.path == directory_url %} active{% endif %}"><a href="{{ directory_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-address-book"></i></span> Office Directory</a></li>
+      {% url 'office_dashboard:location' as location_url %}
+      <li class="nav-item{% if request.path == location_url %} active{% endif %}"><a href="{{ location_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-location-dot"></i></span> Office Location</a></li>
+    </ul>
+
+
+    <ul>
+      <li class="nav-section-title">Account</li>
+      {% url 'office_dashboard:account' as account_url %}
+      <li class="nav-item{% if request.path == account_url %} active{% endif %}"><a href="{{ account_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-regular fa-user"></i></span> My Account</a></li>
+      {% url 'office_dashboard:change_pass' as changepass_url %}
+      <li class="nav-item{% if request.path == changepass_url %} active{% endif %}"><a href="{{ changepass_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-lock"></i></span> Change Password</a></li>
+    </ul>
+
+    <ul>
+      <li class="nav-section-title">Other</li>
+      {% url 'office_dashboard:notification' as notif_url %}
+      <li class="nav-item{% if request.path == notif_url %} active{% endif %}"><a href="{{ notif_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-regular fa-envelope"></i></span> Notification </a> <span class="badge">2</span></li>
+      {% url 'office_dashboard:log' as log_url %}
+      <li class="nav-item{% if request.path == log_url %} active{% endif %}"><a href="{{ log_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-clock-rotate-left"></i></span> Activity Logs</a></li>
+    </ul>
+
+    <div class="sidebar-footer">
+      <a href="{% url 'home' %}" class="sidebar-view-site" style="color:inherit;" target="_blank"><i class="fa-solid fa-arrow-up-right-from-square"></i> View Public Website</a>
+      <a class="sidebar-logout"><i class="fa-solid fa-arrow-right-from-bracket"></i> Log Out</a>
+    </div>
+    <div class="sidebar-copy">© 2026 Municipality of Tunga, Leyte.<br>All rights reserved.</div>
+  </aside>
+
+    {% block content %}
+    {% endblock %}  
+
+<!-- Notification bell dropdown (upper right). Static HTML content;
+     opened/closed with plain JavaScript only — see script below. -->
+<div class="dropdown-panel notif-panel" id="notifDropdown" role="menu" aria-hidden="true">
+  <div class="dd-head">Notifications</div>
+  <div class="dd-item dd-notif" role="menuitem">
+    <span class="n-title">New document request submitted</span>
+    <span class="n-desc">Barangay Clearance · TNG-00481023 · 10:45 AM</span>
+  </div>
+  <div class="dd-item dd-notif" role="menuitem">
+    <span class="n-title">Announcement approved</span>
+    <span class="n-desc">"Mayor's Listening Session" is now published</span>
+  </div>
+  <div class="dd-item dd-notif" role="menuitem">
+    <span class="n-title">Reminder</span>
+    <span class="n-desc">Please confirm your office hours</span>
+  </div>
+  <a href="{% url 'office_dashboard:notification' %}" class="dd-view-all">View all notifications</a>
+</div>
+
+<!-- User chip dropdown (top right avatar). Static HTML content;
+     opened/closed with plain JavaScript only — see script below. -->
+<div class="dropdown-panel user-panel" id="userDropdown" role="menu" aria-hidden="true">
+  <a href="{% url 'office_dashboard:account' %}"><i class="fa-regular fa-user"></i> My Account</a>
+  <a href="{% url 'office_dashboard:change_pass' %}"><i class="fa-solid fa-lock"></i> Change Password</a>
+  <a href="{% url 'home' %}" class="sidebar-view-site" style="color:inherit;" target="_blank"><i class="fa-solid fa-arrow-up-right-from-square"></i> View Public Website</a>
+  <div class="dd-item danger" data-act="logout" role="menuitem"><i class="fa-solid fa-arrow-right-from-bracket"></i> Log Out</div>
+</div>
+
+<style>
+  /* Notification dropdown positioning + small extras (self-contained here) */
+  .notif-panel{
+    position: fixed;
+    top: 64px;
+    right: 28px;
+    min-width: 300px;
+    max-width: 92vw;
+  }
+  .notif-panel .dd-view-all{
+    display: block;
+    text-align: center;
+    color: var(--blue-600);
+    font-weight: 700;
+    font-size: 12.5px;
+  }
+  /* User chip dropdown positioning (mirrors .notif-panel) */
+  .user-panel{
+    position: fixed;
+    top: 64px;
+    right: 28px;
+    min-width: 210px;
+    max-width: 92vw;
+  }
+  @media (max-width: 900px){
+    .notif-panel{ right: 16px; top: 58px; }
+    .user-panel{ right: 16px; top: 58px; }
+  }
+</style>
+
+<div class="modal-backdrop" id="logout-confirm-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Log Out</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <p class="confirm-msg">Are you sure you want to log out?</p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+        <a href="{% url 'logout' %}" class="btn btn-danger">Log Out</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+
+</script>
+
+<script src="{% static 'js/app.js' %}"></script>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>
+
