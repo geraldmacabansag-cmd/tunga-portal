@@ -36,7 +36,7 @@ def unseed_offices(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("offices", "0001_initial"),  # match the exact filename step c) generated
+        ("offices", "0004_alter_office_slug"),
     ]
     operations = [
         migrations.RunPython(seed_offices, unseed_offices),
