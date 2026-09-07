@@ -133,7 +133,7 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 MEDIA_URL = '/media/'
-WHITENOISE_MANIFEST_STRICT = False
+
 
 if not DEBUG:
     CLOUDINARY_STORAGE = {
@@ -146,7 +146,7 @@ if not DEBUG:
             "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
         },
         "staticfiles": {
-            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+            "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
         },
     }
     STATICFILES_STORAGE = STORAGES["staticfiles"]["BACKEND"]
