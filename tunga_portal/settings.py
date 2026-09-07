@@ -133,6 +133,7 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 MEDIA_URL = '/media/'
+WHITENOISE_MANIFEST_STRICT = False
 
 if not DEBUG:
     CLOUDINARY_STORAGE = {
