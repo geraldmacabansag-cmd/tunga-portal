@@ -2,7 +2,7 @@ from django.db import models
 
 class Office(models.Model):
     name = models.CharField(max_length=100)
-    slug = models.SlugField(unique=True)
+    slug = models.SlugField(unique=True, max_length=150)
 
     logo = models.ImageField(upload_to="office_logos/", blank=True, null=True)
     about = models.TextField(blank=True)
