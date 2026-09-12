@@ -16,7 +16,7 @@
       <div class="topbar-right">
         <button class="icon-button" id="notifBellBtn" type="button" aria-haspopup="true" aria-expanded="false"><i class="fa-regular fa-bell"></i><span class="dot">3</span></button>
         <div class="user-chip">
-          <img src="{% if rep.photo %}{{ rep.photo.url }}{% else %}https://i.pravatar.cc/64?img=15{% endif %}" alt="">
+          <img src="{% if rep.photo %}{{ rep.photo.url }}{% else %}{% static 'images/icon/profile_logo.jpeg' %}{% endif %}" alt="">
           <div class="who"><div class="name">{{ rep.user.get_full_name|default:rep.user.username }}</div><div class="role">{{ rep.position|default:"Office Representative" }}</div></div>
           <i class="fa-solid fa-chevron-down chev"></i>
         </div>
@@ -30,23 +30,42 @@
     <main class="content">
 
       <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);">
-        <div class="stat-card"><div class="top"><span class="stat-icon" style="background:#12b3c4;"><i class="fa-regular fa-image"></i></span></div><div class="stat-value">25</div><div class="stat-label">Total Photos</div></div>
-        <div class="stat-card"><div class="top"><span class="stat-icon green"><i class="fa-solid fa-layer-group"></i></span></div><div class="stat-value">6</div><div class="stat-label">Albums</div></div>
-        <div class="stat-card"><div class="top"><span class="stat-icon amber"><i class="fa-regular fa-clock"></i></span></div><div class="stat-value">2</div><div class="stat-label">Pending Approval</div></div>
+        <div class="stat-card"><div class="top"><span class="stat-icon" style="background:#12b3c4;"><i class="fa-regular fa-image"></i></span></div><div class="stat-value">{{ total_photo_count }}</div><div class="stat-label">Total Photos</div></div>
+        <div class="stat-card"><div class="top"><span class="stat-icon green"><i class="fa-solid fa-layer-group"></i></span></div><div class="stat-value">{{ total_album_count }}</div><div class="stat-label">Albums</div></div>
+        <div class="stat-card"><div class="top"><span class="stat-icon amber"><i class="fa-regular fa-clock"></i></span></div><div class="stat-value">{{ pending_count }}</div><div class="stat-label">Pending Approval</div></div>
       </div>
 
-      <section class="panel">
-        <div class="panel-header">
-          <h2>Photo Gallery</h2>
+    <section class="panel">
+      <div class="panel-header">
+        <h2>
+          {% if in_album_view %}
+            <a href="{% url 'office_dashboard:gallery' %}" style="color:inherit;text-decoration:none;">
+              <i class="fa-solid fa-arrow-left"></i>
+            </a>
+            {{ selected_album_name }}
+          {% else %}
+            Albums
+          {% endif %}
+        </h2>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-secondary" id="open-create-album"><i class="fa-solid fa-layer-group"></i> New Album</button>
           <button class="btn btn-primary" id="open-upload-photo"><i class="fa-solid fa-upload"></i> Upload Photo</button>
         </div>
-        <div class="filters-row">
-          <label class="field search" style="flex:1;"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search photos or albums..."></label>
-          <select class="field"><option>All Albums</option><option>Events</option><option>Office Life</option></select>
-        </div>
-        <div class="panel-body">
+      </div>
+
+      <form method="get" class="filters-row">
+        {% if album_param %}<input type="hidden" name="album" value="{{ album_param }}">{% endif %}
+        <label class="field search" style="flex:1;">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" name="q" value="{{ current_q }}" placeholder="{% if in_album_view %}Search photos...{% else %}Search albums...{% endif %}" onchange="this.form.submit()">
+        </label>
+      </form>
+
+      <div class="panel-body">
+        {% if in_album_view %}
+          {# ---------- Inside an album: show its photos ---------- #}
           <div class="gallery-grid">
-            {% for p in photos %}
+            {% for p in page_obj %}
             <div class="gallery-item" data-view-target="view-photo-modal-{{ p.id }}">
               <img src="{{ p.image.url }}" alt="{{ p.title }}">
               <span class="badge {% if p.status == 'published' %}badge-green{% else %}badge-amber{% endif %} gi-badge">{{ p.get_status_display }}</span>
@@ -58,15 +77,85 @@
               <div class="gi-overlay"><span class="gi-title">{{ p.title }}</span></div>
             </div>
             {% empty %}
-            <p style="text-align:center;color:var(--gray-400);padding:24px;grid-column:1/-1;">No photos yet.</p>
+            <p style="text-align:center;color:var(--gray-400);padding:24px;grid-column:1/-1;">
+              {% if current_q %}No photos match "{{ current_q }}".{% else %}No photos in this album yet.{% endif %}
+            </p>
             {% endfor %}
           </div>
-        </div>
+        {% else %}
+          {# ---------- Default: show album tiles ---------- #}
+          <div class="gallery-grid">
+            {% for album in page_obj %}
+            <div class="gallery-item" data-open-album="{{ album.id }}">
+              {% with cover=album.photos.first %}
+                {% if cover %}
+                  <img src="{{ cover.image.url }}" alt="{{ album.name }}">
+                {% else %}
+                  <div class="gallery-item-empty"><i class="fa-solid fa-layer-group"></i></div>
+                {% endif %}
+              {% endwith %}
+              <span class="badge badge-amber gi-badge">{{ album.photo_count }} photo{{ album.photo_count|pluralize }}</span>
+
+              <div class="gi-album-menu">
+                <button type="button" class="gi-album-menu__toggle" aria-haspopup="true" aria-expanded="false">
+                  <i class="fa-solid fa-ellipsis-vertical"></i>
+                </button>
+                <div class="gi-album-menu__dropdown">
+                  <button type="button" class="gi-album-menu__item" data-open-rename="rename-album-modal-{{ album.id }}">
+                    <i class="fa-regular fa-pen-to-square"></i> Rename
+                  </button>
+                  <button type="button" class="gi-album-menu__item gi-album-menu__item--danger" data-open-delete-album="delete-album-modal-{{ album.id }}">
+                    <i class="fa-regular fa-trash-can"></i> Delete
+                  </button>
+                </div>
+              </div>
+
+              <div class="gi-overlay"><span class="gi-title">{{ album.name }}</span></div>
+            </div>
+            {% empty %}
+            <p style="text-align:center;color:var(--gray-400);padding:24px;grid-column:1/-1;">
+              {% if current_q %}No albums match "{{ current_q }}".{% else %}No albums yet. Create one to get started.{% endif %}
+            </p>
+            {% endfor %}
+
+            {% if not current_q and uncategorized_count %}
+            <a class="gallery-item" href="?album=none" style="display:block;">
+              <div class="gallery-item-empty"><i class="fa-regular fa-image"></i></div>
+              <span class="badge badge-amber gi-badge">{{ uncategorized_count }} photo{{ uncategorized_count|pluralize }}</span>
+              <div class="gi-overlay"><span class="gi-title">Uncategorized</span></div>
+            </a>
+            {% endif %}
+          </div>
+        {% endif %}
+
+        {% if page_obj.paginator.count > 0 %}
         <div class="pagination">
-          <span>Showing 1 to 8 of 25 photos</span>
-          <div class="page-nums"><span class="page-btn"><i class="fa-solid fa-chevron-left"></i></span><span class="page-btn active">1</span><span class="page-btn">2</span><span class="page-btn">3</span><span class="page-btn"><i class="fa-solid fa-chevron-right"></i></span></div>
+          <span>Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} {% if in_album_view %}photos{% else %}albums{% endif %}</span>
+          <div class="page-nums">
+            {% if page_obj.has_previous %}
+              <a class="page-btn" href="?page={{ page_obj.previous_page_number }}&q={{ current_q }}{% if album_param %}&album={{ album_param }}{% endif %}"><i class="fa-solid fa-chevron-left"></i></a>
+            {% else %}
+              <span class="page-btn disabled"><i class="fa-solid fa-chevron-left"></i></span>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+              {% if num == page_obj.number %}
+                <span class="page-btn active">{{ num }}</span>
+              {% else %}
+                <a class="page-btn" href="?page={{ num }}&q={{ current_q }}{% if album_param %}&album={{ album_param }}{% endif %}">{{ num }}</a>
+              {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+              <a class="page-btn" href="?page={{ page_obj.next_page_number }}&q={{ current_q }}{% if album_param %}&album={{ album_param }}{% endif %}"><i class="fa-solid fa-chevron-right"></i></a>
+            {% else %}
+              <span class="page-btn disabled"><i class="fa-solid fa-chevron-right"></i></span>
+            {% endif %}
+          </div>
         </div>
-      </section>
+        {% endif %}
+      </div>
+    </section>
 
     </main>
   </div>
@@ -89,6 +178,15 @@
           <label class="form-label" for="gal-title">Caption / Title <span class="req">*</span></label>
           <input class="form-input" type="text" id="gal-title" name="title" placeholder="e.g. Barangay Assembly 2026" required>
         </div>
+        <div class="form-group">
+          <label class="form-label" for="gal-album">Album</label>
+          <select class="form-input" id="gal-album" name="album">
+            <option value="">No Album</option>
+            {% for album in all_albums_for_upload %}
+              <option value="{{ album.id }}" {% if selected_album and selected_album.id == album.id %}selected{% endif %}>{{ album.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
 
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
@@ -99,7 +197,34 @@
   </div>
 </div>
 
-{% for p in photos %}
+<div class="modal-backdrop" id="create-album-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>New Album</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form method="post" action="{% url 'office_dashboard:create_album' %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label" for="album-name">Album Name <span class="req">*</span></label>
+          <input class="form-input" type="text" id="album-name" name="name" placeholder="e.g. Barangay Assembly 2026" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="album-description">Description</label>
+          <input class="form-input" type="text" id="album-description" name="description" placeholder="Optional">
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create Album</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% if in_album_view %}
+{% for p in page_obj %}
 <div class="modal-backdrop" id="view-photo-modal-{{ p.id }}">
   <div class="modal-box modal-lightbox">
     <div class="modal-head">
@@ -142,6 +267,52 @@
     </div>
   </div>
 </div>
-{% endfor %}
 
+{% endfor %}
+{% endif %}
+
+{% if not in_album_view %}
+{% for album in page_obj %}
+<div class="modal-backdrop" id="rename-album-modal-{{ album.id }}">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-head">
+      <h3>Rename Album</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form method="post" action="{% url 'office_dashboard:rename_album' album.id %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label" for="rename-album-name-{{ album.id }}">Album Name <span class="req">*</span></label>
+          <input class="form-input" type="text" id="rename-album-name-{{ album.id }}" name="name" value="{{ album.name }}" required>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="delete-album-modal-{{ album.id }}">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-head">
+      <h3>Delete Album</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <p>Are you sure you want to delete the album <strong>"{{ album.name }}"</strong>? It can also delete the {{ album.photo_count }} photo{{ album.photo_count|pluralize }} inside it.</p>
+      <form method="post" action="{% url 'office_dashboard:delete_album' album.id %}">
+        {% csrf_token %}
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" style="background:#dc2626;border-color:#dc2626;">Yes, Delete</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+{% endif %}
 {% endblock %}

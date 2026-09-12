@@ -347,7 +347,7 @@
     var panel = ic.closest('.panel');
 
     if (/fa-trash-can/.test(cls)) {
-      if (['announcements','news-updates','events','gallery'].indexOf(document.body.dataset.page) !== -1) return;
+      if (['announcements','news-updates','events','gallery','downloadable-forms'].indexOf(document.body.dataset.page) !== -1) return;
       e.preventDefault();
       var label = getRowLabel(row);
       confirmAction('Delete "' + label + '"? This cannot be undone.', function () {
@@ -356,7 +356,7 @@
       }, { danger: true, okText: 'Delete' });
 
     } else if (/fa-pen-to-square/.test(cls)) {
-      if (['announcements','news-updates','events','gallery'].indexOf(document.body.dataset.page) !== -1) return;
+      if (['announcements','news-updates','events','gallery','downloadable-forms'].indexOf(document.body.dataset.page) !== -1) return;
       e.preventDefault();
       openEditModal(row, panel);
 
@@ -487,16 +487,45 @@
     }
   });
 
+  // Every page's burger button already has its own inline
+  // onclick="...classList.toggle('open')" for the mobile off-canvas sidebar.
+  // That keeps working unchanged. This adds a second, independent behavior:
+  // on desktop widths, the same button also collapses/expands the sidebar
+  // (sidebar starts open by default on desktop, closed by default on mobile
+  // — both are just the normal CSS defaults, no JS needed to set them).
+  function wireSidebarCollapse() {
+    document.addEventListener('click', function (e) {
+      if (!e.target.closest('.menu-btn')) return;
+      if (window.innerWidth < 861) return;
+      var sidebar = document.getElementById('sidebar');
+      if (sidebar) sidebar.classList.toggle('collapsed');
+    });
+  }
+
+  function wireSidebarScrollPersist() {
+    var nav = document.getElementById('sidebarNav');
+    if (!nav) return;
+
+    var saved = sessionStorage.getItem('sidebarNavScrollTop');
+    if (saved !== null) {
+      nav.scrollTop = parseInt(saved, 10) || 0;
+    }
+
+    nav.addEventListener('scroll', function () {
+      sessionStorage.setItem('sidebarNavScrollTop', nav.scrollTop);
+    });
+  }
+
   function wireTopbar() {
     // Notification bell dropdown and user-chip dropdown are now static HTML
     // in representative_dashboard_base.html; each is wired up below.
     var officeSwitcher = $('.office-switcher');
+    var sidebarNav = document.getElementById('sidebarNav');
     if (officeSwitcher) {
       officeSwitcher.addEventListener('click', function (e) {
         e.stopPropagation();
         officeSwitcher.classList.toggle('open');
-        var label = officeSwitcher.querySelector('.label');
-        toast('You are currently managing: ' + (label ? label.textContent.trim() : 'this office') + '.');
+        if (sidebarNav) sidebarNav.classList.toggle('collapsed');
       });
     }
   }
@@ -702,14 +731,49 @@ function wireLogout() {
     });
   }
 
+  function wireDownloadableFormEditModals() {
+    if (document.body.dataset.page !== 'downloadable-forms') return;
+    document.querySelectorAll('[data-edit-target]').forEach(function (trigger) {
+      var modal = document.getElementById(trigger.dataset.editTarget);
+      if (!modal) return;
+      wireStaticModalChrome(modal);
+      trigger.addEventListener('click', function () { openStaticModal(modal); });
+    });
+  }
+
   function wireGalleryCreate() {
-    if (document.body.dataset.page !== 'gallery') return;
-    var trigger = document.getElementById('open-upload-photo');
-    var modal = document.getElementById('upload-photo-modal');
-    if (!trigger || !modal) return;
-    wireStaticModalChrome(modal);
-    trigger.addEventListener('click', function () { openStaticModal(modal); });
-    // no submit listener here — the <form> now posts to Django normally
+      if (document.body.dataset.page !== 'gallery') return;
+
+      var trigger = document.getElementById('open-upload-photo');
+      var modal = document.getElementById('upload-photo-modal');
+      if (trigger && modal) {
+        wireStaticModalChrome(modal);
+        trigger.addEventListener('click', function () { openStaticModal(modal); });
+      }
+      // no submit listener here — the <form> now posts to Django normally
+
+      var albumTrigger = document.getElementById('open-create-album');
+      var albumModal = document.getElementById('create-album-modal');
+      if (albumTrigger && albumModal) {
+        wireStaticModalChrome(albumModal);
+        albumTrigger.addEventListener('click', function () { openStaticModal(albumModal); });
+      }
+  }
+
+  function wireNotificationTabs() {
+    if (document.body.dataset.page !== 'notification') return;
+    var tabs = document.querySelectorAll('.notif-tab');
+    var items = document.querySelectorAll('.notif-item');
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        tabs.forEach(function (t) { t.classList.remove('active'); });
+        tab.classList.add('active');
+        var mode = tab.dataset.notifTab;
+        items.forEach(function (item) {
+          item.style.display = (mode === 'unread' && item.dataset.status !== 'unread') ? 'none' : '';
+        });
+      });
+    });
   }
 
   function wireAccountToggle() {
@@ -771,6 +835,51 @@ function wireGalleryLightboxDelete() {
   });
 }
 
+function wireAlbumTiles() {
+  if (document.body.dataset.page !== 'gallery') return;
+
+  document.querySelectorAll('[data-open-album]').forEach(function (item) {
+    item.addEventListener('click', function (e) {
+      if (e.target.closest('.gi-album-menu')) return; // let the kebab menu handle its own click
+      window.location.href = '?album=' + item.dataset.openAlbum;
+    });
+  });
+
+  document.querySelectorAll('.gi-album-menu__toggle').forEach(function (toggle) {
+    toggle.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var menu = toggle.closest('.gi-album-menu');
+      var isOpen = menu.classList.contains('open');
+      document.querySelectorAll('.gi-album-menu.open').forEach(function (m) { m.classList.remove('open'); });
+      if (!isOpen) menu.classList.add('open');
+    });
+  });
+
+  document.addEventListener('click', function () {
+    document.querySelectorAll('.gi-album-menu.open').forEach(function (m) { m.classList.remove('open'); });
+  });
+
+  document.querySelectorAll('[data-open-rename]').forEach(function (btn) {
+    var modal = document.getElementById(btn.dataset.openRename);
+    if (!modal) return;
+    wireStaticModalChrome(modal);
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      openStaticModal(modal);
+    });
+  });
+
+  document.querySelectorAll('[data-open-delete-album]').forEach(function (btn) {
+    var modal = document.getElementById(btn.dataset.openDeleteAlbum);
+    if (!modal) return;
+    wireStaticModalChrome(modal);
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      openStaticModal(modal);
+    });
+  });
+}
+
 function wireOfficeProfileToggle() {
   if (document.body.dataset.page !== 'office-profile') return;
   var editBtn = document.getElementById('edit-office-profile-btn');
@@ -826,19 +935,11 @@ function wireOfficeProfileToggle() {
     if (document.body.dataset.page !== 'office-profile') return;
     var trigger = document.getElementById('open-add-service');
     var modal = document.getElementById('add-service-modal');
-    var panel = trigger ? trigger.closest('.panel') : null;
-    wireCreateModal(trigger, modal, function (fd) {
-      var name = (fd.get('name') || '').toString().trim();
-      if (!name) { toast('Service name is required.', 'error'); return; }
-      var body = panel.querySelector('.panel-body');
-      var row = document.createElement('div');
-      row.className = 'info-row';
-      row.innerHTML = '<span class="k"><i class="fa-solid fa-star" style="color:var(--blue-600);margin-right:8px;"></i><span class="nm"></span></span>';
-      row.querySelector('.nm').textContent = name;
-      body.appendChild(row);
-      closeStaticModal(modal);
-      toast(name + ' added to services.');
-    });
+    if (!trigger || !modal) return;
+    wireStaticModalChrome(modal);
+    trigger.addEventListener('click', function () { openStaticModal(modal); });
+    // no submit listener here — the <form> posts to Django normally so the
+    // service (including the chosen icon) is actually saved to the database
   }
 
   /* ------------------------------------------------------------------ */
@@ -846,27 +947,9 @@ function wireOfficeProfileToggle() {
   /* ------------------------------------------------------------------ */
   function wireDashboard() {
     if (document.body.dataset.page !== 'dashboard') return;
-    var pageMap = {
-      'Announcements': 'announcements.html',
-      'News & Updates': 'news-updates.html',
-      'Upcoming Events': 'events.html',
-      'Downloadable Forms': 'downloadable-forms.html',
-      'Gallery Photos': 'gallery.html',
-      'Recent Announcements': 'announcements.html',
-      'Recent News & Updates': 'news-updates.html'
-    };
-    $$('.stat-card').forEach(function (card) {
-      var label = card.querySelector('.stat-label');
-      var link = card.querySelector('.stat-sub');
-      if (label && link && pageMap[label.textContent.trim()]) {
-        link.setAttribute('href', pageMap[label.textContent.trim()]);
-      }
-    });
-    $$('.panel-header .link').forEach(function (link) {
-      var h2 = link.closest('.panel-header').querySelector('h2');
-      var key = h2 ? h2.textContent.trim() : '';
-      if (pageMap[key]) link.setAttribute('href', pageMap[key]);
-    });
+    // Stat-card "View all ›" links and panel-header "View All" links already
+    // carry real Django {% url %} hrefs rendered server-side — do not
+    // overwrite them with fake static filenames here.
     var quickMap = {
       'Create Announcement': 'announcements.html',
       'Add News': 'news-updates.html',
@@ -1188,6 +1271,22 @@ function wireOfficeProfileToggle() {
       });
     });
   }
+  /* ------------------------------------------------------------------ */
+  /* Page: Office profile page - powers the icon picker                                */
+  /* ------------------------------------------------------------------ */
+  function wireServiceIconPicker() {
+    var picker = document.querySelector('.icon-picker');
+    if (!picker) return;
+    var hiddenInput = document.getElementById('svc-icon-input');
+
+    picker.querySelectorAll('.icon-picker__item').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        picker.querySelectorAll('.icon-picker__item').forEach(function (b) { b.classList.remove('selected'); });
+        btn.classList.add('selected');
+        hiddenInput.value = btn.dataset.iconValue;
+      });
+    });
+  }
 
   /* ------------------------------------------------------------------ */
   /* Page: super-admin-approval-details                                  */
@@ -1339,6 +1438,9 @@ function wireOfficeProfileToggle() {
   document.addEventListener('DOMContentLoaded', function () {
     wireTopbar();
     wireLogout();
+    wireSidebarCollapse();
+    wireSidebarScrollPersist();
+
     wireFilters();
     wirePagination();
     wireDashboardQuickCreateLinks();
@@ -1359,12 +1461,17 @@ function wireOfficeProfileToggle() {
     wireEventDeleteModals();
     
     wireDownloadableFormsCreate();
+    wireDownloadableFormEditModals();
+
     wireGalleryCreate();
     wireGalleryViewModals();
     wireGalleryDeleteModals();
     wireGalleryLightboxDelete();
+    wireAlbumTiles();
 
     wireOfficeProfileToggle();
+
+    wireServiceIconPicker();
 
     wireOfficeOverviewCreate();
     wireAddServiceCreate();
@@ -1374,6 +1481,8 @@ function wireOfficeProfileToggle() {
 
     wirePasswordToggles();
     wirePasswordMessageAutoHide();
+
+    wireNotificationTabs();
 
     wireDashboard();
     wireSimpleForms();

@@ -282,3 +282,81 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Barangays */
+.barangays-intro {
+  font-size: 0.9rem;
+  color: var(--text-body);
+  margin: -4px 0 20px;
+}
+
+.barangays-groups {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.barangays-group__label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: 10px;
+}
+
+.barangays-group__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.barangays-group__dot--pob {
+  background: var(--gold);
+}
+
+.barangays-group__dot--rural {
+  background: var(--navy-light);
+}
+
+.barangays-group__list {
+  background: var(--bg-white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.barangays-group__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 0.9rem;
+  color: var(--text-dark);
+}
+
+.barangays-group__item:last-child {
+  border-bottom: none;
+}
+
+.barangays-group__item i {
+  font-size: 0.85rem;
+  width: 16px;
+  text-align: center;
+}
+
+.barangays-groups .barangays-group:first-child .barangays-group__item i {
+  color: var(--gold-dark);
+}
+
+.barangays-groups .barangays-group:last-child .barangays-group__item i {
+  color: var(--navy);
+}
+
+@media (max-width: 700px) {
+  .barangays-groups {
+    grid-template-columns: 1fr;
+  }
+}

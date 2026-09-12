@@ -23,9 +23,11 @@
 
     <div class="office-switcher">
       <span class="icon"><i class="fa-solid fa-landmark"></i></span>
-      <span class="label">Mayor's Office</span>
+      <span class="label">{{ rep.office.name }}</span>
       <i class="fa-solid fa-chevron-down chev"></i>
     </div>
+
+    <div class="sidebar-nav" id="sidebarNav">
     <ul>
       {% url 'office_dashboard:dashboard' as dashboard_url %}
       <li class="nav-item{% if request.path == dashboard_url %} active{% endif %}"><a href="{% url 'office_dashboard:dashboard' %}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-gauge"></i></span> Dashboard</a></li>
@@ -69,10 +71,16 @@
     <ul>
       <li class="nav-section-title">Other</li>
       {% url 'office_dashboard:notification' as notif_url %}
-      <li class="nav-item{% if request.path == notif_url %} active{% endif %}"><a href="{{ notif_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-regular fa-envelope"></i></span> Notification </a> <span class="badge">2</span></li>
+      <li class="nav-item{% if request.path == notif_url %} active{% endif %}">
+        <a href="{{ notif_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;">
+          <span class="glyph"><i class="fa-regular fa-envelope"></i></span> Notification
+        </a>
+        {% if rep.unread_notifications_count > 0 %}<span class="badge">{{ rep.unread_notifications_count }}</span>{% endif %}
+      </li>
       {% url 'office_dashboard:log' as log_url %}
       <li class="nav-item{% if request.path == log_url %} active{% endif %}"><a href="{{ log_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-clock-rotate-left"></i></span> Activity Logs</a></li>
     </ul>
+    </div>
 
     <div class="sidebar-footer">
       <a href="{% url 'home' %}" class="sidebar-view-site" style="color:inherit;" target="_blank"><i class="fa-solid fa-arrow-up-right-from-square"></i> View Public Website</a>

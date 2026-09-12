@@ -1,22 +1,28 @@
 {% extends "representative_dashboard_base.html" %}
 {% load static %}
-
+{% block body_page %}service-details{% endblock %}
 
 {% block content %}
+
+<style>
+  .view-service-btn { font: inherit; padding: 0; outline: none; }
+  .view-service-btn:focus-visible { outline: 2px solid var(--blue-600); outline-offset: 2px; }
+</style>
+
 
   <div class="main">
     <header class="topbar">
       <div class="topbar-left">
         <button class="menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')"><i class="fa-solid fa-bars"></i></button>
         <div class="page-heading">
-          <h1>Service Details</h1>
+          <h1>Services</h1>
           <p>Manage and edit service information</p>
         </div>
       </div>
       <div class="topbar-right">
         <button class="icon-button" id="notifBellBtn" type="button" aria-haspopup="true" aria-expanded="false"><i class="fa-regular fa-bell"></i><span class="dot">3</span></button>
         <div class="user-chip">
-          <img src="{% if rep.photo %}{{ rep.photo.url }}{% else %}https://i.pravatar.cc/64?img=15{% endif %}" alt="">
+          <img src="{% if rep.photo %}{{ rep.photo.url }}{% else %}{% static 'images/icon/profile_logo.jpeg' %}{% endif %}" alt="">
           <div class="who"><div class="name">{{ rep.user.get_full_name|default:rep.user.username }}</div><div class="role">{{ rep.position|default:"Office Representative" }}</div></div>
           <i class="fa-solid fa-chevron-down chev"></i>
         </div>
@@ -24,166 +30,273 @@
     </header>
 
     <nav class="breadcrumbs">
-      <span>Dashboard</span><span class="sep">›</span><span>Services</span><span class="sep">›</span><span class="current">Business Permit Application</span>
+      <span>Dashboard</span><span class="sep">›</span><span id="crumb-services">Services</span><span class="sep" id="crumb-sep" style="display:none;">›</span><span class="current" id="crumb-current" style="display:none;"></span>
     </nav>
 
     <main class="content">
 
+      {% for message in messages %}
+        <div class="toast-static {{ message.tags }}" style="margin-bottom:14px;">{{ message }}</div>
+      {% endfor %}
 
-      <section class="panel" style="margin-bottom:18px;">
-        <div class="panel-body" style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;">
-          <div>
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-              <h2 style="margin:0;font-size:19px;">Business Permit Application</h2>
-              <span class="badge badge-green">Published</span>
-            </div>
-            <p style="margin:0;font-size:13px;color:var(--gray-500);max-width:620px;">This service allows individuals or businesses to apply for a business permit to operate legally within the Municipality of Tunga.</p>
-          </div>
-          <div style="display:flex;gap:10px;align-items:center;flex-shrink:0;">
-            <span style="font-size:11.5px;color:var(--gray-400);">Last updated: May 16, 2026 2:45 PM</span>
-            <button class="btn btn-secondary"><i class="fa-regular fa-eye"></i> Preview</button>
-            <button class="btn btn-primary"><i class="fa-regular fa-floppy-disk"></i> Save Changes</button>
-          </div>
+      <!-- ============================= -->
+      <!-- LIST VIEW: table of services   -->
+      <!-- ============================= -->
+      <section class="panel" id="services-list-view">
+        <div class="panel-header">
+          <h2>Services Offered</h2>
+          <button type="button" class="btn btn-primary" id="open-add-service-from-services"><i class="fa-solid fa-plus"></i> Add Service</button>
         </div>
-
-        <div class="subtabs">
-          <span class="subtab active"><i class="fa-solid fa-diagram-project"></i> Service Process</span>
-          <span class="subtab"><i class="fa-regular fa-file-lines"></i> Requirements</span>
-          <span class="subtab"><i class="fa-solid fa-sack-dollar"></i> Fees</span>
-          <span class="subtab"><i class="fa-solid fa-landmark"></i> Office Information</span>
-          <span class="subtab"><i class="fa-solid fa-gear"></i> Settings</span>
+        <div class="filters-row">
+          <label class="field search" style="flex:1;"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search services..."></label>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Service</th><th>Category</th><th>Availability</th><th>Processing Time</th><th>Actions</th></tr></thead>
+            <tbody>
+              {% for service in services %}
+              <tr>
+                <td class="row-icon-name">
+                  <span class="row-thumb" style="background:var(--blue-50,#eff6ff);color:var(--blue-600);"><i class="{{ service.icon }}"></i></span>
+                  <span class="cell-primary">{{ service.name }}</span>
+                </td>
+                <td><span class="tag">{{ service.get_category_display }}</span></td>
+                <td>{{ service.availability|default:"—" }}</td>
+                <td>{{ service.processing_time|default:"—" }}</td>
+                <td>
+                  <div class="action-icons">
+                    <button type="button" class="ic view-service-btn" title="View"
+                      data-id="{{ service.pk }}"
+                      data-name="{{ service.name }}"
+                      data-icon="{{ service.icon }}"
+                      data-category="{{ service.get_category_display }}"
+                      data-description="{{ service.description|default:'' }}"
+                      data-availability="{{ service.availability|default:'Monday - Friday, 8:00 AM - 5:00 PM' }}"
+                      data-processing="{{ service.processing_time|default:'3 - 5 Working Days' }}"
+                      data-office="{{ service.office.name|default:rep.office.name }}"
+                      data-published="{% if service.published_at %}{{ service.published_at|date:'M d, Y g:i A' }}{% else %}May 10, 2026 9:30 AM{% endif %}"
+                      data-steps="{{ service.steps_json }}"
+                      data-requirements="{{ service.requirements_json }}"
+                      data-fees="{{ service.fees_json }}">
+                      <i class="fa-regular fa-eye"></i>
+                    </button>
+                    <button type="button" class="ic" title="Delete" data-delete-target="delete-modal-{{ service.pk }}">
+                      <i class="fa-regular fa-trash-can"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="5" style="text-align:center;color:var(--gray-400);padding:24px 0;">
+                  No services added yet. <button type="button" id="open-add-service-empty-state" style="color:var(--blue-600);font-weight:700;background:none;border:none;padding:0;font:inherit;cursor:pointer;">Add your first service →</button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
       </section>
 
-      <div class="grid-3">
-        <div class="stack">
-          <!-- Process steps -->
-          <section class="panel">
-            <div class="panel-header"><h2>Process Steps</h2><button class="btn btn-secondary btn-sm"><i class="fa-solid fa-plus"></i> Add Step</button></div>
-            <div class="panel-body">
-              <div class="step-row">
-                <span class="step-num">1</span>
-                <div style="flex:1;"><div class="step-title">Get Application Form</div><div class="step-desc">Obtain the Business Permit Application Form from the Mayor's Office or download it online.</div></div>
-                <div class="step-actions"><span class="tag">Form Available</span><span class="ic" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:var(--gray-400);"><i class="fa-regular fa-pen-to-square"></i></span><span class="ic" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:var(--gray-400);"><i class="fa-regular fa-trash-can"></i></span></div>
-              </div>
-              <div class="step-row">
-                <span class="step-num">2</span>
-                <div style="flex:1;"><div class="step-title">Prepare Requirements</div><div class="step-desc">Prepare and secure all the required documents needed for the application.</div></div>
-                <div class="step-actions"><span class="ic" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:var(--gray-400);"><i class="fa-regular fa-pen-to-square"></i></span><span class="ic" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:var(--gray-400);"><i class="fa-regular fa-trash-can"></i></span></div>
-              </div>
-              <div class="step-row">
-                <span class="step-num">3</span>
-                <div style="flex:1;"><div class="step-title">Submit Application</div><div class="step-desc">Submit the accomplished application form along with the complete requirements to the Mayor's Office.</div></div>
-                <div class="step-actions"><span class="ic" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:var(--gray-400);"><i class="fa-regular fa-pen-to-square"></i></span><span class="ic" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:var(--gray-400);"><i class="fa-regular fa-trash-can"></i></span></div>
-              </div>
-              <div class="step-row">
-                <span class="step-num">4</span>
-                <div style="flex:1;"><div class="step-title">Assessment and Evaluation</div><div class="step-desc">The Mayor's Office will assess and evaluate your application and documents.</div></div>
-                <div class="step-actions"><span class="tag">Pay Fees</span><span class="ic" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:var(--gray-400);"><i class="fa-regular fa-pen-to-square"></i></span><span class="ic" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:var(--gray-400);"><i class="fa-regular fa-trash-can"></i></span></div>
-              </div>
-              <div class="step-row">
-                <span class="step-num">5</span>
-                <div style="flex:1;"><div class="step-title">Approval</div><div class="step-desc">Once approved, the Business Permit will be issued.</div></div>
-                <div class="step-actions"><span class="ic" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:var(--gray-400);"><i class="fa-regular fa-pen-to-square"></i></span><span class="ic" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:var(--gray-400);"><i class="fa-regular fa-trash-can"></i></span></div>
-              </div>
-              <div class="step-row">
-                <span class="step-num">6</span>
-                <div style="flex:1;"><div class="step-title">Release of Business Permit</div><div class="step-desc">Claim your Business Permit at the Mayor's Office.</div></div>
-                <div class="step-actions"><span class="ic" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:var(--gray-400);"><i class="fa-regular fa-pen-to-square"></i></span><span class="ic" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;color:var(--gray-400);"><i class="fa-regular fa-trash-can"></i></span></div>
-              </div>
-            </div>
-          </section>
+      <!-- ============================= -->
+      <!-- DETAIL VIEW: single service    -->
+      <!-- ============================= -->
+      <div id="service-detail-view" style="display:none;">
 
-          <!-- Important reminders -->
-          <section class="panel">
-            <div class="panel-header"><h2>Important Reminders</h2><button class="btn btn-secondary btn-sm"><i class="fa-regular fa-pen-to-square"></i> Edit Reminders</button></div>
-            <div class="panel-body">
-              <ul class="reminder-list">
-                <li>Make sure all documents are complete and updated.</li>
-                <li>Applications with incomplete requirements will not be accepted.</li>
-                <li>Processing time may vary depending on the nature of the business.</li>
-              </ul>
+        <button type="button" class="btn btn-secondary btn-sm" id="back-to-services" style="margin-bottom:14px;">
+          <i class="fa-solid fa-arrow-left"></i> Back to Services
+        </button>
+
+        <section class="panel" style="margin-bottom:18px;">
+          <div class="panel-body" style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;">
+            <div>
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                <i class="fa-solid fa-file-signature" id="detail-icon" style="color:var(--blue-600);font-size:18px;"></i>
+                <h2 style="margin:0;font-size:19px;" id="detail-name">Business Permit Application</h2>
+                <span class="badge badge-green">Published</span>
+              </div>
+              <p style="margin:0;font-size:13px;color:var(--gray-500);max-width:620px;" id="detail-description">This service allows individuals or businesses to apply for a business permit to operate legally within the Municipality of Tunga.</p>
             </div>
-          </section>
+            <div style="display:flex;gap:10px;align-items:center;flex-shrink:0;">
+              <span style="font-size:11.5px;color:var(--gray-400);">Published: <span id="detail-published">May 10, 2026 9:30 AM</span></span>
+              <button class="btn btn-secondary"><i class="fa-regular fa-eye"></i> Preview</button>
+              <button class="btn btn-primary"><i class="fa-regular fa-floppy-disk"></i> Save Changes</button>
+            </div>
+          </div>
+
+          <div class="subtabs">
+            <span class="subtab active" data-subtab="process"><i class="fa-solid fa-diagram-project"></i> Service Process</span>
+            <span class="subtab" data-subtab="requirements"><i class="fa-regular fa-file-lines"></i> Requirements</span>
+            <span class="subtab" data-subtab="fees"><i class="fa-solid fa-sack-dollar"></i> Fees</span>
+          </div>
+        </section>
+
+        <div class="grid-3" data-subtab-panel="process">
+          <div class="stack">
+            <!-- Process steps -->
+            <section class="panel">
+              <div class="panel-header"><h2>Process Steps</h2><button type="button" class="btn btn-secondary btn-sm" id="step-modal-trigger"><i class="fa-solid fa-plus"></i> Add Step</button></div>
+              <div class="panel-body" id="steps-host">
+                <p style="color:var(--gray-400);padding:8px 0;">No process steps added yet.</p>
+              </div>
+            </section>
+
+            <!-- Important reminders -->
+            <section class="panel">
+              <div class="panel-header"><h2>Important Reminders</h2><button class="btn btn-secondary btn-sm"><i class="fa-regular fa-pen-to-square"></i> Edit Reminders</button></div>
+              <div class="panel-body">
+                <ul class="reminder-list">
+                  <li>Make sure all documents are complete and updated.</li>
+                  <li>Applications with incomplete requirements will not be accepted.</li>
+                  <li>Processing time may vary depending on the nature of the business.</li>
+                </ul>
+              </div>
+            </section>
+          </div>
+
+          <div class="stack">
+            <!-- Downloadable forms -->
+            <section class="panel">
+              <div class="panel-header"><h2>Downloadable Forms</h2><button class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Add Form</button></div>
+              <div class="panel-body">
+                <div class="attachment">
+                  <span class="af"><i class="fa-solid fa-file-pdf"></i></span>
+                  <div><div class="an">Business Permit Application Form</div><div class="as">PDF · 245 KB</div></div>
+                  <span class="badge badge-green" style="margin-left:auto;">Published</span>
+                </div>
+                <div class="attachment">
+                  <span class="af"><i class="fa-solid fa-file-pdf"></i></span>
+                  <div><div class="an">Barangay Clearance Form</div><div class="as">PDF · 210 KB</div></div>
+                  <span class="badge badge-green" style="margin-left:auto;">Published</span>
+                </div>
+                <div class="attachment">
+                  <span class="af"><i class="fa-solid fa-file-pdf"></i></span>
+                  <div><div class="an">Occupancy / Location Clearance</div><div class="as">PDF · 198 KB</div></div>
+                  <span class="badge badge-green" style="margin-left:auto;">Published</span>
+                </div>
+                <a href="#" class="link" style="display:inline-block;margin-top:12px;font-size:12.5px;font-weight:700;color:var(--blue-600);">View all forms →</a>
+              </div>
+            </section>
+
+            <!-- Service information -->
+            <section class="panel">
+              <div class="panel-header"><h2>Service Information</h2><button class="btn btn-secondary btn-sm">Edit</button></div>
+              <div class="panel-body">
+                <div class="info-row"><span class="k">Office</span><span class="v" id="detail-office">Mayor's Office</span></div>
+                <div class="info-row"><span class="k">Category</span><span class="v" id="detail-category">Permits</span></div>
+                <div class="info-row"><span class="k">Availability</span><span class="v" id="detail-availability">Monday - Friday, 8:00 AM - 5:00 PM</span></div>
+                <div class="info-row"><span class="k">Processing Time</span><span class="v" id="detail-processing">3 - 5 Working Days</span></div>
+              </div>
+            </section>
+
+            <!-- Status -->
+            <section class="panel">
+              <div class="panel-header"><h2>Status</h2><button class="btn btn-secondary btn-sm">Edit</button></div>
+              <div class="panel-body">
+                <div class="info-row"><span class="k">Current Status</span><span class="v"><span class="badge badge-green">Published</span></span></div>
+                <div class="info-row"><span class="k">Visibility</span><span class="v">Public</span></div>
+                <div class="info-row"><span class="k">Date Published</span><span class="v" id="detail-date-published">May 10, 2026 9:30 AM</span></div>
+              </div>
+            </section>
+          </div>
         </div>
 
-        <div class="stack">
-          <!-- Downloadable forms -->
-          <section class="panel">
-            <div class="panel-header"><h2>Downloadable Forms</h2><button class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Add Form</button></div>
-            <div class="panel-body">
-              <div class="attachment">
-                <span class="af"><i class="fa-solid fa-file-pdf"></i></span>
-                <div><div class="an">Business Permit Application Form</div><div class="as">PDF · 245 KB</div></div>
-                <span class="badge badge-green" style="margin-left:auto;">Published</span>
+          <div class="grid-3" data-subtab-panel="requirements" style="display:none;">
+            <section class="panel" style="grid-column:1 / -1;">
+              <div class="panel-header"><h2>Requirements</h2><button type="button" class="btn btn-secondary btn-sm" id="requirement-modal-trigger"><i class="fa-solid fa-plus"></i> Add Requirement</button></div>
+              <div class="panel-body" id="requirements-host">
+                <p style="color:var(--gray-400);padding:8px 0;">No requirements added yet.</p>
               </div>
-              <div class="attachment">
-                <span class="af"><i class="fa-solid fa-file-pdf"></i></span>
-                <div><div class="an">Barangay Clearance Form</div><div class="as">PDF · 210 KB</div></div>
-                <span class="badge badge-green" style="margin-left:auto;">Published</span>
-              </div>
-              <div class="attachment">
-                <span class="af"><i class="fa-solid fa-file-pdf"></i></span>
-                <div><div class="an">Occupancy / Location Clearance</div><div class="as">PDF · 198 KB</div></div>
-                <span class="badge badge-green" style="margin-left:auto;">Published</span>
-              </div>
-              <a href="#" class="link" style="display:inline-block;margin-top:12px;font-size:12.5px;font-weight:700;color:var(--blue-600);">View all forms →</a>
-            </div>
-          </section>
+            </section>
+          </div>
 
-          <!-- Service information -->
-          <section class="panel">
-            <div class="panel-header"><h2>Service Information</h2><button class="btn btn-secondary btn-sm">Edit</button></div>
-            <div class="panel-body">
-              <div class="info-row"><span class="k">Office</span><span class="v">Mayor's Office</span></div>
-              <div class="info-row"><span class="k">Category</span><span class="v">Permits</span></div>
-              <div class="info-row"><span class="k">Availability</span><span class="v">Monday - Friday, 8:00 AM - 5:00 PM</span></div>
-              <div class="info-row"><span class="k">Processing Time</span><span class="v">3 - 5 Working Days</span></div>
-            </div>
-          </section>
+          <div class="grid-3" data-subtab-panel="fees" style="display:none;">
+            <section class="panel" style="grid-column:1 / -1;">
+              <div class="panel-header"><h2>Fees</h2><button type="button" class="btn btn-secondary btn-sm" id="fee-modal-trigger"><i class="fa-solid fa-plus"></i> Add Fee</button></div>
+              <div class="panel-body" id="fees-host">
+                <p style="color:var(--gray-400);padding:8px 0;">No fees added yet.</p>
+              </div>
+              <div class="fee-total" id="fee-total-row" style="display:none;">
+                <span class="fee-total-label">Total Estimated Fees</span>
+                <span class="fee-total-value" id="fee-total-value">₱0.00</span>
+              </div>
+            </section>
+          </div>
 
-          <!-- Status -->
-          <section class="panel">
-            <div class="panel-header"><h2>Status</h2><button class="btn btn-secondary btn-sm">Edit</button></div>
-            <div class="panel-body">
-              <div class="info-row"><span class="k">Current Status</span><span class="v"><span class="badge badge-green">Published</span></span></div>
-              <div class="info-row"><span class="k">Visibility</span><span class="v">Public</span></div>
-              <div class="info-row"><span class="k">Date Published</span><span class="v">May 10, 2026 9:30 AM</span></div>
-            </div>
-          </section>
-        </div>
+        <div class="footer-note"><i class="fa-solid fa-circle-info"></i>&nbsp; Changes you make will be saved as draft. Don't forget to save your changes.</div>
+
       </div>
 
-      <div class="footer-note"><i class="fa-solid fa-circle-info"></i>&nbsp; Changes you make will be saved as draft. Don't forget to save your changes.</div>
-
-    
     </main>
   </div>
 </div>
+
 <div class="modal-backdrop" id="add-step-modal">
   <div class="modal-box">
     <div class="modal-head">
-      <h3>Add Process Step</h3>
+      <h3 id="step-modal-title">Add Process Step</h3>
       <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="modal-body">
-      <form>
-        <div class="form-group">
-          <label class="form-label" for="step-title">Step Title <span class="req">*</span></label>
-          <input class="form-input" type="text" id="step-title" name="title" required>
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="step-desc">Step Description</label>
-          <textarea class="form-textarea" id="step-desc" name="desc"></textarea>
-        </div>
+      <form id="add-step-form" method="post" data-url-template="{% url 'office_dashboard:save_process_steps' 0 %}">
+        {% csrf_token %}
+        <div id="step-rows"></div>
+          <button type="button" class="btn btn-secondary btn-sm" id="step-add-btn" style="margin-bottom:16px;">
+            <i class="fa-solid fa-plus"></i> Add Another Step
+          </button>
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
-          <button type="submit" class="btn btn-primary">Add Step</button>
+          <button type="submit" class="btn btn-primary">Save Steps</button>
         </div>
       </form>
     </div>
   </div>
 </div>
+
+<div class="modal-backdrop" id="add-requirement-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="requirement-modal-title">Add Requirement</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form id="add-requirement-form" method="post" data-url-template="{% url 'office_dashboard:save_requirements' 0 %}">
+        {% csrf_token %}
+        <div id="requirement-rows"></div>
+        <button type="button" class="btn btn-secondary btn-sm" id="requirement-add-btn" style="margin-bottom:16px;">
+          <i class="fa-solid fa-plus"></i> Add Another Requirement
+        </button>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Requirements</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="add-fee-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="fee-modal-title">Add Fee</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form id="add-fee-form" method="post" data-url-template="{% url 'office_dashboard:save_fees' 0 %}">
+        {% csrf_token %}
+        <div id="fee-rows"></div>
+        <button type="button" class="btn btn-secondary btn-sm" id="fee-add-btn" style="margin-bottom:16px;">
+          <i class="fa-solid fa-plus"></i> Add Another Fee
+        </button>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Fees</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="add-service-form-modal">
   <div class="modal-box">
     <div class="modal-head">
@@ -215,5 +328,882 @@
     </div>
   </div>
 </div>
+
+<!-- add service modal form -->
+<div class="modal-backdrop" id="add-service-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Add Service</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form method="post" action="{% url 'office_dashboard:add_service' %}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="services">
+
+        <div class="form-group">
+          <label class="form-label" for="svc-name">Service Name <span class="req">*</span></label>
+          <input class="form-input" type="text" id="svc-name" name="name" placeholder="e.g. Senior Citizen ID Issuance" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="svc-description">Description</label>
+          <textarea class="form-input" id="svc-description" name="description" rows="3" placeholder="What this service is for and who can avail of it"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="svc-category">Category</label>
+          <select class="form-input" id="svc-category" name="category">
+            {% for value, label in category_choices %}
+              <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Availability</label>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <select class="form-input" name="availability_day_from" style="flex:1;min-width:110px;">
+              <option value="Monday" selected>Monday</option>
+              <option value="Tuesday">Tuesday</option>
+              <option value="Wednesday">Wednesday</option>
+              <option value="Thursday">Thursday</option>
+              <option value="Friday">Friday</option>
+              <option value="Saturday">Saturday</option>
+              <option value="Sunday">Sunday</option>
+            </select>
+            <span>to</span>
+            <select class="form-input" name="availability_day_to" style="flex:1;min-width:110px;">
+              <option value="Monday">Monday</option>
+              <option value="Tuesday">Tuesday</option>
+              <option value="Wednesday">Wednesday</option>
+              <option value="Thursday">Thursday</option>
+              <option value="Friday" selected>Friday</option>
+              <option value="Saturday">Saturday</option>
+              <option value="Sunday">Sunday</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap;">
+            <input class="form-input" type="time" name="availability_time_from" value="08:00" style="flex:1;min-width:110px;">
+            <span>to</span>
+            <input class="form-input" type="time" name="availability_time_to" value="17:00" style="flex:1;min-width:110px;">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="svc-processing-time">Processing Time</label>
+          <input class="form-input" type="text" id="svc-processing-time" name="processing_time" placeholder="e.g. 3-5 business days, Same day">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Icon</label>
+          <input type="hidden" name="icon" id="svc-icon-input" value="{{ icon_choices.0.0 }}">
+          <div class="icon-picker">
+            {% for value, label in icon_choices %}
+            <button type="button" class="icon-picker__item {% if forloop.first %}selected{% endif %}" data-icon-value="{{ value }}" title="{{ label }}">
+              <i class="{{ value }}"></i>
+            </button>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- hidden form -->
+{% for service in services %}
+<div class="modal-backdrop" id="delete-modal-{{ service.pk }}">
+  <div class="modal-box" style="max-width:400px;">
+    <div class="modal-head">
+      <h3>Delete Service</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <p>Are you sure you want to permanently delete <strong>"{{ service.name }}"</strong>? This will also remove any process steps saved for it. This cannot be undone.</p>
+
+      <form method="post" action="{% url 'office_dashboard:delete_service' service.pk %}">
+        {% csrf_token %}
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" style="background:#dc2626;border-color:#dc2626;">Yes, Delete</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<script>
+(function () {
+  var listView = document.getElementById('services-list-view');
+  var detailView = document.getElementById('service-detail-view');
+  var crumbSep = document.getElementById('crumb-sep');
+  var crumbCurrent = document.getElementById('crumb-current');
+  var crumbServices = document.getElementById('crumb-services');
+  var stepsHost = document.getElementById('steps-host');
+  var addStepForm = document.getElementById('add-step-form');
+  var addStepModal = document.getElementById('add-step-modal');
+  var stepModalTrigger = document.getElementById('step-modal-trigger');
+  var stepModalTitle = document.getElementById('step-modal-title');
+  var stepRowsHost = document.getElementById('step-rows');
+  var stepAddBtn = document.getElementById('step-add-btn');
+
+  var requirementsHost = document.getElementById('requirements-host');
+  var addRequirementForm = document.getElementById('add-requirement-form');
+  var addRequirementModal = document.getElementById('add-requirement-modal');
+  var requirementModalTrigger = document.getElementById('requirement-modal-trigger');
+  var requirementModalTitle = document.getElementById('requirement-modal-title');
+  var requirementRowsHost = document.getElementById('requirement-rows');
+  var requirementAddBtn = document.getElementById('requirement-add-btn');
+
+  var feesHost = document.getElementById('fees-host');
+  var feeTotalRow = document.getElementById('fee-total-row');
+  var feeTotalValue = document.getElementById('fee-total-value');
+  var addFeeForm = document.getElementById('add-fee-form');
+  var addFeeModal = document.getElementById('add-fee-modal');
+  var feeModalTrigger = document.getElementById('fee-modal-trigger');
+  var feeModalTitle = document.getElementById('fee-modal-title');
+  var feeRowsHost = document.getElementById('fee-rows');
+  var feeAddBtn = document.getElementById('fee-add-btn');
+
+  var currentServicePk = null;
+  var currentSteps = [];
+  var currentRequirements = [];
+  var currentFees = [];
+
+  function renderSteps(stepsJson) {
+    var steps = [];
+    try { steps = JSON.parse(stepsJson || '[]'); } catch (e) { steps = []; }
+
+    if (!steps.length) {
+      stepsHost.innerHTML = '<p style="color:var(--gray-400);padding:8px 0;">No process steps added yet.</p>';
+      return;
+    }
+
+    stepsHost.innerHTML = steps.map(function (step, i) {
+      return '<div class="step-row">' +
+        '<span class="step-num">' + (i + 1) + '</span>' +
+        '<div style="flex:1;"><div class="step-title"></div><div class="step-desc"></div></div>' +
+        '</div>';
+    }).join('');
+
+    stepsHost.querySelectorAll('.step-row').forEach(function (row, i) {
+      row.querySelector('.step-title').textContent = steps[i].title || '';
+      row.querySelector('.step-desc').textContent = steps[i].description || '';
+    });
+  }
+
+  function updateStepButton(steps) {
+    stepModalTrigger.innerHTML = steps.length
+      ? '<i class="fa-regular fa-pen-to-square"></i> Edit Step'
+      : '<i class="fa-solid fa-plus"></i> Add Step';
+  }
+
+  function renderRequirements(requirementsJson) {
+    var reqs = [];
+    try { reqs = JSON.parse(requirementsJson || '[]'); } catch (e) { reqs = []; }
+
+    if (!reqs.length) {
+      requirementsHost.innerHTML = '<p style="color:var(--gray-400);padding:8px 0;">No requirements added yet.</p>';
+      return;
+    }
+
+    requirementsHost.innerHTML = reqs.map(function () {
+      return '<div class="req-item">' +
+        '<div class="req-check"></div>' +
+        '<div class="req-body">' +
+          '<div class="req-top"><span class="req-name"></span><span class="req-tag"></span></div>' +
+          '<div class="req-desc"></div>' +
+        '</div>' +
+        '</div>';
+    }).join('');
+
+    requirementsHost.querySelectorAll('.req-item').forEach(function (row, i) {
+      var r = reqs[i];
+      row.querySelector('.req-name').textContent = r.title || '';
+      row.querySelector('.req-desc').textContent = r.description || '';
+      var tag = row.querySelector('.req-tag');
+      if (r.is_required === false) {
+        tag.textContent = 'Optional';
+        tag.className = 'req-tag optional';
+      } else {
+        tag.textContent = 'Required';
+        tag.className = 'req-tag required';
+      }
+    });
+  }
+
+  function updateRequirementButton(reqs) {
+    requirementModalTrigger.innerHTML = reqs.length
+      ? '<i class="fa-regular fa-pen-to-square"></i> Edit Requirement'
+      : '<i class="fa-solid fa-plus"></i> Add Requirement';
+  }
+
+  function formatPeso(amount) {
+    var n = parseFloat(amount) || 0;
+    return '\u20b1' + n.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function renderFees(feesJson) {
+    var fees = [];
+    try { fees = JSON.parse(feesJson || '[]'); } catch (e) { fees = []; }
+
+    if (!fees.length) {
+      feesHost.innerHTML = '<p style="color:var(--gray-400);padding:8px 0;">No fees added yet.</p>';
+      feeTotalRow.style.display = 'none';
+      return;
+    }
+
+    var total = 0;
+    feesHost.innerHTML = fees.map(function (fee) {
+      total += parseFloat(fee.amount) || 0;
+      return '<div class="fee-item">' +
+        '<div><div class="fee-name"></div><div class="fee-desc"></div></div>' +
+        '<div class="fee-amount"></div>' +
+        '</div>';
+    }).join('');
+
+    feesHost.querySelectorAll('.fee-item').forEach(function (row, i) {
+      row.querySelector('.fee-name').textContent = fees[i].title || '';
+      row.querySelector('.fee-desc').textContent = fees[i].description || '';
+      row.querySelector('.fee-amount').textContent = formatPeso(fees[i].amount);
+    });
+
+    feeTotalValue.textContent = formatPeso(total);
+    feeTotalRow.style.display = '';
+  }
+
+  function updateFeeButton(fees) {
+    feeModalTrigger.innerHTML = fees.length
+      ? '<i class="fa-regular fa-pen-to-square"></i> Edit Fee'
+      : '<i class="fa-solid fa-plus"></i> Add Fee';
+  }
+
+  function showDetail(data) {
+    currentServicePk = data.id || null;
+
+    document.querySelectorAll('.subtab').forEach(function (t) { t.classList.remove('active'); });
+    var processTab = document.querySelector('.subtab[data-subtab="process"]');
+    if (processTab) processTab.classList.add('active');
+    document.querySelectorAll('[data-subtab-panel]').forEach(function (panel) {
+      panel.style.display = (panel.dataset.subtabPanel === 'process') ? '' : 'none';
+    });
+
+    document.getElementById('detail-name').textContent = data.name || '';
+    document.getElementById('detail-icon').className = data.icon || 'fa-solid fa-file-signature';
+    document.getElementById('detail-description').textContent = data.description || 'No description provided.';
+    document.getElementById('detail-office').textContent = data.office || '';
+    document.getElementById('detail-category').textContent = data.category || '';
+    document.getElementById('detail-availability').textContent = data.availability || '';
+    document.getElementById('detail-processing').textContent = data.processing || '';
+    document.getElementById('detail-published').textContent = data.published || '';
+    document.getElementById('detail-date-published').textContent = data.published || '';
+
+    renderSteps(data.steps);
+
+    try { currentSteps = JSON.parse(data.steps || '[]'); } catch (e) { currentSteps = []; }
+    updateStepButton(currentSteps);
+
+    renderRequirements(data.requirements);
+
+    try { currentRequirements = JSON.parse(data.requirements || '[]'); } catch (e) { currentRequirements = []; }
+    updateRequirementButton(currentRequirements);
+
+    renderFees(data.fees);
+
+    try { currentFees = JSON.parse(data.fees || '[]'); } catch (e) { currentFees = []; }
+    updateFeeButton(currentFees);
+
+    crumbCurrent.textContent = data.name || '';
+    crumbCurrent.style.display = '';
+    crumbSep.style.display = '';
+    crumbServices.style.cursor = 'pointer';
+
+    listView.style.display = 'none';
+    detailView.style.display = '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function showList() {
+    detailView.style.display = 'none';
+    listView.style.display = '';
+    crumbCurrent.style.display = 'none';
+    crumbSep.style.display = 'none';
+  }
+
+  document.querySelectorAll('.view-service-btn').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      showDetail(btn.dataset);
+    });
+  });
+
+  // Subtabs (Service Process / Requirements / Fees / Office Information /
+  // Settings): app.js already toggles the .active class on the tab itself,
+  // this adds the actual panel switching it never had.
+  document.querySelectorAll('.subtab').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      var target = tab.dataset.subtab;
+      document.querySelectorAll('[data-subtab-panel]').forEach(function (panel) {
+        panel.style.display = (panel.dataset.subtabPanel === target) ? '' : 'none';
+      });
+    });
+  });
+
+  var backBtn = document.getElementById('back-to-services');
+  if (backBtn) backBtn.addEventListener('click', showList);
+  if (crumbServices) crumbServices.addEventListener('click', showList);
+
+  // Add Service (list view): this page's own trigger + chrome, since
+  // app.js's wireAddServiceCreate() only wires this modal on the
+  // office-profile page.
+  var addServiceModal = document.getElementById('add-service-modal');
+  var addServiceForm = addServiceModal ? addServiceModal.querySelector('form') : null;
+
+  function openAddServiceModal() {
+    if (!addServiceModal) return;
+    addServiceModal.classList.add('open');
+    document.body.classList.add('modal-open');
+  }
+
+  function closeAddServiceModal() {
+    if (!addServiceModal) return;
+    addServiceModal.classList.remove('open');
+    document.body.classList.remove('modal-open');
+    setTimeout(function () { if (addServiceForm) addServiceForm.reset(); }, 200);
+  }
+
+  // Delete Service: per-service confirmation popup (same pattern as the
+  // Announcements page's data-delete-target modals), instead of a native
+  // confirm() dialog. stopPropagation blocks app.js's generic delegated
+  // .ic + trash-can handler, which would otherwise also fire and fake-delete
+  // the row client-side only.
+  document.querySelectorAll('[data-delete-target]').forEach(function (trigger) {
+    var modal = document.getElementById(trigger.dataset.deleteTarget);
+    if (!modal) return;
+
+    trigger.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      modal.classList.add('open');
+      document.body.classList.add('modal-open');
+    });
+
+    function closeThisModal() {
+      modal.classList.remove('open');
+      document.body.classList.remove('modal-open');
+    }
+    modal.querySelectorAll('[data-act="cancel"], .modal-x').forEach(function (btn) {
+      btn.addEventListener('click', closeThisModal);
+    });
+    modal.addEventListener('click', function (e) {
+      if (e.target === modal) closeThisModal();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && modal.classList.contains('open')) closeThisModal();
+    });
+  });
+
+  var openAddServiceBtn = document.getElementById('open-add-service-from-services');
+  if (openAddServiceBtn) openAddServiceBtn.addEventListener('click', openAddServiceModal);
+  var openAddServiceEmptyBtn = document.getElementById('open-add-service-empty-state');
+  if (openAddServiceEmptyBtn) openAddServiceEmptyBtn.addEventListener('click', openAddServiceModal);
+
+  if (addServiceModal) {
+    addServiceModal.querySelectorAll('[data-act="cancel"], .modal-x').forEach(function (btn) {
+      btn.addEventListener('click', closeAddServiceModal);
+    });
+    addServiceModal.addEventListener('click', function (e) {
+      if (e.target === addServiceModal) closeAddServiceModal();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && addServiceModal.classList.contains('open')) closeAddServiceModal();
+    });
+  }
+
+  /* ---- step editor: cards with a number badge + minus-only remove ---- */
+  function createStepRow(title, desc) {
+    var row = document.createElement('div');
+    row.className = 'step-edit-row';
+    row.innerHTML =
+      '<span class="step-edit-row__num"></span>' +
+      '<div class="step-edit-row__body">' +
+        '<input class="form-input" type="text" name="title[]" placeholder="e.g. Prepare the Requirements">' +
+        '<textarea class="form-input form-textarea" name="desc[]" placeholder="Describe what the applicant needs to do in this step" rows="3"></textarea>' +
+      '</div>' +
+      '<button type="button" class="step-remove-row" title="Remove step"><i class="fa-solid fa-minus"></i></button>';
+    row.querySelector('input').value = title || '';
+    row.querySelector('textarea').value = desc || '';
+    return row;
+  }
+
+  function renumberStepRows() {
+    stepRowsHost.querySelectorAll('.step-edit-row').forEach(function (row, i) {
+      row.querySelector('.step-edit-row__num').textContent = i + 1;
+    });
+  }
+
+  function populateStepRows(steps) {
+    stepRowsHost.innerHTML = '';
+    if (!steps.length) {
+      stepRowsHost.appendChild(createStepRow('', ''));
+    } else {
+      steps.forEach(function (s) { stepRowsHost.appendChild(createStepRow(s.title, s.description)); });
+    }
+    renumberStepRows();
+  }
+
+  if (stepAddBtn) {
+    stepAddBtn.addEventListener('click', function () {
+      stepRowsHost.appendChild(createStepRow('', ''));
+      renumberStepRows();
+    });
+  }
+
+  stepRowsHost.addEventListener('click', function (e) {
+    var removeBtn = e.target.closest('.step-remove-row');
+    if (!removeBtn) return;
+    var row = removeBtn.closest('.step-edit-row');
+    if (stepRowsHost.children.length > 1) {
+      row.remove();
+    } else {
+      row.querySelector('input').value = '';
+      row.querySelector('textarea').value = '';
+    }
+    renumberStepRows();
+  });
+
+  if (stepModalTrigger) {
+    stepModalTrigger.addEventListener('click', function () {
+      populateStepRows(currentSteps);
+      stepModalTitle.textContent = currentSteps.length ? 'Edit Process Steps' : 'Add Process Step';
+      addStepModal.classList.add('open');
+      document.body.classList.add('modal-open');
+    });
+  }
+
+  function closeAddStepModal() {
+    addStepModal.classList.remove('open');
+    document.body.classList.remove('modal-open');
+    setTimeout(function () { populateStepRows([]); }, 200);
+  }
+
+  /* ---- save via AJAX: closes only the modal, stays on the service ---- */
+  if (addStepForm) {
+    addStepForm.addEventListener('submit', function (e) {
+      if (!currentServicePk) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
+      var newSteps = [];
+      stepRowsHost.querySelectorAll('.step-edit-row').forEach(function (row) {
+        var title = row.querySelector('input[name="title[]"]').value.trim();
+        var desc = row.querySelector('textarea[name="desc[]"]').value.trim();
+        if (title) newSteps.push({ title: title, description: desc });
+      });
+
+      var url = addStepForm.dataset.urlTemplate.replace('/0/', '/' + currentServicePk + '/');
+      var formData = new FormData(addStepForm);
+
+      fetch(url, { method: 'POST', body: formData, credentials: 'same-origin' })
+        .then(function (res) {
+          if (!res.ok) throw new Error('Save failed');
+
+          currentSteps = newSteps;
+          renderSteps(JSON.stringify(newSteps));
+          updateStepButton(newSteps);
+
+          var activeBtn = document.querySelector('.view-service-btn[data-id="' + currentServicePk + '"]');
+          if (activeBtn) activeBtn.dataset.steps = JSON.stringify(newSteps);
+
+          closeAddStepModal();
+        })
+        .catch(function () {
+          alert('Something went wrong saving the steps. Please try again.');
+        });
+    });
+  }
+
+  /* ---- requirement editor: mirrors the step editor, plus a required/optional radio ---- */
+  function createRequirementRow(title, desc, isRequired) {
+    var row = document.createElement('div');
+    row.className = 'requirement-edit-row';
+    var uid = 'req-' + Math.random().toString(36).slice(2, 9);
+    row.innerHTML =
+      '<div class="requirement-edit-row__body">' +
+        '<input class="form-input" type="text" name="title[]" placeholder="e.g. Barangay Clearance">' +
+        '<textarea class="form-input form-textarea" name="desc[]" placeholder="e.g. Original copy, issued within the last 6 months" rows="2"></textarea>' +
+        '<div class="requirement-radio-group">' +
+          '<label><input type="radio" name="' + uid + '" value="required" checked> Required</label>' +
+          '<label><input type="radio" name="' + uid + '" value="optional"> Optional</label>' +
+        '</div>' +
+        '<input type="hidden" name="is_required[]" value="required">' +
+      '</div>' +
+      '<button type="button" class="requirement-remove-row" title="Remove requirement"><i class="fa-solid fa-minus"></i></button>';
+
+    row.querySelector('input[type="text"]').value = title || '';
+    row.querySelector('textarea').value = desc || '';
+
+    var hidden = row.querySelector('input[name="is_required[]"]');
+    var radios = row.querySelectorAll('input[type="radio"]');
+    var wantOptional = (isRequired === false);
+    radios.forEach(function (radio) {
+      radio.checked = wantOptional ? (radio.value === 'optional') : (radio.value === 'required');
+      radio.addEventListener('change', function () {
+        hidden.value = row.querySelector('input[type="radio"]:checked').value;
+      });
+    });
+    hidden.value = wantOptional ? 'optional' : 'required';
+
+    return row;
+  }
+
+  function populateRequirementRows(reqs) {
+    requirementRowsHost.innerHTML = '';
+    if (!reqs.length) {
+      requirementRowsHost.appendChild(createRequirementRow('', '', true));
+    } else {
+      reqs.forEach(function (r) {
+        requirementRowsHost.appendChild(createRequirementRow(r.title, r.description, r.is_required !== false));
+      });
+    }
+  }
+
+  if (requirementAddBtn) {
+    requirementAddBtn.addEventListener('click', function () {
+      requirementRowsHost.appendChild(createRequirementRow('', '', true));
+    });
+  }
+
+  requirementRowsHost.addEventListener('click', function (e) {
+    var removeBtn = e.target.closest('.requirement-remove-row');
+    if (!removeBtn) return;
+    var row = removeBtn.closest('.requirement-edit-row');
+    if (requirementRowsHost.children.length > 1) {
+      row.remove();
+    } else {
+      row.querySelector('input[type="text"]').value = '';
+      row.querySelector('textarea').value = '';
+    }
+  });
+
+  if (requirementModalTrigger) {
+    requirementModalTrigger.addEventListener('click', function () {
+      populateRequirementRows(currentRequirements);
+      requirementModalTitle.textContent = currentRequirements.length ? 'Edit Requirements' : 'Add Requirement';
+      addRequirementModal.classList.add('open');
+      document.body.classList.add('modal-open');
+    });
+  }
+
+  function closeAddRequirementModal() {
+    addRequirementModal.classList.remove('open');
+    document.body.classList.remove('modal-open');
+    setTimeout(function () { populateRequirementRows([]); }, 200);
+  }
+
+  addRequirementModal.querySelectorAll('[data-act="cancel"], .modal-x').forEach(function (btn) {
+    btn.addEventListener('click', closeAddRequirementModal);
+  });
+  addRequirementModal.addEventListener('click', function (e) {
+    if (e.target === addRequirementModal) closeAddRequirementModal();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && addRequirementModal.classList.contains('open')) closeAddRequirementModal();
+  });
+
+  /* ---- save via AJAX: closes only the modal, stays on the service ---- */
+  if (addRequirementForm) {
+    addRequirementForm.addEventListener('submit', function (e) {
+      if (!currentServicePk) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
+      var newRequirements = [];
+      requirementRowsHost.querySelectorAll('.requirement-edit-row').forEach(function (row) {
+        var title = row.querySelector('input[type="text"]').value.trim();
+        var desc = row.querySelector('textarea').value.trim();
+        var isRequired = row.querySelector('input[name="is_required[]"]').value === 'required';
+        if (title) newRequirements.push({ title: title, description: desc, is_required: isRequired });
+      });
+
+      var url = addRequirementForm.dataset.urlTemplate.replace('/0/', '/' + currentServicePk + '/');
+      var formData = new FormData(addRequirementForm);
+
+      fetch(url, { method: 'POST', body: formData, credentials: 'same-origin' })
+        .then(function (res) {
+          if (!res.ok) throw new Error('Save failed');
+
+          currentRequirements = newRequirements;
+          renderRequirements(JSON.stringify(newRequirements));
+          updateRequirementButton(newRequirements);
+
+          var activeBtn = document.querySelector('.view-service-btn[data-id="' + currentServicePk + '"]');
+          if (activeBtn) activeBtn.dataset.requirements = JSON.stringify(newRequirements);
+
+          closeAddRequirementModal();
+        })
+        .catch(function () {
+          alert('Something went wrong saving the requirements. Please try again.');
+        });
+    });
+  }
+
+  /* ---- fee editor: mirrors the requirement editor, amount instead of required/optional ---- */
+  function createFeeRow(title, desc, amount) {
+    var row = document.createElement('div');
+    row.className = 'fee-edit-row';
+    row.innerHTML =
+      '<div class="fee-edit-row__body">' +
+        '<input class="form-input" type="text" name="title[]" placeholder="e.g. Mayor\'s Permit Fee">' +
+        '<textarea class="form-input form-textarea" name="desc[]" placeholder="What this fee covers" rows="2"></textarea>' +
+        '<input class="form-input" type="number" step="0.01" min="0" name="amount[]" placeholder="0.00">' +
+      '</div>' +
+      '<button type="button" class="fee-remove-row" title="Remove fee"><i class="fa-solid fa-minus"></i></button>';
+    row.querySelector('input[type="text"]').value = title || '';
+    row.querySelector('textarea').value = desc || '';
+    row.querySelector('input[type="number"]').value = (amount !== undefined && amount !== null) ? amount : '';
+    return row;
+  }
+
+  function populateFeeRows(fees) {
+    feeRowsHost.innerHTML = '';
+    if (!fees.length) {
+      feeRowsHost.appendChild(createFeeRow('', '', ''));
+    } else {
+      fees.forEach(function (f) { feeRowsHost.appendChild(createFeeRow(f.title, f.description, f.amount)); });
+    }
+  }
+
+  if (feeAddBtn) {
+    feeAddBtn.addEventListener('click', function () {
+      feeRowsHost.appendChild(createFeeRow('', '', ''));
+    });
+  }
+
+  feeRowsHost.addEventListener('click', function (e) {
+    var removeBtn = e.target.closest('.fee-remove-row');
+    if (!removeBtn) return;
+    var row = removeBtn.closest('.fee-edit-row');
+    if (feeRowsHost.children.length > 1) {
+      row.remove();
+    } else {
+      row.querySelector('input[type="text"]').value = '';
+      row.querySelector('textarea').value = '';
+      row.querySelector('input[type="number"]').value = '';
+    }
+  });
+
+  if (feeModalTrigger) {
+    feeModalTrigger.addEventListener('click', function () {
+      populateFeeRows(currentFees);
+      feeModalTitle.textContent = currentFees.length ? 'Edit Fees' : 'Add Fee';
+      addFeeModal.classList.add('open');
+      document.body.classList.add('modal-open');
+    });
+  }
+
+  function closeAddFeeModal() {
+    addFeeModal.classList.remove('open');
+    document.body.classList.remove('modal-open');
+    setTimeout(function () { populateFeeRows([]); }, 200);
+  }
+
+  addFeeModal.querySelectorAll('[data-act="cancel"], .modal-x').forEach(function (btn) {
+    btn.addEventListener('click', closeAddFeeModal);
+  });
+  addFeeModal.addEventListener('click', function (e) {
+    if (e.target === addFeeModal) closeAddFeeModal();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && addFeeModal.classList.contains('open')) closeAddFeeModal();
+  });
+
+  /* ---- save via AJAX: closes only the modal, stays on the service ---- */
+  if (addFeeForm) {
+    addFeeForm.addEventListener('submit', function (e) {
+      if (!currentServicePk) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
+      var newFees = [];
+      feeRowsHost.querySelectorAll('.fee-edit-row').forEach(function (row) {
+        var title = row.querySelector('input[type="text"]').value.trim();
+        var desc = row.querySelector('textarea').value.trim();
+        var amount = row.querySelector('input[type="number"]').value.trim();
+        if (title) newFees.push({ title: title, description: desc, amount: amount || '0' });
+      });
+
+      var url = addFeeForm.dataset.urlTemplate.replace('/0/', '/' + currentServicePk + '/');
+      var formData = new FormData(addFeeForm);
+
+      fetch(url, { method: 'POST', body: formData, credentials: 'same-origin' })
+        .then(function (res) {
+          if (!res.ok) throw new Error('Save failed');
+
+          currentFees = newFees;
+          renderFees(JSON.stringify(newFees));
+          updateFeeButton(newFees);
+
+          var activeBtn = document.querySelector('.view-service-btn[data-id="' + currentServicePk + '"]');
+          if (activeBtn) activeBtn.dataset.fees = JSON.stringify(newFees);
+
+          closeAddFeeModal();
+        })
+        .catch(function () {
+          alert('Something went wrong saving the fees. Please try again.');
+        });
+    });
+  }
+
+  var wantedId = new URLSearchParams(window.location.search).get('service');
+  if (wantedId) {
+    var target = document.querySelector('.view-service-btn[data-id="' + wantedId + '"]');
+    if (target) target.click();
+  }
+})();
+</script>
+
+
+<style>
+  .view-service-btn { font: inherit; padding: 0; outline: none; }
+  .view-service-btn:focus-visible { outline: 2px solid var(--blue-600); outline-offset: 2px; }
+
+  .step-edit-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 14px;
+    margin-bottom: 12px;
+    border: 1px solid var(--gray-200);
+    border-radius: 10px;
+    background: var(--gray-50, #f9fafb);
+  }
+  .step-edit-row__num {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--blue-600);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 800;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .step-edit-row__body { flex: 1; min-width: 0; }
+  .step-edit-row__body .form-input { margin-bottom: 8px; }
+  .step-edit-row__body .form-input:last-child { margin-bottom: 0; }
+  .step-remove-row {
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--gray-400);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font: inherit;
+  }
+  .step-remove-row:hover {
+    background: var(--red-50, #fef2f2);
+    border-color: var(--red-100, #fee2e2);
+    color: var(--red-600);
+  }
+
+  .action-icons [data-delete-target]:hover {
+  color: var(--red-700);
+  }
+
+/* Requirements: display list */
+.req-item{
+  display:flex;gap:12px;align-items:flex-start;
+  padding:14px 0;border-bottom:1px solid var(--gray-100);
+}
+.req-item:last-child{border-bottom:none;}
+.req-check{
+  width:18px;height:18px;border-radius:5px;border:2px solid var(--gray-300);
+  flex-shrink:0;margin-top:2px;
+}
+.req-body{flex:1;min-width:0;}
+.req-top{display:flex;align-items:center;gap:8px;margin-bottom:3px;flex-wrap:wrap;}
+.req-name{font-size:13.5px;font-weight:700;color:var(--gray-900);}
+.req-tag{font-size:10.5px;font-weight:800;letter-spacing:.02em;padding:2px 8px;border-radius:999px;}
+.req-tag.required{background:var(--red-50, #fdecec);color:var(--red-700, #b32620);}
+.req-tag.optional{background:var(--gray-100);color:var(--gray-600);}
+.req-desc{font-size:12px;color:var(--gray-500);line-height:1.5;}
+
+/* Requirements: edit rows inside the modal (mirrors .step-edit-row) */
+.requirement-edit-row{
+  display:flex;gap:12px;align-items:flex-start;
+  padding:14px;margin-bottom:12px;
+  border:1px solid var(--gray-200);border-radius:10px;
+  background:var(--gray-50, #f9fafb);
+}
+.requirement-edit-row__body{flex:1;min-width:0;}
+.requirement-edit-row__body .form-input{margin-bottom:8px;}
+.requirement-radio-group{
+  display:flex;gap:14px;align-items:center;font-size:12.5px;color:var(--gray-600);margin-top:2px;
+}
+.requirement-radio-group label{display:flex;align-items:center;gap:5px;cursor:pointer;}
+.requirement-remove-row{
+  flex-shrink:0;width:30px;height:30px;border-radius:7px;
+  border:1px solid transparent;background:transparent;color:var(--gray-400);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;font:inherit;
+}
+.requirement-remove-row:hover{
+  background:var(--red-50, #fef2f2);border-color:var(--red-100, #fee2e2);color:var(--red-600);
+}
+
+/* Fees: display list */
+.fee-item{
+  display:flex;gap:12px;align-items:center;
+  padding:13px 0;border-bottom:1px solid var(--gray-100);
+}
+.fee-item:last-child{border-bottom:none;}
+.fee-name{font-size:13.5px;font-weight:700;color:var(--gray-900);}
+.fee-desc{font-size:12px;color:var(--gray-500);margin-top:2px;line-height:1.4;}
+.fee-amount{font-size:14px;font-weight:800;color:var(--gray-900);flex-shrink:0;white-space:nowrap;margin-left:auto;}
+
+.fee-total{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 22px;background:var(--gray-50);
+  border-top:1px solid var(--gray-100);
+  border-radius:0 0 16px 16px;
+}
+.fee-total-label{font-size:13px;font-weight:700;color:var(--gray-600);}
+.fee-total-value{font-size:16px;font-weight:800;color:var(--gray-900);}
+
+/* Fees: edit rows inside the modal (mirrors .requirement-edit-row) */
+.fee-edit-row{
+  display:flex;gap:12px;align-items:flex-start;
+  padding:14px;margin-bottom:12px;
+  border:1px solid var(--gray-200);border-radius:10px;
+  background:var(--gray-50, #f9fafb);
+}
+.fee-edit-row__body{flex:1;min-width:0;}
+.fee-edit-row__body .form-input{margin-bottom:8px;}
+.fee-edit-row__body .form-input:last-child{margin-bottom:0;}
+.fee-remove-row{
+  flex-shrink:0;width:30px;height:30px;border-radius:7px;
+  border:1px solid transparent;background:transparent;color:var(--gray-400);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;font:inherit;
+}
+.fee-remove-row:hover{
+  background:var(--red-50, #fef2f2);border-color:var(--red-100, #fee2e2);color:var(--red-600);
+}
+</style>
 
 {% endblock %}

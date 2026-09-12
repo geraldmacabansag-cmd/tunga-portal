@@ -268,7 +268,7 @@ button {
 .side-panel__logout:hover {
   text-decoration: underline;
 }
-}
+
 .user-menu__dropdown a {
   display: flex;
   align-items: center;
@@ -283,6 +283,73 @@ button {
 }
 .user-menu.open .user-menu__dropdown {
   display: block;
+}
+
+/* ==========================================================================
+   Toast popups (site-wide messages: login, signup, logout, form errors)
+   ========================================================================== */
+.toast-host {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 400;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-end;
+  pointer-events: none;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--navy-deep);
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  opacity: 0;
+  transform: translateY(8px) scale(.98);
+  transition: opacity .2s ease, transform .2s ease;
+  max-width: 340px;
+}
+
+.toast i {
+  font-size: 14px;
+}
+
+.toast-success i {
+  color: var(--green-badge);
+}
+
+.toast-error {
+  background: var(--red-badge);
+}
+
+.toast-error i {
+  color: #ffd7d5;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+@media (max-width: 600px) {
+  .toast-host {
+    right: 12px;
+    left: 12px;
+    bottom: 12px;
+    align-items: stretch;
+  }
+
+  .toast {
+    max-width: none;
+  }
 }
 
 /* ==========================================================================
@@ -394,14 +461,7 @@ button {
   background: var(--navy-light);
 }
 
-/* Mobile nav toggle (hidden on desktop) */
-.nav-toggle {
-  display: none;
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  color: var(--navy);
-}
+
 
 /* ==========================================================================
    PAGE HERO (blue band with building photo)
@@ -732,11 +792,9 @@ button {
 
 @media (max-width: 900px) {
   .main-nav {
-    display: none;
-  }
-
-  .nav-toggle {
-    display: block;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
   }
 
   .footer-main {

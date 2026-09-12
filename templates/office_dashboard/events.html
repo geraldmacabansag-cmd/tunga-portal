@@ -16,7 +16,7 @@
       <div class="topbar-right">
         <button class="icon-button" id="notifBellBtn" type="button" aria-haspopup="true" aria-expanded="false"><i class="fa-regular fa-bell"></i><span class="dot">3</span></button>
         <div class="user-chip">
-          <img src="{% if rep.photo %}{{ rep.photo.url }}{% else %}https://i.pravatar.cc/64?img=15{% endif %}" alt="">
+          <img src="{% if rep.photo %}{{ rep.photo.url }}{% else %}{% static 'images/icon/profile_logo.jpeg' %}{% endif %}" alt="">
           <div class="who"><div class="name">{{ rep.user.get_full_name|default:rep.user.username }}</div><div class="role">{{ rep.position|default:"Office Representative" }}</div></div>
           <i class="fa-solid fa-chevron-down chev"></i>
         </div>
@@ -30,9 +30,9 @@
     <main class="content">
 
       <div class="stat-grid" style="grid-template-columns:repeat(3,1fr);">
-        <div class="stat-card"><div class="top"><span class="stat-icon blue"><i class="fa-regular fa-calendar"></i></span></div><div class="stat-value">3</div><div class="stat-label">Upcoming Events</div></div>
-        <div class="stat-card"><div class="top"><span class="stat-icon green"><i class="fa-solid fa-calendar-check"></i></span></div><div class="stat-value">14</div><div class="stat-label">Completed This Year</div></div>
-        <div class="stat-card"><div class="top"><span class="stat-icon amber"><i class="fa-solid fa-hourglass-half"></i></span></div><div class="stat-value">1</div><div class="stat-label">Pending Approval</div></div>
+        <div class="stat-card"><div class="top"><span class="stat-icon blue"><i class="fa-regular fa-calendar"></i></span></div><div class="stat-value">{{ upcoming_count }}</div><div class="stat-label">Upcoming Events</div></div>
+        <div class="stat-card"><div class="top"><span class="stat-icon green"><i class="fa-solid fa-calendar-check"></i></span></div><div class="stat-value">{{ completed_this_year_count }}</div><div class="stat-label">Completed This Year</div></div>
+        <div class="stat-card"><div class="top"><span class="stat-icon amber"><i class="fa-solid fa-hourglass-half"></i></span></div><div class="stat-value">{{ pending_count }}</div><div class="stat-label">Pending Approval</div></div>
       </div>
 
       <section class="panel">

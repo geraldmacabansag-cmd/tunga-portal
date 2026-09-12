@@ -16,7 +16,7 @@
       <div class="topbar-right">
         <button class="icon-button" id="notifBellBtn" type="button" aria-haspopup="true" aria-expanded="false"><i class="fa-regular fa-bell"></i><span class="dot">3</span></button>
         <div class="user-chip">
-          <img src="{% if rep.photo %}{{ rep.photo.url }}{% else %}https://i.pravatar.cc/64?img=15{% endif %}" alt="">
+          <img src="{% if rep.photo %}{{ rep.photo.url }}{% else %}{% static 'images/icon/profile_logo.jpeg' %}{% endif %}" alt="">
           <div class="who"><div class="name">{{ rep.user.get_full_name|default:rep.user.username }}</div><div class="role">{{ rep.position|default:"Office Representative" }}</div></div>
           <i class="fa-solid fa-chevron-down chev"></i>
         </div>
@@ -47,22 +47,44 @@
               {% endif %}
             </div>
 
-              <div class="info-row"><span class="k">Office Name</span><span class="v">{{ office.name|default:"None" }}</span></div>
-              <div class="info-row" style="align-items:flex-start;">
-                <span class="k" style="flex:0 0 170px;white-space:nowrap;">About Office</span>
-                <span class="v" style="flex:1;text-align:right;max-height:110px;overflow-y:auto;line-height:1.6;padding-left:8px;display:block;">{{ office.about|default:"None" }}</span>
+            <div class="form-grid">
+              <div class="form-group full">
+                <label class="form-label">Office Name</label>
+                <input class="form-input" type="text" value="{{ office.name }}" disabled>
               </div>
-
-              <div class="info-row" style="align-items:flex-start;">
-                <span class="k" style="flex:0 0 170px;white-space:nowrap;">Office Description</span>
-                <span class="v" style="flex:1;text-align:right;max-height:110px;overflow-y:auto;line-height:1.6;padding-left:8px;display:block;">{{ office.description|default:"None" }}</span>
+              <div class="form-group full">
+                <label class="form-label">About Office</label>
+                <textarea class="form-input form-textarea" disabled>{{ office.about }}</textarea>
               </div>
-              <div class="info-row"><span class="k">Office Head</span><span class="v">{{ office.head_name|default:"None" }}</span></div>
-              <div class="info-row"><span class="k">Position Title</span><span class="v">{{ office.position_title|default:"None" }}</span></div>
-              <div class="info-row"><span class="k">Office Hours</span><span class="v">{{ office.office_hours|default:"None" }}</span></div>
-              <div class="info-row"><span class="k">Location</span><span class="v">{{ office.location|default:"None" }}</span></div>
-              <div class="info-row"><span class="k">Email</span><span class="v">{{ office.email|default:"None" }}</span></div>
-              <div class="info-row" style="border-bottom:none;"><span class="k">Telephone</span><span class="v">{{ office.telephone|default:"None" }}</span></div>
+              <div class="form-group full">
+                <label class="form-label">Office Description</label>
+                <textarea class="form-input form-textarea" disabled>{{ office.description }}</textarea>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Office Head</label>
+                <input class="form-input" type="text" value="{{ office.head_name }}" disabled>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Position Title</label>
+                <input class="form-input" type="text" value="{{ office.position_title }}" disabled>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Office Hours</label>
+                <input class="form-input" type="text" value="{{ office.office_hours }}" disabled>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Location</label>
+                <input class="form-input" type="text" value="{{ office.location }}" disabled>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Email</label>
+                <input class="form-input" type="text" value="{{ office.email }}" disabled>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Telephone</label>
+                <input class="form-input" type="text" value="{{ office.telephone }}" disabled>
+              </div>
+            </div>
             </div>
 
             <!-- EDIT MODE -->
@@ -133,12 +155,13 @@
           <section class="panel">
             <div class="panel-header"><h2>Services Offered</h2><button class="btn btn-secondary btn-sm" id="open-add-service"><i class="fa-solid fa-plus"></i> Add</button></div>
             <div class="panel-body">
-              <div class="info-row"><span class="k"><i class="fa-solid fa-hands-holding-circle" style="color:var(--blue-600);margin-right:8px;"></i>Public Assistance</span></div>
-              <div class="info-row"><span class="k"><i class="fa-solid fa-file-signature" style="color:var(--blue-600);margin-right:8px;"></i>Endorsement</span></div>
-              <div class="info-row"><span class="k"><i class="fa-solid fa-comments" style="color:var(--blue-600);margin-right:8px;"></i>Complaints &amp; Inquiries</span></div>
-              <div class="info-row"><span class="k"><i class="fa-solid fa-star" style="color:var(--blue-600);margin-right:8px;"></i>Special Requests</span></div>
-              <div class="info-row"><span class="k"><i class="fa-solid fa-bullhorn" style="color:var(--blue-600);margin-right:8px;"></i>Proclamations</span></div>
-              <div class="info-row" style="border-bottom:none;"><span class="k"><i class="fa-regular fa-calendar-check" style="color:var(--blue-600);margin-right:8px;"></i>Appointments</span></div>
+              {% for service in services %}
+              <div class="info-row" {% if forloop.last %}style="border-bottom:none;"{% endif %}>
+                <span class="k"><i class="{{ service.icon }}" style="color:var(--blue-600);margin-right:8px;"></i>{{ service.name }}</span>
+              </div>
+              {% empty %}
+              <p style="color:var(--gray-400);padding:8px 0;">No services added yet.</p>
+              {% endfor %}
             </div>
           </section>
 
@@ -168,11 +191,79 @@
       <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="modal-body">
-      <form>
+      <form method="post" action="{% url 'office_dashboard:add_service' %}">
+        {% csrf_token %}
+
+          {% for message in messages %}
+            <div class="toast-static {{ message.tags }}">{{ message }}</div>
+          {% endfor %}
+
         <div class="form-group">
           <label class="form-label" for="svc-name">Service Name <span class="req">*</span></label>
           <input class="form-input" type="text" id="svc-name" name="name" placeholder="e.g. Senior Citizen ID Issuance" required>
         </div>
+
+        <div class="form-group">
+          <label class="form-label" for="svc-description">Description</label>
+          <textarea class="form-input" id="svc-description" name="description" rows="3" placeholder="What this service is for and who can avail of it"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="svc-category">Category</label>
+          <select class="form-input" id="svc-category" name="category">
+            {% for value, label in category_choices %}
+              <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Availability</label>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <select class="form-input" name="availability_day_from" style="flex:1;min-width:110px;">
+              <option value="Monday" selected>Monday</option>
+              <option value="Tuesday">Tuesday</option>
+              <option value="Wednesday">Wednesday</option>
+              <option value="Thursday">Thursday</option>
+              <option value="Friday">Friday</option>
+              <option value="Saturday">Saturday</option>
+              <option value="Sunday">Sunday</option>
+            </select>
+            <span>to</span>
+            <select class="form-input" name="availability_day_to" style="flex:1;min-width:110px;">
+              <option value="Monday">Monday</option>
+              <option value="Tuesday">Tuesday</option>
+              <option value="Wednesday">Wednesday</option>
+              <option value="Thursday">Thursday</option>
+              <option value="Friday" selected>Friday</option>
+              <option value="Saturday">Saturday</option>
+              <option value="Sunday">Sunday</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap;">
+            <input class="form-input" type="time" name="availability_time_from" value="08:00" style="flex:1;min-width:110px;">
+            <span>to</span>
+            <input class="form-input" type="time" name="availability_time_to" value="17:00" style="flex:1;min-width:110px;">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="svc-processing-time">Processing Time</label>
+          <input class="form-input" type="text" id="svc-processing-time" name="processing_time" placeholder="e.g. 3-5 business days, Same day">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Icon</label>
+          <input type="hidden" name="icon" id="svc-icon-input" value="{{ icon_choices.0.0 }}">
+          <div class="icon-picker">
+            {% for value, label in icon_choices %}
+            <button type="button" class="icon-picker__item {% if forloop.first %}selected{% endif %}" data-icon-value="{{ value }}" title="{{ label }}">
+              <i class="{{ value }}"></i>
+            </button>
+            {% endfor %}
+          </div>
+        </div>
+
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
           <button type="submit" class="btn btn-primary">Add</button>

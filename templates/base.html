@@ -100,7 +100,7 @@
       <a href="{% url 'contact' %}" class="{% if request.resolver_match.url_name == 'contact' %}active{% endif %}">Contact Us</a>
     </div>
     <button class="nav-search" aria-label="Search"><i class="fa-solid fa-magnifying-glass"></i></button>
-    <button class="nav-toggle" aria-label="Menu"><i class="fa-solid fa-bars"></i></button>
+
   </div>
 </nav>
 
@@ -166,6 +166,14 @@
   </div>
 </footer>
 
+{% if messages %}
+<div id="server-messages" hidden>
+  {% for message in messages %}
+    <div data-type="{{ message.tags }}">{{ message }}</div>
+  {% endfor %}
+</div>
+{% endif %}
+
 <script>
   document.addEventListener('DOMContentLoaded', function () {
     const avatarBtn = document.querySelector('.user-menu__avatar');
@@ -173,20 +181,57 @@
     const overlay = document.querySelector('.side-panel-overlay');
     const closeBtn = document.querySelector('.side-panel__close');
 
-    if (!avatarBtn || !panel || !overlay) return;
+    if (avatarBtn && panel && overlay) {
+      function openPanel() {
+        panel.classList.add('open');
+        overlay.classList.add('open');
+      }
+      function closePanel() {
+        panel.classList.remove('open');
+        overlay.classList.remove('open');
+      }
 
-    function openPanel() {
-      panel.classList.add('open');
-      overlay.classList.add('open');
-    }
-    function closePanel() {
-      panel.classList.remove('open');
-      overlay.classList.remove('open');
+      avatarBtn.addEventListener('click', openPanel);
+      overlay.addEventListener('click', closePanel);
+      if (closeBtn) closeBtn.addEventListener('click', closePanel);
     }
 
-    avatarBtn.addEventListener('click', openPanel);
-    overlay.addEventListener('click', closePanel);
-    if (closeBtn) closeBtn.addEventListener('click', closePanel);
+    /* -------------------------------------------------------------- */
+    /* Toast popups for Django messages (login, signup, logout, etc.)  */
+    /* -------------------------------------------------------------- */
+    function ensureToastHost() {
+      var host = document.getElementById('toast-host');
+      if (!host) {
+        host = document.createElement('div');
+        host.id = 'toast-host';
+        host.className = 'toast-host';
+        document.body.appendChild(host);
+      }
+      return host;
+    }
+
+    function showToast(msg, type) {
+      var host = ensureToastHost();
+      var el = document.createElement('div');
+      el.className = 'toast' + (type === 'error' ? ' toast-error' : ' toast-success');
+      el.innerHTML = '<i class="fa-solid ' + (type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check') + '"></i><span></span>';
+      el.querySelector('span').textContent = msg;
+      host.appendChild(el);
+      requestAnimationFrame(function () { el.classList.add('show'); });
+      setTimeout(function () {
+        el.classList.remove('show');
+        setTimeout(function () { el.remove(); }, 250);
+      }, 2800);
+    }
+
+    var serverMessages = document.getElementById('server-messages');
+    if (serverMessages) {
+      serverMessages.querySelectorAll('[data-type]').forEach(function (node) {
+        var tags = node.dataset.type || '';
+        var type = tags.indexOf('error') !== -1 ? 'error' : 'success';
+        showToast(node.textContent.trim(), type);
+      });
+    }
   });
 </script>
 

@@ -16,7 +16,7 @@
       <div class="topbar-right">
         <button class="icon-button" id="notifBellBtn" type="button" aria-haspopup="true" aria-expanded="false"><i class="fa-regular fa-bell"></i><span class="dot">3</span></button>
         <div class="user-chip">
-          <img src="{% if rep.photo %}{{ rep.photo.url }}{% else %}https://i.pravatar.cc/64?img=15{% endif %}" alt="">
+          <img src="{% if rep.photo %}{{ rep.photo.url }}{% else %}{% static 'images/icon/profile_logo.jpeg' %}{% endif %}" alt="">
           <div class="who"><div class="name">{{ rep.user.get_full_name|default:rep.user.username }}</div><div class="role">{{ rep.position|default:"Office Representative" }}</div></div>
           <i class="fa-solid fa-chevron-down chev"></i>
         </div>
@@ -29,63 +29,61 @@
 
     <main class="content">
 
+      {% for message in messages %}
+        <div class="toast-static {{ message.tags }}" style="margin-bottom:14px;">{{ message }}</div>
+      {% endfor %}
+
       <section class="panel">
         <div class="panel-header">
           <h2>Downloadable Forms</h2>
-          <button class="btn btn-primary" id="open-add-form"><i class="fa-solid fa-plus"></i> Add Form</button>
+          <button type="button" class="btn btn-primary" id="open-add-form"><i class="fa-solid fa-plus"></i> Add Form</button>
         </div>
         <div class="filters-row">
           <label class="field search" style="flex:1;"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search forms..."></label>
-          <select class="field"><option>All Categories</option><option>Permits</option><option>Clearance</option><option>Health</option></select>
+          <select class="field">
+            <option value="">All Categories</option>
+            {% for cat in category_choices %}
+              <option value="{{ cat }}">{{ cat }}</option>
+            {% endfor %}
+          </select>
         </div>
         <div class="table-wrap">
           <table class="data-table">
-            <thead><tr><th>Form</th><th>Category</th><th>File</th><th>Downloads</th><th>Status</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Form</th><th>Category</th><th>Uploaded By</th><th>Date Uploaded</th><th>Downloads</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
+              {% for form in forms %}
               <tr>
-                <td class="row-icon-name"><span class="row-thumb" style="background:var(--red-50);color:var(--red-600);"><i class="fa-solid fa-file-pdf"></i></span><span class="cell-primary">Business Permit Application Form</span></td>
-                <td><span class="tag">Permits</span></td>
-                <td>PDF · 245 KB</td>
-                <td>1,204</td>
-                <td><span class="badge badge-green">Published</span></td>
-                <td><div class="action-icons"><span class="ic"><i class="fa-solid fa-download"></i></span><span class="ic"><i class="fa-regular fa-pen-to-square"></i></span><span class="ic"><i class="fa-regular fa-trash-can"></i></span></div></td>
+                <td class="row-icon-name">
+                  <span class="row-thumb" style="background:var(--red-50);color:var(--red-600);"><i class="fa-solid fa-file-pdf"></i></span>
+                  <span class="cell-primary">{{ form.title }}</span>
+                </td>
+                <td><span class="tag">{{ form.category|default:"—" }}</span></td>
+                <td>{{ form.uploaded_by|default:"—" }}</td>
+                <td>{{ form.date_uploaded|date:"M d, Y" }}</td>
+                <td>{{ form.download_count }}</td>
+                <td><span class="badge {% if form.status == 'published' %}badge-green{% else %}badge-amber{% endif %}">{{ form.get_status_display }}</span></td>
+                <td>
+                  <div class="action-icons">
+                    <a class="ic" href="{% url 'office_dashboard:download_form' form.pk %}" title="Download"><i class="fa-solid fa-download"></i></a>
+                    <button type="button" class="ic" title="Edit" data-edit-target="edit-form-modal-{{ form.pk }}"><i class="fa-regular fa-pen-to-square"></i></button>
+                    <button type="button" class="ic" title="Delete" data-delete-target="delete-form-modal-{{ form.pk }}"><i class="fa-regular fa-trash-can"></i></button>
+                  </div>
+                </td>
               </tr>
+              {% empty %}
               <tr>
-                <td class="row-icon-name"><span class="row-thumb" style="background:var(--red-50);color:var(--red-600);"><i class="fa-solid fa-file-pdf"></i></span><span class="cell-primary">Barangay Clearance Form</span></td>
-                <td><span class="tag">Clearance</span></td>
-                <td>PDF · 210 KB</td>
-                <td>876</td>
-                <td><span class="badge badge-green">Published</span></td>
-                <td><div class="action-icons"><span class="ic"><i class="fa-solid fa-download"></i></span><span class="ic"><i class="fa-regular fa-pen-to-square"></i></span><span class="ic"><i class="fa-regular fa-trash-can"></i></span></div></td>
+                <td colspan="7" style="text-align:center;color:var(--gray-400);padding:24px 0;">No forms uploaded yet.</td>
               </tr>
-              <tr>
-                <td class="row-icon-name"><span class="row-thumb" style="background:var(--red-50);color:var(--red-600);"><i class="fa-solid fa-file-pdf"></i></span><span class="cell-primary">Occupancy / Location Clearance</span></td>
-                <td><span class="tag">Clearance</span></td>
-                <td>PDF · 198 KB</td>
-                <td>532</td>
-                <td><span class="badge badge-green">Published</span></td>
-                <td><div class="action-icons"><span class="ic"><i class="fa-solid fa-download"></i></span><span class="ic"><i class="fa-regular fa-pen-to-square"></i></span><span class="ic"><i class="fa-regular fa-trash-can"></i></span></div></td>
-              </tr>
-              <tr>
-                <td class="row-icon-name"><span class="row-thumb" style="background:var(--red-50);color:var(--red-600);"><i class="fa-solid fa-file-pdf"></i></span><span class="cell-primary">Certificate of Indigency</span></td>
-                <td><span class="tag">Assistance</span></td>
-                <td>PDF · 172 KB</td>
-                <td>--</td>
-                <td><span class="badge badge-amber">Pending Approval</span></td>
-                <td><div class="action-icons"><span class="ic"><i class="fa-solid fa-download"></i></span><span class="ic"><i class="fa-regular fa-pen-to-square"></i></span><span class="ic"><i class="fa-regular fa-trash-can"></i></span></div></td>
-              </tr>
+              {% endfor %}
             </tbody>
           </table>
-        </div>
-        <div class="pagination">
-          <span>Showing 1 to 4 of 12 forms</span>
-          <div class="page-nums"><span class="page-btn"><i class="fa-solid fa-chevron-left"></i></span><span class="page-btn active">1</span><span class="page-btn">2</span><span class="page-btn">3</span><span class="page-btn"><i class="fa-solid fa-chevron-right"></i></span></div>
         </div>
       </section>
 
     </main>
   </div>
 </div>
+
 <div class="modal-backdrop" id="add-form-modal">
   <div class="modal-box">
     <div class="modal-head">
@@ -93,39 +91,31 @@
       <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="modal-body">
-      <form>
+      <form id="add-form-form" method="post" enctype="multipart/form-data" action="{% url 'office_dashboard:upload_form' %}">
+        {% csrf_token %}
+
+        <div class="form-group">
+          <label class="form-label" for="df-file">Attachment (PDF) <span class="req">*</span></label>
+          <input class="form-input" type="file" id="df-file" name="file" accept=".pdf,application/pdf" required>
+        </div>
+
         <div class="form-group">
           <label class="form-label" for="df-title">Form Name <span class="req">*</span></label>
           <input class="form-input" type="text" id="df-title" name="title" placeholder="e.g. Solid Waste Complaint Form" required>
         </div>
+
+        <div class="form-group">
+          <label class="form-label" for="df-description">Description</label>
+          <textarea class="form-input" id="df-description" name="description" rows="3" placeholder="What this form is for"></textarea>
+        </div>
+
         <div class="form-group">
           <label class="form-label" for="df-category">Category</label>
           <select class="form-input" id="df-category" name="category">
-            <option>Permits</option>
-            <option>Clearance</option>
-            <option>Health</option>
-            <option>Assistance</option>
+            {% for cat in category_choices %}
+              <option value="{{ cat }}">{{ cat }}</option>
+            {% endfor %}
           </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="ev-description">Description</label>
-          <input class="form-input" type="text" id="ev-description" name="description" placeholder="e.g. ">
-        </div>      
-        <div class="form-group">
-          <label class="form-label" for="df-version">Version</label>
-          <input class="form-input" type="text" id="df-version" name="version" placeholder="e.g. ">
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="df-date up">Date Uploaded</label>
-          <input class="form-input" type="text" id="df-date up" name="date up" placeholder="e.g. ">
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="df-uploaded by">Uploaded By</label>
-          <input class="form-input" type="text" id="df-uploaded by" name="uploaded by" placeholder="e.g. ">
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="df-download count">Download Count</label>
-          <input class="form-input" type="text" id="df-download count" name="download count" placeholder="e.g. ">
         </div>
 
         <div class="modal-actions">
@@ -136,5 +126,155 @@
     </div>
   </div>
 </div>
+
+{% for form in forms %}
+
+<div class="modal-backdrop" id="edit-form-modal-{{ form.pk }}">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Edit Form</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form method="post" enctype="multipart/form-data" action="{% url 'office_dashboard:edit_form' form.pk %}">
+        {% csrf_token %}
+
+        <div class="form-group">
+          <label class="form-label" for="df-title-{{ form.pk }}">Form Name <span class="req">*</span></label>
+          <input class="form-input" type="text" id="df-title-{{ form.pk }}" name="title" value="{{ form.title }}" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="df-description-{{ form.pk }}">Description</label>
+          <textarea class="form-input" id="df-description-{{ form.pk }}" name="description" rows="3">{{ form.description }}</textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="df-category-{{ form.pk }}">Category</label>
+          <select class="form-input" id="df-category-{{ form.pk }}" name="category">
+            {% for cat in category_choices %}
+              <option value="{{ cat }}" {% if form.category == cat %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="df-file-{{ form.pk }}">Attachment (PDF)</label>
+          <div style="margin-bottom:6px;font-size:13px;color:var(--gray-500);">
+            <i class="fa-solid fa-file-pdf" style="color:var(--red-600);margin-right:4px;"></i>{{ form.file.name|slice:"18:" }}
+          </div>
+          <input class="form-input" type="file" id="df-file-{{ form.pk }}" name="file" accept=".pdf,application/pdf">
+          <small class="form-help">Leave empty to keep the current file.</small>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="delete-form-modal-{{ form.pk }}">
+  <div class="modal-box" style="max-width:400px;">
+    <div class="modal-head">
+      <h3>Delete Form</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <p>Are you sure you want to permanently delete <strong>"{{ form.title }}"</strong>? The uploaded file will also be removed. This cannot be undone.</p>
+
+      <form method="post" action="{% url 'office_dashboard:delete_form' form.pk %}">
+        {% csrf_token %}
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" style="background:#dc2626;border-color:#dc2626;">Yes, Delete</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<script>
+(function () {
+  var trigger = document.getElementById('open-add-form');
+  var modal = document.getElementById('add-form-modal');
+  var form = document.getElementById('add-form-form');
+  if (!trigger || !modal) return;
+
+  function openModal() {
+    modal.classList.add('open');
+    document.body.classList.add('modal-open');
+  }
+  function closeModal() {
+    modal.classList.remove('open');
+    document.body.classList.remove('modal-open');
+    setTimeout(function () { if (form) form.reset(); }, 200);
+  }
+
+  trigger.addEventListener('click', openModal);
+  modal.querySelectorAll('[data-act="cancel"], .modal-x').forEach(function (btn) {
+    btn.addEventListener('click', closeModal);
+  });
+  modal.addEventListener('click', function (e) {
+    if (e.target === modal) closeModal();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && modal.classList.contains('open')) closeModal();
+  });
+
+  // Let the form submit for real so the file + fields are actually saved
+  // to the database. stopImmediatePropagation blocks app.js's own
+  // wireDownloadableFormsCreate() submit listener on this same form,
+  // which otherwise fakes the upload client-side only.
+  if (form) {
+    form.addEventListener('submit', function (e) {
+      e.stopImmediatePropagation();
+    });
+  }
+  // Delete Form: per-form confirmation popup, same pattern as the Services
+  // page. stopPropagation blocks app.js's generic delegated .ic + trash-can
+  // handler, which would otherwise also fire and fake-delete the row
+  // client-side only.
+  document.querySelectorAll('[data-delete-target]').forEach(function (delTrigger) {
+    var delModal = document.getElementById(delTrigger.dataset.deleteTarget);
+    if (!delModal) return;
+
+    delTrigger.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      delModal.classList.add('open');
+      document.body.classList.add('modal-open');
+    });
+
+    function closeDelModal() {
+      delModal.classList.remove('open');
+      document.body.classList.remove('modal-open');
+    }
+    delModal.querySelectorAll('[data-act="cancel"], .modal-x').forEach(function (btn) {
+      btn.addEventListener('click', closeDelModal);
+    });
+    delModal.addEventListener('click', function (e) {
+      if (e.target === delModal) closeDelModal();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && delModal.classList.contains('open')) closeDelModal();
+    });
+  });
+
+  // Real download links: app.js's generic delegated handler intercepts ANY
+  // .ic icon with a download glyph on every page (no exclusion list, unlike
+  // its trash-can/eye branches) and calls preventDefault() + a fake toast.
+  // stopPropagation here (before that document-level listener runs) lets
+  // this link's real navigation to download_form actually happen.
+  document.querySelectorAll('a.ic[href]').forEach(function (link) {
+    link.addEventListener('click', function (e) {
+      e.stopPropagation();
+    });
+  });
+})();
+</script>
 
 {% endblock %}

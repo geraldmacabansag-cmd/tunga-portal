@@ -16,7 +16,7 @@
       <div class="topbar-right">
         <button class="icon-button" id="notifBellBtn" type="button" aria-haspopup="true" aria-expanded="false"><i class="fa-regular fa-bell"></i><span class="dot">3</span></button>
         <div class="user-chip">
-          <img src="{% if rep.photo %}{{ rep.photo.url }}{% else %}https://i.pravatar.cc/64?img=15{% endif %}" alt="">
+          <img src="{% if rep.photo %}{{ rep.photo.url }}{% else %}{% static 'images/icon/profile_logo.jpeg' %}{% endif %}" alt="">
           <div class="who"><div class="name">{{ rep.user.get_full_name|default:rep.user.username }}</div><div class="role">{{ rep.position|default:"Office Representative" }}</div></div>
           <i class="fa-solid fa-chevron-down chev"></i>
         </div>
@@ -33,61 +33,50 @@
       <div class="stat-grid">
         <div class="stat-card">
           <div class="top"><span class="stat-icon blue"><i class="fa-solid fa-bullhorn"></i></span></div>
-          <div class="stat-value">8</div>
+          <div class="stat-value">{{ announcements_count }}</div>
           <div class="stat-label">Announcements</div>
-          <a class="stat-sub" style="color:var(--blue-600);font-weight:700;" href="#">View all ›</a>
+          <a class="stat-sub" style="color:var(--blue-600);font-weight:700;" href="{% url 'office_dashboard:rep_announce' %}">View all ›</a>
         </div>
         <div class="stat-card">
           <div class="top"><span class="stat-icon green"><i class="fa-solid fa-newspaper"></i></span></div>
-          <div class="stat-value">5</div>
+          <div class="stat-value">{{ news_count }}</div>
           <div class="stat-label">News &amp; Updates</div>
-          <a class="stat-sub" style="color:var(--blue-600);font-weight:700;" href="#">View all ›</a>
+          <a class="stat-sub" style="color:var(--blue-600);font-weight:700;" href="{% url 'office_dashboard:news_update' %}">View all ›</a>
         </div>
         <div class="stat-card">
           <div class="top"><span class="stat-icon amber"><i class="fa-regular fa-calendar"></i></span></div>
-          <div class="stat-value">3</div>
+          <div class="stat-value">{{ events_count }}</div>
           <div class="stat-label">Upcoming Events</div>
-          <a class="stat-sub" style="color:var(--blue-600);font-weight:700;" href="#">View all ›</a>
+          <a class="stat-sub" style="color:var(--blue-600);font-weight:700;" href="{% url 'office_dashboard:event' %}">View all ›</a>
         </div>
         <div class="stat-card">
           <div class="top"><span class="stat-icon" style="background:#7c4fe0;"><i class="fa-solid fa-download"></i></span></div>
-          <div class="stat-value">12</div>
+          <div class="stat-value">{{ forms_count }}</div>
           <div class="stat-label">Downloadable Forms</div>
-          <a class="stat-sub" style="color:var(--blue-600);font-weight:700;" href="#">View all ›</a>
+          <a class="stat-sub" style="color:var(--blue-600);font-weight:700;" href="{% url 'office_dashboard:downloadable_form' %}">View all ›</a>
         </div>
         <div class="stat-card">
           <div class="top"><span class="stat-icon" style="background:#12b3c4;"><i class="fa-regular fa-image"></i></span></div>
-          <div class="stat-value">25</div>
+          <div class="stat-value">{{ photos_count }}</div>
           <div class="stat-label">Gallery Photos</div>
-          <a class="stat-sub" style="color:var(--blue-600);font-weight:700;" href="#">View all ›</a>
+          <a class="stat-sub" style="color:var(--blue-600);font-weight:700;" href="{% url 'office_dashboard:gallery' %}">View all ›</a>
         </div>
       </div>
 
       <div class="grid-3" style="margin-bottom:18px;">
         <!-- Recent announcements -->
         <section class="panel">
-          <div class="panel-header"><h2>Recent Announcements</h2><a class="link" href="#">View All</a></div>
+          <div class="panel-header"><h2>Recent Announcements</h2><a class="link" href="{% url 'office_dashboard:rep_announce' %}">View All</a></div>
           <div class="panel-body" style="padding-top:6px;">
+            {% for a in recent_announcements %}
             <div class="list-row">
               <span class="list-icon" style="background:var(--blue-600);"><i class="fa-solid fa-bullhorn"></i></span>
-              <div style="flex:1;"><div class="list-title">Mayor's Listening Session</div><div class="list-meta">July 15, 2026 · 9:00 AM</div></div>
-              <span class="badge badge-green">Published</span>
+              <div style="flex:1;"><div class="list-title">{{ a.title }}</div><div class="list-meta">{{ a.created_at|date:"F j, Y · g:i A" }}</div></div>
+              <span class="badge {% if a.status == 'published' %}badge-green{% elif a.status == 'draft' %}badge-gray{% elif a.status == 'returned' %}badge-red{% else %}badge-amber{% endif %}">{{ a.get_status_display }}</span>
             </div>
-            <div class="list-row">
-              <span class="list-icon" style="background:var(--blue-600);"><i class="fa-solid fa-bullhorn"></i></span>
-              <div style="flex:1;"><div class="list-title">Schedule of Barangay Visits</div><div class="list-meta">July 10, 2026 · 2:30 PM</div></div>
-              <span class="badge badge-green">Published</span>
-            </div>
-            <div class="list-row">
-              <span class="list-icon" style="background:var(--blue-600);"><i class="fa-solid fa-bullhorn"></i></span>
-              <div style="flex:1;"><div class="list-title">Flag Raising Ceremony</div><div class="list-meta">July 8, 2026 · 7:30 AM</div></div>
-              <span class="badge badge-green">Published</span>
-            </div>
-            <div class="list-row">
-              <span class="list-icon" style="background:var(--blue-600);"><i class="fa-solid fa-bullhorn"></i></span>
-              <div style="flex:1;"><div class="list-title">Office Advisory: Work Schedule</div><div class="list-meta">July 5, 2026 · 10:00 AM</div></div>
-              <span class="badge badge-gray">Draft</span>
-            </div>
+            {% empty %}
+            <p style="color:var(--gray-400);padding:8px 0;">No announcements yet.</p>
+            {% endfor %}
           </div>
           <div style="padding:0 20px 20px;"><button class="btn btn-secondary btn-block"><i class="fa-solid fa-plus"></i> Create Announcement</button></div>
         </section>
@@ -103,11 +92,11 @@
           </div>
           <div class="panel-body">
             <div class="bar-chart">
-              <div class="bar-col"><span class="val">8</span><span class="bar" style="height:70%;background:var(--blue-600);"></span><span class="lbl">Announcements</span></div>
-              <div class="bar-col"><span class="val">5</span><span class="bar" style="height:44%;background:var(--green-600);"></span><span class="lbl">News</span></div>
-              <div class="bar-col"><span class="val">3</span><span class="bar" style="height:27%;background:var(--amber-600);"></span><span class="lbl">Events</span></div>
-              <div class="bar-col"><span class="val">12</span><span class="bar" style="height:100%;background:#7c4fe0;"></span><span class="lbl">Forms</span></div>
-              <div class="bar-col"><span class="val">25</span><span class="bar" style="height:100%;background:#12b3c4;"></span><span class="lbl">Gallery Photos</span></div>
+              <div class="bar-col"><span class="val">{{ announcements_count }}</span><span class="bar" data-height="{{ bar_heights.announcements }}" style="background:var(--blue-600);"></span><span class="lbl">Announcements</span></div>
+              <div class="bar-col"><span class="val">{{ news_count }}</span><span class="bar" data-height="{{ bar_heights.news }}" style="background:var(--green-600);"></span><span class="lbl">News</span></div>
+              <div class="bar-col"><span class="val">{{ events_count }}</span><span class="bar" data-height="{{ bar_heights.events }}" style="background:var(--amber-600);"></span><span class="lbl">Events</span></div>
+              <div class="bar-col"><span class="val">{{ forms_count }}</span><span class="bar" data-height="{{ bar_heights.forms }}" style="background:#7c4fe0;"></span><span class="lbl">Forms</span></div>
+              <div class="bar-col"><span class="val">{{ photos_count }}</span><span class="bar" data-height="{{ bar_heights.photos }}" style="background:#12b3c4;"></span><span class="lbl">Photos</span></div>
             </div>
             <div class="metric-tiles">
               <div class="metric-tile">
@@ -126,43 +115,37 @@
       <div class="grid-3">
         <!-- Recent news -->
         <section class="panel">
-          <div class="panel-header"><h2>Recent News &amp; Updates</h2><a class="link" href="#">View All</a></div>
+          <div class="panel-header"><h2>Recent News &amp; Updates</h2><a class="link" href="{% url 'office_dashboard:news_update' %}">View All</a></div>
           <div class="panel-body" style="padding-top:6px;">
+            {% for n in recent_news %}
             <div class="list-row">
-              <img class="list-thumb" src="https://images.unsplash.com/photo-1618477388954-7852f32655ec?q=80&w=200&auto=format&fit=crop" alt="">
-              <div style="flex:1;"><div class="list-title">Tunga Conducts Community Clean-Up Drive</div><div class="list-meta">July 12, 2026 · 1:00 PM</div></div>
-              <span class="badge badge-green">Published</span>
+              {% if n.image %}
+                <img class="list-thumb" src="{{ n.image.url }}" alt="">
+              {% else %}
+                <span class="list-icon" style="background:var(--green-600);"><i class="fa-solid fa-newspaper"></i></span>
+              {% endif %}
+              <div style="flex:1;"><div class="list-title">{{ n.title }}</div><div class="list-meta">{{ n.created_at|date:"F j, Y · g:i A" }}</div></div>
+              <span class="badge {% if n.status == 'published' %}badge-green{% elif n.status == 'draft' %}badge-gray{% elif n.status == 'returned' %}badge-red{% else %}badge-amber{% endif %}">{{ n.get_status_display }}</span>
             </div>
-            <div class="list-row">
-              <img class="list-thumb" src="https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?q=80&w=200&auto=format&fit=crop" alt="">
-              <div style="flex:1;"><div class="list-title">Health Caravan Serves 350 Residents</div><div class="list-meta">July 7, 2026 · 9:15 AM</div></div>
-              <span class="badge badge-green">Published</span>
-            </div>
-            <div class="list-row">
-              <img class="list-thumb" src="https://images.unsplash.com/photo-1592982537447-6f2a6a0c9d47?q=80&w=200&auto=format&fit=crop" alt="">
-              <div style="flex:1;"><div class="list-title">LGU Tunga Supports Farmers' Training Program</div><div class="list-meta">July 3, 2026 · 4:30 PM</div></div>
-              <span class="badge badge-green">Published</span>
-            </div>
+            {% empty %}
+            <p style="color:var(--gray-400);padding:8px 0;">No news posted yet.</p>
+            {% endfor %}
           </div>
           <div style="padding:0 20px 20px;"><button class="btn btn-secondary btn-block"><i class="fa-solid fa-plus"></i> Add News</button></div>
         </section>
 
         <!-- Upcoming events -->
         <section class="panel">
-          <div class="panel-header"><h2>Upcoming Events</h2><a class="link" href="#">View All</a></div>
+          <div class="panel-header"><h2>Upcoming Events</h2><a class="link" href="{% url 'office_dashboard:event' %}">View All</a></div>
           <div class="panel-body" style="padding-top:6px;">
+            {% for e in upcoming_events %}
             <div class="list-row">
-              <span class="event-date"><span class="mon">JUL</span><span class="day">20</span></span>
-              <div><div class="list-title">Youth Leadership Training</div><div class="list-meta">July 20, 2026 · 8:00 AM · SB Hall, Tunga, Leyte</div></div>
+              <span class="event-date"><span class="mon">{{ e.event_date|date:"M"|upper }}</span><span class="day">{{ e.event_date|date:"d" }}</span></span>
+              <div><div class="list-title">{{ e.title }}</div><div class="list-meta">{{ e.event_date|date:"F j, Y" }}{% if e.start_time %} · {{ e.start_time|time:"g:i A" }}{% endif %}{% if e.location %} · {{ e.location }}{% endif %}</div></div>
             </div>
-            <div class="list-row">
-              <span class="event-date"><span class="mon">JUL</span><span class="day">25</span></span>
-              <div><div class="list-title">Senior Citizens Day Celebration</div><div class="list-meta">July 25, 2026 · 9:00 AM · Municipal Grounds</div></div>
-            </div>
-            <div class="list-row">
-              <span class="event-date"><span class="mon">JUL</span><span class="day">30</span></span>
-              <div><div class="list-title">Coastal Clean-Up Activity</div><div class="list-meta">July 30, 2026 · 7:00 AM · Tunga Coastal Area</div></div>
-            </div>
+            {% empty %}
+            <p style="color:var(--gray-400);padding:8px 0;">No upcoming events.</p>
+            {% endfor %}
           </div>
           <div style="padding:0 20px 20px;"><button class="btn btn-secondary btn-block"><i class="fa-solid fa-plus"></i> Add Event</button></div>
         </section>
@@ -197,4 +180,9 @@
   </div>
 </div>
 
+<script>
+  document.querySelectorAll('.bar-chart .bar[data-height]').forEach(function (bar) {
+    bar.style.height = bar.dataset.height + '%';
+  });
+</script>
 {% endblock %}

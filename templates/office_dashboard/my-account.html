@@ -41,12 +41,30 @@
         <div class="avatar-upload" style="margin-bottom:22px;text-align:center;">
           <img src="{% if rep.photo %}{{ rep.photo.url }}{% else %}{% static 'images/icon/profile_logo.jpeg' %}{% endif %}" alt="" style="width:96px;height:96px;object-fit:cover;display:block;margin:0 auto;">
         </div>
-        <div class="info-row"><span class="k">Full Name</span><span class="v">{{ rep.user.get_full_name|default:"None" }}</span></div>
-        <div class="info-row"><span class="k">Position</span><span class="v">{{ rep.position|default:"None" }}</span></div>
-        <div class="info-row"><span class="k">Email Address</span><span class="v">{{ rep.user.email|default:"None" }}</span></div>
-        <div class="info-row"><span class="k">Mobile Number</span><span class="v">{{ rep.mobile_number|default:"None" }}</span></div>
-        <div class="info-row" style="border-bottom:none;"><span class="k">Assigned Office</span><span class="v">{{ rep.office.name|default:"None" }}</span></div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Full Name</label>
+            <input class="form-input" type="text" value="{{ rep.user.get_full_name }}" disabled>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Position</label>
+            <input class="form-input" type="text" value="{{ rep.position }}" disabled>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email Address</label>
+            <input class="form-input" type="text" value="{{ rep.user.email }}" disabled>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Mobile Number</label>
+            <input class="form-input" type="text" value="{{ rep.mobile_number }}" disabled>
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Assigned Office</label>
+            <input class="form-input" type="text" value="{{ rep.office.name }}" disabled>
+          </div>
+        </div>
       </div>
+
 
       <!-- EDIT MODE -->
       <div class="panel-body" id="account-edit-mode" style="display:none;">
