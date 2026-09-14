@@ -43,8 +43,8 @@ class AlbumAdmin(admin.ModelAdmin):
 
 @admin.register(Service)
 class ServiceAdmin(admin.ModelAdmin):
-    list_display = ("name", "office", "category", "published_at")
-    list_filter = ("category",)
+    list_display = ("name", "office", "category", "status", "published_at")
+    list_filter = ("status", "category")
     search_fields = ("name",)
 
 @admin.register(ProcessStep)

@@ -1,0 +1,271 @@
+{% extends "super-admin-base.html" %}
+{% load static %}
+
+{% block page_title_tag %}Emergency Contacts{% endblock %}
+{% block body_page %}emergency-contacts{% endblock %}
+{% block page_title %}Emergency Contacts{% endblock %}
+{% block page_subtitle %}Manage published emergency contact numbers{% endblock %}
+{% block breadcrumbs %}<span>Dashboard</span><span class="sep">›</span><span>Website Management</span><span class="sep">›</span><span class="current">Emergency Contacts</span>{% endblock %}
+
+{% block content %}
+
+      <section class="emergency-panel">
+        <div class="panel-header">
+          <h2><i class="fa-solid fa-phone" style="color:var(--red-600);margin-right:8px;"></i>Emergency Contact Information</h2>
+          <button type="button" class="btn btn-primary btn-sm" onclick="openCreateContact()"><i class="fa-solid fa-plus"></i> Add Emergency Contact</button>
+        </div>
+        <div class="ec-grid" id="contactGrid">
+          <!-- contact cards rendered by JS from contacts[] -->
+        </div>
+      </section>
+
+<!-- Add / Edit Emergency Contact modal -->
+<div class="modal-backdrop" id="contactModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="contactModalTitle">Add Emergency Contact</h3>
+      <button type="button" class="modal-x" aria-label="Close" onclick="closeModal('contactModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form onsubmit="return false;">
+        <div class="form-group">
+          <label class="form-label">Service Name <span class="req">*</span></label>
+          <input class="form-input" type="text" id="contactName" placeholder="e.g. Coast Guard Station">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select class="form-input" id="contactCategory">
+            <option>Medical / Rescue</option>
+            <option>Police</option>
+            <option>Health</option>
+            <option>Fire</option>
+            <option>General</option>
+          </select>
+          <div class="form-help">Sets the icon and CALL button color for this card.</div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Carrier / Label</label>
+            <input class="form-input" type="text" id="contactLabel" placeholder="e.g. SMART, TM, GLOBE">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Phone Number</label>
+            <input class="form-input" type="text" id="contactNumber" placeholder="0900 000 0000">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Additional Detail (optional)</label>
+          <input class="form-input" type="text" id="contactExtra" placeholder="e.g. Officer-in-Charge name or radio frequency">
+        </div>
+        <p class="form-help" id="contactFormError" style="color:var(--red-600); display:none;"></p>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('contactModal')">Cancel</button>
+          <button type="button" class="btn btn-primary" onclick="saveContact()"><i class="fa-solid fa-check"></i> <span id="contactSaveLabel">Add Contact</span></button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Delete confirmation modal -->
+<div class="modal-backdrop" id="deleteContactModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Remove contact</h3>
+      <button type="button" class="modal-x" onclick="closeModal('deleteContactModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <p class="confirm-msg" id="deleteContactMsg">Are you sure you want to remove this emergency contact? It will no longer appear on the public website.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('deleteContactModal')">Cancel</button>
+        <button type="button" class="btn btn-danger" onclick="confirmDeleteContact()"><i class="fa-regular fa-trash-can"></i> Remove</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-host" id="toastHost"></div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  /* =========================================================
+     DATA MODEL
+     In production this array would come from your backend.
+     The contact grid is derived from it and re-rendered after
+     every create / edit / delete.
+  ========================================================= */
+  var CATEGORY_STYLES = {
+    'Medical / Rescue': { icon: 'fa-truck-medical', iconBg: '#fdecec', iconColor: '#d8302a', border: '#f6c6c4', callBg: '#d8302a' },
+    'Police':           { icon: 'fa-user-shield',   iconBg: '#eaf0fb', iconColor: '#16325c', border: '#c9d7f0', callBg: '#16325c' },
+    'Health':           { icon: 'fa-heart-pulse',    iconBg: '#e6f7f5', iconColor: '#0f9488', border: '#bfe8e3', callBg: '#0f9488' },
+    'Fire':             { icon: 'fa-fire',           iconBg: '#fdf1e2', iconColor: '#e07b0f', border: '#f6d9ad', callBg: '#e07b0f' },
+    'General':          { icon: 'fa-phone',          iconBg: '#e9ebf2', iconColor: '#4d5468', border: '#dcdfe8', callBg: '#4d5468' }
+  };
+
+  var contacts = [
+    { id: 'ec-1', name: 'MDRRMO', category: 'Medical / Rescue', label: 'TNT', number: '0981 551 9256', extra: 'Radio Frequency: 158.710' },
+    { id: 'ec-2', name: 'Police Station', category: 'Police', label: 'TM', number: '0906 286 3422', extra: 'PMAJ Jenzyen M. Veloso, Officer-in-Charge' },
+    { id: 'ec-3', name: 'RHU', category: 'Health', label: 'GLOBE', number: '0915 763 2405', extra: '' },
+    { id: 'ec-4', name: 'Fire Station', category: 'Fire', label: 'SMART', number: '0985 619 3119', extra: 'SFO4 Noel V. Permejo, OIC\u2013Municipal Fire Marshal' }
+  ];
+
+  var editingContactId = null;
+  var pendingDeleteContactId = null;
+
+  function escapeHtml(str){
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function renderContacts(){
+    var grid = document.getElementById('contactGrid');
+    if(contacts.length === 0){
+      grid.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--gray-400);font-size:13px;padding:24px 0;">No emergency contacts yet. Click "Add Emergency Contact" to add one.</p>';
+      return;
+    }
+    grid.innerHTML = contacts.map(contactCardHtml).join('');
+  }
+
+  function contactCardHtml(c){
+    var style = CATEGORY_STYLES[c.category] || CATEGORY_STYLES['General'];
+    return '' +
+      '<div class="contact-card" style="border-color:' + style.border + ';">' +
+        '<div class="cc-actions">' +
+          '<span class="ic" title="Edit" onclick="openEditContact(\'' + c.id + '\')"><i class="fa-regular fa-pen-to-square"></i></span>' +
+          '<span class="ic" title="Remove" onclick="openDeleteContact(\'' + c.id + '\')"><i class="fa-regular fa-trash-can"></i></span>' +
+        '</div>' +
+        '<div class="cc-icon" style="background:' + style.iconBg + ';color:' + style.iconColor + ';"><i class="fa-solid ' + style.icon + '"></i></div>' +
+        '<div class="cc-title">' + escapeHtml(c.name) + '</div>' +
+        '<div class="cc-detail">' + escapeHtml(c.label) + ': ' + escapeHtml(c.number) + '</div>' +
+        (c.extra ? '<div class="cc-detail">' + escapeHtml(c.extra) + '</div>' : '') +
+        '<button type="button" class="cc-call" style="background:' + style.callBg + ';" onclick="window.location.href=\'tel:' + c.number.replace(/\s+/g,'') + '\'">CALL</button>' +
+      '</div>';
+  }
+
+  /* ---------- Modal helpers ---------- */
+  function openModal(id){
+    document.getElementById(id).classList.add('open');
+    document.body.classList.add('modal-open');
+  }
+  function closeModal(id){
+    document.getElementById(id).classList.remove('open');
+    document.body.classList.remove('modal-open');
+  }
+
+  function setSelectValue(id, value){
+    var select = document.getElementById(id);
+    if(!value) return;
+    for(var i = 0; i < select.options.length; i++){
+      if(select.options[i].text === value){ select.selectedIndex = i; return; }
+    }
+  }
+
+  function clearContactError(){
+    var err = document.getElementById('contactFormError');
+    err.style.display = 'none';
+    err.textContent = '';
+  }
+
+  function openCreateContact(){
+    editingContactId = null;
+    clearContactError();
+    document.getElementById('contactModalTitle').textContent = 'Add Emergency Contact';
+    document.getElementById('contactSaveLabel').textContent = 'Add Contact';
+    document.getElementById('contactName').value = '';
+    document.getElementById('contactCategory').selectedIndex = 0;
+    document.getElementById('contactLabel').value = '';
+    document.getElementById('contactNumber').value = '';
+    document.getElementById('contactExtra').value = '';
+    openModal('contactModal');
+  }
+
+  function openEditContact(id){
+    var c = contacts.find(function(x){ return x.id === id; });
+    if(!c) return;
+    editingContactId = id;
+    clearContactError();
+    document.getElementById('contactModalTitle').textContent = 'Edit Emergency Contact';
+    document.getElementById('contactSaveLabel').textContent = 'Save Changes';
+    document.getElementById('contactName').value = c.name;
+    setSelectValue('contactCategory', c.category);
+    document.getElementById('contactLabel').value = c.label;
+    document.getElementById('contactNumber').value = c.number;
+    document.getElementById('contactExtra').value = c.extra || '';
+    openModal('contactModal');
+  }
+
+  function saveContact(){
+    var name = document.getElementById('contactName').value.trim();
+    var number = document.getElementById('contactNumber').value.trim();
+
+    if(!name || !number){
+      var err = document.getElementById('contactFormError');
+      err.textContent = 'Please fill in at least the service name and phone number.';
+      err.style.display = 'block';
+      return;
+    }
+
+    var category = document.getElementById('contactCategory').value;
+    var label = document.getElementById('contactLabel').value.trim();
+    var extra = document.getElementById('contactExtra').value.trim();
+
+    if(editingContactId){
+      var c = contacts.find(function(x){ return x.id === editingContactId; });
+      c.name = name; c.category = category; c.label = label; c.number = number; c.extra = extra;
+      closeModal('contactModal');
+      renderContacts();
+      showToast('Emergency contact updated.');
+    } else {
+      contacts.push({ id: 'ec-' + Date.now(), name: name, category: category, label: label, number: number, extra: extra });
+      closeModal('contactModal');
+      renderContacts();
+      showToast('Emergency contact added.');
+    }
+  }
+
+  function openDeleteContact(id){
+    var c = contacts.find(function(x){ return x.id === id; });
+    if(!c) return;
+    pendingDeleteContactId = id;
+    document.getElementById('deleteContactMsg').textContent =
+      'Are you sure you want to remove "' + c.name + '"? It will no longer appear on the public website.';
+    openModal('deleteContactModal');
+  }
+
+  function confirmDeleteContact(){
+    var c = contacts.find(function(x){ return x.id === pendingDeleteContactId; });
+    contacts = contacts.filter(function(x){ return x.id !== pendingDeleteContactId; });
+    closeModal('deleteContactModal');
+    renderContacts();
+    if(c) showToast('"' + c.name + '" was removed.');
+    pendingDeleteContactId = null;
+  }
+
+  function showToast(msg){
+    var host = document.getElementById('toastHost');
+    var toast = document.createElement('div');
+    toast.className = 'toast toast-success';
+    toast.innerHTML = '<i class="fa-solid fa-circle-check"></i> ' + msg;
+    host.appendChild(toast);
+    requestAnimationFrame(function(){ toast.classList.add('show'); });
+    setTimeout(function(){
+      toast.classList.remove('show');
+      setTimeout(function(){ toast.remove(); }, 200);
+    }, 2600);
+  }
+
+  document.getElementById('contactModal').addEventListener('click', function(e){
+    if(e.target === this) closeModal('contactModal');
+  });
+  document.getElementById('deleteContactModal').addEventListener('click', function(e){
+    if(e.target === this) closeModal('deleteContactModal');
+  });
+
+  renderContacts();
+</script>
+{% endblock %}

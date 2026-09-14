@@ -1,0 +1,300 @@
+{% extends "super-admin-base.html" %}
+{% load static %}
+
+{% block page_title_tag %}Users{% endblock %}
+{% block body_page %}users{% endblock %}
+{% block page_title %}Users{% endblock %}
+{% block page_subtitle %}Manage system user accounts{% endblock %}
+{% block breadcrumbs %}<span>Dashboard</span><span class="sep">›</span><span>User Management</span><span class="sep">›</span><span class="current">Users</span>{% endblock %}
+
+{% block content %}
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon blue"><i class="fa-solid fa-users"></i></span></div>
+          <div class="stat-value">8</div>
+          <div class="stat-label">Total Users</div>
+          <div class="stat-sub">All registered accounts</div>
+        </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon green"><i class="fa-solid fa-circle-check"></i></span></div>
+          <div class="stat-value">6</div>
+          <div class="stat-label">Active Users</div>
+          <div class="stat-sub">Can currently log in</div>
+        </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon gray"><i class="fa-solid fa-ban"></i></span></div>
+          <div class="stat-value">2</div>
+          <div class="stat-label">Inactive Users</div>
+          <div class="stat-sub">Access disabled</div>
+        </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon amber"><i class="fa-solid fa-circle-dot"></i></span></div>
+          <div class="stat-value">4</div>
+          <div class="stat-label">Online Now</div>
+          <div class="stat-sub">Active in the last hour</div>
+        </div>
+      </div>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>All Users</h2>
+          <button type="button" class="btn btn-primary btn-sm" id="open-add-user"><i class="fa-solid fa-plus"></i> Add User</button>
+        </div>
+        <div class="filters-row">
+          <label class="field search" style="flex:1;"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search name or email..."></label>
+          <select class="field">
+            <option>All Status</option>
+            <option>Active</option>
+            <option>Inactive</option>
+          </select>
+          <select class="field">
+            <option>All Roles</option>
+            <option>Super Admin</option>
+            <option>Office Representative</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Role</th>
+                <th>Office</th>
+                <th>Status</th>
+                <th>Last Login</th>
+                <th>Date Joined</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+            <tr>
+              <td class="row-icon-name" style="min-width:240px;">
+                <div class="row-avatar-wrap">
+                  <img src="https://i.pravatar.cc/72?img=12" alt="">
+                  <span class="dot online" title="Online now"></span>
+                </div>
+                <div><div class="cell-primary">Juan Dela Cruz</div><div class="cell-sub">juan.delacruz@tunga.gov.ph</div></div>
+              </td>
+              <td><span class="badge badge-blue">Super Admin</span></td>
+              <td>Mayor's Office</td>
+              <td><span class="badge badge-green">Active</span></td>
+              <td>Just now</td>
+              <td>Jan 5, 2025</td>
+              <td>
+                <div class="action-icons">
+                  <span class="ic"><i class="fa-regular fa-eye"></i></span>
+                  <span class="ic"><i class="fa-regular fa-pen-to-square"></i></span>
+                  <span class="ic"><i class="fa-regular fa-trash-can"></i></span>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="row-icon-name" style="min-width:240px;">
+                <div class="row-avatar-wrap">
+                  <img src="https://i.pravatar.cc/72?img=47" alt="">
+                  <span class="dot online" title="Online now"></span>
+                </div>
+                <div><div class="cell-primary">Ana Reyes</div><div class="cell-sub">ana.reyes@tunga.gov.ph</div></div>
+              </td>
+              <td><span class="badge badge-gray">Office Representative</span></td>
+              <td>Rural Health Unit (RHU)</td>
+              <td><span class="badge badge-green">Active</span></td>
+              <td>Today, 8:40 AM</td>
+              <td>Mar 12, 2025</td>
+              <td>
+                <div class="action-icons">
+                  <span class="ic"><i class="fa-regular fa-eye"></i></span>
+                  <span class="ic"><i class="fa-regular fa-pen-to-square"></i></span>
+                  <span class="ic"><i class="fa-regular fa-trash-can"></i></span>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="row-icon-name" style="min-width:240px;">
+                <div class="row-avatar-wrap">
+                  <img src="https://i.pravatar.cc/72?img=51" alt="">
+                  <span class="dot " title="Offline"></span>
+                </div>
+                <div><div class="cell-primary">Pedro Santos</div><div class="cell-sub">pedro.santos@tunga.gov.ph</div></div>
+              </td>
+              <td><span class="badge badge-gray">Office Representative</span></td>
+              <td>Agriculture Office</td>
+              <td><span class="badge badge-green">Active</span></td>
+              <td>Yesterday, 4:05 PM</td>
+              <td>Mar 12, 2025</td>
+              <td>
+                <div class="action-icons">
+                  <span class="ic"><i class="fa-regular fa-eye"></i></span>
+                  <span class="ic"><i class="fa-regular fa-pen-to-square"></i></span>
+                  <span class="ic"><i class="fa-regular fa-trash-can"></i></span>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="row-icon-name" style="min-width:240px;">
+                <div class="row-avatar-wrap">
+                  <img src="https://i.pravatar.cc/72?img=32" alt="">
+                  <span class="dot online" title="Online now"></span>
+                </div>
+                <div><div class="cell-primary">Maria Lopez</div><div class="cell-sub">maria.lopez@tunga.gov.ph</div></div>
+              </td>
+              <td><span class="badge badge-gray">Office Representative</span></td>
+              <td>Tourism Office</td>
+              <td><span class="badge badge-green">Active</span></td>
+              <td>Today, 7:55 AM</td>
+              <td>Apr 2, 2025</td>
+              <td>
+                <div class="action-icons">
+                  <span class="ic"><i class="fa-regular fa-eye"></i></span>
+                  <span class="ic"><i class="fa-regular fa-pen-to-square"></i></span>
+                  <span class="ic"><i class="fa-regular fa-trash-can"></i></span>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="row-icon-name" style="min-width:240px;">
+                <div class="row-avatar-wrap">
+                  <img src="https://i.pravatar.cc/72?img=15" alt="">
+                  <span class="dot " title="Offline"></span>
+                </div>
+                <div><div class="cell-primary">Lito Garcia</div><div class="cell-sub">lito.garcia@tunga.gov.ph</div></div>
+              </td>
+              <td><span class="badge badge-gray">Office Representative</span></td>
+              <td>Assessor's Office</td>
+              <td><span class="badge badge-gray">Inactive</span></td>
+              <td>May 20, 2026</td>
+              <td>Feb 18, 2025</td>
+              <td>
+                <div class="action-icons">
+                  <span class="ic"><i class="fa-regular fa-eye"></i></span>
+                  <span class="ic"><i class="fa-regular fa-pen-to-square"></i></span>
+                  <span class="ic"><i class="fa-regular fa-trash-can"></i></span>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="row-icon-name" style="min-width:240px;">
+                <div class="row-avatar-wrap">
+                  <img src="https://i.pravatar.cc/72?img=44" alt="">
+                  <span class="dot online" title="Online now"></span>
+                </div>
+                <div><div class="cell-primary">Riza Delos Santos</div><div class="cell-sub">riza.delossantos@tunga.gov.ph</div></div>
+              </td>
+              <td><span class="badge badge-gray">Office Representative</span></td>
+              <td>Municipal Treasurer's Office</td>
+              <td><span class="badge badge-green">Active</span></td>
+              <td>Today, 10:20 AM</td>
+              <td>Jan 30, 2025</td>
+              <td>
+                <div class="action-icons">
+                  <span class="ic"><i class="fa-regular fa-eye"></i></span>
+                  <span class="ic"><i class="fa-regular fa-pen-to-square"></i></span>
+                  <span class="ic"><i class="fa-regular fa-trash-can"></i></span>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="row-icon-name" style="min-width:240px;">
+                <div class="row-avatar-wrap">
+                  <img src="https://i.pravatar.cc/72?img=22" alt="">
+                  <span class="dot " title="Offline"></span>
+                </div>
+                <div><div class="cell-primary">Mark Villanueva</div><div class="cell-sub">mark.villanueva@tunga.gov.ph</div></div>
+              </td>
+              <td><span class="badge badge-gray">Office Representative</span></td>
+              <td>Civil Registrar Office</td>
+              <td><span class="badge badge-green">Active</span></td>
+              <td>Today, 11:02 AM</td>
+              <td>Jun 9, 2025</td>
+              <td>
+                <div class="action-icons">
+                  <span class="ic"><i class="fa-regular fa-eye"></i></span>
+                  <span class="ic"><i class="fa-regular fa-pen-to-square"></i></span>
+                  <span class="ic"><i class="fa-regular fa-trash-can"></i></span>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="row-icon-name" style="min-width:240px;">
+                <div class="row-avatar-wrap">
+                  <img src="https://i.pravatar.cc/72?img=58" alt="">
+                  <span class="dot " title="Offline"></span>
+                </div>
+                <div><div class="cell-primary">Ryan Caballero</div><div class="cell-sub">ryan.caballero@tunga.gov.ph</div></div>
+              </td>
+              <td><span class="badge badge-gray">Office Representative</span></td>
+              <td>Engineering Office</td>
+              <td><span class="badge badge-gray">Inactive</span></td>
+              <td>Apr 30, 2026</td>
+              <td>Jul 22, 2025</td>
+              <td>
+                <div class="action-icons">
+                  <span class="ic"><i class="fa-regular fa-eye"></i></span>
+                  <span class="ic"><i class="fa-regular fa-pen-to-square"></i></span>
+                  <span class="ic"><i class="fa-regular fa-trash-can"></i></span>
+                </div>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <span>Showing 1 to 8 of 8 users</span>
+          <div class="page-nums">
+            <button class="page-btn"><i class="fa-solid fa-chevron-left"></i></button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn"><i class="fa-solid fa-chevron-right"></i></button>
+          </div>
+        </div>
+      </section>
+
+
+<div class="modal-backdrop" id="add-user-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Add User</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form>
+        <div class="form-group">
+          <label class="form-label">Full Name <span class="req">*</span></label>
+          <input class="form-input" type="text" name="name" placeholder="e.g. Cristina Mae Abanto" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email Address <span class="req">*</span></label>
+          <input class="form-input" type="email" name="email" placeholder="name@tunga.gov.ph" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Role</label>
+            <select class="form-input" name="role">
+              <option>Office Representative</option>
+              <option>Super Admin</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select class="form-input" name="status">
+              <option>Active</option>
+              <option>Inactive</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Assigned Office</label>
+          <input class="form-input" type="text" name="office" placeholder="e.g. Gallery Office / Mayor's Office">
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Add User</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="super_admin.js"></script>
+
+{% endblock %}

@@ -1,0 +1,636 @@
+{% extends "super-admin-base.html" %}
+{% load static %}
+
+{% block page_title_tag %}Downloadable Forms{% endblock %}
+{% block body_page %}downloadable forms{% endblock %}
+{% block page_title %}Downloadable Forms{% endblock %}
+{% block page_subtitle %}Upload and manage downloadable forms{% endblock %}
+{% block breadcrumbs %}<span>Dashboard</span><span class="sep">›</span><span>Content Management</span><span class="sep">›</span><span class="current">Downloadable Forns</span>{% endblock %}
+
+{% block content %}
+
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;">
+        <div>
+          <h2 style="margin:0;font-size:16px;font-weight:800;color:var(--gray-900);">Downloadable Forms</h2>
+          <p style="margin:3px 0 0;font-size:12.5px;color:var(--gray-500);">Approved forms submitted by office representatives, available for residents to download</p>
+        </div>
+        <button class="btn btn-primary" onclick="openCreateForm()"><i class="fa-solid fa-plus"></i> Upload Form</button>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon blue"><i class="fa-solid fa-file-lines"></i></span></div>
+          <div class="stat-value" id="statTotal">0</div>
+          <div class="stat-label">Total forms</div>
+          <div class="stat-sub">From 6 offices</div>
+        </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon green"><i class="fa-solid fa-circle-check"></i></span></div>
+          <div class="stat-value" id="statActive">0</div>
+          <div class="stat-label">Active &amp; downloadable</div>
+          <div class="stat-sub">Visible on the website</div>
+        </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon amber"><i class="fa-solid fa-download"></i></span></div>
+          <div class="stat-value" id="statDownloads">0</div>
+          <div class="stat-label">Total downloads</div>
+          <div class="stat-sub">All-time, across all forms</div>
+        </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon gray"><i class="fa-solid fa-box-archive"></i></span></div>
+          <div class="stat-value" id="statArchived">0</div>
+          <div class="stat-label">Archived</div>
+          <div class="stat-sub">Kept for records only</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="tabs">
+          <div class="tab active" data-filter="all">All <span class="count" id="tabAllCount">0</span></div>
+          <div class="tab" data-filter="Active">Active <span class="count" id="tabActiveCount">0</span></div>
+          <div class="tab" data-filter="Archived">Archived <span class="count" id="tabArchivedCount">0</span></div>
+        </div>
+
+        <div class="filters-row">
+          <label class="field search"><i class="fa-solid fa-magnifying-glass"></i><input type="text" id="formSearch" placeholder="Search forms..." oninput="renderTable()"></label>
+          <select class="field" id="formCategoryFilter" onchange="renderTable()">
+            <option>All categories</option>
+            <option>Civil Registry</option>
+            <option>Business Permits</option>
+            <option>Assessment</option>
+            <option>Social Welfare</option>
+            <option>Employment</option>
+            <option>Health</option>
+            <option>General</option>
+          </select>
+          <select class="field" id="formSort" onchange="renderTable()">
+            <option>Newest first</option>
+            <option>Oldest first</option>
+            <option>Most downloaded</option>
+          </select>
+        </div>
+
+        <div class="table-wrap" style="border:none;border-radius:0;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Form</th>
+                <th>Office</th>
+                <th>Category</th>
+                <th>Submitted by</th>
+                <th>Downloads</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="formTableBody">
+              <!-- rows are rendered by JS from the forms[] array -->
+            </tbody>
+          </table>
+        </div>
+
+        <div style="padding:14px 20px 0;">
+          <div class="footer-note" style="margin-top:0;">
+            <i class="fa-solid fa-circle-info" style="margin-right:6px;"></i>
+            Forms submitted by office representatives are added here automatically once approved in the Approval Center. You can also upload or replace a form directly from this page.
+          </div>
+        </div>
+
+        <div class="pagination">
+          <span id="formPageInfo">Showing 0 of 0 forms</span>
+          <div class="page-nums">
+            <button class="page-btn"><i class="fa-solid fa-chevron-left"></i></button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn"><i class="fa-solid fa-chevron-right"></i></button>
+          </div>
+        </div>
+      </div>
+
+
+<!-- Create / Edit Form modal -->
+<div class="modal-backdrop" id="formModal">
+  <div class="modal-box modal-wide">
+    <div class="modal-head">
+      <h3 id="formModalTitle">Upload Form</h3>
+      <button class="modal-x" onclick="closeModal('formModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form onsubmit="return false;">
+        <div class="form-group">
+          <label class="form-label">Form title<span class="req">*</span></label>
+          <input class="form-input" type="text" id="formTitle" placeholder="e.g. Barangay Clearance Application Form">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Category<span class="req">*</span></label>
+            <select class="form-input" id="formCategory">
+              <option>Civil Registry</option>
+              <option>Business Permits</option>
+              <option>Assessment</option>
+              <option>Social Welfare</option>
+              <option>Employment</option>
+              <option>Health</option>
+              <option>General</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Issuing office<span class="req">*</span></label>
+            <select class="form-input" id="formOffice">
+              <option>Office of the Municipal Civil Registrar</option>
+              <option>Business Permits and Licensing Office</option>
+              <option>Office of the Municipal Assessor</option>
+              <option>Municipal Social Welfare and Development Office</option>
+              <option>Public Employment Service Office</option>
+              <option>Municipal Health Office</option>
+              <option>Office of the Municipal Treasurer</option>
+              <option>Office of the Municipal Mayor</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Form file<span class="req">*</span></label>
+          <input class="form-input file-input" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx" id="formFile" onchange="handleFileSelect(event)">
+          <span class="form-help" id="formFileHelp">PDF, DOC, DOCX, XLS, or XLSX, up to 10MB.</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Description / instructions</label>
+          <textarea class="form-input form-textarea" id="formDescription" style="min-height:90px;" placeholder="Brief note on who should use this form and what it's for."></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Submitted by</label>
+            <input class="form-input" type="text" id="formSubmittedBy" placeholder="Office representative name, or leave as Super Administrator">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Date approved</label>
+            <input class="form-input" type="date" id="formDate">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-input" id="formStatus">
+            <option>Active</option>
+            <option>Archived</option>
+          </select>
+          <span class="form-help">Archived forms stay on record but are hidden from the public downloads page.</span>
+        </div>
+
+        <p class="form-help" id="formFormError" style="color:var(--red-600); display:none;"></p>
+      </form>
+    </div>
+    <div class="modal-actions" style="padding:0 20px 20px;">
+      <button class="btn btn-secondary" onclick="closeModal('formModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveForm()"><i class="fa-solid fa-check"></i> Save form</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete confirmation modal -->
+<div class="modal-backdrop" id="deleteFormModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Delete form</h3>
+      <button class="modal-x" onclick="closeModal('deleteFormModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <p class="confirm-msg" id="deleteFormMsg">Are you sure you want to delete this form? This will remove it from the public downloads page immediately and cannot be undone.</p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('deleteFormModal')">Cancel</button>
+        <button class="btn btn-danger" onclick="confirmDeleteForm()"><i class="fa-regular fa-trash-can"></i> Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-host" id="toastHost"></div>
+
+<script src="super_admin.js"></script>
+<script>
+  /* =========================================================
+     DATA MODEL
+     In production this array would come from your backend,
+     populated automatically when a submission is approved in
+     the Approval Center. Stats, tab counts, table rows, and
+     pagination text are all derived from it and re-rendered
+     after every create / edit / delete.
+  ========================================================= */
+  var forms = [
+    {
+      id: 'form-1',
+      title: 'Barangay Clearance Application Form',
+      category: 'Civil Registry',
+      office: 'Office of the Municipal Civil Registrar',
+      fileType: 'PDF',
+      fileSize: '245 KB',
+      submittedBy: 'Maria L. Enriquez',
+      dateApproved: '2026-09-10',
+      downloads: 1204,
+      status: 'Active',
+      description: 'Used by residents to request a barangay clearance for employment, business, or other legal purposes.'
+    },
+    {
+      id: 'form-2',
+      title: 'Certificate of Indigency Request Form',
+      category: 'Civil Registry',
+      office: 'Office of the Municipal Civil Registrar',
+      fileType: 'PDF',
+      fileSize: '150 KB',
+      submittedBy: 'Maria L. Enriquez',
+      dateApproved: '2026-09-05',
+      downloads: 390,
+      status: 'Active',
+      description: 'For residents requesting a certificate of indigency for medical, legal, or educational assistance.'
+    },
+    {
+      id: 'form-3',
+      title: 'Business Permit Application Form (New)',
+      category: 'Business Permits',
+      office: 'Business Permits and Licensing Office',
+      fileType: 'PDF',
+      fileSize: '512 KB',
+      submittedBy: 'Super Administrator',
+      dateApproved: '2026-09-08',
+      downloads: 980,
+      status: 'Active',
+      description: 'Required application form for new business owners applying for their first municipal business permit.'
+    },
+    {
+      id: 'form-4',
+      title: 'Business Permit Renewal Form',
+      category: 'Business Permits',
+      office: 'Business Permits and Licensing Office',
+      fileType: 'DOCX',
+      fileSize: '88 KB',
+      submittedBy: 'Super Administrator',
+      dateApproved: '2026-08-20',
+      downloads: 2150,
+      status: 'Active',
+      description: 'Annual renewal form for existing business permit holders. Must be submitted before January 20 each year.'
+    },
+    {
+      id: 'form-5',
+      title: 'Real Property Tax Assessment Request Form',
+      category: 'Assessment',
+      office: 'Office of the Municipal Assessor',
+      fileType: 'PDF',
+      fileSize: '190 KB',
+      submittedBy: 'Dexter M. Oquendo',
+      dateApproved: '2026-09-01',
+      downloads: 430,
+      status: 'Active',
+      description: 'Used to request a new or updated real property tax assessment for land, buildings, or other improvements.'
+    },
+    {
+      id: 'form-6',
+      title: 'Solo Parent ID Application Form',
+      category: 'Social Welfare',
+      office: 'Municipal Social Welfare and Development Office',
+      fileType: 'PDF',
+      fileSize: '210 KB',
+      submittedBy: 'Herminia S. Baclayon',
+      dateApproved: '2026-08-15',
+      downloads: 675,
+      status: 'Active',
+      description: 'Application form for solo parents to avail of the Solo Parent ID and related benefits under RA 11861.'
+    },
+    {
+      id: 'form-7',
+      title: 'Senior Citizen ID Application Form (Old Version)',
+      category: 'Social Welfare',
+      office: 'Municipal Social Welfare and Development Office',
+      fileType: 'PDF',
+      fileSize: '175 KB',
+      submittedBy: 'Herminia S. Baclayon',
+      dateApproved: '2026-07-30',
+      downloads: 812,
+      status: 'Archived',
+      description: 'Superseded by an updated version. Kept on record for reference only.'
+    },
+    {
+      id: 'form-8',
+      title: 'Job Application Form (PESO Walk-in Applicants)',
+      category: 'Employment',
+      office: 'Public Employment Service Office',
+      fileType: 'DOCX',
+      fileSize: '95 KB',
+      submittedBy: 'Super Administrator',
+      dateApproved: '2026-09-02',
+      downloads: 265,
+      status: 'Active',
+      description: 'Standard application form for walk-in applicants registering with the Public Employment Service Office.'
+    }
+  ];
+
+  var activeTab = 'all';
+  var editingId = null;        // id of the form currently being edited, null = create mode
+  var pendingDeleteId = null;
+  var pendingFile = null;      // { name, size } of a newly selected file, if any
+
+  function categoryTagClass(cat){
+    switch(cat){
+      case 'Civil Registry': return 'tag-blue';
+      case 'Business Permits': return 'tag-purple';
+      case 'Assessment': return 'tag-gray';
+      case 'Social Welfare': return 'tag-pink';
+      case 'Employment': return 'tag-green';
+      case 'Health': return 'tag-blue';
+      default: return 'tag-gray';
+    }
+  }
+
+  function statusBadgeClass(status){
+    return status === 'Active' ? 'badge-green' : 'badge-gray';
+  }
+
+  function fileIconInfo(fileType){
+    switch(fileType){
+      case 'PDF': return { icon: 'fa-file-pdf', bg: 'var(--red-50)', color: 'var(--red-600)' };
+      case 'DOCX': return { icon: 'fa-file-word', bg: 'var(--blue-50)', color: 'var(--blue-600)' };
+      case 'XLSX': return { icon: 'fa-file-excel', bg: 'var(--green-50)', color: 'var(--green-700)' };
+      default: return { icon: 'fa-file', bg: 'var(--gray-100)', color: 'var(--gray-600)' };
+    }
+  }
+
+  function formatDateDisplay(iso){
+    if(!iso) return '—';
+    var parts = iso.split('-');
+    var d = new Date(parseInt(parts[0],10), parseInt(parts[1],10)-1, parseInt(parts[2],10));
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+  }
+
+  function formatFileSize(bytes){
+    if(bytes < 1024) return bytes + ' B';
+    if(bytes < 1024*1024) return Math.round(bytes/1024) + ' KB';
+    return (bytes/(1024*1024)).toFixed(1) + ' MB';
+  }
+
+  function escapeHtml(str){
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function renderTable(){
+    var tab = activeTab;
+    var search = (document.getElementById('formSearch').value || '').toLowerCase().trim();
+    var category = document.getElementById('formCategoryFilter').value;
+    var sort = document.getElementById('formSort').value;
+
+    var list = forms.filter(function(f){
+      if(tab !== 'all' && f.status !== tab) return false;
+      if(category !== 'All categories' && f.category !== category) return false;
+      if(search && f.title.toLowerCase().indexOf(search) === -1 && f.office.toLowerCase().indexOf(search) === -1) return false;
+      return true;
+    });
+
+    list.sort(function(a, b){
+      if(sort === 'Oldest first') return a.dateApproved.localeCompare(b.dateApproved);
+      if(sort === 'Most downloaded') return b.downloads - a.downloads;
+      return b.dateApproved.localeCompare(a.dateApproved); // Newest first (default)
+    });
+
+    var tbody = document.getElementById('formTableBody');
+    if(list.length === 0){
+      tbody.innerHTML = '<tr class="no-results-row"><td colspan="7">No forms match your filters.</td></tr>';
+    } else {
+      tbody.innerHTML = list.map(rowHtml).join('');
+    }
+
+    document.getElementById('formPageInfo').textContent =
+      'Showing ' + list.length + ' of ' + forms.length + ' form' + (forms.length === 1 ? '' : 's');
+
+    updateStatsAndTabs();
+  }
+
+  function rowHtml(f){
+    var fi = fileIconInfo(f.fileType);
+    return '' +
+      '<tr>' +
+        '<td>' +
+          '<div class="row-icon-name">' +
+            '<div class="row-thumb" style="background:' + fi.bg + ';color:' + fi.color + ';"><i class="fa-solid ' + fi.icon + '"></i></div>' +
+            '<div>' +
+              '<p class="cell-primary">' + escapeHtml(f.title) + '</p>' +
+              '<p class="cell-sub">' + f.fileType + ' · ' + f.fileSize + '</p>' +
+            '</div>' +
+          '</div>' +
+        '</td>' +
+        '<td>' + escapeHtml(f.office) + '</td>' +
+        '<td><span class="tag ' + categoryTagClass(f.category) + '">' + escapeHtml(f.category) + '</span></td>' +
+        '<td>' +
+          '<p class="cell-primary" style="font-size:13px;">' + escapeHtml(f.submittedBy) + '</p>' +
+          '<p class="cell-sub">Approved ' + formatDateDisplay(f.dateApproved) + '</p>' +
+        '</td>' +
+        '<td>' + f.downloads.toLocaleString() + '</td>' +
+        '<td><span class="badge ' + statusBadgeClass(f.status) + '">' + escapeHtml(f.status) + '</span></td>' +
+        '<td>' +
+          '<div class="action-icons">' +
+            '<span class="ic" title="View"><i class="fa-regular fa-eye"></i></span>' +
+            '<span class="ic" title="Download"><i class="fa-solid fa-download"></i></span>' +
+            '<span class="ic" title="Edit" onclick="openEditForm(\'' + f.id + '\')"><i class="fa-regular fa-pen-to-square"></i></span>' +
+            '<span class="ic" title="Delete" onclick="openDeleteForm(\'' + f.id + '\')"><i class="fa-regular fa-trash-can"></i></span>' +
+          '</div>' +
+        '</td>' +
+      '</tr>';
+  }
+
+  function updateStatsAndTabs(){
+    var total = forms.length;
+    var active = forms.filter(function(f){ return f.status === 'Active'; }).length;
+    var archived = forms.filter(function(f){ return f.status === 'Archived'; }).length;
+    var totalDownloads = forms.reduce(function(sum, f){ return sum + f.downloads; }, 0);
+    var officeCount = new Set(forms.map(function(f){ return f.office; })).size;
+
+    document.getElementById('statTotal').textContent = total;
+    document.getElementById('statActive').textContent = active;
+    document.getElementById('statDownloads').textContent = totalDownloads.toLocaleString();
+    document.getElementById('statArchived').textContent = archived;
+
+    document.getElementById('tabAllCount').textContent = total;
+    document.getElementById('tabActiveCount').textContent = active;
+    document.getElementById('tabArchivedCount').textContent = archived;
+
+    document.querySelector('#statTotal').parentElement.querySelector('.stat-sub').textContent = 'From ' + officeCount + ' office' + (officeCount === 1 ? '' : 's');
+  }
+
+  document.querySelectorAll('.tabs .tab').forEach(function(tabEl){
+    tabEl.addEventListener('click', function(){
+      document.querySelectorAll('.tabs .tab').forEach(function(t){ t.classList.remove('active'); });
+      tabEl.classList.add('active');
+      activeTab = tabEl.dataset.filter;
+      renderTable();
+    });
+  });
+
+  /* ---------- Modal helpers ---------- */
+  function openModal(id){
+    document.getElementById(id).classList.add('open');
+    document.body.classList.add('modal-open');
+  }
+  function closeModal(id){
+    document.getElementById(id).classList.remove('open');
+    document.body.classList.remove('modal-open');
+  }
+
+  function setSelectValue(id, value){
+    var select = document.getElementById(id);
+    if(!value) return;
+    for(var i = 0; i < select.options.length; i++){
+      if(select.options[i].text === value){ select.selectedIndex = i; return; }
+    }
+  }
+
+  function clearFormError(){
+    var err = document.getElementById('formFormError');
+    err.style.display = 'none';
+    err.textContent = '';
+  }
+
+  function handleFileSelect(evt){
+    var file = evt.target.files && evt.target.files[0];
+    if(!file){ pendingFile = null; return; }
+    var ext = file.name.split('.').pop().toUpperCase();
+    var type = (ext === 'DOC' || ext === 'DOCX') ? 'DOCX' : (ext === 'XLS' || ext === 'XLSX') ? 'XLSX' : (ext === 'PDF') ? 'PDF' : ext;
+    pendingFile = { type: type, size: formatFileSize(file.size) };
+    document.getElementById('formFileHelp').textContent = 'Selected: ' + file.name + ' (' + pendingFile.size + ')';
+  }
+
+  function openCreateForm(){
+    editingId = null;
+    pendingFile = null;
+    clearFormError();
+    document.getElementById('formModalTitle').textContent = 'Upload Form';
+    document.getElementById('formTitle').value = '';
+    document.getElementById('formCategory').selectedIndex = 0;
+    document.getElementById('formOffice').selectedIndex = 0;
+    document.getElementById('formFile').value = '';
+    document.getElementById('formFileHelp').textContent = 'PDF, DOC, DOCX, XLS, or XLSX, up to 10MB.';
+    document.getElementById('formDescription').value = '';
+    document.getElementById('formSubmittedBy').value = 'Super Administrator';
+    document.getElementById('formDate').value = new Date().toISOString().slice(0,10);
+    setSelectValue('formStatus', 'Active');
+    openModal('formModal');
+  }
+
+  function openEditForm(id){
+    var f = forms.find(function(x){ return x.id === id; });
+    if(!f) return;
+    editingId = id;
+    pendingFile = null;
+    clearFormError();
+    document.getElementById('formModalTitle').textContent = 'Edit Form';
+    document.getElementById('formTitle').value = f.title;
+    setSelectValue('formCategory', f.category);
+    setSelectValue('formOffice', f.office);
+    document.getElementById('formFile').value = '';
+    document.getElementById('formFileHelp').textContent = 'Current file: ' + f.fileType + ' · ' + f.fileSize + '. Choose a new file to replace it.';
+    document.getElementById('formDescription').value = f.description;
+    document.getElementById('formSubmittedBy').value = f.submittedBy;
+    document.getElementById('formDate').value = f.dateApproved;
+    setSelectValue('formStatus', f.status);
+    openModal('formModal');
+  }
+
+  function openDeleteForm(id){
+    var f = forms.find(function(x){ return x.id === id; });
+    if(!f) return;
+    pendingDeleteId = id;
+    document.getElementById('deleteFormMsg').textContent =
+      'Are you sure you want to delete "' + f.title + '"? This will remove it from the public downloads page immediately and cannot be undone.';
+    openModal('deleteFormModal');
+  }
+
+  function confirmDeleteForm(){
+    var f = forms.find(function(x){ return x.id === pendingDeleteId; });
+    forms = forms.filter(function(x){ return x.id !== pendingDeleteId; });
+    closeModal('deleteFormModal');
+    renderTable();
+    if(f) showToast('"' + f.title + '" was deleted.');
+    pendingDeleteId = null;
+  }
+
+  function saveForm(){
+    var title = document.getElementById('formTitle').value.trim();
+    var submittedBy = document.getElementById('formSubmittedBy').value.trim() || 'Super Administrator';
+
+    if(!title || (!editingId && !pendingFile)){
+      var err = document.getElementById('formFormError');
+      err.textContent = !title
+        ? 'Please enter a form title before saving.'
+        : 'Please choose a file to upload.';
+      err.style.display = 'block';
+      return;
+    }
+
+    var category = document.getElementById('formCategory').value;
+    var office = document.getElementById('formOffice').value;
+    var description = document.getElementById('formDescription').value.trim();
+    var dateApproved = document.getElementById('formDate').value || new Date().toISOString().slice(0,10);
+    var status = document.getElementById('formStatus').value;
+
+    if(editingId){
+      var f = forms.find(function(x){ return x.id === editingId; });
+      f.title = title;
+      f.category = category;
+      f.office = office;
+      f.description = description;
+      f.submittedBy = submittedBy;
+      f.dateApproved = dateApproved;
+      f.status = status;
+      if(pendingFile){ f.fileType = pendingFile.type; f.fileSize = pendingFile.size; }
+      closeModal('formModal');
+      renderTable();
+      showToast('Form updated.');
+    } else {
+      var newForm = {
+        id: 'form-' + Date.now(),
+        title: title,
+        category: category,
+        office: office,
+        fileType: pendingFile.type,
+        fileSize: pendingFile.size,
+        submittedBy: submittedBy,
+        dateApproved: dateApproved,
+        downloads: 0,
+        status: status,
+        description: description
+      };
+      forms.unshift(newForm);
+      closeModal('formModal');
+      renderTable();
+      showToast('Form uploaded.');
+    }
+  }
+
+  function showToast(msg){
+    var host = document.getElementById('toastHost');
+    var toast = document.createElement('div');
+    toast.className = 'toast toast-success';
+    toast.innerHTML = '<i class="fa-solid fa-circle-check"></i> ' + msg;
+    host.appendChild(toast);
+    requestAnimationFrame(function(){ toast.classList.add('show'); });
+    setTimeout(function(){
+      toast.classList.remove('show');
+      setTimeout(function(){ toast.remove(); }, 200);
+    }, 2600);
+  }
+
+  document.getElementById('formModal').addEventListener('click', function(e){
+    if(e.target === this) closeModal('formModal');
+  });
+  document.getElementById('deleteFormModal').addEventListener('click', function(e){
+    if(e.target === this) closeModal('deleteFormModal');
+  });
+
+  renderTable();
+</script>
+
+{% endblock %}

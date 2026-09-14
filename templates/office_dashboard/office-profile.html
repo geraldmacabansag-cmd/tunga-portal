@@ -158,6 +158,9 @@
               {% for service in services %}
               <div class="info-row" {% if forloop.last %}style="border-bottom:none;"{% endif %}>
                 <span class="k"><i class="{{ service.icon }}" style="color:var(--blue-600);margin-right:8px;"></i>{{ service.name }}</span>
+                  <span class="badge {% if service.status == 'published' %}badge-green{% elif service.status == 'pending' %}badge-amber{% else %}badge-gray{% endif %}">
+                    {{ service.get_status_display }}
+                  </span>
               </div>
               {% empty %}
               <p style="color:var(--gray-400);padding:8px 0;">No services added yet.</p>

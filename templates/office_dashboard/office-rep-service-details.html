@@ -52,7 +52,7 @@
         </div>
         <div class="table-wrap">
           <table class="data-table">
-            <thead><tr><th>Service</th><th>Category</th><th>Availability</th><th>Processing Time</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Service</th><th>Category</th><th>Status</th><th>Availability</th><th>Processing Time</th><th>Actions</th></tr></thead>
             <tbody>
               {% for service in services %}
               <tr>
@@ -61,6 +61,11 @@
                   <span class="cell-primary">{{ service.name }}</span>
                 </td>
                 <td><span class="tag">{{ service.get_category_display }}</span></td>
+                <td>
+                  <span class="badge {% if service.status == 'published' %}badge-green{% elif service.status == 'pending' %}badge-amber{% else %}badge-gray{% endif %}">
+                    {{ service.get_status_display }}
+                  </span>
+                </td>
                 <td>{{ service.availability|default:"—" }}</td>
                 <td>{{ service.processing_time|default:"—" }}</td>
                 <td>
@@ -88,7 +93,7 @@
               </tr>
               {% empty %}
               <tr>
-                <td colspan="5" style="text-align:center;color:var(--gray-400);padding:24px 0;">
+                <td colspan="6" style="text-align:center;color:var(--gray-400);padding:24px 0;">
                   No services added yet. <button type="button" id="open-add-service-empty-state" style="color:var(--blue-600);font-weight:700;background:none;border:none;padding:0;font:inherit;cursor:pointer;">Add your first service →</button>
                 </td>
               </tr>

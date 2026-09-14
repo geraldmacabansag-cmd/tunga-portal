@@ -1,0 +1,232 @@
+{% extends "super-admin-base.html" %}
+{% load static %}
+
+
+{% block page_subtitle %}Overview of municipal office activity{% endblock %}
+{% block breadcrumbs %}<span class="current">Dashboard</span>{% endblock %}
+
+{% block content %}
+
+<div class="welcome-banner">
+  <div>
+    <h2>Magandang araw, {{ request.user.get_full_name|default:request.user.username }}.</h2>
+    <p>Here's what's happening across Tunga's municipal offices today.</p>
+  </div>
+  <span class="date-chip"><i class="fa-regular fa-calendar"></i> Friday, September 11, 2026</span>
+</div>
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="top">
+      <span class="stat-icon blue"><i class="fa-solid fa-square-check"></i></span>
+    </div>
+    <div class="stat-value">18</div>
+    <div class="stat-label">Pending approvals</div>
+    <div class="stat-sub">3 submitted today</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="top">
+      <span class="stat-icon green"><i class="fa-solid fa-users"></i></span>
+    </div>
+    <div class="stat-value">1,284</div>
+    <div class="stat-label">Registered residents online</div>
+    <div class="stat-sub">Up 4.2% this month</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="top">
+      <span class="stat-icon amber"><i class="fa-solid fa-bullhorn"></i></span>
+    </div>
+    <div class="stat-value">42</div>
+    <div class="stat-label">Published announcements</div>
+    <div class="stat-sub">6 posted this week</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="top">
+      <span class="stat-icon gray"><i class="fa-solid fa-building"></i></span>
+    </div>
+    <div class="stat-value">57</div>
+    <div class="stat-label">Active services listed</div>
+    <div class="stat-sub">Across 9 offices</div>
+  </div>
+</div>
+
+<div class="grid-3">
+  <div class="stack">
+
+    <div class="panel">
+      <div class="panel-header">
+        <h2>Awaiting your approval</h2>
+        <a class="link" href="super-admin-approval-center.html">View all 18</a>
+      </div>
+
+      <div class="approval-row">
+        <span class="ar-icon blue"><i class="fa-solid fa-bullhorn"></i></span>
+        <div class="ar-body">
+          <div class="ar-title">New announcement: "Water Interruption Notice — Brgy. Cahumayhumayan"</div>
+          <div class="ar-meta">Office of the Municipal Mayor &middot; 25 minutes ago</div>
+        </div>
+        <div class="ar-actions">
+          <button class="btn btn-sm btn-danger-outline">Deny</button>
+          <button class="btn btn-sm btn-primary">Approve</button>
+        </div>
+      </div>
+
+      <div class="approval-row">
+        <span class="ar-icon amber"><i class="fa-solid fa-file-arrow-down"></i></span>
+        <div class="ar-body">
+          <div class="ar-title">Updated form: Barangay Clearance Application (v3)</div>
+          <div class="ar-meta">Office of the Municipal Civil Registrar &middot; 1 hour ago</div>
+        </div>
+        <div class="ar-actions">
+          <button class="btn btn-sm btn-danger-outline">Deny</button>
+          <button class="btn btn-sm btn-primary">Approve</button>
+        </div>
+      </div>
+
+      <div class="approval-row">
+        <span class="ar-icon green"><i class="fa-regular fa-calendar"></i></span>
+        <div class="ar-body">
+          <div class="ar-title">New event: "Tunga Founding Anniversary Program"</div>
+          <div class="ar-meta">Office of the Municipal Tourism Officer &middot; 3 hours ago</div>
+        </div>
+        <div class="ar-actions">
+          <button class="btn btn-sm btn-danger-outline">Deny</button>
+          <button class="btn btn-sm btn-primary">Approve</button>
+        </div>
+      </div>
+
+      <div class="approval-row">
+        <span class="ar-icon red"><i class="fa-solid fa-user-shield"></i></span>
+        <div class="ar-body">
+          <div class="ar-title">New office representative account: Juan D. Salazar</div>
+          <div class="ar-meta">Office of the Municipal Health Officer &middot; Yesterday</div>
+        </div>
+        <div class="ar-actions">
+          <button class="btn btn-sm btn-danger-outline">Deny</button>
+          <button class="btn btn-sm btn-primary">Approve</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <h2>Office activity</h2>
+        <a class="link" href="super-admin-office-overview.html">Manage offices</a>
+      </div>
+      <div class="table-wrap" style="border:none;border-radius:0;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Office</th>
+              <th>Services listed</th>
+              <th>Pending items</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><p class="cell-primary">Office of the Municipal Treasurer</p></td>
+              <td>11</td>
+              <td>2</td>
+              <td><span class="badge badge-green">Up to date</span></td>
+            </tr>
+            <tr>
+              <td><p class="cell-primary">Office of the Municipal Civil Registrar</p></td>
+              <td>9</td>
+              <td>5</td>
+              <td><span class="badge badge-amber">Needs review</span></td>
+            </tr>
+            <tr>
+              <td><p class="cell-primary">Office of the Municipal Health Officer</p></td>
+              <td>8</td>
+              <td>1</td>
+              <td><span class="badge badge-green">Up to date</span></td>
+            </tr>
+            <tr>
+              <td><p class="cell-primary">Office of the Municipal Social Welfare and Development</p></td>
+              <td>7</td>
+              <td>3</td>
+              <td><span class="badge badge-amber">Needs review</span></td>
+            </tr>
+            <tr>
+              <td><p class="cell-primary">Office of the Municipal Assessor</p></td>
+              <td>6</td>
+              <td>0</td>
+              <td><span class="badge badge-green">Up to date</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="stack">
+
+    <div class="panel">
+      <div class="panel-header">
+        <h2>Quick actions</h2>
+      </div>
+      <div class="panel-body">
+        <div class="dash-quick-grid">
+          <a class="quick-action" href="super-admin-announcements.html"><span class="qi"><i class="fa-solid fa-bullhorn"></i></span>Post announcement</a>
+          <a class="quick-action" href="super-admin-events.html"><span class="qi"><i class="fa-regular fa-calendar-plus"></i></span>Create event</a>
+          <a class="quick-action" href="super-admin-downloadable-forms.html"><span class="qi"><i class="fa-solid fa-file-arrow-up"></i></span>Upload form</a>
+          <a class="quick-action" href="super-admin-users.html"><span class="qi"><i class="fa-solid fa-user-plus"></i></span>Add user</a>
+          <a class="quick-action" href="super-admin-gallery.html"><span class="qi"><i class="fa-regular fa-image"></i></span>Add photo</a>
+          <a class="quick-action" href="super-admin-backup-restore.html"><span class="qi"><i class="fa-solid fa-rotate"></i></span>Backup site</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <h2>Recent activity</h2>
+        <a class="link" href="super-admin-activity-logs.html">View log</a>
+      </div>
+      <div class="panel-body activity-feed">
+        <div class="list-row">
+          <span class="activity-dot green"></span>
+          <div>
+            <div class="activity-text"><strong>Maria L. Enriquez</strong> approved the "Barangay Clearance" form update</div>
+            <div class="activity-time">18 minutes ago</div>
+          </div>
+        </div>
+        <div class="list-row">
+          <span class="activity-dot blue"></span>
+          <div>
+            <div class="activity-text"><strong>Office of the Municipal Mayor</strong> submitted a new announcement for review</div>
+            <div class="activity-time">25 minutes ago</div>
+          </div>
+        </div>
+        <div class="list-row">
+          <span class="activity-dot amber"></span>
+          <div>
+            <div class="activity-text"><strong>System</strong> completed a scheduled backup of the website database</div>
+            <div class="activity-time">2 hours ago</div>
+          </div>
+        </div>
+        <div class="list-row">
+          <span class="activity-dot red"></span>
+          <div>
+            <div class="activity-text"><strong>Ramon P. Cabahug</strong> updated Emergency Contacts for Barangay Central</div>
+            <div class="activity-time">5 hours ago</div>
+          </div>
+        </div>
+        <div class="list-row">
+          <span class="activity-dot blue"></span>
+          <div>
+            <div class="activity-text"><strong>Office of the Municipal Tourism Officer</strong> submitted a new event for review</div>
+            <div class="activity-time">Yesterday, 4:12 PM</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

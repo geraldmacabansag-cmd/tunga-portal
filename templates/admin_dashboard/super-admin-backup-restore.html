@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Backup & Restore · Super Admin · Municipality of Tunga</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body data-page="backup-restore">
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <span class="seal"><i class="fa-solid fa-landmark"></i></span>
+      <div class="sidebar-brand-text">
+        <div class="muni">Municipality of</div>
+        <div class="name">TUNGA</div>
+        <div class="place">Leyte, Philippines</div>
+      </div>
+    </div>
+    <ul>
+      <li class="nav-section-title">Main</li>
+      <li class="nav-item"><a href="super-admin-dashboard.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-house"></i></span> Dashboard</a></li>
+      <li class="nav-item"><a href="super-admin-approval-center.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-square-check"></i></span> Approval Center</a> <span class="badge">18</span></li>
+    </ul>
+
+    <ul>
+      <li class="nav-section-title">Content Management</li>
+      <li class="nav-item"><a href="super-admin-announcements.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-bullhorn"></i></span> Announcements</a></li>
+      <li class="nav-item"><a href="super-admin-news-updates.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-newspaper"></i></span> News &amp; Updates</a></li>
+      <li class="nav-item"><a href="super-admin-events.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-regular fa-calendar"></i></span> Events</a></li>
+      <li class="nav-item"><a href="super-admin-downloadable-forms.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-file-arrow-down"></i></span> Downloadable Forms</a></li>
+      <li class="nav-item"><a href="super-admin-gallery.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-regular fa-images"></i></span> Gallery</a></li>
+    </ul>
+
+    <ul>
+      <li class="nav-section-title">Office Management</li>
+      <li class="nav-item"><a href="super-admin-office-overview.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-building"></i></span> Offices</a></li>
+      <li class="nav-item"><a href="super-admin-office-reps.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-regular fa-address-book"></i></span> Office Representatives</a></li>
+      <li class="nav-item"><a href="super-admin-services.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-list-check"></i></span> Services</a></li>
+    </ul>
+
+    <ul>
+      <li class="nav-section-title">User Management</li>
+      <li class="nav-item"><a href="super-admin-users.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-users"></i></span> Users</a></li>
+      <li class="nav-item"><a href="super-admin-roles.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-user-shield"></i></span> Roles &amp; Permissions</a></li>
+    </ul>
+
+    <ul>
+      <li class="nav-section-title">Website Management</li>
+      <li class="nav-item"><a href="super-admin-homepage.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-globe"></i></span> Homepage</a></li>
+      <li class="nav-item"><a href="super-admin-contact-info.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-phone"></i></span> Contact Information</a></li>
+      <li class="nav-item"><a href="super-admin-interactive-map.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-map-location-dot"></i></span> Interactive Map</a></li>
+      <li class="nav-item"><a href="super-admin-emergency-contacts.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-phone-volume"></i></span> Emergency Contacts</a></li>
+      <li class="nav-item"><a href="super-admin-website-settings.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-sliders"></i></span> Website Settings</a></li>
+    </ul>
+
+    <ul>
+      <li class="nav-section-title">Reports &amp; Analytics</li>
+      <li class="nav-item"><a href="super-admin-analytics.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-chart-line"></i></span> Analytics &amp; Reports</a></li>
+    </ul>
+
+    <ul>
+      <li class="nav-section-title">System</li>
+      <li class="nav-item"><a href="super-admin-activity-logs.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-clock-rotate-left"></i></span> Activity Logs</a></li>
+      <li class="nav-item active"><a href="super-admin-backup-restore.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-rotate"></i></span> Backup &amp; Restore</a></li>
+      <li class="nav-item"><a href="super-admin-system-settings.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-gear"></i></span> System Settings</a></li>
+    </ul>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-logout"><i class="fa-solid fa-arrow-right-from-bracket"></i> Log Out</div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')"><i class="fa-solid fa-bars"></i></button>
+        <div class="page-heading">
+          <h1>Backup & Restore</h1>
+          <p>Manage data backups and restoration</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <label class="field search" style="display:flex;align-items:center;gap:8px;width:220px;border-radius:999px;padding:9px 16px;color:var(--gray-400);"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search anything..." style="border:0;outline:0;flex:1;font:inherit;background:transparent;color:var(--gray-800);"></label>
+        <button class="icon-button"><i class="fa-regular fa-bell"></i><span class="dot">5</span></button>
+        <div class="user-chip">
+          <img src="https://i.pravatar.cc/64?img=12" alt="">
+          <div class="who"><div class="name">Super Administrator</div><div class="role">Super Admin</div></div>
+          <i class="fa-solid fa-chevron-down chev"></i>
+        </div>
+      </div>
+    </header>
+
+    <nav class="breadcrumbs">
+      <span>Dashboard</span><span class="sep">›</span><span>System</span><span class="sep">›</span><span class="current">Backup & Restore</span>
+    </nav>
+
+    <main class="content">
+      <div class="empty-state">
+        <div class="ei"><i class="fa-solid fa-rotate"></i></div>
+        <h2>Backup & Restore</h2>
+        <p>This page is ready and waiting &mdash; nothing has been built here yet.</p>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

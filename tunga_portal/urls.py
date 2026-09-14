@@ -24,6 +24,7 @@ urlpatterns = [
     path('', include('portal.urls')),
     path('offices/', include('offices.urls')),
     path('office-dashboard/', include('office_dashboard.urls')),
+    path('super-admin/', include('admin_dashboard.urls')),
 ]
 
 if settings.DEBUG:

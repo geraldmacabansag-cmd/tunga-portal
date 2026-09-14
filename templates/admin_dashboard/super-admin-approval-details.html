@@ -1,0 +1,168 @@
+{% extends "super-admin-base.html" %}
+{% load static %}
+
+{% block page_title_tag %}Approval Details{% endblock %}
+{% block body_page %}approval-details{% endblock %}
+{% block page_title %}Approval Details{% endblock %}
+{% block page_subtitle %}Review the full submission before taking action{% endblock %}
+{% block breadcrumbs %}<span>Dashboard</span><span class="sep">&rsaquo;</span><a href="{% url 'admin_dashboard:approval_center' %}" style="color:inherit;">Approval Center</a><span class="sep">&rsaquo;</span><span class="current">Approval Details</span>{% endblock %}
+
+{% block content %}
+
+  <div class="approval-grid">
+
+    <section class="panel">
+      <div class="panel-header"><h2>Submission Details</h2></div>
+      <div class="panel-body">
+        <div class="detail-label">Content Title</div>
+        <div class="detail-value">{{ obj.title }}</div>
+
+        <div class="detail-label">Type</div>
+        <div class="detail-value"><span class="tag {{ tag_class }}">{{ item_type }}</span></div>
+
+        <div class="detail-label">Submitted By</div>
+        <div class="detail-value">{{ office.name|default:"—" }}<span class="sub">{{ submitted_by_name }}</span></div>
+
+        <div class="detail-label">Date Submitted</div>
+        <div class="detail-value" style="margin-bottom:0;">{{ date_submitted|date:"F j, Y, g:i A" }}</div>
+
+        <div class="detail-label" style="margin-top:16px;">Status</div>
+        <div class="detail-value" style="margin-bottom:0;">
+          <span class="badge {% if obj.status == 'returned' %}badge-red{% else %}badge-amber{% endif %}">{{ obj.get_status_display }}</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="preview-card">
+      {% if item_type == 'Announcement' %}
+        {% if obj.image %}<img src="{{ obj.image.url }}" alt="{{ obj.title }}">{% endif %}
+        <div class="pc-body">
+          <h3>{{ obj.title }}</h3>
+          <div class="byline">by {{ office.name|default:"—" }} &middot; {{ obj.created_at|date:"F j, Y g:i A" }}</div>
+          <p>{{ obj.content|linebreaksbr }}</p>
+        </div>
+      {% elif item_type == 'News' %}
+        {% if obj.image %}<img src="{{ obj.image.url }}" alt="{{ obj.title }}">{% endif %}
+        <div class="pc-body">
+          <h3>{{ obj.title }}</h3>
+          <div class="byline">by {{ obj.author|default:office.name }} &middot; {{ obj.created_at|date:"F j, Y g:i A" }}</div>
+          <p>{{ obj.summary }}</p>
+          <p>{{ obj.content|linebreaksbr }}</p>
+        </div>
+      {% elif item_type == 'Event' %}
+        {% if obj.poster %}<img src="{{ obj.poster.url }}" alt="{{ obj.title }}">{% endif %}
+        <div class="pc-body">
+          <h3>{{ obj.title }}</h3>
+          <div class="byline">{{ obj.location }} &middot; {{ obj.event_date|date:"F j, Y" }}{% if obj.start_time %} {{ obj.start_time|time:"g:i A" }}{% endif %}</div>
+          <p>{{ obj.description|linebreaksbr }}</p>
+        </div>
+      {% elif item_type == 'Gallery' %}
+        {% if obj.image %}<img src="{{ obj.image.url }}" alt="{{ obj.title }}">{% endif %}
+        <div class="pc-body">
+          <h3>{{ obj.title }}</h3>
+          <div class="byline">by {{ office.name|default:"—" }} &middot; {{ obj.created_at|date:"F j, Y g:i A" }}</div>
+          {% if obj.album %}<p>Album: {{ obj.album.name }}</p>{% endif %}
+        </div>
+      {% elif item_type == 'Form' %}
+        <div class="pc-body">
+          <h3>{{ obj.title }}</h3>
+          <div class="byline">by {{ office.name|default:"—" }} &middot; {{ obj.date_uploaded|date:"F j, Y g:i A" }}</div>
+          <p>{{ obj.description|linebreaksbr }}</p>
+          <div class="attachment">
+            <span class="af"><i class="fa-solid fa-file-pdf"></i></span>
+            <div><div class="an">{{ obj.file.name|slice:"18:" }}</div></div>
+            <a class="dl" href="{{ obj.file.url }}"><i class="fa-solid fa-download"></i></a>
+          </div>
+        </div>
+      {% endif %}
+    </section>
+
+    <form method="post">
+      {% csrf_token %}
+
+      <section class="panel">
+        <div class="panel-header"><h2>Review Actions</h2></div>
+        <div class="panel-body">
+          <p style="font-size:12.5px;color:var(--gray-500);margin:0 0 14px;">Select one action below, then confirm with Submit.</p>
+
+          <input type="hidden" name="action" id="reviewActionValue" value="">
+
+          <button type="button" class="review-action approve" data-action="approve" style="width:100%;text-align:left;border:none;cursor:pointer;">
+            <span class="ra-icon"><i class="fa-solid fa-check"></i></span>
+            <div><strong>Approve</strong><p>Approve and publish this content on the website.</p></div>
+          </button>
+
+          <button type="button" class="review-action revise" data-action="return" style="width:100%;text-align:left;border:none;cursor:pointer;">
+            <span class="ra-icon"><i class="fa-solid fa-rotate-left"></i></span>
+            <div><strong>Return for Revision</strong><p>Return the content to the sender for revision.</p></div>
+          </button>
+
+          <button type="button" class="review-action reject" data-action="reject" style="width:100%;text-align:left;border:none;cursor:pointer;">
+            <span class="ra-icon"><i class="fa-solid fa-xmark"></i></span>
+            <div><strong>Reject</strong><p>Reject this content. It will not be published.</p></div>
+          </button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header"><h2>Add Note <span style="font-weight:600;color:var(--gray-400);">(Optional)</span></h2></div>
+        <div class="panel-body">
+          <p style="font-size:12.5px;color:var(--gray-500);margin:0 0 10px;">Add a note for the office representative.</p>
+          <textarea class="note-input" name="note" placeholder="Enter your note here..." maxlength="500"></textarea>
+          <div class="note-to">
+            <div><div class="nr">Note will be sent to:</div><div class="nn">{{ submitted_by_name }}</div><div class="nr">{{ office.name|default:"—" }}</div></div>
+          </div>
+          <p class="form-help" style="margin-top:8px;">Click Approve, Return for Revision, or Reject above to submit your review — this note field isn't saved to the database yet.</p>
+        </div>
+        <div class="modal-actions" style="padding:0 20px 5px;justify-content:center;">
+          <a href="{% url 'admin_dashboard:approval_center' %}" class="btn btn-secondary" id="cancelReviewBtn">Cancel</a>
+          <button type="submit" class="btn btn-primary" id="submitReviewBtn" disabled>Submit</button>
+        </div>
+      </section>
+
+    </form>
+
+<script>
+  (function () {
+    var hiddenAction = document.getElementById('reviewActionValue');
+    var submitBtn = document.getElementById('submitReviewBtn');
+    var cancelBtn = document.getElementById('cancelReviewBtn');
+    var form = cancelBtn.closest('form');
+
+    document.querySelectorAll('.review-action').forEach(function (card) {
+      card.addEventListener('click', function () {
+        hiddenAction.value = card.dataset.action;
+        submitBtn.disabled = false;
+      });
+    });
+
+    // Cancel: stopImmediatePropagation blocks super_admin.js's own
+    // text-matched Cancel handler, which points at a fake static
+    // filename instead of this real Django URL.
+    cancelBtn.addEventListener('click', function (e) {
+      e.stopImmediatePropagation();
+    });
+
+    // Submit: a real form submission (no JS needed to actually send it),
+    // just confirm before Return/Reject and block super_admin.js's own
+    // fake "Submit Review" handler from also firing on this button.
+    form.addEventListener('submit', function (e) {
+      e.stopImmediatePropagation();
+      var action = hiddenAction.value;
+      if (!action) {
+        e.preventDefault();
+        alert('Please select an action before submitting.');
+        return;
+      }
+      if (action === 'return' && !confirm('Return this submission for revision?')) {
+        e.preventDefault();
+      } else if (action === 'reject' && !confirm('Reject this submission? It will not be published.')) {
+        e.preventDefault();
+      }
+    });
+  })();
+</script>    
+
+  </div>
+
+{% endblock %}

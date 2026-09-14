@@ -1,0 +1,738 @@
+{% extends "super-admin-base.html" %}
+{% load static %}
+
+{% block page_title_tag %}Gallery{% endblock %}
+{% block body_page %}gallery{% endblock %}
+{% block page_title %}Gallery{% endblock %}
+{% block page_subtitle %}Manage photos and media galleries{% endblock %}
+{% block breadcrumbs %}<span>Dashboard</span><span class="sep">›</span><span>Content Management</span><span class="sep">›</span><span class="current">Gallery</span>{% endblock %}
+
+{% block content %}
+
+      <!-- ============ ALBUMS VIEW ============ -->
+      <div id="albumsView">
+
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;">
+          <div>
+            <h2 style="margin:0;font-size:16px;font-weight:800;color:var(--gray-900);">Photo Albums</h2>
+            <p style="margin:3px 0 0;font-size:12.5px;color:var(--gray-500);">Photos uploaded from municipal events and activities, organized by album</p>
+          </div>
+          <button class="btn btn-primary" onclick="openCreateAlbum()"><i class="fa-solid fa-folder-plus"></i> Create Album</button>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="top"><span class="stat-icon blue"><i class="fa-regular fa-images"></i></span></div>
+            <div class="stat-value" id="statAlbums">0</div>
+            <div class="stat-label">Total albums</div>
+            <div class="stat-sub">Across all offices</div>
+          </div>
+          <div class="stat-card">
+            <div class="top"><span class="stat-icon green"><i class="fa-solid fa-image"></i></span></div>
+            <div class="stat-value" id="statPhotos">0</div>
+            <div class="stat-label">Total photos</div>
+            <div class="stat-sub">Live on the website</div>
+          </div>
+          <div class="stat-card">
+            <div class="top"><span class="stat-icon gray"><i class="fa-solid fa-box-archive"></i></span></div>
+            <div class="stat-value" id="statArchived">0</div>
+            <div class="stat-label">Archived photos</div>
+            <div class="stat-sub">Hidden from the public site</div>
+          </div>
+          <div class="stat-card">
+            <div class="top"><span class="stat-icon amber"><i class="fa-regular fa-clock"></i></span></div>
+            <div class="stat-value" id="statRecent">0</div>
+            <div class="stat-label">Uploaded this month</div>
+            <div class="stat-sub">New photos added</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="filters-row">
+            <label class="field search"><i class="fa-solid fa-magnifying-glass"></i><input type="text" id="albumSearch" placeholder="Search albums..." oninput="renderAlbums()"></label>
+            <select class="field" id="albumSort" onchange="renderAlbums()">
+              <option>Newest first</option>
+              <option>Oldest first</option>
+              <option>Most photos</option>
+              <option>Name (A–Z)</option>
+            </select>
+          </div>
+          <div class="panel-body">
+            <div class="ec-grid" id="albumGrid">
+              <!-- album cards rendered by JS, reusing .preview-card -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============ ALBUM DETAIL VIEW ============ -->
+      <div id="albumDetailView" style="display:none;">
+
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+            <button class="btn btn-secondary btn-sm" onclick="showAlbumsView()"><i class="fa-solid fa-arrow-left"></i> Albums</button>
+            <div style="min-width:0;">
+              <h2 id="albumDetailTitle" style="margin:0;font-size:16px;font-weight:800;color:var(--gray-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Album name</h2>
+              <p id="albumDetailMeta" style="margin:3px 0 0;font-size:12.5px;color:var(--gray-500);">Office · Date · 0 photos</p>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="openUploadPhotos()"><i class="fa-solid fa-upload"></i> Upload Photos</button>
+        </div>
+
+        <div class="panel">
+          <div class="tabs">
+            <div class="tab active" data-filter="all">All <span class="count" id="photoTabAllCount">0</span></div>
+            <div class="tab" data-filter="active">Active <span class="count" id="photoTabActiveCount">0</span></div>
+            <div class="tab" data-filter="archived">Archived <span class="count" id="photoTabArchivedCount">0</span></div>
+          </div>
+
+          <div class="table-wrap" style="border:none;border-radius:0;">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Photo</th>
+                  <th>Uploaded by</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="photoTableBody">
+                <!-- rows rendered by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+<!-- Photo view modal: view + edit caption + archive + delete -->
+<div class="modal-backdrop" id="photoModal">
+  <div class="modal-box modal-wide">
+    <div class="modal-head">
+      <h3>View Photo</h3>
+      <button class="modal-x" onclick="closeModal('photoModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <img class="modal-preview-img" id="lightboxImage" src="" alt="">
+
+      <div class="modal-view-row">
+        <span class="k">Album</span>
+        <span class="v" id="lightboxAlbum">—</span>
+      </div>
+      <div class="modal-view-row">
+        <span class="k">Uploaded by</span>
+        <span class="v" id="lightboxUploader">—</span>
+      </div>
+      <div class="modal-view-row">
+        <span class="k">Date</span>
+        <span class="v" id="lightboxDate">—</span>
+      </div>
+      <div class="modal-view-row">
+        <span class="k">Status</span>
+        <span class="v" id="lightboxStatus">—</span>
+      </div>
+
+      <div class="form-group" style="margin-top:14px;">
+        <label class="form-label">Caption</label>
+        <p class="confirm-msg" id="lightboxCaptionView" style="margin:0;">—</p>
+        <textarea class="form-input form-textarea" id="lightboxCaptionEdit" style="display:none;min-height:70px;margin-top:6px;" placeholder="Write a caption for this photo..."></textarea>
+      </div>
+
+      <div class="modal-actions" id="lightboxActionsView">
+        <button class="btn btn-secondary" id="lightboxArchiveBtn" onclick="toggleArchivePhoto()"><i class="fa-solid fa-box-archive"></i> Archive</button>
+        <button class="btn btn-secondary" onclick="startEditCaption()"><i class="fa-regular fa-pen-to-square"></i> Edit caption</button>
+        <button class="btn btn-danger" onclick="openDeletePhoto()"><i class="fa-regular fa-trash-can"></i> Delete</button>
+      </div>
+      <div class="modal-actions" id="lightboxActionsEdit" style="display:none;">
+        <button class="btn btn-secondary" onclick="cancelEditCaption()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveCaption()"><i class="fa-solid fa-check"></i> Save caption</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Create / Edit Album modal -->
+<div class="modal-backdrop" id="albumModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="albumModalTitle">Create Album</h3>
+      <button class="modal-x" onclick="closeModal('albumModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form onsubmit="return false;">
+        <div class="form-group">
+          <label class="form-label">Album name<span class="req">*</span></label>
+          <input class="form-input" type="text" id="albumName" placeholder="e.g. Tunga Founding Anniversary 2026">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Office</label>
+          <select class="form-input" id="albumOffice">
+            <option>Office of the Municipal Mayor</option>
+            <option>Office of the Municipal Tourism Officer</option>
+            <option>Municipal Health Office</option>
+            <option>Office of the Municipal Engineer</option>
+            <option>Municipal Youth &amp; Sports Office</option>
+            <option>Office of the Municipal Agriculturist</option>
+            <option>Public Employment Service Office</option>
+            <option>Municipal DRRM Office</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Album date</label>
+          <input class="form-input" type="date" id="albumDate">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cover photo</label>
+          <input class="form-input file-input" type="file" accept="image/*" id="albumCoverFile">
+          <span class="form-help">Optional. If left empty, the album's first active photo will be used as the cover.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea class="form-input form-textarea" id="albumDescription" style="min-height:70px;" placeholder="Optional short description of this album."></textarea>
+        </div>
+        <p class="form-help" id="albumFormError" style="color:var(--red-600); display:none;"></p>
+      </form>
+    </div>
+    <div class="modal-actions" style="padding:0 20px 20px;">
+      <button class="btn btn-secondary" onclick="closeModal('albumModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAlbum()"><i class="fa-solid fa-check"></i> Save album</button>
+    </div>
+  </div>
+</div>
+
+<!-- Upload Photos modal -->
+<div class="modal-backdrop" id="uploadModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Upload Photos</h3>
+      <button class="modal-x" onclick="closeModal('uploadModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form onsubmit="return false;">
+        <div class="form-group">
+          <label class="form-label">Photos<span class="req">*</span></label>
+          <input class="form-input file-input" type="file" accept="image/*" multiple id="uploadFiles">
+          <span class="form-help">JPG or PNG, up to 5MB each. Select multiple files to upload them all at once.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Caption</label>
+          <input class="form-input" type="text" id="uploadCaption" placeholder="Optional caption applied to all uploaded photos">
+        </div>
+        <p class="form-help" id="uploadFormError" style="color:var(--red-600); display:none;"></p>
+      </form>
+    </div>
+    <div class="modal-actions" style="padding:0 20px 20px;">
+      <button class="btn btn-secondary" onclick="closeModal('uploadModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveUpload()"><i class="fa-solid fa-upload"></i> Upload</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete photo confirmation -->
+<div class="modal-backdrop" id="deletePhotoModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Delete photo</h3>
+      <button class="modal-x" onclick="closeModal('deletePhotoModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <p class="confirm-msg">Are you sure you want to permanently delete this photo? This cannot be undone. If you just want to hide it from the public site, use Archive instead.</p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('deletePhotoModal')">Cancel</button>
+        <button class="btn btn-danger" onclick="confirmDeletePhoto()"><i class="fa-regular fa-trash-can"></i> Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete album confirmation -->
+<div class="modal-backdrop" id="deleteAlbumModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Delete album</h3>
+      <button class="modal-x" onclick="closeModal('deleteAlbumModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <p class="confirm-msg" id="deleteAlbumMsg">Are you sure you want to delete this album? All photos inside it will also be deleted. This cannot be undone.</p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('deleteAlbumModal')">Cancel</button>
+        <button class="btn btn-danger" onclick="confirmDeleteAlbum()"><i class="fa-regular fa-trash-can"></i> Delete album</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-host" id="toastHost"></div>
+
+<script src="app.js"></script>
+<script>
+  /* =========================================================
+     DATA MODEL
+     In production these arrays would come from your backend.
+     Everything on this page (stats, album cards, photo table,
+     lightbox) is derived from them and re-rendered after every
+     create / edit / archive / delete.
+  ========================================================= */
+  var albums = [
+    { id: 'album-1', name: 'Tunga Founding Anniversary 2026', office: 'Office of the Municipal Tourism Officer', date: '2026-09-09', description: 'Highlights from the week-long 61st Founding Anniversary celebration.' },
+    { id: 'album-2', name: '2026 Job Fair and Hiring Event', office: 'Public Employment Service Office', date: '2026-09-05', description: 'Photos from the municipal job fair held at the Municipal Gymnasium.' },
+    { id: 'album-3', name: 'Free Medical & Dental Mission', office: 'Municipal Health Office', date: '2026-09-13', description: 'Coverage of the free medical and dental mission in Brgy. Cahumayhumayan.' },
+    { id: 'album-4', name: 'Covered Court Inauguration', office: 'Office of the Municipal Engineer', date: '2026-09-03', description: 'Ribbon-cutting and turnover of the new multi-purpose covered court in Brgy. Poblacion.' },
+    { id: 'album-5', name: 'Palarong Bayan 2026', office: 'Municipal Youth & Sports Office', date: '2026-09-20', description: 'Municipal sports festival featuring basketball, volleyball, and track and field.' },
+    { id: 'album-6', name: 'Tree Planting Activity', office: 'Office of the Municipal Agriculturist', date: '2026-08-30', description: 'Watershed rehabilitation tree planting activity in Brgy. Cahumayhumayan.' }
+  ];
+
+  function seedPhotos(albumId, seedBase, count, captions, uploader, date){
+    var list = [];
+    for(var i = 1; i <= count; i++){
+      list.push({
+        id: albumId + '-photo-' + i,
+        albumId: albumId,
+        url: 'https://picsum.photos/seed/' + seedBase + '-' + i + '/480/480',
+        caption: captions[i-1] || '',
+        uploadedBy: uploader,
+        date: date,
+        archived: false
+      });
+    }
+    return list;
+  }
+
+  var photos = []
+    .concat(seedPhotos('album-1', 'tunga-anniv', 6,
+      ['Opening program at the Municipal Plaza', 'Cultural dance performance', 'Street dancing competition', '', 'Trade fair booths', 'Fireworks display'],
+      'Ma. Teresa D. Villamor', '2026-09-09'))
+    .concat(seedPhotos('album-2', 'job-fair', 5,
+      ['Applicants lining up at the gymnasium entrance', 'Employer booths', '', 'On-the-spot interviews', ''],
+      'Super Administrator', '2026-09-05'))
+    .concat(seedPhotos('album-3', 'med-mission', 5,
+      ['Registration area', 'Free check-up station', 'Dental extraction station', '', 'Volunteer doctors and staff'],
+      'Dr. Shiela M. Marbella', '2026-09-13'))
+    .concat(seedPhotos('album-4', 'covered-court', 4,
+      ['Ribbon cutting ceremony', 'Municipal Mayor\'s remarks', '', 'Aerial view of the new facility'],
+      'Engr. Paolo R. Bautista', '2026-09-03'))
+    .concat(seedPhotos('album-5', 'palarong-bayan', 6,
+      ['Opening parade of athletes', 'Basketball match', 'Volleyball match', '', 'Track and field events', 'Awarding ceremony'],
+      'Municipal Youth & Sports Office', '2026-09-20'))
+    .concat(seedPhotos('album-6', 'tree-planting', 4,
+      ['Volunteers preparing seedlings', 'Planting along the watershed', '', 'Group photo after the activity'],
+      'Office of the Municipal Agriculturist', '2026-08-30'));
+
+  // Mark a few photos as archived for demonstration
+  photos.find(function(p){ return p.id === 'album-2-photo-4'; }).archived = true;
+  photos.find(function(p){ return p.id === 'album-3-photo-2'; }).archived = true;
+  photos.find(function(p){ return p.id === 'album-6-photo-3'; }).archived = true;
+
+  var currentAlbumId = null;   // null = albums grid view
+  var currentPhotoId = null;   // photo currently open in the lightbox
+  var photoTabFilter = 'all';
+  var pendingDeleteAlbumId = null;
+  var editingAlbumId = null;
+
+  function escapeHtml(str){
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function formatDateDisplay(iso){
+    if(!iso) return '—';
+    var parts = iso.split('-');
+    var d = new Date(parseInt(parts[0],10), parseInt(parts[1],10)-1, parseInt(parts[2],10));
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+  }
+
+  function photosForAlbum(albumId){
+    return photos.filter(function(p){ return p.albumId === albumId; });
+  }
+
+  /* ---------- Global stats (albums view) ---------- */
+  function updateGlobalStats(){
+    var totalPhotos = photos.length;
+    var archived = photos.filter(function(p){ return p.archived; }).length;
+    var thisMonth = photos.filter(function(p){ return p.date && p.date.slice(0,7) === '2026-09'; }).length;
+
+    document.getElementById('statAlbums').textContent = albums.length;
+    document.getElementById('statPhotos').textContent = totalPhotos;
+    document.getElementById('statArchived').textContent = archived;
+    document.getElementById('statRecent').textContent = thisMonth;
+  }
+
+  /* ---------- Albums grid (uses .ec-grid + .preview-card, both existing) ---------- */
+  function renderAlbums(){
+    var search = (document.getElementById('albumSearch').value || '').toLowerCase().trim();
+    var sort = document.getElementById('albumSort').value;
+
+    var list = albums.filter(function(a){
+      if(!search) return true;
+      return a.name.toLowerCase().indexOf(search) !== -1 || a.office.toLowerCase().indexOf(search) !== -1;
+    });
+
+    list = list.slice().sort(function(a, b){
+      if(sort === 'Oldest first') return a.date.localeCompare(b.date);
+      if(sort === 'Most photos') return photosForAlbum(b.id).length - photosForAlbum(a.id).length;
+      if(sort === 'Name (A–Z)') return a.name.localeCompare(b.name);
+      return b.date.localeCompare(a.date); // Newest first (default)
+    });
+
+    var grid = document.getElementById('albumGrid');
+    if(list.length === 0){
+      grid.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--gray-400);font-size:13px;padding:24px 0;">No albums match your search.</p>';
+    } else {
+      grid.innerHTML = list.map(albumCardHtml).join('');
+    }
+
+    updateGlobalStats();
+  }
+
+  function albumCardHtml(a){
+    var albumPhotos = photosForAlbum(a.id);
+    var activePhotos = albumPhotos.filter(function(p){ return !p.archived; });
+    var cover = activePhotos[0] || albumPhotos[0];
+    var coverUrl = cover ? cover.url : 'https://picsum.photos/seed/' + a.id + '/480/360';
+
+    return '' +
+      '<div class="preview-card">' +
+        '<img src="' + coverUrl + '" alt="" style="cursor:pointer;" onclick="openAlbum(\'' + a.id + '\')">' +
+        '<div class="pc-body">' +
+          '<h3 style="cursor:pointer;" onclick="openAlbum(\'' + a.id + '\')">' + escapeHtml(a.name) + '</h3>' +
+          '<div class="byline">' + escapeHtml(a.office) + ' · ' + formatDateDisplay(a.date) + ' · ' + albumPhotos.length + ' photo' + (albumPhotos.length === 1 ? '' : 's') + '</div>' +
+          '<p>' + escapeHtml(a.description || 'No description yet.') + '</p>' +
+          '<div class="action-icons" style="margin-top:10px;justify-content:flex-end;">' +
+            '<span class="ic" title="Open album" onclick="openAlbum(\'' + a.id + '\')"><i class="fa-regular fa-eye"></i></span>' +
+            '<span class="ic" title="Edit album" onclick="openEditAlbum(\'' + a.id + '\')"><i class="fa-regular fa-pen-to-square"></i></span>' +
+            '<span class="ic" title="Delete album" onclick="openDeleteAlbum(\'' + a.id + '\')"><i class="fa-regular fa-trash-can"></i></span>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+  }
+
+  /* ---------- View switching ---------- */
+  function showAlbumsView(){
+    currentAlbumId = null;
+    document.getElementById('albumDetailView').style.display = 'none';
+    document.getElementById('albumsView').style.display = 'block';
+    renderAlbums();
+  }
+
+  function openAlbum(albumId){
+    currentAlbumId = albumId;
+    photoTabFilter = 'all';
+    document.querySelectorAll('#albumDetailView .tab').forEach(function(t){ t.classList.remove('active'); });
+    document.querySelector('#albumDetailView .tab[data-filter="all"]').classList.add('active');
+    document.getElementById('albumsView').style.display = 'none';
+    document.getElementById('albumDetailView').style.display = 'block';
+    renderAlbumDetail();
+  }
+
+  document.querySelectorAll('#albumDetailView .tab').forEach(function(tabEl){
+    tabEl.addEventListener('click', function(){
+      document.querySelectorAll('#albumDetailView .tab').forEach(function(t){ t.classList.remove('active'); });
+      tabEl.classList.add('active');
+      photoTabFilter = tabEl.dataset.filter;
+      renderAlbumDetail();
+    });
+  });
+
+  function renderAlbumDetail(){
+    var album = albums.find(function(a){ return a.id === currentAlbumId; });
+    if(!album) { showAlbumsView(); return; }
+
+    var albumPhotos = photosForAlbum(album.id);
+    var activeCount = albumPhotos.filter(function(p){ return !p.archived; }).length;
+    var archivedCount = albumPhotos.filter(function(p){ return p.archived; }).length;
+
+    document.getElementById('albumDetailTitle').textContent = album.name;
+    document.getElementById('albumDetailMeta').textContent = album.office + ' · ' + formatDateDisplay(album.date) + ' · ' + albumPhotos.length + ' photo' + (albumPhotos.length === 1 ? '' : 's');
+
+    document.getElementById('photoTabAllCount').textContent = albumPhotos.length;
+    document.getElementById('photoTabActiveCount').textContent = activeCount;
+    document.getElementById('photoTabArchivedCount').textContent = archivedCount;
+
+    var list = albumPhotos.filter(function(p){
+      if(photoTabFilter === 'active') return !p.archived;
+      if(photoTabFilter === 'archived') return p.archived;
+      return true;
+    });
+
+    var tbody = document.getElementById('photoTableBody');
+    if(list.length === 0){
+      tbody.innerHTML = '<tr class="no-results-row"><td colspan="5">No photos to show here yet.</td></tr>';
+    } else {
+      tbody.innerHTML = list.map(photoRowHtml).join('');
+    }
+  }
+
+  function photoRowHtml(p){
+    return '' +
+      '<tr>' +
+        '<td>' +
+          '<div class="row-icon-name" style="cursor:pointer;" onclick="openPhoto(\'' + p.id + '\')">' +
+            '<img class="list-thumb" src="' + p.url + '" alt="">' +
+            '<div>' +
+              '<p class="cell-primary">' + escapeHtml(p.caption || 'Untitled photo') + '</p>' +
+              '<p class="cell-sub">Tap to view</p>' +
+            '</div>' +
+          '</div>' +
+        '</td>' +
+        '<td>' + escapeHtml(p.uploadedBy || '—') + '</td>' +
+        '<td>' + formatDateDisplay(p.date) + '</td>' +
+        '<td><span class="badge ' + (p.archived ? 'badge-gray' : 'badge-green') + '">' + (p.archived ? 'Archived' : 'Active') + '</span></td>' +
+        '<td>' +
+          '<div class="action-icons">' +
+            '<span class="ic" title="View" onclick="openPhoto(\'' + p.id + '\')"><i class="fa-regular fa-eye"></i></span>' +
+            '<span class="ic" title="' + (p.archived ? 'Unarchive' : 'Archive') + '" onclick="quickToggleArchive(\'' + p.id + '\')"><i class="fa-solid fa-box-archive"></i></span>' +
+            '<span class="ic" title="Delete" onclick="quickDeletePhoto(\'' + p.id + '\')"><i class="fa-regular fa-trash-can"></i></span>' +
+          '</div>' +
+        '</td>' +
+      '</tr>';
+  }
+
+  function quickToggleArchive(photoId){
+    var p = photos.find(function(x){ return x.id === photoId; });
+    if(!p) return;
+    p.archived = !p.archived;
+    renderAlbumDetail();
+    showToast(p.archived ? 'Photo archived.' : 'Photo restored.');
+  }
+
+  function quickDeletePhoto(photoId){
+    currentPhotoId = photoId;
+    openModal('deletePhotoModal');
+  }
+
+  /* ---------- Photo view modal: view / edit caption / archive / delete ---------- */
+  function openPhoto(photoId){
+    var p = photos.find(function(x){ return x.id === photoId; });
+    if(!p) return;
+    currentPhotoId = photoId;
+
+    document.getElementById('lightboxImage').src = p.url;
+    var album = albums.find(function(a){ return a.id === p.albumId; });
+    document.getElementById('lightboxAlbum').textContent = album ? album.name : '—';
+    document.getElementById('lightboxUploader').textContent = p.uploadedBy || '—';
+    document.getElementById('lightboxDate').textContent = formatDateDisplay(p.date);
+    document.getElementById('lightboxStatus').innerHTML = p.archived
+      ? '<span class="badge badge-gray">Archived</span>'
+      : '<span class="badge badge-green">Active</span>';
+
+    var captionView = document.getElementById('lightboxCaptionView');
+    captionView.textContent = p.caption || 'No caption yet.';
+
+    document.getElementById('lightboxArchiveBtn').innerHTML = p.archived
+      ? '<i class="fa-solid fa-box-open"></i> Unarchive'
+      : '<i class="fa-solid fa-box-archive"></i> Archive';
+
+    cancelEditCaption();
+    openModal('photoModal');
+  }
+
+  function startEditCaption(){
+    var p = photos.find(function(x){ return x.id === currentPhotoId; });
+    if(!p) return;
+    document.getElementById('lightboxCaptionEdit').value = p.caption || '';
+    document.getElementById('lightboxCaptionView').style.display = 'none';
+    document.getElementById('lightboxCaptionEdit').style.display = 'block';
+    document.getElementById('lightboxActionsView').style.display = 'none';
+    document.getElementById('lightboxActionsEdit').style.display = 'flex';
+  }
+
+  function cancelEditCaption(){
+    document.getElementById('lightboxCaptionView').style.display = 'block';
+    document.getElementById('lightboxCaptionEdit').style.display = 'none';
+    document.getElementById('lightboxActionsView').style.display = 'flex';
+    document.getElementById('lightboxActionsEdit').style.display = 'none';
+  }
+
+  function saveCaption(){
+    var p = photos.find(function(x){ return x.id === currentPhotoId; });
+    if(!p) return;
+    p.caption = document.getElementById('lightboxCaptionEdit').value.trim();
+    openPhoto(currentPhotoId); // refresh modal contents
+    renderAlbumDetail();
+    showToast('Caption updated.');
+  }
+
+  function toggleArchivePhoto(){
+    var p = photos.find(function(x){ return x.id === currentPhotoId; });
+    if(!p) return;
+    p.archived = !p.archived;
+    openPhoto(currentPhotoId); // refresh modal contents
+    renderAlbumDetail();
+    showToast(p.archived ? 'Photo archived.' : 'Photo restored.');
+  }
+
+  function openDeletePhoto(){
+    openModal('deletePhotoModal');
+  }
+
+  function confirmDeletePhoto(){
+    photos = photos.filter(function(x){ return x.id !== currentPhotoId; });
+    closeModal('deletePhotoModal');
+    closeModal('photoModal');
+    renderAlbumDetail();
+    showToast('Photo deleted.');
+  }
+
+  /* ---------- Upload photos ---------- */
+  function openUploadPhotos(){
+    document.getElementById('uploadFiles').value = '';
+    document.getElementById('uploadCaption').value = '';
+    document.getElementById('uploadFormError').style.display = 'none';
+    openModal('uploadModal');
+  }
+
+  function saveUpload(){
+    var input = document.getElementById('uploadFiles');
+    var files = input.files;
+    var err = document.getElementById('uploadFormError');
+    if(!files || files.length === 0){
+      err.textContent = 'Please choose at least one photo to upload.';
+      err.style.display = 'block';
+      return;
+    }
+    var caption = document.getElementById('uploadCaption').value.trim();
+
+    var readers = 0;
+    var total = files.length;
+    for(var i = 0; i < files.length; i++){
+      (function(file){
+        var reader = new FileReader();
+        reader.onload = function(e){
+          photos.unshift({
+            id: currentAlbumId + '-photo-' + Date.now() + '-' + Math.round(Math.random()*1000),
+            albumId: currentAlbumId,
+            url: e.target.result,
+            caption: caption,
+            uploadedBy: 'Super Administrator',
+            date: new Date().toISOString().slice(0,10),
+            archived: false
+          });
+          readers++;
+          if(readers === total){
+            closeModal('uploadModal');
+            renderAlbumDetail();
+            showToast(total + ' photo' + (total === 1 ? '' : 's') + ' uploaded.');
+          }
+        };
+        reader.readAsDataURL(file);
+      })(files[i]);
+    }
+  }
+
+  /* ---------- Create / edit / delete album ---------- */
+  function setSelectValue(id, value){
+    var select = document.getElementById(id);
+    if(!value) return;
+    for(var i = 0; i < select.options.length; i++){
+      if(select.options[i].text === value){ select.selectedIndex = i; return; }
+    }
+  }
+
+  function openCreateAlbum(){
+    editingAlbumId = null;
+    document.getElementById('albumModalTitle').textContent = 'Create Album';
+    document.getElementById('albumName').value = '';
+    document.getElementById('albumOffice').selectedIndex = 0;
+    document.getElementById('albumDate').value = new Date().toISOString().slice(0,10);
+    document.getElementById('albumCoverFile').value = '';
+    document.getElementById('albumDescription').value = '';
+    document.getElementById('albumFormError').style.display = 'none';
+    openModal('albumModal');
+  }
+
+  function openEditAlbum(albumId){
+    var a = albums.find(function(x){ return x.id === albumId; });
+    if(!a) return;
+    editingAlbumId = albumId;
+    document.getElementById('albumModalTitle').textContent = 'Edit Album';
+    document.getElementById('albumName').value = a.name;
+    setSelectValue('albumOffice', a.office);
+    document.getElementById('albumDate').value = a.date;
+    document.getElementById('albumCoverFile').value = '';
+    document.getElementById('albumDescription').value = a.description || '';
+    document.getElementById('albumFormError').style.display = 'none';
+    openModal('albumModal');
+  }
+
+  function saveAlbum(){
+    var name = document.getElementById('albumName').value.trim();
+    if(!name){
+      var err = document.getElementById('albumFormError');
+      err.textContent = 'Please enter an album name.';
+      err.style.display = 'block';
+      return;
+    }
+    var office = document.getElementById('albumOffice').value;
+    var date = document.getElementById('albumDate').value || new Date().toISOString().slice(0,10);
+    var description = document.getElementById('albumDescription').value.trim();
+
+    if(editingAlbumId){
+      var a = albums.find(function(x){ return x.id === editingAlbumId; });
+      a.name = name; a.office = office; a.date = date; a.description = description;
+      closeModal('albumModal');
+      renderAlbums();
+      showToast('Album updated.');
+    } else {
+      albums.unshift({ id: 'album-' + Date.now(), name: name, office: office, date: date, description: description });
+      closeModal('albumModal');
+      renderAlbums();
+      showToast('Album created.');
+    }
+  }
+
+  function openDeleteAlbum(albumId){
+    var a = albums.find(function(x){ return x.id === albumId; });
+    if(!a) return;
+    pendingDeleteAlbumId = albumId;
+    var count = photosForAlbum(albumId).length;
+    document.getElementById('deleteAlbumMsg').textContent =
+      'Are you sure you want to delete "' + a.name + '"? This will also delete ' + count + ' photo' + (count === 1 ? '' : 's') + ' inside it. This cannot be undone.';
+    openModal('deleteAlbumModal');
+  }
+
+  function confirmDeleteAlbum(){
+    photos = photos.filter(function(p){ return p.albumId !== pendingDeleteAlbumId; });
+    albums = albums.filter(function(a){ return a.id !== pendingDeleteAlbumId; });
+    closeModal('deleteAlbumModal');
+    renderAlbums();
+    showToast('Album deleted.');
+    pendingDeleteAlbumId = null;
+  }
+
+  /* ---------- Modal + toast helpers ---------- */
+  function openModal(id){
+    document.getElementById(id).classList.add('open');
+    document.body.classList.add('modal-open');
+  }
+  function closeModal(id){
+    document.getElementById(id).classList.remove('open');
+    document.body.classList.remove('modal-open');
+  }
+
+  function showToast(msg){
+    var host = document.getElementById('toastHost');
+    var toast = document.createElement('div');
+    toast.className = 'toast toast-success';
+    toast.innerHTML = '<i class="fa-solid fa-circle-check"></i> ' + msg;
+    host.appendChild(toast);
+    requestAnimationFrame(function(){ toast.classList.add('show'); });
+    setTimeout(function(){
+      toast.classList.remove('show');
+      setTimeout(function(){ toast.remove(); }, 200);
+    }, 2600);
+  }
+
+  ['photoModal','albumModal','uploadModal','deletePhotoModal','deleteAlbumModal'].forEach(function(id){
+    document.getElementById(id).addEventListener('click', function(e){
+      if(e.target === this) closeModal(id);
+    });
+  });
+
+  renderAlbums();
+</script>
+
+{% endblock %}

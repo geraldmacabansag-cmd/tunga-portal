@@ -22,8 +22,9 @@ class Announcement(models.Model):
     STATUS_CHOICES = [
         ("pending", "Pending Approval"),
         ("published", "Published"),
-        ("draft", "Draft"),
+        ("reject", "Reject"),
         ("returned", "Returned"),
+        ("archive", "Archived"),
     ]
 
     PRIORITY_CHOICES = [
@@ -106,8 +107,9 @@ class NewsUpdate(models.Model):
     STATUS_CHOICES = [
         ("pending", "Pending Approval"),
         ("published", "Published"),
-        ("draft", "Draft"),
+        ("reject", "Reject"),
         ("returned", "Returned"),
+        ("archive", "Archived"),
     ]
 
     representative = models.ForeignKey(
@@ -139,8 +141,9 @@ class Event(models.Model):
     STATUS_CHOICES = [
         ("pending", "Pending Approval"),
         ("published", "Published"),
-        ("completed", "Completed"),
+        ("reject", "Reject"),
         ("returned", "Returned"),
+        ("archive", "Archived"),
     ]
 
     representative = models.ForeignKey(
@@ -194,6 +197,9 @@ class Photo(models.Model):
     STATUS_CHOICES = [
         ("pending", "Pending Approval"),
         ("published", "Published"),
+        ("reject", "Reject"),
+        ("returned", "Returned"),
+        ("archive", "Archived"),
     ]
 
     representative = models.ForeignKey(
@@ -220,6 +226,15 @@ class Photo(models.Model):
         return self.title
 
 class Service(models.Model):
+
+    STATUS_CHOICES = [
+        ("pending", "Pending Approval"),
+        ("published", "Published"),
+        ("reject", "Reject"),
+        ("returned", "Returned"),
+        ("archive", "Archived"),
+    ]
+
 
     CATEGORY_CHOICES = [
         ("permits", "Permits & Licensing"),
@@ -256,6 +271,7 @@ class Service(models.Model):
     description = models.TextField(blank=True)
     category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default="other")
     icon = models.CharField(max_length=60, choices=ICON_CHOICES, default="fa-solid fa-file-signature")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")  
 
     availability = models.CharField(max_length=150, blank=True)  # e.g. "Monday - Friday, 8:00 AM - 5:00 PM"
     processing_time = models.CharField(max_length=100, blank=True)  # e.g. "3-5 business days"
@@ -284,11 +300,13 @@ class ProcessStep(models.Model):
         return f"{self.order}. {self.title}"
 
 class DownloadableForm(models.Model):
+
     STATUS_CHOICES = [
         ("pending", "Pending Approval"),
         ("published", "Published"),
-        ("completed", "Completed"),
+        ("reject", "Reject"),
         ("returned", "Returned"),
+        ("archive", "Archived"),
     ]
 
     office = models.ForeignKey(Office, on_delete=models.CASCADE, related_name="downloadable_forms")

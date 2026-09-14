@@ -1,0 +1,637 @@
+{% extends "super-admin-base.html" %}
+{% load static %}
+
+{% block page_title_tag %}Announcements{% endblock %}
+{% block body_page %}announcements{% endblock %}
+{% block page_title %}Announcements{% endblock %}
+{% block page_subtitle %}Create and manage public announcements{% endblock %}
+{% block breadcrumbs %}<span>Dashboard</span><span class="sep">›</span><span>Content Management</span><span class="sep">›</span><span class="current">Announcements</span>{% endblock %}
+
+{% block content %}
+
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;">
+    <div>
+      <h2 style="margin:0;font-size:16px;font-weight:800;color:var(--gray-900);">Announcements</h2>
+      <p style="margin:3px 0 0;font-size:12.5px;color:var(--gray-500);">Public notices published to the municipality's website</p>
+    </div>
+    <button class="btn btn-primary" onclick="openCreateAnn()"><i class="fa-solid fa-plus"></i> Create Announcement</button>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="top"><span class="stat-icon blue"><i class="fa-solid fa-bullhorn"></i></span></div>
+      <div class="stat-value" id="statTotal">0</div>
+      <div class="stat-label">Total announcements</div>
+      <div class="stat-sub">All statuses</div>
+    </div>
+    <div class="stat-card">
+      <div class="top"><span class="stat-icon green"><i class="fa-solid fa-circle-check"></i></span></div>
+      <div class="stat-value" id="statPublished">0</div>
+      <div class="stat-label">Published &amp; live</div>
+      <div class="stat-sub">Visible on the website now</div>
+    </div>
+    <div class="stat-card">
+      <div class="top"><span class="stat-icon amber"><i class="fa-regular fa-clock"></i></span></div>
+      <div class="stat-value" id="statScheduled">0</div>
+      <div class="stat-label">Scheduled</div>
+      <div class="stat-sub" id="statScheduledSub">Not yet live</div>
+    </div>
+    <div class="stat-card">
+      <div class="top"><span class="stat-icon gray"><i class="fa-regular fa-eye"></i></span></div>
+      <div class="stat-value" id="statViews">0</div>
+      <div class="stat-label">Total views this month</div>
+      <div class="stat-sub">Across all announcements</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="tabs">
+      <div class="tab active" data-filter="all">All <span class="count" id="tabAllCount">0</span></div>
+      <div class="tab" data-filter="Published">Published <span class="count" id="tabPublishedCount">0</span></div>
+      <div class="tab" data-filter="Scheduled">Scheduled <span class="count" id="tabScheduledCount">0</span></div>
+      <div class="tab" data-filter="Archived">Archived <span class="count" id="tabArchivedCount">0</span></div>
+    </div>
+
+    <div class="filters-row">
+      <label class="field search"><i class="fa-solid fa-magnifying-glass"></i><input type="text" id="annSearch" placeholder="Search announcements..." oninput="renderTable()"></label>
+      <select class="field" id="annCategoryFilter" onchange="renderTable()">
+        <option>All categories</option>
+        <option>Public Advisory</option>
+        <option>Health</option>
+        <option>Infrastructure</option>
+        <option>Employment</option>
+        <option>Education</option>
+        <option>Safety</option>
+        <option>General</option>
+      </select>
+      <select class="field" id="annSort" onchange="renderTable()">
+        <option>Newest first</option>
+        <option>Oldest first</option>
+        <option>Most viewed</option>
+      </select>
+    </div>
+
+    <div class="table-wrap" style="border:none;border-radius:0;">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Announcement</th>
+            <th>Category</th>
+            <th>Posted by</th>
+            <th>Date</th>
+            <th>Status</th>
+            <th>Views</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="annTableBody">
+          <!-- rows are rendered by JS from the announcements[] array -->
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination">
+      <span id="annPageInfo">Showing 0 of 0 announcements</span>
+      <div class="page-nums">
+        <button class="page-btn"><i class="fa-solid fa-chevron-left"></i></button>
+        <button class="page-btn active">1</button>
+        <button class="page-btn"><i class="fa-solid fa-chevron-right"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create / Edit Announcement modal -->
+  <div class="modal-backdrop" id="annModal">
+    <div class="modal-box modal-wide">
+      <div class="modal-head">
+        <h3 id="annModalTitle">Create Announcement</h3>
+        <button class="modal-x" onclick="closeModal('annModal')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <form onsubmit="return false;">
+          <div class="form-group">
+            <label class="form-label">Title<span class="req">*</span></label>
+            <input class="form-input" type="text" id="annTitle" placeholder="e.g. Water Interruption Notice — Brgy. Cahumayhumayan">
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Category<span class="req">*</span></label>
+              <select class="form-input" id="annCategory">
+                <option>Public Advisory</option>
+                <option>Health</option>
+                <option>Infrastructure</option>
+                <option>Employment</option>
+                <option>Education</option>
+                <option>Safety</option>
+                <option>General</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Posted by (office)<span class="req">*</span></label>
+              <select class="form-input" id="annOffice">
+                <option>Office of the Municipal Mayor</option>
+                <option>Office of the Municipal Treasurer</option>
+                <option>Office of the Municipal Civil Registrar</option>
+                <option>Office of the Municipal Assessor</option>
+                <option>Municipal Health Office</option>
+                <option>Municipal Social Welfare and Development Office</option>
+                <option>Office of the Municipal Tourism Officer</option>
+                <option>Office of the Municipal Engineer</option>
+                <option>Municipal DRRM Office</option>
+                <option>Public Employment Service Office</option>
+                <option>Municipal Scholarship Office</option>
+                <option>Business Permits and Licensing Office</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Cover image</label>
+            <input class="form-input file-input" type="file" accept="image/*" id="annImageFile" onchange="handleImagePreview(event)">
+            <span class="form-help">Recommended size 1200×675px (16:9). JPG or PNG, up to 5MB. Leave empty to keep a default thumbnail.</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Short summary<span class="req">*</span></label>
+            <textarea class="form-input form-textarea" id="annSummary" style="min-height:70px;" placeholder="One or two sentences shown in the announcements list and homepage preview."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Full announcement<span class="req">*</span></label>
+            <textarea class="form-input form-textarea" id="annBody" style="min-height:170px;" placeholder="Write the full announcement text here."></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Publish date</label>
+              <input class="form-input" type="date" id="annDate">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Status</label>
+              <select class="form-input" id="annStatus">
+                <option>Published</option>
+                <option>Scheduled</option>
+                <option>Draft</option>
+                <option>Archived</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="display:flex;align-items:center;gap:8px;font-weight:600;">
+              <input type="checkbox" id="annPinned" style="width:16px;height:16px;">
+              Pin to homepage
+            </label>
+            <span class="form-help">Pinned announcements appear at the top of the public announcements page.</span>
+          </div>
+
+          <p class="form-help" id="annFormError" style="color:var(--red-600); display:none;"></p>
+        </form>
+      </div>
+      <div class="modal-actions" style="padding:0 20px 20px;">
+        <button class="btn btn-secondary" onclick="closeModal('annModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveAnn()"><i class="fa-solid fa-check"></i> Save announcement</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete confirmation modal -->
+  <div class="modal-backdrop" id="deleteAnnModal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h3>Delete announcement</h3>
+        <button class="modal-x" onclick="closeModal('deleteAnnModal')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <p class="confirm-msg" id="deleteAnnMsg">Are you sure you want to delete this announcement? This will remove it from the public website immediately and cannot be undone.</p>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" onclick="closeModal('deleteAnnModal')">Cancel</button>
+          <button class="btn btn-danger" onclick="confirmDeleteAnn()"><i class="fa-regular fa-trash-can"></i> Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-host" id="toastHost"></div>
+
+  <script>
+    /* =========================================================
+       DATA MODEL
+       In production this array would come from your backend.
+       Everything below (stats, tab counts, table rows, pagination
+       text) is derived from it and re-rendered after every
+       create / edit / delete, so the page is fully functional
+       on its own.
+    ========================================================= */
+    var announcements = [
+      {
+        id: 'ann-1',
+        title: 'Water Interruption Notice — Brgy. Cahumayhumayan',
+        category: 'Public Advisory',
+        office: 'Office of the Municipal Mayor',
+        date: '2026-09-10',
+        status: 'Published',
+        views: 342,
+        pinned: true,
+        summary: 'Scheduled maintenance will affect water service from 8AM–5PM in Brgy. Cahumayhumayan.',
+        body: 'The Municipal Water District will conduct scheduled maintenance on the main pipeline serving Barangay Cahumayhumayan on September 12, 2026, from 8:00 AM to 5:00 PM. Residents are advised to store enough water for household use during this period. Water service is expected to resume by 6:00 PM the same day.',
+        image: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=100&h=100&fit=crop'
+      },
+      {
+        id: 'ann-2',
+        title: 'Free Anti-Rabies Vaccination Drive',
+        category: 'Health',
+        office: 'Municipal Health Office',
+        date: '2026-09-08',
+        status: 'Published',
+        views: 210,
+        pinned: false,
+        summary: 'Pet owners may bring dogs and cats to the Rural Health Unit for free anti-rabies vaccination.',
+        body: 'The Municipal Health Office will conduct a free anti-rabies vaccination drive for dogs and cats at the Rural Health Unit every Saturday this month, from 8:00 AM to 3:00 PM. Pet owners are encouraged to bring their pets on a leash or in a carrier. This activity is in line with the Municipality\'s rabies-free program.',
+        image: 'https://images.unsplash.com/photo-1584515933487-779824d29309?w=100&h=100&fit=crop'
+      },
+      {
+        id: 'ann-3',
+        title: 'Road Closure: Rehabilitation of Tunga–Barugo Road',
+        category: 'Infrastructure',
+        office: 'Office of the Municipal Engineer',
+        date: '2026-09-15',
+        status: 'Scheduled',
+        views: 0,
+        pinned: true,
+        summary: 'A section of the road will be closed to through traffic starting September 15.',
+        body: 'In line with the road rehabilitation project, a section of the Tunga–Barugo Road will be closed to through traffic starting September 15, 2026 until further notice. Motorists are advised to use the alternate route via Barangay Cahumayhumayan. We apologize for the inconvenience and appreciate your cooperation.',
+        image: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=100&h=100&fit=crop'
+      },
+      {
+        id: 'ann-4',
+        title: '2026 Job Fair and Hiring Event',
+        category: 'Employment',
+        office: 'Public Employment Service Office',
+        date: '2026-09-05',
+        status: 'Published',
+        views: 508,
+        pinned: false,
+        summary: 'Over 20 local and regional employers will be present at the municipal gymnasium.',
+        body: 'The Public Employment Service Office (PESO) will hold its 2026 Job Fair and Hiring Event at the Municipal Gymnasium on September 5, 2026, from 8:00 AM to 4:00 PM. Over 20 local and regional employers are expected to participate, offering positions across various industries. Applicants are advised to bring multiple copies of their resume and valid identification.',
+        image: 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=100&h=100&fit=crop'
+      },
+      {
+        id: 'ann-5',
+        title: 'Scholarship Application Now Open',
+        category: 'Education',
+        office: 'Municipal Scholarship Office',
+        date: '2026-09-01',
+        status: 'Published',
+        views: 389,
+        pinned: false,
+        summary: 'Qualified high school graduates may apply for the Municipal Scholarship Program.',
+        body: 'The Municipal Scholarship Office is now accepting applications for the 2026–2027 Municipal Scholarship Program. Qualified graduating high school students and incoming college freshmen who are bona fide residents of Tunga may submit their application forms, along with supporting documents, at the Office of the Municipal Mayor until September 30, 2026.',
+        image: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=100&h=100&fit=crop'
+      },
+      {
+        id: 'ann-6',
+        title: 'Typhoon Preparedness Advisory',
+        category: 'Safety',
+        office: 'Municipal DRRM Office',
+        date: '2026-08-28',
+        status: 'Archived',
+        views: 612,
+        pinned: false,
+        summary: 'Residents in low-lying areas are advised to prepare for possible flooding.',
+        body: 'The Municipal Disaster Risk Reduction and Management Office advises residents, particularly those in low-lying and flood-prone barangays, to prepare emergency go-bags and monitor official channels for updates as a tropical cyclone approaches the region. Pre-emptive evacuation may be implemented as needed.',
+        image: 'https://images.unsplash.com/photo-1500674425229-f692875b0ab7?w=100&h=100&fit=crop'
+      },
+      {
+        id: 'ann-7',
+        title: 'Barangay Assembly Schedule for September',
+        category: 'General',
+        office: 'Office of the Municipal Mayor',
+        date: '2026-08-25',
+        status: 'Published',
+        views: 150,
+        pinned: false,
+        summary: 'All nine barangays will hold their quarterly assembly on the dates listed.',
+        body: 'All nine barangays of the Municipality of Tunga will hold their quarterly Barangay Assembly on the dates set by their respective Punong Barangay this September. Residents are encouraged to attend and participate in discussions concerning local programs, ordinances, and community concerns.',
+        image: 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=100&h=100&fit=crop'
+      },
+      {
+        id: 'ann-8',
+        title: 'Business Permit Renewal Deadline Reminder',
+        category: 'Public Advisory',
+        office: 'Business Permits and Licensing Office',
+        date: '2026-09-20',
+        status: 'Scheduled',
+        views: 0,
+        pinned: false,
+        summary: 'Business owners are reminded to renew their permits before the deadline.',
+        body: 'The Business Permits and Licensing Office reminds all business owners in the Municipality of Tunga to renew their business permits on or before September 30, 2026 to avoid penalties. Requirements and renewal forms are available at the office during regular business hours.',
+        image: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=100&h=100&fit=crop'
+      }
+    ];
+
+    var DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=100&h=100&fit=crop';
+    var activeTab = 'all';
+    var editingId = null;      // id of the announcement currently being edited, null = create mode
+    var pendingDeleteId = null;
+    var pendingImageData = null; // holds a data URL if the user picked a cover image in the modal
+
+    function categoryTagClass(cat){
+      switch(cat){
+        case 'Public Advisory': return 'tag-blue';
+        case 'Health': return 'tag-green';
+        case 'Infrastructure': return 'tag-purple';
+        case 'Employment': return 'tag-pink';
+        case 'Education': return 'tag-pink';
+        case 'Safety': return 'tag-gray';
+        default: return 'tag-gray';
+      }
+    }
+
+    function statusBadgeClass(status){
+      switch(status){
+        case 'Published': return 'badge-green';
+        case 'Scheduled': return 'badge-blue';
+        case 'Draft': return 'badge-amber';
+        case 'Archived': return 'badge-gray';
+        default: return 'badge-gray';
+      }
+    }
+
+    function formatDateDisplay(iso){
+      if(!iso) return '—';
+      var parts = iso.split('-');
+      var d = new Date(parseInt(parts[0],10), parseInt(parts[1],10)-1, parseInt(parts[2],10));
+      var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      return months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+    }
+
+    function escapeHtml(str){
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function escapeAttr(str){
+      return escapeHtml(str).replace(/\n/g, ' ');
+    }
+
+    function renderTable(){
+      var tab = activeTab;
+      var search = (document.getElementById('annSearch').value || '').toLowerCase().trim();
+      var category = document.getElementById('annCategoryFilter').value;
+      var sort = document.getElementById('annSort').value;
+
+      var list = announcements.filter(function(a){
+        if(tab !== 'all' && a.status !== tab) return false;
+        if(category !== 'All categories' && a.category !== category) return false;
+        if(search && a.title.toLowerCase().indexOf(search) === -1 && a.summary.toLowerCase().indexOf(search) === -1) return false;
+        return true;
+      });
+
+      list.sort(function(a, b){
+        if(sort === 'Oldest first') return a.date.localeCompare(b.date);
+        if(sort === 'Most viewed') return b.views - a.views;
+        return b.date.localeCompare(a.date); // Newest first (default)
+      });
+
+      var tbody = document.getElementById('annTableBody');
+      if(list.length === 0){
+        tbody.innerHTML = '<tr class="no-results-row"><td colspan="7">No announcements match your filters.</td></tr>';
+      } else {
+        tbody.innerHTML = list.map(rowHtml).join('');
+      }
+
+      document.getElementById('annPageInfo').textContent =
+        'Showing ' + list.length + ' of ' + announcements.length + ' announcement' + (announcements.length === 1 ? '' : 's');
+
+      updateStatsAndTabs();
+    }
+
+    function rowHtml(a){
+      return '' +
+        '<tr>' +
+          '<td>' +
+            '<div class="row-icon-name">' +
+              '<img class="list-thumb" src="' + escapeAttr(a.image) + '" alt="">' +
+              '<div>' +
+                '<p class="cell-primary">' + escapeHtml(a.title) + (a.pinned ? ' <i class="fa-solid fa-thumbtack" style="font-size:10px;color:var(--gray-400);" title="Pinned to homepage"></i>' : '') + '</p>' +
+                '<p class="cell-sub">' + escapeHtml(a.summary) + '</p>' +
+              '</div>' +
+            '</div>' +
+          '</td>' +
+          '<td><span class="tag ' + categoryTagClass(a.category) + '">' + escapeHtml(a.category) + '</span></td>' +
+          '<td>' + escapeHtml(a.office) + '</td>' +
+          '<td>' + formatDateDisplay(a.date) + '</td>' +
+          '<td><span class="badge ' + statusBadgeClass(a.status) + '">' + escapeHtml(a.status) + '</span></td>' +
+          '<td>' + a.views.toLocaleString() + '</td>' +
+          '<td>' +
+            '<div class="action-icons">' +
+              '<span class="ic" title="View"><i class="fa-regular fa-eye"></i></span>' +
+              '<span class="ic" title="Edit" onclick="openEditAnn(\'' + a.id + '\')"><i class="fa-regular fa-pen-to-square"></i></span>' +
+              '<span class="ic" title="Delete" onclick="openDeleteAnn(\'' + a.id + '\')"><i class="fa-regular fa-trash-can"></i></span>' +
+            '</div>' +
+          '</td>' +
+        '</tr>';
+    }
+
+    function updateStatsAndTabs(){
+      var total = announcements.length;
+      var published = announcements.filter(function(a){ return a.status === 'Published'; }).length;
+      var scheduled = announcements.filter(function(a){ return a.status === 'Scheduled'; }).length;
+      var archived = announcements.filter(function(a){ return a.status === 'Archived'; }).length;
+      var totalViews = announcements.reduce(function(sum, a){ return sum + a.views; }, 0);
+
+      document.getElementById('statTotal').textContent = total;
+      document.getElementById('statPublished').textContent = published;
+      document.getElementById('statScheduled').textContent = scheduled;
+      document.getElementById('statViews').textContent = totalViews.toLocaleString();
+
+      document.getElementById('tabAllCount').textContent = total;
+      document.getElementById('tabPublishedCount').textContent = published;
+      document.getElementById('tabScheduledCount').textContent = scheduled;
+      document.getElementById('tabArchivedCount').textContent = archived;
+
+      var nextScheduled = announcements
+        .filter(function(a){ return a.status === 'Scheduled'; })
+        .sort(function(a, b){ return a.date.localeCompare(b.date); })[0];
+      document.getElementById('statScheduledSub').textContent = nextScheduled
+        ? 'Next: ' + formatDateDisplay(nextScheduled.date)
+        : 'Nothing scheduled';
+    }
+
+    document.querySelectorAll('.tabs .tab').forEach(function(tabEl){
+      tabEl.addEventListener('click', function(){
+        document.querySelectorAll('.tabs .tab').forEach(function(t){ t.classList.remove('active'); });
+        tabEl.classList.add('active');
+        activeTab = tabEl.dataset.filter;
+        renderTable();
+      });
+    });
+
+    /* ---------- Modal helpers ---------- */
+    function openModal(id){
+      document.getElementById(id).classList.add('open');
+      document.body.classList.add('modal-open');
+    }
+    function closeModal(id){
+      document.getElementById(id).classList.remove('open');
+      document.body.classList.remove('modal-open');
+    }
+
+    function setSelectValue(id, value){
+      var select = document.getElementById(id);
+      if(!value) return;
+      for(var i = 0; i < select.options.length; i++){
+        if(select.options[i].text === value){ select.selectedIndex = i; return; }
+      }
+    }
+
+    function clearFormError(){
+      var err = document.getElementById('annFormError');
+      err.style.display = 'none';
+      err.textContent = '';
+    }
+
+    function handleImagePreview(evt){
+      var file = evt.target.files && evt.target.files[0];
+      if(!file) { pendingImageData = null; return; }
+      var reader = new FileReader();
+      reader.onload = function(e){ pendingImageData = e.target.result; };
+      reader.readAsDataURL(file);
+    }
+
+    function openCreateAnn(){
+      editingId = null;
+      pendingImageData = null;
+      clearFormError();
+      document.getElementById('annModalTitle').textContent = 'Create Announcement';
+      document.getElementById('annTitle').value = '';
+      document.getElementById('annCategory').selectedIndex = 0;
+      document.getElementById('annOffice').selectedIndex = 0;
+      document.getElementById('annImageFile').value = '';
+      document.getElementById('annSummary').value = '';
+      document.getElementById('annBody').value = '';
+      document.getElementById('annDate').value = new Date().toISOString().slice(0,10);
+      setSelectValue('annStatus', 'Draft');
+      document.getElementById('annPinned').checked = false;
+      openModal('annModal');
+    }
+
+    function openEditAnn(id){
+      var a = announcements.find(function(x){ return x.id === id; });
+      if(!a) return;
+      editingId = id;
+      pendingImageData = null;
+      clearFormError();
+      document.getElementById('annModalTitle').textContent = 'Edit Announcement';
+      document.getElementById('annTitle').value = a.title;
+      setSelectValue('annCategory', a.category);
+      setSelectValue('annOffice', a.office);
+      document.getElementById('annImageFile').value = '';
+      document.getElementById('annSummary').value = a.summary;
+      document.getElementById('annBody').value = a.body;
+      document.getElementById('annDate').value = a.date;
+      setSelectValue('annStatus', a.status);
+      document.getElementById('annPinned').checked = !!a.pinned;
+      openModal('annModal');
+    }
+
+    function openDeleteAnn(id){
+      var a = announcements.find(function(x){ return x.id === id; });
+      if(!a) return;
+      pendingDeleteId = id;
+      document.getElementById('deleteAnnMsg').textContent =
+        'Are you sure you want to delete "' + a.title + '"? This will remove it from the public website immediately and cannot be undone.';
+      openModal('deleteAnnModal');
+    }
+
+    function confirmDeleteAnn(){
+      var a = announcements.find(function(x){ return x.id === pendingDeleteId; });
+      announcements = announcements.filter(function(x){ return x.id !== pendingDeleteId; });
+      closeModal('deleteAnnModal');
+      renderTable();
+      if(a) showToast('"' + a.title + '" was deleted.');
+      pendingDeleteId = null;
+    }
+
+    function saveAnn(){
+      var title = document.getElementById('annTitle').value.trim();
+      var summary = document.getElementById('annSummary').value.trim();
+      var body = document.getElementById('annBody').value.trim();
+
+      if(!title || !summary || !body){
+        var err = document.getElementById('annFormError');
+        err.textContent = 'Please fill in the title, short summary, and full announcement before saving.';
+        err.style.display = 'block';
+        return;
+      }
+
+      var category = document.getElementById('annCategory').value;
+      var office = document.getElementById('annOffice').value;
+      var date = document.getElementById('annDate').value || new Date().toISOString().slice(0,10);
+      var status = document.getElementById('annStatus').value;
+      var pinned = document.getElementById('annPinned').checked;
+
+      if(editingId){
+        var a = announcements.find(function(x){ return x.id === editingId; });
+        a.title = title;
+        a.category = category;
+        a.office = office;
+        a.date = date;
+        a.status = status;
+        a.pinned = pinned;
+        a.summary = summary;
+        a.body = body;
+        if(pendingImageData) a.image = pendingImageData;
+        closeModal('annModal');
+        renderTable();
+        showToast('Announcement updated.');
+      } else {
+        var newAnn = {
+          id: 'ann-' + Date.now(),
+          title: title,
+          category: category,
+          office: office,
+          date: date,
+          status: status,
+          views: 0,
+          pinned: pinned,
+          summary: summary,
+          body: body,
+          image: pendingImageData || DEFAULT_IMAGE
+        };
+        announcements.unshift(newAnn);
+        closeModal('annModal');
+        renderTable();
+        showToast('Announcement created.');
+      }
+    }
+
+    function showToast(msg){
+      var host = document.getElementById('toastHost');
+      var toast = document.createElement('div');
+      toast.className = 'toast toast-success';
+      toast.innerHTML = '<i class="fa-solid fa-circle-check"></i> ' + msg;
+      host.appendChild(toast);
+      requestAnimationFrame(function(){ toast.classList.add('show'); });
+      setTimeout(function(){
+        toast.classList.remove('show');
+        setTimeout(function(){ toast.remove(); }, 200);
+      }, 2600);
+    }
+
+    document.getElementById('annModal').addEventListener('click', function(e){
+      if(e.target === this) closeModal('annModal');
+    });
+    document.getElementById('deleteAnnModal').addEventListener('click', function(e){
+      if(e.target === this) closeModal('deleteAnnModal');
+    });
+
+    renderTable();
+  </script>
+
+{% endblock %}

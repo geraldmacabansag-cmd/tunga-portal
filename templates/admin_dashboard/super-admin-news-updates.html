@@ -1,0 +1,652 @@
+{% extends "super-admin-base.html" %}
+{% load static %}
+
+{% block page_title_tag %}News & Updates{% endblock %}
+{% block body_page %}news-updates{% endblock %}
+{% block page_title %}News &amp; Updates{% endblock %}
+{% block page_subtitle %}Publish news and updates for residents{% endblock %}
+{% block breadcrumbs %}<span>Dashboard</span><span class="sep">›</span><span>Content Management</span><span class="sep">›</span><span class="current">News &amp; Updates</span>{% endblock %}
+
+{% block content %}
+
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;">
+        <div>
+          <h2 style="margin:0;font-size:16px;font-weight:800;color:var(--gray-900);">News &amp; Updates</h2>
+          <p style="margin:3px 0 0;font-size:12.5px;color:var(--gray-500);">Feature stories and progress updates published to the municipality's website</p>
+        </div>
+        <button class="btn btn-primary" onclick="openCreateNews()"><i class="fa-solid fa-plus"></i> Post News</button>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon blue"><i class="fa-solid fa-newspaper"></i></span></div>
+          <div class="stat-value" id="statTotal">0</div>
+          <div class="stat-label">Total articles</div>
+          <div class="stat-sub">All statuses</div>
+        </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon green"><i class="fa-solid fa-circle-check"></i></span></div>
+          <div class="stat-value" id="statPublished">0</div>
+          <div class="stat-label">Published &amp; live</div>
+          <div class="stat-sub">Visible on the website now</div>
+        </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon amber"><i class="fa-regular fa-pen-to-square"></i></span></div>
+          <div class="stat-value" id="statDrafts">0</div>
+          <div class="stat-label">Drafts in progress</div>
+          <div class="stat-sub">Not yet submitted</div>
+        </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon gray"><i class="fa-regular fa-eye"></i></span></div>
+          <div class="stat-value" id="statViews">0</div>
+          <div class="stat-label">Total views this month</div>
+          <div class="stat-sub">Across all articles</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="tabs">
+          <div class="tab active" data-filter="all">All <span class="count" id="tabAllCount">0</span></div>
+          <div class="tab" data-filter="Published">Published <span class="count" id="tabPublishedCount">0</span></div>
+          <div class="tab" data-filter="Scheduled">Scheduled <span class="count" id="tabScheduledCount">0</span></div>
+          <div class="tab" data-filter="Draft">Draft <span class="count" id="tabDraftCount">0</span></div>
+          <div class="tab" data-filter="Archived">Archived <span class="count" id="tabArchivedCount">0</span></div>
+        </div>
+
+        <div class="filters-row">
+          <label class="field search"><i class="fa-solid fa-magnifying-glass"></i><input type="text" id="newsSearch" placeholder="Search articles..." oninput="renderTable()"></label>
+          <select class="field" id="newsCategoryFilter" onchange="renderTable()">
+            <option>All categories</option>
+            <option>Community</option>
+            <option>Governance</option>
+            <option>Infrastructure &amp; Development</option>
+            <option>Health &amp; Wellness</option>
+            <option>Agriculture</option>
+            <option>Education</option>
+            <option>Tourism</option>
+          </select>
+          <select class="field" id="newsSort" onchange="renderTable()">
+            <option>Newest first</option>
+            <option>Oldest first</option>
+            <option>Most viewed</option>
+          </select>
+        </div>
+
+        <div class="table-wrap" style="border:none;border-radius:0;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Article</th>
+                <th>Category</th>
+                <th>Posted by</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Views</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="newsTableBody">
+              <!-- rows are rendered by JS from the newsArticles[] array -->
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pagination">
+          <span id="newsPageInfo">Showing 0 of 0 articles</span>
+          <div class="page-nums">
+            <button class="page-btn"><i class="fa-solid fa-chevron-left"></i></button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn"><i class="fa-solid fa-chevron-right"></i></button>
+          </div>
+        </div>
+      </div>
+
+<!-- Create / Edit News modal -->
+<div class="modal-backdrop" id="newsModal">
+  <div class="modal-box modal-wide">
+    <div class="modal-head">
+      <h3 id="newsModalTitle">Post News</h3>
+      <button class="modal-x" onclick="closeModal('newsModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form onsubmit="return false;">
+        <div class="form-group">
+          <label class="form-label">Headline<span class="req">*</span></label>
+          <input class="form-input" type="text" id="newsTitle" placeholder="e.g. Tunga Celebrates 61st Founding Anniversary">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Category<span class="req">*</span></label>
+            <select class="form-input" id="newsCategory">
+              <option>Community</option>
+              <option>Governance</option>
+              <option>Infrastructure &amp; Development</option>
+              <option>Health &amp; Wellness</option>
+              <option>Agriculture</option>
+              <option>Education</option>
+              <option>Tourism</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Source office<span class="req">*</span></label>
+            <select class="form-input" id="newsOffice">
+              <option>Office of the Municipal Mayor</option>
+              <option>Office of the Municipal Tourism Officer</option>
+              <option>Office of the Municipal Agriculturist</option>
+              <option>Office of the Municipal Engineer</option>
+              <option>Municipal Health Office</option>
+              <option>Sangguniang Bayan</option>
+              <option>Schools Division Office</option>
+              <option>Municipal DRRM Office</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Byline (author name)</label>
+          <input class="form-input" type="text" id="newsAuthor" placeholder="e.g. Ma. Teresa D. Villamor">
+          <span class="form-help">Shown as "By [name]" on the public article. Leave blank to credit the office only.</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Cover image</label>
+          <input class="form-input file-input" type="file" accept="image/*" id="newsImageFile" onchange="handleImagePreview(event)">
+          <span class="form-help">Recommended size 1200×675px (16:9). JPG or PNG, up to 5MB. Leave empty to keep a default thumbnail.</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Short excerpt<span class="req">*</span></label>
+          <textarea class="form-input form-textarea" id="newsSummary" style="min-height:70px;" placeholder="One or two sentences shown in the article list and homepage preview."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Full article<span class="req">*</span></label>
+          <textarea class="form-input form-textarea" id="newsBody" style="min-height:190px;" placeholder="Write the full story here."></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Publish date</label>
+            <input class="form-input" type="date" id="newsDate">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select class="form-input" id="newsStatus">
+              <option>Published</option>
+              <option>Scheduled</option>
+              <option>Draft</option>
+              <option>Archived</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" style="display:flex;align-items:center;gap:8px;font-weight:600;">
+            <input type="checkbox" id="newsFeatured" style="width:16px;height:16px;">
+            Feature on homepage
+          </label>
+          <span class="form-help">Featured stories appear in the highlighted news section on the public homepage.</span>
+        </div>
+
+        <p class="form-help" id="newsFormError" style="color:var(--red-600); display:none;"></p>
+      </form>
+    </div>
+    <div class="modal-actions" style="padding:0 20px 20px;">
+      <button class="btn btn-secondary" onclick="closeModal('newsModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveNews()"><i class="fa-solid fa-check"></i> Save article</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete confirmation modal -->
+<div class="modal-backdrop" id="deleteNewsModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Delete article</h3>
+      <button class="modal-x" onclick="closeModal('deleteNewsModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <p class="confirm-msg" id="deleteNewsMsg">Are you sure you want to delete this article? This will remove it from the public website immediately and cannot be undone.</p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('deleteNewsModal')">Cancel</button>
+        <button class="btn btn-danger" onclick="confirmDeleteNews()"><i class="fa-regular fa-trash-can"></i> Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-host" id="toastHost"></div>
+
+<script src="super_admin.js"></script>
+<script>
+  /* =========================================================
+     DATA MODEL
+     In production this array would come from your backend.
+     Stats, tab counts, table rows, and pagination text are all
+     derived from it and re-rendered after every
+     create / edit / delete.
+  ========================================================= */
+  var newsArticles = [
+    {
+      id: 'news-1',
+      title: 'Tunga Celebrates 61st Founding Anniversary with Week-Long Festivities',
+      category: 'Community',
+      office: 'Office of the Municipal Tourism Officer',
+      author: 'Ma. Teresa D. Villamor',
+      date: '2026-09-09',
+      status: 'Published',
+      views: 890,
+      featured: true,
+      summary: 'Residents and visitors gathered for a week of cultural shows, sports events, and a trade fair marking the town\'s founding anniversary.',
+      body: 'The Municipality of Tunga marked its 61st Founding Anniversary with a week-long celebration featuring cultural performances, inter-barangay sports competitions, and a local trade fair showcasing native products. Municipal officials led the ceremonial program at the town plaza, highlighting the community\'s progress over the past year and outlining priority projects for the coming term. The celebration culminated in a fireworks display and a street dancing competition among the nine barangays.',
+      image: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=100&h=100&fit=crop'
+    },
+    {
+      id: 'news-2',
+      title: 'Municipal Government Signs MOA with DA for Rice Farming Support Program',
+      category: 'Agriculture',
+      office: 'Office of the Municipal Agriculturist',
+      author: 'Engr. Paolo R. Bautista',
+      date: '2026-09-06',
+      status: 'Published',
+      views: 445,
+      featured: false,
+      summary: 'The partnership will provide certified seeds, fertilizer subsidies, and training to local rice farmers ahead of the wet cropping season.',
+      body: 'The Municipality of Tunga formally signed a Memorandum of Agreement with the Department of Agriculture to implement a rice farming support program benefiting over 300 local farmers. The program includes certified seed distribution, fertilizer subsidies, and technical training on modern farming techniques. The Municipal Agriculturist\'s Office will coordinate closely with barangay-based farmers\' associations to ensure the timely rollout of inputs ahead of the upcoming wet cropping season.',
+      image: 'https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=100&h=100&fit=crop'
+    },
+    {
+      id: 'news-3',
+      title: 'New Multi-Purpose Covered Court Inaugurated in Barangay Poblacion',
+      category: 'Infrastructure & Development',
+      office: 'Office of the Municipal Engineer',
+      author: 'Engr. Paolo R. Bautista',
+      date: '2026-09-03',
+      status: 'Published',
+      views: 601,
+      featured: true,
+      summary: 'The new facility will serve as a venue for sports events, assemblies, and disaster evacuation.',
+      body: 'Barangay Poblacion now has a new multi-purpose covered court following its inauguration led by the Municipal Mayor and the Sangguniang Bayan. Funded through the Municipality\'s infrastructure program, the facility will serve as a venue for sports events, community assemblies, and as an evacuation center during emergencies. The project is part of the local government\'s broader push to improve public facilities across all nine barangays.',
+      image: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=100&h=100&fit=crop'
+    },
+    {
+      id: 'news-4',
+      title: 'Tunga Rural Health Unit Receives New Ambulance Unit',
+      category: 'Health & Wellness',
+      office: 'Municipal Health Office',
+      author: 'Dr. Shiela M. Marbella',
+      date: '2026-08-30',
+      status: 'Published',
+      views: 512,
+      featured: false,
+      summary: 'The new ambulance will improve emergency medical response times across the municipality\'s barangays.',
+      body: 'The Tunga Rural Health Unit received a brand-new ambulance unit turned over by the Provincial Government of Leyte. The vehicle is equipped with basic life support equipment and will be used to transport patients requiring urgent medical attention, particularly from far-flung barangays. Municipal Health Office personnel underwent orientation on proper vehicle use and maintenance prior to its deployment.',
+      image: 'https://images.unsplash.com/photo-1587351021355-a479a299d2f9?w=100&h=100&fit=crop'
+    },
+    {
+      id: 'news-5',
+      title: 'Local Students Shine in Regional Science Quiz Bee',
+      category: 'Education',
+      office: 'Schools Division Office',
+      author: 'Ma. Teresa D. Villamor',
+      date: '2026-08-27',
+      status: 'Published',
+      views: 320,
+      featured: false,
+      summary: 'Two students from Tunga National High School placed among the top scorers in the regional competition.',
+      body: 'Two students from Tunga National High School represented the municipality at the Regional Science Quiz Bee held in Tacloban City, placing among the top five scorers in their respective categories. The Municipal Government extended a congratulatory recognition to the students and their coaches during the recent flag ceremony, and pledged continued support for academic competitions representing the town.',
+      image: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=100&h=100&fit=crop'
+    },
+    {
+      id: 'news-6',
+      title: 'Municipal Council Approves 2027 Annual Investment Program',
+      category: 'Governance',
+      office: 'Sangguniang Bayan',
+      author: '',
+      date: '2026-08-22',
+      status: 'Published',
+      views: 275,
+      featured: false,
+      summary: 'The approved program allocates funding for infrastructure, health, and social welfare projects for the coming year.',
+      body: 'The Sangguniang Bayan of Tunga approved the Annual Investment Program for 2027, allocating the municipality\'s development fund across infrastructure, health, agriculture, and social welfare projects. The program was crafted based on consultations with barangay officials and sectoral representatives, and will guide the local government\'s spending priorities for the coming fiscal year.',
+      image: 'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=100&h=100&fit=crop'
+    },
+    {
+      id: 'news-7',
+      title: "Tunga's Handwoven Products Featured in Provincial Trade Fair",
+      category: 'Tourism',
+      office: 'Office of the Municipal Tourism Officer',
+      author: 'Ma. Teresa D. Villamor',
+      date: '2026-09-18',
+      status: 'Scheduled',
+      views: 0,
+      featured: false,
+      summary: 'Local weavers will showcase their handwoven products at the upcoming Leyte Provincial Trade Fair.',
+      body: 'Local artisans from Tunga will showcase their handwoven products at the upcoming Leyte Provincial Trade Fair, part of ongoing efforts by the Municipal Tourism Office to promote local livelihood and cultural heritage. The exhibit will feature woven bags, mats, and textiles produced by home-based weavers from various barangays, with proceeds going directly to the participating artisans.',
+      image: 'https://images.unsplash.com/photo-1528283648649-33ba3f39a9e5?w=100&h=100&fit=crop'
+    },
+    {
+      id: 'news-8',
+      title: 'Barangay Health Workers Complete First Aid Training',
+      category: 'Health & Wellness',
+      office: 'Municipal Health Office',
+      author: 'Dr. Shiela M. Marbella',
+      date: '2026-09-11',
+      status: 'Draft',
+      views: 0,
+      featured: false,
+      summary: 'Barangay health workers from all nine barangays completed a basic first aid and emergency response training.',
+      body: 'Barangay health workers from all nine barangays of Tunga completed a three-day basic first aid and emergency response training conducted by the Municipal Health Office in partnership with the Philippine Red Cross Leyte Chapter. The training aims to strengthen the community\'s frontline emergency response capacity, particularly during disasters and public health incidents.',
+      image: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=100&h=100&fit=crop'
+    }
+  ];
+
+  var DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1495020689067-958852a7765e?w=100&h=100&fit=crop';
+  var activeTab = 'all';
+  var editingId = null;        // id of the article currently being edited, null = create mode
+  var pendingDeleteId = null;
+  var pendingImageData = null; // holds a data URL if the user picked a cover image in the modal
+
+  function categoryTagClass(cat){
+    switch(cat){
+      case 'Community': return 'tag-pink';
+      case 'Governance': return 'tag-gray';
+      case 'Infrastructure & Development': return 'tag-purple';
+      case 'Health & Wellness': return 'tag-blue';
+      case 'Agriculture': return 'tag-green';
+      case 'Education': return 'tag-pink';
+      case 'Tourism': return 'tag-purple';
+      default: return 'tag-gray';
+    }
+  }
+
+  function statusBadgeClass(status){
+    switch(status){
+      case 'Published': return 'badge-green';
+      case 'Scheduled': return 'badge-blue';
+      case 'Draft': return 'badge-amber';
+      case 'Archived': return 'badge-gray';
+      default: return 'badge-gray';
+    }
+  }
+
+  function formatDateDisplay(iso){
+    if(!iso) return '—';
+    var parts = iso.split('-');
+    var d = new Date(parseInt(parts[0],10), parseInt(parts[1],10)-1, parseInt(parts[2],10));
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+  }
+
+  function escapeHtml(str){
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function escapeAttr(str){
+    return escapeHtml(str).replace(/\n/g, ' ');
+  }
+
+  function renderTable(){
+    var tab = activeTab;
+    var search = (document.getElementById('newsSearch').value || '').toLowerCase().trim();
+    var category = document.getElementById('newsCategoryFilter').value;
+    var sort = document.getElementById('newsSort').value;
+
+    var list = newsArticles.filter(function(n){
+      if(tab !== 'all' && n.status !== tab) return false;
+      if(category !== 'All categories' && n.category !== category) return false;
+      if(search && n.title.toLowerCase().indexOf(search) === -1 && n.summary.toLowerCase().indexOf(search) === -1) return false;
+      return true;
+    });
+
+    list.sort(function(a, b){
+      if(sort === 'Oldest first') return a.date.localeCompare(b.date);
+      if(sort === 'Most viewed') return b.views - a.views;
+      return b.date.localeCompare(a.date); // Newest first (default)
+    });
+
+    var tbody = document.getElementById('newsTableBody');
+    if(list.length === 0){
+      tbody.innerHTML = '<tr class="no-results-row"><td colspan="7">No articles match your filters.</td></tr>';
+    } else {
+      tbody.innerHTML = list.map(rowHtml).join('');
+    }
+
+    document.getElementById('newsPageInfo').textContent =
+      'Showing ' + list.length + ' of ' + newsArticles.length + ' article' + (newsArticles.length === 1 ? '' : 's');
+
+    updateStatsAndTabs();
+  }
+
+  function rowHtml(n){
+    return '' +
+      '<tr>' +
+        '<td>' +
+          '<div class="row-icon-name">' +
+            '<img class="list-thumb" src="' + escapeAttr(n.image) + '" alt="">' +
+            '<div>' +
+              '<p class="cell-primary">' + escapeHtml(n.title) + (n.featured ? ' <i class="fa-solid fa-star" style="font-size:10px;color:var(--amber-600);" title="Featured on homepage"></i>' : '') + '</p>' +
+              '<p class="cell-sub">' + escapeHtml(n.summary) + '</p>' +
+            '</div>' +
+          '</div>' +
+        '</td>' +
+        '<td><span class="tag ' + categoryTagClass(n.category) + '">' + escapeHtml(n.category) + '</span></td>' +
+        '<td>' +
+          '<p class="cell-primary" style="font-size:13px;">' + escapeHtml(n.author || n.office) + '</p>' +
+          (n.author ? '<p class="cell-sub">' + escapeHtml(n.office) + '</p>' : '') +
+        '</td>' +
+        '<td>' + formatDateDisplay(n.date) + '</td>' +
+        '<td><span class="badge ' + statusBadgeClass(n.status) + '">' + escapeHtml(n.status) + '</span></td>' +
+        '<td>' + n.views.toLocaleString() + '</td>' +
+        '<td>' +
+          '<div class="action-icons">' +
+            '<span class="ic" title="View"><i class="fa-regular fa-eye"></i></span>' +
+            '<span class="ic" title="Edit" onclick="openEditNews(\'' + n.id + '\')"><i class="fa-regular fa-pen-to-square"></i></span>' +
+            '<span class="ic" title="Delete" onclick="openDeleteNews(\'' + n.id + '\')"><i class="fa-regular fa-trash-can"></i></span>' +
+          '</div>' +
+        '</td>' +
+      '</tr>';
+  }
+
+  function updateStatsAndTabs(){
+    var total = newsArticles.length;
+    var published = newsArticles.filter(function(n){ return n.status === 'Published'; }).length;
+    var scheduled = newsArticles.filter(function(n){ return n.status === 'Scheduled'; }).length;
+    var drafts = newsArticles.filter(function(n){ return n.status === 'Draft'; }).length;
+    var archived = newsArticles.filter(function(n){ return n.status === 'Archived'; }).length;
+    var totalViews = newsArticles.reduce(function(sum, n){ return sum + n.views; }, 0);
+
+    document.getElementById('statTotal').textContent = total;
+    document.getElementById('statPublished').textContent = published;
+    document.getElementById('statDrafts').textContent = drafts;
+    document.getElementById('statViews').textContent = totalViews.toLocaleString();
+
+    document.getElementById('tabAllCount').textContent = total;
+    document.getElementById('tabPublishedCount').textContent = published;
+    document.getElementById('tabScheduledCount').textContent = scheduled;
+    document.getElementById('tabDraftCount').textContent = drafts;
+    document.getElementById('tabArchivedCount').textContent = archived;
+  }
+
+  document.querySelectorAll('.tabs .tab').forEach(function(tabEl){
+    tabEl.addEventListener('click', function(){
+      document.querySelectorAll('.tabs .tab').forEach(function(t){ t.classList.remove('active'); });
+      tabEl.classList.add('active');
+      activeTab = tabEl.dataset.filter;
+      renderTable();
+    });
+  });
+
+  /* ---------- Modal helpers ---------- */
+  function openModal(id){
+    document.getElementById(id).classList.add('open');
+    document.body.classList.add('modal-open');
+  }
+  function closeModal(id){
+    document.getElementById(id).classList.remove('open');
+    document.body.classList.remove('modal-open');
+  }
+
+  function setSelectValue(id, value){
+    var select = document.getElementById(id);
+    if(!value) return;
+    for(var i = 0; i < select.options.length; i++){
+      if(select.options[i].text === value){ select.selectedIndex = i; return; }
+    }
+  }
+
+  function clearFormError(){
+    var err = document.getElementById('newsFormError');
+    err.style.display = 'none';
+    err.textContent = '';
+  }
+
+  function handleImagePreview(evt){
+    var file = evt.target.files && evt.target.files[0];
+    if(!file) { pendingImageData = null; return; }
+    var reader = new FileReader();
+    reader.onload = function(e){ pendingImageData = e.target.result; };
+    reader.readAsDataURL(file);
+  }
+
+  function openCreateNews(){
+    editingId = null;
+    pendingImageData = null;
+    clearFormError();
+    document.getElementById('newsModalTitle').textContent = 'Post News';
+    document.getElementById('newsTitle').value = '';
+    document.getElementById('newsCategory').selectedIndex = 0;
+    document.getElementById('newsOffice').selectedIndex = 0;
+    document.getElementById('newsAuthor').value = '';
+    document.getElementById('newsImageFile').value = '';
+    document.getElementById('newsSummary').value = '';
+    document.getElementById('newsBody').value = '';
+    document.getElementById('newsDate').value = new Date().toISOString().slice(0,10);
+    setSelectValue('newsStatus', 'Draft');
+    document.getElementById('newsFeatured').checked = false;
+    openModal('newsModal');
+  }
+
+  function openEditNews(id){
+    var n = newsArticles.find(function(x){ return x.id === id; });
+    if(!n) return;
+    editingId = id;
+    pendingImageData = null;
+    clearFormError();
+    document.getElementById('newsModalTitle').textContent = 'Edit Article';
+    document.getElementById('newsTitle').value = n.title;
+    setSelectValue('newsCategory', n.category);
+    setSelectValue('newsOffice', n.office);
+    document.getElementById('newsAuthor').value = n.author || '';
+    document.getElementById('newsImageFile').value = '';
+    document.getElementById('newsSummary').value = n.summary;
+    document.getElementById('newsBody').value = n.body;
+    document.getElementById('newsDate').value = n.date;
+    setSelectValue('newsStatus', n.status);
+    document.getElementById('newsFeatured').checked = !!n.featured;
+    openModal('newsModal');
+  }
+
+  function openDeleteNews(id){
+    var n = newsArticles.find(function(x){ return x.id === id; });
+    if(!n) return;
+    pendingDeleteId = id;
+    document.getElementById('deleteNewsMsg').textContent =
+      'Are you sure you want to delete "' + n.title + '"? This will remove it from the public website immediately and cannot be undone.';
+    openModal('deleteNewsModal');
+  }
+
+  function confirmDeleteNews(){
+    var n = newsArticles.find(function(x){ return x.id === pendingDeleteId; });
+    newsArticles = newsArticles.filter(function(x){ return x.id !== pendingDeleteId; });
+    closeModal('deleteNewsModal');
+    renderTable();
+    if(n) showToast('"' + n.title + '" was deleted.');
+    pendingDeleteId = null;
+  }
+
+  function saveNews(){
+    var title = document.getElementById('newsTitle').value.trim();
+    var summary = document.getElementById('newsSummary').value.trim();
+    var body = document.getElementById('newsBody').value.trim();
+
+    if(!title || !summary || !body){
+      var err = document.getElementById('newsFormError');
+      err.textContent = 'Please fill in the headline, short excerpt, and full article before saving.';
+      err.style.display = 'block';
+      return;
+    }
+
+    var category = document.getElementById('newsCategory').value;
+    var office = document.getElementById('newsOffice').value;
+    var author = document.getElementById('newsAuthor').value.trim();
+    var date = document.getElementById('newsDate').value || new Date().toISOString().slice(0,10);
+    var status = document.getElementById('newsStatus').value;
+    var featured = document.getElementById('newsFeatured').checked;
+
+    if(editingId){
+      var n = newsArticles.find(function(x){ return x.id === editingId; });
+      n.title = title;
+      n.category = category;
+      n.office = office;
+      n.author = author;
+      n.date = date;
+      n.status = status;
+      n.featured = featured;
+      n.summary = summary;
+      n.body = body;
+      if(pendingImageData) n.image = pendingImageData;
+      closeModal('newsModal');
+      renderTable();
+      showToast('Article updated.');
+    } else {
+      var newArticle = {
+        id: 'news-' + Date.now(),
+        title: title,
+        category: category,
+        office: office,
+        author: author,
+        date: date,
+        status: status,
+        views: 0,
+        featured: featured,
+        summary: summary,
+        body: body,
+        image: pendingImageData || DEFAULT_IMAGE
+      };
+      newsArticles.unshift(newArticle);
+      closeModal('newsModal');
+      renderTable();
+      showToast('Article created.');
+    }
+  }
+
+  function showToast(msg){
+    var host = document.getElementById('toastHost');
+    var toast = document.createElement('div');
+    toast.className = 'toast toast-success';
+    toast.innerHTML = '<i class="fa-solid fa-circle-check"></i> ' + msg;
+    host.appendChild(toast);
+    requestAnimationFrame(function(){ toast.classList.add('show'); });
+    setTimeout(function(){
+      toast.classList.remove('show');
+      setTimeout(function(){ toast.remove(); }, 200);
+    }, 2600);
+  }
+
+  document.getElementById('newsModal').addEventListener('click', function(e){
+    if(e.target === this) closeModal('newsModal');
+  });
+  document.getElementById('deleteNewsModal').addEventListener('click', function(e){
+    if(e.target === this) closeModal('deleteNewsModal');
+  });
+
+  renderTable();
+</script>
+
+{% endblock %}

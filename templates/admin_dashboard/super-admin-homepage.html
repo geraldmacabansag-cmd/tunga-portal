@@ -1,0 +1,706 @@
+{% extends "super-admin-base.html" %}
+{% load static %}
+
+{% block page_title_tag %}Homepage{% endblock %}
+{% block body_page %}homepage{% endblock %}
+{% block page_title %}Homepage{% endblock %}
+{% block page_subtitle %}Manage the public website homepage{% endblock %}
+
+{% block breadcrumbs %}<span>Dashboard</span><span class="sep">›</span><span>Website Management</span><span class="sep">›</span><span class="current">Homepage</span>{% endblock %}
+
+{% block content %}
+
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;">
+        <div>
+          <h2 style="margin:0;font-size:16px;font-weight:800;color:var(--gray-900);">Homepage</h2>
+          <p style="margin:3px 0 0;font-size:12.5px;color:var(--gray-500);">Curate what residents see first when they visit the website</p>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-secondary" onclick="showToast('Opening public homepage preview...')"><i class="fa-solid fa-up-right-from-square"></i> Preview Homepage</button>
+          <button class="btn btn-primary" onclick="saveHomepage()"><i class="fa-solid fa-check"></i> Save Changes</button>
+        </div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon blue"><i class="fa-regular fa-images"></i></span></div>
+          <div class="stat-value" id="statActiveSlides">0</div>
+          <div class="stat-label">Active hero slides</div>
+          <div class="stat-sub" id="statTotalSlidesSub">of 0 total</div>
+        </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon green"><i class="fa-solid fa-star"></i></span></div>
+          <div class="stat-value" id="statFeatured">0</div>
+          <div class="stat-label">Featured content items</div>
+          <div class="stat-sub">Announcements, news &amp; events</div>
+        </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon amber"><i class="fa-solid fa-link"></i></span></div>
+          <div class="stat-value" id="statQuickLinks">0</div>
+          <div class="stat-label">Quick links</div>
+          <div class="stat-sub">Shortcut tiles on the homepage</div>
+        </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon gray"><i class="fa-solid fa-table-list"></i></span></div>
+          <div class="stat-value" id="statVisibleSections">0</div>
+          <div class="stat-label">Visible sections</div>
+          <div class="stat-sub" id="statTotalSectionsSub">of 0 total</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="subtabs">
+          <div class="subtab active" data-section="hero"><i class="fa-regular fa-images"></i> Hero Slider</div>
+          <div class="subtab" data-section="featured"><i class="fa-solid fa-star"></i> Featured Content</div>
+          <div class="subtab" data-section="quicklinks"><i class="fa-solid fa-link"></i> Quick Links</div>
+          <div class="subtab" data-section="layout"><i class="fa-solid fa-table-list"></i> Section Order</div>
+        </div>
+
+        <div class="panel-body">
+
+          <!-- ============ HERO SLIDER ============ -->
+          <div class="homepage-section" id="section-hero">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+              <p class="form-help" style="margin:0;">Slides rotate automatically on the public homepage in the order listed below.</p>
+              <button class="btn btn-secondary btn-sm" onclick="openCreateSlide()"><i class="fa-solid fa-plus"></i> Add Slide</button>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Slide</th>
+                    <th>Button</th>
+                    <th>Status</th>
+                    <th>Order</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="heroTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- ============ FEATURED CONTENT ============ -->
+          <div class="homepage-section" id="section-featured" style="display:none;">
+            <p class="form-help" style="margin:0 0 14px;">Choose which published items appear in the homepage's featured section. Up to 6 are shown, most recent first.</p>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th>Type</th>
+                    <th>Date</th>
+                    <th style="text-align:center;">Show on Homepage</th>
+                  </tr>
+                </thead>
+                <tbody id="featuredTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- ============ QUICK LINKS ============ -->
+          <div class="homepage-section" id="section-quicklinks" style="display:none;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+              <p class="form-help" style="margin:0;">Shortcut tiles shown near the top of the homepage for common resident tasks.</p>
+              <button class="btn btn-secondary btn-sm" onclick="openCreateLink()"><i class="fa-solid fa-plus"></i> Add Quick Link</button>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Link</th>
+                    <th>Destination</th>
+                    <th>Status</th>
+                    <th>Order</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="linksTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- ============ SECTION ORDER ============ -->
+          <div class="homepage-section" id="section-layout" style="display:none;">
+            <p class="form-help" style="margin:0 0 14px;">Turn homepage sections on or off, and reorder how they appear on the page from top to bottom.</p>
+            <div id="sectionOrderList"></div>
+          </div>
+
+        </div>
+      </div>
+
+<!-- Create / Edit Hero Slide modal -->
+<div class="modal-backdrop" id="slideModal">
+  <div class="modal-box modal-wide">
+    <div class="modal-head">
+      <h3 id="slideModalTitle">Add Slide</h3>
+      <button class="modal-x" onclick="closeModal('slideModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form onsubmit="return false;">
+        <div class="form-group">
+          <label class="form-label">Slide image</label>
+          <img id="slideImagePreview" src="" alt="" style="width:100%;max-width:420px;height:150px;border-radius:10px;object-fit:cover;border:1px solid var(--gray-200);margin-bottom:8px;display:block;">
+          <input class="form-input file-input" type="file" accept="image/*" id="slideImageFile" onchange="handleSlideImage(event)">
+          <span class="form-help">Recommended size 1600×600px.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Headline<span class="req">*</span></label>
+          <input class="form-input" type="text" id="slideHeadline" placeholder="e.g. Welcome to the Municipality of Tunga">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Subtext</label>
+          <textarea class="form-input form-textarea" id="slideSubtext" style="min-height:70px;" placeholder="Short supporting line shown under the headline."></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Button label</label>
+            <input class="form-input" type="text" id="slideButtonLabel" placeholder="e.g. Explore Services">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Button link</label>
+            <input class="form-input" type="text" id="slideButtonLink" placeholder="/services">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Second button label (optional)</label>
+            <input class="form-input" type="text" id="slideButtonLabel2" placeholder="e.g. View Announcements">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Second button link</label>
+            <input class="form-input" type="text" id="slideButtonLink2" placeholder="/announcements">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-input" id="slideStatus">
+            <option>Active</option>
+            <option>Hidden</option>
+          </select>
+        </div>
+        <p class="form-help" id="slideFormError" style="color:var(--red-600); display:none;"></p>
+      </form>
+    </div>
+    <div class="modal-actions" style="padding:0 20px 20px;">
+      <button class="btn btn-secondary" onclick="closeModal('slideModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSlide()"><i class="fa-solid fa-check"></i> Save slide</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create / Edit Quick Link modal -->
+<div class="modal-backdrop" id="linkModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="linkModalTitle">Add Quick Link</h3>
+      <button class="modal-x" onclick="closeModal('linkModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form onsubmit="return false;">
+        <div class="form-group">
+          <label class="form-label">Label<span class="req">*</span></label>
+          <input class="form-input" type="text" id="linkLabel" placeholder="e.g. Pay Real Property Tax">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Icon</label>
+          <select class="form-input" id="linkIcon">
+            <option value="fa-file-lines">Document / Permit</option>
+            <option value="fa-camera">Tourism / Culture</option>
+            <option value="fa-hand-holding-heart">Financial Assistance</option>
+            <option value="fa-briefcase">Jobs / Employment</option>
+            <option value="fa-id-card">ID / Cedula</option>
+            <option value="fa-phone-volume">Phone / Hotline</option>
+            <option value="fa-map-location-dot">Map / Location</option>
+            <option value="fa-building">Office / Government</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Link URL<span class="req">*</span></label>
+          <input class="form-input" type="text" id="linkUrl" placeholder="/services/property-tax">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select class="form-input" id="linkStatus">
+              <option>Active</option>
+              <option>Hidden</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" style="display:flex;align-items:center;gap:8px;font-weight:600;margin-top:28px;">
+              <input type="checkbox" id="linkNewTab" style="width:16px;height:16px;">
+              Open in new tab
+            </label>
+          </div>
+        </div>
+        <p class="form-help" id="linkFormError" style="color:var(--red-600); display:none;"></p>
+      </form>
+    </div>
+    <div class="modal-actions" style="padding:0 20px 20px;">
+      <button class="btn btn-secondary" onclick="closeModal('linkModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveLink()"><i class="fa-solid fa-check"></i> Save link</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete confirmation modal (shared by slides and links) -->
+<div class="modal-backdrop" id="deleteItemModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="deleteItemTitle">Delete item</h3>
+      <button class="modal-x" onclick="closeModal('deleteItemModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <p class="confirm-msg" id="deleteItemMsg">Are you sure you want to delete this? This cannot be undone.</p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('deleteItemModal')">Cancel</button>
+        <button class="btn btn-danger" onclick="confirmDeleteItem()"><i class="fa-regular fa-trash-can"></i> Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-host" id="toastHost"></div>
+
+<script src="super_admin.js"></script>
+<script>
+  /* =========================================================
+     DATA MODEL — in production these would come from your
+     backend. Everything on this page (stats, tables, section
+     list) is derived from these arrays and re-rendered after
+     every change.
+  ========================================================= */
+  var heroSlides = [
+    { id: 'slide-1', headline: 'Building a Better Tunga', subtext: 'Your government is here to serve you. Transparent. Accessible. Reliable.', buttonLabel: 'Discover Services', buttonLink: '/services', buttonLabel2: 'View Announcements', buttonLink2: '/announcements', status: 'Active', image: 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=200&h=120&fit=crop' },
+    { id: 'slide-2', headline: '61st Founding Anniversary Celebration', subtext: 'Join us this September for a week of festivities.', buttonLabel: 'View Program', buttonLink: '/events/founding-anniversary', buttonLabel2: '', buttonLink2: '', status: 'Hidden', image: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=200&h=120&fit=crop' },
+    { id: 'slide-3', headline: 'Report a Concern Anytime', subtext: 'Use our online portal to report issues in your barangay.', buttonLabel: 'Get Started', buttonLink: '/report', buttonLabel2: '', buttonLink2: '', status: 'Hidden', image: 'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=200&h=120&fit=crop' }
+  ];
+
+  var featuredItems = [
+    { id: 'feat-1', title: 'Discussion for the Development of the Municipal Website', type: 'Announcement', date: '2026-07-17', featured: true },
+    { id: 'feat-2', title: 'Barangay Clean-Up Drive', type: 'Announcement', date: '2026-06-12', featured: true },
+    { id: 'feat-3', title: 'Free Medical Consultation', type: 'Announcement', date: '2026-06-17', featured: true },
+    { id: 'feat-4', title: 'Business Permit Renewal Deadline Reminder', type: 'Announcement', date: '2026-06-05', featured: false },
+    { id: 'feat-5', title: 'Municipality Conducts Community Clean-Up Drive', type: 'News', date: '2026-07-09', featured: true },
+    { id: 'feat-6', title: "Tunga Celebrates 61st Founding Anniversary with Week-Long Festivities", type: 'News', date: '2026-06-20', featured: false },
+    { id: 'feat-7', title: 'LGBTQIA+ Exhibition Basketball Game', type: 'Event', date: '2026-07-15', featured: true },
+    { id: 'feat-8', title: 'Palarong Bayan 2026 (Municipal Sports Festival)', type: 'Event', date: '2026-08-20', featured: false }
+  ];
+
+  var quickLinks = [
+    { id: 'link-1', label: 'Business Permits', icon: 'fa-file-lines', url: '/services/business-permits', newTab: false, status: 'Active' },
+    { id: 'link-2', label: 'Tourism and Culture', icon: 'fa-camera', url: '/tourism-and-culture', newTab: false, status: 'Active' },
+    { id: 'link-3', label: 'Financial Assistance', icon: 'fa-hand-holding-heart', url: '/services/financial-assistance', newTab: false, status: 'Active' },
+    { id: 'link-4', label: 'Job Opportunities', icon: 'fa-briefcase', url: '/jobs', newTab: false, status: 'Active' },
+    { id: 'link-5', label: 'Cedula', icon: 'fa-id-card', url: '/services/cedula', newTab: false, status: 'Active' }
+  ];
+
+  var sections = [
+    { id: 'hero', label: 'Hero Slider', visible: true },
+    { id: 'quicklinks', label: 'Quick Links', visible: true },
+    { id: 'emergency', label: 'Emergency Contacts', visible: true },
+    { id: 'announcements', label: 'Featured Announcements', visible: true },
+    { id: 'events', label: 'Upcoming Events', visible: true },
+    { id: 'news', label: 'Featured News & Updates', visible: true },
+    { id: 'gallery', label: 'Photo Gallery Preview', visible: true }
+  ];
+
+  var editingSlideId = null;
+  var editingLinkId = null;
+  var pendingDelete = null; // { type: 'slide'|'link', id }
+  var pendingSlideImage = null;
+
+  function escapeHtml(str){
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function formatDateDisplay(iso){
+    if(!iso) return '—';
+    var parts = iso.split('-');
+    var d = new Date(parseInt(parts[0],10), parseInt(parts[1],10)-1, parseInt(parts[2],10));
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+  }
+
+  function typeTagClass(type){
+    if(type === 'Announcement') return 'tag-blue';
+    if(type === 'News') return 'tag-purple';
+    if(type === 'Event') return 'tag-green';
+    return 'tag-gray';
+  }
+
+  /* ---------- Section (subtab) switching ---------- */
+  document.querySelectorAll('.subtabs .subtab').forEach(function(tabEl){
+    tabEl.addEventListener('click', function(){
+      document.querySelectorAll('.subtabs .subtab').forEach(function(t){ t.classList.remove('active'); });
+      tabEl.classList.add('active');
+      document.querySelectorAll('.homepage-section').forEach(function(sec){ sec.style.display = 'none'; });
+      document.getElementById('section-' + tabEl.dataset.section).style.display = 'block';
+    });
+  });
+
+  /* ---------- Stats ---------- */
+  function updateStats(){
+    document.getElementById('statActiveSlides').textContent = heroSlides.filter(function(s){ return s.status === 'Active'; }).length;
+    document.getElementById('statTotalSlidesSub').textContent = 'of ' + heroSlides.length + ' total';
+    document.getElementById('statFeatured').textContent = featuredItems.filter(function(f){ return f.featured; }).length;
+    document.getElementById('statQuickLinks').textContent = quickLinks.filter(function(l){ return l.status === 'Active'; }).length;
+    document.getElementById('statVisibleSections').textContent = sections.filter(function(s){ return s.visible; }).length;
+    document.getElementById('statTotalSectionsSub').textContent = 'of ' + sections.length + ' total';
+  }
+
+  /* ---------- Hero Slider ---------- */
+  function renderSlides(){
+    var tbody = document.getElementById('heroTableBody');
+    if(heroSlides.length === 0){
+      tbody.innerHTML = '<tr class="no-results-row"><td colspan="5">No slides yet. Click "Add Slide" to create one.</td></tr>';
+    } else {
+      tbody.innerHTML = heroSlides.map(slideRowHtml).join('');
+    }
+    updateStats();
+  }
+
+  function slideRowHtml(s){
+    var index = heroSlides.indexOf(s);
+    return '' +
+      '<tr>' +
+        '<td>' +
+          '<div class="row-icon-name">' +
+            '<img class="list-thumb" src="' + s.image + '" alt="">' +
+            '<div>' +
+              '<p class="cell-primary">' + escapeHtml(s.headline) + '</p>' +
+              '<p class="cell-sub">' + escapeHtml(s.subtext || 'No subtext') + '</p>' +
+            '</div>' +
+          '</div>' +
+        '</td>' +
+        '<td>' + (s.buttonLabel ? escapeHtml(s.buttonLabel) + ' &rarr; ' + escapeHtml(s.buttonLink) : '—') + (s.buttonLabel2 ? '<br>' + escapeHtml(s.buttonLabel2) + ' &rarr; ' + escapeHtml(s.buttonLink2) : '') + '</td>' +
+        '<td><span class="badge ' + (s.status === 'Active' ? 'badge-green' : 'badge-gray') + '">' + s.status + '</span></td>' +
+        '<td>' +
+          '<div class="action-icons">' +
+            '<span class="ic" title="Move up" onclick="moveItem(heroSlides, \'' + s.id + '\', -1, renderSlides)" style="' + (index === 0 ? 'opacity:.35;cursor:not-allowed;' : '') + '"><i class="fa-solid fa-arrow-up"></i></span>' +
+            '<span class="ic" title="Move down" onclick="moveItem(heroSlides, \'' + s.id + '\', 1, renderSlides)" style="' + (index === heroSlides.length - 1 ? 'opacity:.35;cursor:not-allowed;' : '') + '"><i class="fa-solid fa-arrow-down"></i></span>' +
+          '</div>' +
+        '</td>' +
+        '<td>' +
+          '<div class="action-icons">' +
+            '<span class="ic" title="Edit" onclick="openEditSlide(\'' + s.id + '\')"><i class="fa-regular fa-pen-to-square"></i></span>' +
+            '<span class="ic" title="Delete" onclick="openDeleteItem(\'slide\', \'' + s.id + '\', \'' + escapeHtml(s.headline).replace(/'/g,"\\'") + '\')"><i class="fa-regular fa-trash-can"></i></span>' +
+          '</div>' +
+        '</td>' +
+      '</tr>';
+  }
+
+  function handleSlideImage(evt){
+    var file = evt.target.files && evt.target.files[0];
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(e){
+      pendingSlideImage = e.target.result;
+      document.getElementById('slideImagePreview').src = pendingSlideImage;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function openCreateSlide(){
+    editingSlideId = null;
+    pendingSlideImage = null;
+    document.getElementById('slideModalTitle').textContent = 'Add Slide';
+    document.getElementById('slideImagePreview').src = 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=800&h=300&fit=crop';
+    document.getElementById('slideImageFile').value = '';
+    document.getElementById('slideHeadline').value = '';
+    document.getElementById('slideSubtext').value = '';
+    document.getElementById('slideButtonLabel').value = '';
+    document.getElementById('slideButtonLink').value = '';
+    document.getElementById('slideButtonLabel2').value = '';
+    document.getElementById('slideButtonLink2').value = '';
+    document.getElementById('slideStatus').value = 'Active';
+    document.getElementById('slideFormError').style.display = 'none';
+    openModal('slideModal');
+  }
+
+  function openEditSlide(id){
+    var s = heroSlides.find(function(x){ return x.id === id; });
+    if(!s) return;
+    editingSlideId = id;
+    pendingSlideImage = null;
+    document.getElementById('slideModalTitle').textContent = 'Edit Slide';
+    document.getElementById('slideImagePreview').src = s.image;
+    document.getElementById('slideImageFile').value = '';
+    document.getElementById('slideHeadline').value = s.headline;
+    document.getElementById('slideSubtext').value = s.subtext;
+    document.getElementById('slideButtonLabel').value = s.buttonLabel;
+    document.getElementById('slideButtonLink').value = s.buttonLink;
+    document.getElementById('slideButtonLabel2').value = s.buttonLabel2 || '';
+    document.getElementById('slideButtonLink2').value = s.buttonLink2 || '';
+    document.getElementById('slideStatus').value = s.status;
+    document.getElementById('slideFormError').style.display = 'none';
+    openModal('slideModal');
+  }
+
+  function saveSlide(){
+    var headline = document.getElementById('slideHeadline').value.trim();
+    if(!headline){
+      var err = document.getElementById('slideFormError');
+      err.textContent = 'Please enter a headline for this slide.';
+      err.style.display = 'block';
+      return;
+    }
+    var data = {
+      headline: headline,
+      subtext: document.getElementById('slideSubtext').value.trim(),
+      buttonLabel: document.getElementById('slideButtonLabel').value.trim(),
+      buttonLink: document.getElementById('slideButtonLink').value.trim(),
+      buttonLabel2: document.getElementById('slideButtonLabel2').value.trim(),
+      buttonLink2: document.getElementById('slideButtonLink2').value.trim(),
+      status: document.getElementById('slideStatus').value
+    };
+
+    if(editingSlideId){
+      var s = heroSlides.find(function(x){ return x.id === editingSlideId; });
+      Object.assign(s, data);
+      if(pendingSlideImage) s.image = pendingSlideImage;
+      showToast('Slide updated.');
+    } else {
+      data.id = 'slide-' + Date.now();
+      data.image = pendingSlideImage || 'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=200&h=120&fit=crop';
+      heroSlides.push(data);
+      showToast('Slide added.');
+    }
+    closeModal('slideModal');
+    renderSlides();
+  }
+
+  /* ---------- Featured Content ---------- */
+  function renderFeatured(){
+    var tbody = document.getElementById('featuredTableBody');
+    tbody.innerHTML = featuredItems.map(featuredRowHtml).join('');
+    updateStats();
+  }
+
+  function featuredRowHtml(f){
+    return '' +
+      '<tr>' +
+        '<td><p class="cell-primary">' + escapeHtml(f.title) + '</p></td>' +
+        '<td><span class="tag ' + typeTagClass(f.type) + '">' + f.type + '</span></td>' +
+        '<td>' + formatDateDisplay(f.date) + '</td>' +
+        '<td style="text-align:center;"><input type="checkbox" ' + (f.featured ? 'checked' : '') + ' onchange="toggleFeatured(\'' + f.id + '\')" style="width:17px;height:17px;"></td>' +
+      '</tr>';
+  }
+
+  function toggleFeatured(id){
+    var f = featuredItems.find(function(x){ return x.id === id; });
+    if(!f) return;
+    f.featured = !f.featured;
+    updateStats();
+    showToast(f.featured ? '"' + f.title + '" added to homepage.' : '"' + f.title + '" removed from homepage.');
+  }
+
+  /* ---------- Quick Links ---------- */
+  function renderLinks(){
+    var tbody = document.getElementById('linksTableBody');
+    if(quickLinks.length === 0){
+      tbody.innerHTML = '<tr class="no-results-row"><td colspan="5">No quick links yet. Click "Add Quick Link" to create one.</td></tr>';
+    } else {
+      tbody.innerHTML = quickLinks.map(linkRowHtml).join('');
+    }
+    updateStats();
+  }
+
+  function linkRowHtml(l){
+    var index = quickLinks.indexOf(l);
+    return '' +
+      '<tr>' +
+        '<td>' +
+          '<div class="row-icon-name">' +
+            '<div class="row-thumb" style="background:var(--blue-50);color:var(--blue-600);"><i class="fa-solid ' + l.icon + '"></i></div>' +
+            '<p class="cell-primary">' + escapeHtml(l.label) + '</p>' +
+          '</div>' +
+        '</td>' +
+        '<td>' + escapeHtml(l.url) + (l.newTab ? ' <span class="tag tag-gray">New tab</span>' : '') + '</td>' +
+        '<td><span class="badge ' + (l.status === 'Active' ? 'badge-green' : 'badge-gray') + '">' + l.status + '</span></td>' +
+        '<td>' +
+          '<div class="action-icons">' +
+            '<span class="ic" title="Move up" onclick="moveItem(quickLinks, \'' + l.id + '\', -1, renderLinks)" style="' + (index === 0 ? 'opacity:.35;cursor:not-allowed;' : '') + '"><i class="fa-solid fa-arrow-up"></i></span>' +
+            '<span class="ic" title="Move down" onclick="moveItem(quickLinks, \'' + l.id + '\', 1, renderLinks)" style="' + (index === quickLinks.length - 1 ? 'opacity:.35;cursor:not-allowed;' : '') + '"><i class="fa-solid fa-arrow-down"></i></span>' +
+          '</div>' +
+        '</td>' +
+        '<td>' +
+          '<div class="action-icons">' +
+            '<span class="ic" title="Edit" onclick="openEditLink(\'' + l.id + '\')"><i class="fa-regular fa-pen-to-square"></i></span>' +
+            '<span class="ic" title="Delete" onclick="openDeleteItem(\'link\', \'' + l.id + '\', \'' + escapeHtml(l.label).replace(/'/g,"\\'") + '\')"><i class="fa-regular fa-trash-can"></i></span>' +
+          '</div>' +
+        '</td>' +
+      '</tr>';
+  }
+
+  function openCreateLink(){
+    editingLinkId = null;
+    document.getElementById('linkModalTitle').textContent = 'Add Quick Link';
+    document.getElementById('linkLabel').value = '';
+    document.getElementById('linkIcon').selectedIndex = 0;
+    document.getElementById('linkUrl').value = '';
+    document.getElementById('linkStatus').value = 'Active';
+    document.getElementById('linkNewTab').checked = false;
+    document.getElementById('linkFormError').style.display = 'none';
+    openModal('linkModal');
+  }
+
+  function openEditLink(id){
+    var l = quickLinks.find(function(x){ return x.id === id; });
+    if(!l) return;
+    editingLinkId = id;
+    document.getElementById('linkModalTitle').textContent = 'Edit Quick Link';
+    document.getElementById('linkLabel').value = l.label;
+    document.getElementById('linkIcon').value = l.icon;
+    document.getElementById('linkUrl').value = l.url;
+    document.getElementById('linkStatus').value = l.status;
+    document.getElementById('linkNewTab').checked = l.newTab;
+    document.getElementById('linkFormError').style.display = 'none';
+    openModal('linkModal');
+  }
+
+  function saveLink(){
+    var label = document.getElementById('linkLabel').value.trim();
+    var url = document.getElementById('linkUrl').value.trim();
+    if(!label || !url){
+      var err = document.getElementById('linkFormError');
+      err.textContent = 'Please fill in both the label and the link URL.';
+      err.style.display = 'block';
+      return;
+    }
+    var data = {
+      label: label,
+      icon: document.getElementById('linkIcon').value,
+      url: url,
+      status: document.getElementById('linkStatus').value,
+      newTab: document.getElementById('linkNewTab').checked
+    };
+
+    if(editingLinkId){
+      var l = quickLinks.find(function(x){ return x.id === editingLinkId; });
+      Object.assign(l, data);
+      showToast('Quick link updated.');
+    } else {
+      data.id = 'link-' + Date.now();
+      quickLinks.push(data);
+      showToast('Quick link added.');
+    }
+    closeModal('linkModal');
+    renderLinks();
+  }
+
+  /* ---------- Section order ---------- */
+  function renderSections(){
+    var list = document.getElementById('sectionOrderList');
+    list.innerHTML = sections.map(sectionRowHtml).join('');
+    updateStats();
+  }
+
+  function sectionRowHtml(s){
+    var index = sections.indexOf(s);
+    return '' +
+      '<div class="list-row">' +
+        '<div class="list-icon" style="background:var(--blue-600);"><i class="fa-solid fa-grip-lines"></i></div>' +
+        '<div style="flex:1;">' +
+          '<div class="list-title">' + escapeHtml(s.label) + '</div>' +
+          '<div class="list-meta">' + (s.visible ? 'Visible on homepage' : 'Hidden from homepage') + '</div>' +
+        '</div>' +
+        '<div class="action-icons">' +
+          '<span class="ic" title="Move up" onclick="moveSection(\'' + s.id + '\', -1)" style="' + (index === 0 ? 'opacity:.35;cursor:not-allowed;' : '') + '"><i class="fa-solid fa-arrow-up"></i></span>' +
+          '<span class="ic" title="Move down" onclick="moveSection(\'' + s.id + '\', 1)" style="' + (index === sections.length - 1 ? 'opacity:.35;cursor:not-allowed;' : '') + '"><i class="fa-solid fa-arrow-down"></i></span>' +
+        '</div>' +
+        '<label class="form-label" style="display:flex;align-items:center;gap:8px;margin:0 0 0 6px;">' +
+          '<input type="checkbox" ' + (s.visible ? 'checked' : '') + ' onchange="toggleSectionVisible(\'' + s.id + '\')" style="width:17px;height:17px;">' +
+        '</label>' +
+      '</div>';
+  }
+
+  function toggleSectionVisible(id){
+    var s = sections.find(function(x){ return x.id === id; });
+    if(!s) return;
+    s.visible = !s.visible;
+    renderSections();
+  }
+
+  function moveSection(id, dir){
+    moveItem(sections, id, dir, renderSections);
+  }
+
+  /* ---------- Generic reorder helper (used by slides, links, sections) ---------- */
+  function moveItem(arr, id, dir, rerenderFn){
+    var index = arr.findIndex(function(x){ return x.id === id; });
+    var newIndex = index + dir;
+    if(newIndex < 0 || newIndex >= arr.length) return;
+    var tmp = arr[index];
+    arr[index] = arr[newIndex];
+    arr[newIndex] = tmp;
+    rerenderFn();
+  }
+
+  /* ---------- Delete (shared by slides and links) ---------- */
+  function openDeleteItem(type, id, label){
+    pendingDelete = { type: type, id: id };
+    document.getElementById('deleteItemTitle').textContent = type === 'slide' ? 'Delete slide' : 'Delete quick link';
+    document.getElementById('deleteItemMsg').textContent = 'Are you sure you want to delete "' + label + '"? This cannot be undone.';
+    openModal('deleteItemModal');
+  }
+
+  function confirmDeleteItem(){
+    if(!pendingDelete) return;
+    if(pendingDelete.type === 'slide'){
+      heroSlides = heroSlides.filter(function(x){ return x.id !== pendingDelete.id; });
+      renderSlides();
+    } else {
+      quickLinks = quickLinks.filter(function(x){ return x.id !== pendingDelete.id; });
+      renderLinks();
+    }
+    closeModal('deleteItemModal');
+    showToast('Deleted.');
+    pendingDelete = null;
+  }
+
+  /* ---------- Save / modal / toast helpers ---------- */
+  function saveHomepage(){
+    showToast('Homepage changes saved.');
+  }
+
+  function openModal(id){
+    document.getElementById(id).classList.add('open');
+    document.body.classList.add('modal-open');
+  }
+  function closeModal(id){
+    document.getElementById(id).classList.remove('open');
+    document.body.classList.remove('modal-open');
+  }
+
+  function showToast(msg){
+    var host = document.getElementById('toastHost');
+    var toast = document.createElement('div');
+    toast.className = 'toast toast-success';
+    toast.innerHTML = '<i class="fa-solid fa-circle-check"></i> ' + msg;
+    host.appendChild(toast);
+    requestAnimationFrame(function(){ toast.classList.add('show'); });
+    setTimeout(function(){
+      toast.classList.remove('show');
+      setTimeout(function(){ toast.remove(); }, 200);
+    }, 2600);
+  }
+
+  ['slideModal','linkModal','deleteItemModal'].forEach(function(id){
+    document.getElementById(id).addEventListener('click', function(e){
+      if(e.target === this) closeModal(id);
+    });
+  });
+
+  renderSlides();
+  renderFeatured();
+  renderLinks();
+  renderSections();
+</script>
+
+{% endblock %}

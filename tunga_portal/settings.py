@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'portal',
     'offices',
     'office_dashboard',
+    'admin_dashboard',
 ]
 
 MIDDLEWARE = [

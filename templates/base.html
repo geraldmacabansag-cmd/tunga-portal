@@ -62,11 +62,16 @@
   </div>
 
   <div class="side-panel__links">
-    {% if user.office_rep %}
-    <a href="{% url 'office_dashboard:dashboard' %}" style="font-weight:600;">
-      <i class="fa-solid fa-user-shield"></i> Switch to Admin Page
-    </a>
-    {% endif %}
+      {% if user.office_rep %}
+      <a href="{% url 'office_dashboard:dashboard' %}" style="font-weight:600;">
+        <i class="fa-solid fa-user-shield"></i> Switch to Office Dashboard
+      </a>
+      {% endif %}
+      {% if user.is_staff %}
+      <a href="{% url 'admin_dashboard:admin_dash' %}" style="font-weight:600;">
+        <i class="fa-solid fa-user-shield"></i> Switch to Admin Dashboard
+      </a>
+      {% endif %}
     <a href="#"><i class="fa-regular fa-id-card"></i> Account</a>
     <a href="#"><i class="fa-solid fa-gear"></i> Settings</a>
     <a href="#"><i class="fa-regular fa-bell"></i> Notifications</a>
@@ -96,10 +101,14 @@
       <a href="{% url 'announcement' %}" class="{% if request.resolver_match.url_name == 'announcement' %}active{% endif %}">Announcements</a>
       <a href="{% url 'offices' %}" class="{% if request.resolver_match.url_name == 'offices' %}active{% endif %}">Offices <i class="fa-solid fa-chevron-down" style="font-size:.65rem"></i></a>
       <a href="{% url 'about' %}" class="{% if request.resolver_match.url_name == 'about' %}active{% endif %}">About Us</a>
-      <a href="{% url 'history' %}" class="{% if request.resolver_match.url_name == 'history' %}active{% endif %}">History</a>
       <a href="{% url 'contact' %}" class="{% if request.resolver_match.url_name == 'contact' %}active{% endif %}">Contact Us</a>
     </div>
-    <button class="nav-search" aria-label="Search"><i class="fa-solid fa-magnifying-glass"></i></button>
+    <div class="nav-search-wrap">
+      <input type="text" class="nav-search-input" id="navSearchInput" placeholder="Search the site..." aria-label="Search the site">
+      <button type="button" class="nav-search" id="navSearchToggle" aria-label="Open search" aria-expanded="false">
+        <i class="fa-solid fa-magnifying-glass"></i>
+      </button>
+    </div>
 
   </div>
 </nav>
@@ -233,6 +242,36 @@
       });
     }
   });
+    /* -------------------------------------------------------------- */
+    /* Expanding nav search (design only — no search logic yet)        */
+    /* -------------------------------------------------------------- */
+    var searchWrap = document.querySelector('.nav-search-wrap');
+    var searchToggle = document.getElementById('navSearchToggle');
+    var searchInput = document.getElementById('navSearchInput');
+
+    if (searchWrap && searchToggle && searchInput) {
+      var searchIcon = searchToggle.querySelector('i');
+
+      searchToggle.addEventListener('click', function () {
+        var isOpen = searchWrap.classList.toggle('open');
+        searchToggle.setAttribute('aria-expanded', isOpen);
+        searchIcon.className = isOpen ? 'fa-solid fa-xmark' : 'fa-solid fa-magnifying-glass';
+        if (isOpen) {
+          searchInput.focus();
+        } else {
+          searchInput.value = '';
+        }
+      });
+
+      document.addEventListener('click', function (e) {
+        if (!searchWrap.contains(e.target) && searchWrap.classList.contains('open')) {
+          searchWrap.classList.remove('open');
+          searchToggle.setAttribute('aria-expanded', 'false');
+          searchIcon.className = 'fa-solid fa-magnifying-glass';
+          searchInput.value = '';
+        }
+      });
+    }
 </script>
 
 {% block extra_js %}{% endblock %}

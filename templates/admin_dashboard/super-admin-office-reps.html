@@ -1,0 +1,473 @@
+{% extends "super-admin-base.html" %}
+{% load static %}
+
+{% block page_title_tag %}Office Representatives{% endblock %}
+{% block body_page %}office representatives{% endblock %}
+{% block page_title %}Office Representatives{% endblock %}
+{% block page_subtitle %}Manage office representative accounts{% endblock %}
+
+{% block breadcrumbs %}<span>Dashboard</span><span class="sep">›</span><span>Office Management</span><span class="sep">›</span><span class="current">Office Representative</span>{% endblock %}
+
+{% block content %}
+
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;">
+        <div>
+          <h2 style="margin:0;font-size:16px;font-weight:800;color:var(--gray-900);">Representative accounts</h2>
+          <p style="margin:3px 0 0;font-size:12.5px;color:var(--gray-500);">Staff accounts that manage content on behalf of each municipal office</p>
+        </div>
+        <button class="btn btn-primary" onclick="openAddRep()"><i class="fa-solid fa-user-plus"></i> Add Representative</button>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon blue"><i class="fa-regular fa-address-book"></i></span></div>
+          <div class="stat-value">8</div>
+          <div class="stat-label">Total representatives</div>
+          <div class="stat-sub">Across 9 offices</div>
+        </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon green"><i class="fa-solid fa-circle-check"></i></span></div>
+          <div class="stat-value">5</div>
+          <div class="stat-label">Active accounts</div>
+          <div class="stat-sub">Signed in within 7 days</div>
+        </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon amber"><i class="fa-regular fa-clock"></i></span></div>
+          <div class="stat-value">2</div>
+          <div class="stat-label">Pending invitations</div>
+          <div class="stat-sub">Awaiting first sign-in</div>
+        </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon gray"><i class="fa-solid fa-building"></i></span></div>
+          <div class="stat-value">1</div>
+          <div class="stat-label">Offices without a rep</div>
+          <div class="stat-sub">Business Permits &amp; Licensing</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="tabs">
+          <div class="tab active">All <span class="count">8</span></div>
+          <div class="tab">Active <span class="count">5</span></div>
+          <div class="tab">Pending <span class="count">2</span></div>
+          <div class="tab">Inactive <span class="count">1</span></div>
+        </div>
+
+        <div class="filters-row">
+          <label class="field search"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search by name or email..."></label>
+          <select class="field">
+            <option>All offices</option>
+            <option>Office of the Municipal Mayor</option>
+            <option>Office of the Municipal Treasurer</option>
+            <option>Office of the Municipal Civil Registrar</option>
+            <option>Office of the Municipal Assessor</option>
+            <option>Office of the Municipal Health Officer</option>
+            <option>Municipal Social Welfare and Development</option>
+            <option>Office of the Municipal Tourism Officer</option>
+            <option>Office of the Municipal Agriculturist</option>
+            <option>Municipal Disaster Risk Reduction &amp; Management</option>
+          </select>
+          <select class="field">
+            <option>All statuses</option>
+            <option>Active</option>
+            <option>Pending</option>
+            <option>Inactive</option>
+          </select>
+        </div>
+
+        <div class="table-wrap" style="border:none;border-radius:0;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Representative</th>
+                <th>Assigned office</th>
+                <th>Position</th>
+                <th>Status</th>
+                <th>Last active</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+
+              <tr>
+                <td>
+                  <div class="row-icon-name">
+                    <div class="row-avatar-wrap"><img src="https://i.pravatar.cc/64?img=32" alt=""><span class="dot online"></span></div>
+                    <div><p class="cell-primary">Maria L. Enriquez</p><p class="cell-sub">m.enriquez@tunga.gov.ph</p></div>
+                  </div>
+                </td>
+                <td><span class="tag tag-blue">Municipal Civil Registrar</span></td>
+                <td>Records Officer</td>
+                <td><span class="badge badge-green">Active</span></td>
+                <td>18 minutes ago</td>
+                <td>
+                  <div class="action-icons">
+                    <span class="ic" title="View profile"><i class="fa-regular fa-eye"></i></span>
+                    <span class="ic" title="Edit" onclick="openEditRep(this)"
+                      data-name="Maria L. Enriquez" data-email="m.enriquez@tunga.gov.ph" data-phone="0917 302 5511"
+                      data-office="Office of the Municipal Civil Registrar" data-position="Records Officer"
+                      data-access="Standard Access" data-status="Active"><i class="fa-regular fa-pen-to-square"></i></span>
+                    <span class="ic" title="Deactivate" onclick="openDeactivate('Maria L. Enriquez')"><i class="fa-regular fa-trash-can"></i></span>
+                  </div>
+                </td>
+              </tr>
+
+              <tr>
+                <td>
+                  <div class="row-icon-name">
+                    <div class="row-avatar-wrap"><img src="https://i.pravatar.cc/64?img=51" alt=""><span class="dot online"></span></div>
+                    <div><p class="cell-primary">Ramon P. Cabahug</p><p class="cell-sub">r.cabahug@tunga.gov.ph</p></div>
+                  </div>
+                </td>
+                <td><span class="tag tag-blue">Municipal DRRM Office</span></td>
+                <td>Operations Staff</td>
+                <td><span class="badge badge-green">Active</span></td>
+                <td>5 hours ago</td>
+                <td>
+                  <div class="action-icons">
+                    <span class="ic" title="View profile"><i class="fa-regular fa-eye"></i></span>
+                    <span class="ic" title="Edit" onclick="openEditRep(this)"
+                      data-name="Ramon P. Cabahug" data-email="r.cabahug@tunga.gov.ph" data-phone="0918 664 2290"
+                      data-office="Municipal Disaster Risk Reduction &amp; Management" data-position="Operations Staff"
+                      data-access="Full Office Access" data-status="Active"><i class="fa-regular fa-pen-to-square"></i></span>
+                    <span class="ic" title="Deactivate" onclick="openDeactivate('Ramon P. Cabahug')"><i class="fa-regular fa-trash-can"></i></span>
+                  </div>
+                </td>
+              </tr>
+
+              <tr>
+                <td>
+                  <div class="row-icon-name">
+                    <div class="row-avatar-wrap"><img src="https://i.pravatar.cc/64?img=15" alt=""><span class="dot"></span></div>
+                    <div><p class="cell-primary">Juan D. Salazar</p><p class="cell-sub">j.salazar@tunga.gov.ph</p></div>
+                  </div>
+                </td>
+                <td><span class="tag tag-blue">Municipal Health Office</span></td>
+                <td>Admin Staff</td>
+                <td><span class="badge badge-amber">Pending</span></td>
+                <td>Never signed in</td>
+                <td>
+                  <div class="action-icons">
+                    <span class="ic" title="Resend invite"><i class="fa-regular fa-paper-plane"></i></span>
+                    <span class="ic" title="Edit" onclick="openEditRep(this)"
+                      data-name="Juan D. Salazar" data-email="j.salazar@tunga.gov.ph" data-phone="0920 411 7783"
+                      data-office="Office of the Municipal Health Officer" data-position="Admin Staff"
+                      data-access="Standard Access" data-status="Pending"><i class="fa-regular fa-pen-to-square"></i></span>
+                    <span class="ic" title="Remove" onclick="openDeactivate('Juan D. Salazar')"><i class="fa-regular fa-trash-can"></i></span>
+                  </div>
+                </td>
+              </tr>
+
+              <tr>
+                <td>
+                  <div class="row-icon-name">
+                    <div class="row-avatar-wrap"><img src="https://i.pravatar.cc/64?img=44" alt=""><span class="dot online"></span></div>
+                    <div><p class="cell-primary">Corazon T. Villaflor</p><p class="cell-sub">c.villaflor@tunga.gov.ph</p></div>
+                  </div>
+                </td>
+                <td><span class="tag tag-blue">Municipal Treasurer's Office</span></td>
+                <td>Revenue Clerk</td>
+                <td><span class="badge badge-green">Active</span></td>
+                <td>1 hour ago</td>
+                <td>
+                  <div class="action-icons">
+                    <span class="ic" title="View profile"><i class="fa-regular fa-eye"></i></span>
+                    <span class="ic" title="Edit" onclick="openEditRep(this)"
+                      data-name="Corazon T. Villaflor" data-email="c.villaflor@tunga.gov.ph" data-phone="0917 880 3342"
+                      data-office="Office of the Municipal Treasurer" data-position="Revenue Clerk"
+                      data-access="Standard Access" data-status="Active"><i class="fa-regular fa-pen-to-square"></i></span>
+                    <span class="ic" title="Deactivate" onclick="openDeactivate('Corazon T. Villaflor')"><i class="fa-regular fa-trash-can"></i></span>
+                  </div>
+                </td>
+              </tr>
+
+              <tr>
+                <td>
+                  <div class="row-icon-name">
+                    <div class="row-avatar-wrap"><img src="https://i.pravatar.cc/64?img=23" alt=""><span class="dot"></span></div>
+                    <div><p class="cell-primary">Herminia S. Baclayon</p><p class="cell-sub">h.baclayon@tunga.gov.ph</p></div>
+                  </div>
+                </td>
+                <td><span class="tag tag-blue">Social Welfare &amp; Development</span></td>
+                <td>Case Officer</td>
+                <td><span class="badge badge-gray">Inactive</span></td>
+                <td>32 days ago</td>
+                <td>
+                  <div class="action-icons">
+                    <span class="ic" title="View profile"><i class="fa-regular fa-eye"></i></span>
+                    <span class="ic" title="Edit" onclick="openEditRep(this)"
+                      data-name="Herminia S. Baclayon" data-email="h.baclayon@tunga.gov.ph" data-phone="0915 220 9981"
+                      data-office="Municipal Social Welfare and Development Office" data-position="Case Officer"
+                      data-access="Standard Access" data-status="Inactive"><i class="fa-regular fa-pen-to-square"></i></span>
+                    <span class="ic" title="Remove" onclick="openDeactivate('Herminia S. Baclayon')"><i class="fa-regular fa-trash-can"></i></span>
+                  </div>
+                </td>
+              </tr>
+
+              <tr>
+                <td>
+                  <div class="row-icon-name">
+                    <div class="row-avatar-wrap"><img src="https://i.pravatar.cc/64?img=8" alt=""><span class="dot online"></span></div>
+                    <div><p class="cell-primary">Dexter M. Oquendo</p><p class="cell-sub">d.oquendo@tunga.gov.ph</p></div>
+                  </div>
+                </td>
+                <td><span class="tag tag-blue">Office of the Municipal Assessor</span></td>
+                <td>Assessment Clerk</td>
+                <td><span class="badge badge-green">Active</span></td>
+                <td>3 hours ago</td>
+                <td>
+                  <div class="action-icons">
+                    <span class="ic" title="View profile"><i class="fa-regular fa-eye"></i></span>
+                    <span class="ic" title="Edit" onclick="openEditRep(this)"
+                      data-name="Dexter M. Oquendo" data-email="d.oquendo@tunga.gov.ph" data-phone="0921 556 1187"
+                      data-office="Office of the Municipal Assessor" data-position="Assessment Clerk"
+                      data-access="Standard Access" data-status="Active"><i class="fa-regular fa-pen-to-square"></i></span>
+                    <span class="ic" title="Deactivate" onclick="openDeactivate('Dexter M. Oquendo')"><i class="fa-regular fa-trash-can"></i></span>
+                  </div>
+                </td>
+              </tr>
+
+              <tr>
+                <td>
+                  <div class="row-icon-name">
+                    <div class="row-avatar-wrap"><img src="https://i.pravatar.cc/64?img=61" alt=""><span class="dot"></span></div>
+                    <div><p class="cell-primary">Anthony G. Reyes</p><p class="cell-sub">a.reyes@tunga.gov.ph</p></div>
+                  </div>
+                </td>
+                <td><span class="tag tag-blue">Office of the Municipal Tourism Officer</span></td>
+                <td>Tourism Aide</td>
+                <td><span class="badge badge-amber">Pending</span></td>
+                <td>Never signed in</td>
+                <td>
+                  <div class="action-icons">
+                    <span class="ic" title="Resend invite"><i class="fa-regular fa-paper-plane"></i></span>
+                    <span class="ic" title="Edit" onclick="openEditRep(this)"
+                      data-name="Anthony G. Reyes" data-email="a.reyes@tunga.gov.ph" data-phone="0906 774 0092"
+                      data-office="Office of the Municipal Tourism Officer" data-position="Tourism Aide"
+                      data-access="Standard Access" data-status="Pending"><i class="fa-regular fa-pen-to-square"></i></span>
+                    <span class="ic" title="Remove" onclick="openDeactivate('Anthony G. Reyes')"><i class="fa-regular fa-trash-can"></i></span>
+                  </div>
+                </td>
+              </tr>
+
+              <tr>
+                <td>
+                  <div class="row-icon-name">
+                    <div class="row-avatar-wrap"><img src="https://i.pravatar.cc/64?img=68" alt=""><span class="dot online"></span></div>
+                    <div><p class="cell-primary">Leilani F. Dumaguit</p><p class="cell-sub">l.dumaguit@tunga.gov.ph</p></div>
+                  </div>
+                </td>
+                <td><span class="tag tag-blue">Office of the Municipal Agriculturist</span></td>
+                <td>Extension Worker</td>
+                <td><span class="badge badge-green">Active</span></td>
+                <td>Yesterday, 4:40 PM</td>
+                <td>
+                  <div class="action-icons">
+                    <span class="ic" title="View profile"><i class="fa-regular fa-eye"></i></span>
+                    <span class="ic" title="Edit" onclick="openEditRep(this)"
+                      data-name="Leilani F. Dumaguit" data-email="l.dumaguit@tunga.gov.ph" data-phone="0928 013 6654"
+                      data-office="Office of the Municipal Agriculturist" data-position="Extension Worker"
+                      data-access="Standard Access" data-status="Active"><i class="fa-regular fa-pen-to-square"></i></span>
+                    <span class="ic" title="Deactivate" onclick="openDeactivate('Leilani F. Dumaguit')"><i class="fa-regular fa-trash-can"></i></span>
+                  </div>
+                </td>
+              </tr>
+
+            </tbody>
+          </table>
+        </div>
+
+        <div style="padding:14px 20px 0;">
+          <div class="footer-note" style="margin-top:0;">
+            <i class="fa-solid fa-circle-info" style="margin-right:6px;"></i>
+            Representatives can create and edit content only within their assigned office. All submissions still route through the Approval Center before they go live on the website.
+          </div>
+        </div>
+
+        <div class="pagination">
+          <span>Showing 1–8 of 8 representatives</span>
+          <div class="page-nums">
+            <button class="page-btn"><i class="fa-solid fa-chevron-left"></i></button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn"><i class="fa-solid fa-chevron-right"></i></button>
+          </div>
+        </div>
+      </div>
+
+
+
+<!-- Add / Edit Representative modal -->
+<div class="modal-backdrop" id="repModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="repModalTitle">Add Representative</h3>
+      <button class="modal-x" onclick="closeModal('repModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form onsubmit="return false;">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Full name<span class="req">*</span></label>
+            <input class="form-input" type="text" id="repName" placeholder="Juan D. dela Cruz">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email address<span class="req">*</span></label>
+            <input class="form-input" type="email" id="repEmail" placeholder="name@tunga.gov.ph">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Phone number</label>
+            <input class="form-input" type="tel" id="repPhone" placeholder="0917 000 0000">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Assigned office<span class="req">*</span></label>
+            <select class="form-input" id="repOffice">
+              <option>Office of the Municipal Mayor</option>
+              <option>Office of the Municipal Treasurer</option>
+              <option>Office of the Municipal Civil Registrar</option>
+              <option>Office of the Municipal Assessor</option>
+              <option>Office of the Municipal Health Officer</option>
+              <option>Municipal Social Welfare and Development Office</option>
+              <option>Office of the Municipal Tourism Officer</option>
+              <option>Office of the Municipal Agriculturist</option>
+              <option>Municipal Disaster Risk Reduction &amp; Management</option>
+              <option>Business Permits and Licensing Office</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Position / title</label>
+            <input class="form-input" type="text" id="repPosition" placeholder="e.g. Records Officer">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Access level</label>
+            <select class="form-input" id="repAccess">
+              <option>Standard Access</option>
+              <option>Full Office Access</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Account status</label>
+          <select class="form-input" id="repStatus">
+            <option>Active</option>
+            <option>Pending</option>
+            <option>Inactive</option>
+          </select>
+          <span class="form-help">Pending accounts can sign in only after accepting their email invitation.</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <textarea class="form-input form-textarea" id="repNotes" placeholder="Optional notes for this account, e.g. coverage schedule or handover details."></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-actions" style="padding:0 20px 20px;">
+      <button class="btn btn-secondary" onclick="closeModal('repModal')">Cancel</button>
+      <button class="btn btn-primary" id="repSaveBtn" onclick="saveRep()"><i class="fa-solid fa-check"></i> Save changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Deactivate confirmation modal -->
+<div class="modal-backdrop" id="deactivateModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Deactivate account</h3>
+      <button class="modal-x" onclick="closeModal('deactivateModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <p class="confirm-msg" id="deactivateMsg">Are you sure you want to deactivate this representative's account? They will immediately lose access to the admin panel, and any of their unpublished drafts will remain in the office queue.</p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('deactivateModal')">Cancel</button>
+        <button class="btn btn-danger" onclick="closeModal('deactivateModal')"><i class="fa-solid fa-user-slash"></i> Deactivate</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-host" id="toastHost"></div>
+
+<script src="app.js"></script>
+<script>
+  function openModal(id){
+    document.getElementById(id).classList.add('open');
+    document.body.classList.add('modal-open');
+  }
+  function closeModal(id){
+    document.getElementById(id).classList.remove('open');
+    document.body.classList.remove('modal-open');
+  }
+
+  function openAddRep(){
+    document.getElementById('repModalTitle').textContent = 'Add Representative';
+    document.getElementById('repName').value = '';
+    document.getElementById('repEmail').value = '';
+    document.getElementById('repPhone').value = '';
+    document.getElementById('repOffice').selectedIndex = 0;
+    document.getElementById('repPosition').value = '';
+    document.getElementById('repAccess').selectedIndex = 0;
+    setSelectValue('repStatus', 'Pending');
+    document.getElementById('repNotes').value = '';
+    openModal('repModal');
+  }
+
+  function openEditRep(el){
+    document.getElementById('repModalTitle').textContent = 'Edit Representative';
+    document.getElementById('repName').value = el.dataset.name || '';
+    document.getElementById('repEmail').value = el.dataset.email || '';
+    document.getElementById('repPhone').value = el.dataset.phone || '';
+    setSelectValue('repOffice', el.dataset.office);
+    document.getElementById('repPosition').value = el.dataset.position || '';
+    setSelectValue('repAccess', el.dataset.access);
+    setSelectValue('repStatus', el.dataset.status);
+    openModal('repModal');
+  }
+
+  function setSelectValue(id, value){
+    var select = document.getElementById(id);
+    if(!value) return;
+    for(var i = 0; i < select.options.length; i++){
+      if(select.options[i].text === value){ select.selectedIndex = i; return; }
+    }
+  }
+
+  function openDeactivate(name){
+    document.getElementById('deactivateMsg').textContent =
+      'Are you sure you want to deactivate ' + name + '\'s account? They will immediately lose access to the admin panel, and any unpublished drafts will remain in the office queue.';
+    openModal('deactivateModal');
+  }
+
+  function saveRep(){
+    closeModal('repModal');
+    showToast('Representative account saved.');
+  }
+
+  function showToast(msg){
+    var host = document.getElementById('toastHost');
+    var toast = document.createElement('div');
+    toast.className = 'toast toast-success';
+    toast.innerHTML = '<i class="fa-solid fa-circle-check"></i> ' + msg;
+    host.appendChild(toast);
+    requestAnimationFrame(function(){ toast.classList.add('show'); });
+    setTimeout(function(){
+      toast.classList.remove('show');
+      setTimeout(function(){ toast.remove(); }, 200);
+    }, 2600);
+  }
+
+  document.getElementById('repModal').addEventListener('click', function(e){
+    if(e.target === this) closeModal('repModal');
+  });
+  document.getElementById('deactivateModal').addEventListener('click', function(e){
+    if(e.target === this) closeModal('deactivateModal');
+  });
+</script>
+
+{% endblock %}

@@ -1,0 +1,490 @@
+{% extends "super-admin-base.html" %}
+{% load static %}
+
+{% block page_title_tag %}Roles & Permissions{% endblock %}
+{% block body_page %}roles & permissions{% endblock %}
+{% block page_title %}Roles & Permissions{% endblock %}
+{% block page_subtitle %}Configure roles and access permissions{% endblock %}
+
+{% block breadcrumbs %}<span>Dashboard</span><span class="sep">›</span><span>User Management</span><span class="sep">›</span><span class="current">Roles & Permissions</span>{% endblock %}
+
+{% block content %}
+
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;">
+        <div>
+          <h2 style="margin:0;font-size:16px;font-weight:800;color:var(--gray-900);">Roles</h2>
+          <p style="margin:3px 0 0;font-size:12.5px;color:var(--gray-500);">Control what each type of account can view, create, edit, or delete across the admin panel</p>
+        </div>
+        <button class="btn btn-primary" onclick="openCreateRole()"><i class="fa-solid fa-plus"></i> Create Role</button>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon blue"><i class="fa-solid fa-user-shield"></i></span></div>
+          <div class="stat-value" id="statTotalRoles">0</div>
+          <div class="stat-label">Total roles</div>
+          <div class="stat-sub">System and custom</div>
+        </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon gray"><i class="fa-solid fa-lock"></i></span></div>
+          <div class="stat-value" id="statSystemRoles">0</div>
+          <div class="stat-label">System roles</div>
+          <div class="stat-sub">Built-in, cannot be deleted</div>
+        </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon green"><i class="fa-solid fa-sliders"></i></span></div>
+          <div class="stat-value" id="statCustomRoles">0</div>
+          <div class="stat-label">Custom roles</div>
+          <div class="stat-sub">Created by your team</div>
+        </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon amber"><i class="fa-solid fa-users"></i></span></div>
+          <div class="stat-value" id="statUsersAssigned">0</div>
+          <div class="stat-label">Users assigned</div>
+          <div class="stat-sub">Across all roles</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="table-wrap" style="border:none;border-radius:0;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Role</th>
+                <th>Type</th>
+                <th>Users</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="roleTableBody">
+              <!-- rows rendered by JS -->
+            </tbody>
+          </table>
+        </div>
+        <div style="padding:14px 20px 0;">
+          <div class="footer-note" style="margin-top:0;">
+            <i class="fa-solid fa-circle-info" style="margin-right:6px;"></i>
+            Super Admin always has full access and can't be edited or deleted. A role can only be deleted once no users are assigned to it.
+          </div>
+        </div>
+        <div class="pagination">
+          <span id="rolePageInfo">Showing 0 of 0 roles</span>
+        </div>
+      </div>
+
+
+<!-- Permissions matrix modal -->
+<div class="modal-backdrop" id="permissionsModal">
+  <div class="modal-box modal-wide">
+    <div class="modal-head">
+      <h3 id="permissionsModalTitle">Edit Permissions</h3>
+      <button class="modal-x" onclick="closeModal('permissionsModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <p class="confirm-msg" id="permissionsRoleDesc" style="margin-bottom:14px;">—</p>
+
+      <div class="reminder-box" id="lockedRoleNotice" style="display:none;">
+        <i class="fa-solid fa-lock ic"></i>
+        <div>
+          <strong>This role's permissions are fixed</strong>
+          <p>Super Admin always has full access to every module and can't be changed here.</p>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Module</th>
+              <th style="text-align:center;">View</th>
+              <th style="text-align:center;">Create</th>
+              <th style="text-align:center;">Edit</th>
+              <th style="text-align:center;">Delete</th>
+            </tr>
+          </thead>
+          <tbody id="permissionsTableBody">
+            <!-- rows rendered by JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-actions" style="padding:0 20px 20px;" id="permissionsActions">
+      <button class="btn btn-secondary" onclick="closeModal('permissionsModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="savePermissions()"><i class="fa-solid fa-check"></i> Save permissions</button>
+    </div>
+  </div>
+</div>
+
+<!-- Create Role modal -->
+<div class="modal-backdrop" id="createRoleModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Create Role</h3>
+      <button class="modal-x" onclick="closeModal('createRoleModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form onsubmit="return false;">
+        <div class="form-group">
+          <label class="form-label">Role name<span class="req">*</span></label>
+          <input class="form-input" type="text" id="newRoleName" placeholder="e.g. Communications Officer">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea class="form-input form-textarea" id="newRoleDescription" style="min-height:70px;" placeholder="What is this role for?"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Start from</label>
+          <select class="form-input" id="newRoleTemplate">
+            <option value="">Blank (no access)</option>
+          </select>
+          <span class="form-help">Copies another role's permissions as a starting point. You can adjust them after creating the role.</span>
+        </div>
+        <p class="form-help" id="createRoleError" style="color:var(--red-600); display:none;"></p>
+      </form>
+    </div>
+    <div class="modal-actions" style="padding:0 20px 20px;">
+      <button class="btn btn-secondary" onclick="closeModal('createRoleModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveNewRole()"><i class="fa-solid fa-check"></i> Create role</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete role confirmation -->
+<div class="modal-backdrop" id="deleteRoleModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Delete role</h3>
+      <button class="modal-x" onclick="closeModal('deleteRoleModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <p class="confirm-msg" id="deleteRoleMsg">Are you sure you want to delete this role? This cannot be undone.</p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('deleteRoleModal')">Cancel</button>
+        <button class="btn btn-danger" onclick="confirmDeleteRole()"><i class="fa-regular fa-trash-can"></i> Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-host" id="toastHost"></div>
+
+<script src="super_admin.js"></script>
+<script>
+  /* =========================================================
+     MODULES — mirrors the sidebar sections/items exactly, so
+     the permissions matrix maps 1:1 to what a role can access.
+  ========================================================= */
+  var MODULES = [
+    { key: 'dashboard', label: 'Dashboard', section: 'Main' },
+    { key: 'approval-center', label: 'Approval Center', section: 'Main' },
+    { key: 'announcements', label: 'Announcements', section: 'Content Management' },
+    { key: 'news-updates', label: 'News & Updates', section: 'Content Management' },
+    { key: 'events', label: 'Events', section: 'Content Management' },
+    { key: 'downloadable-forms', label: 'Downloadable Forms', section: 'Content Management' },
+    { key: 'gallery', label: 'Gallery', section: 'Content Management' },
+    { key: 'offices', label: 'Offices', section: 'Office Management' },
+    { key: 'office-reps', label: 'Office Representatives', section: 'Office Management' },
+    { key: 'services', label: 'Services', section: 'Office Management' },
+    { key: 'users', label: 'Users', section: 'User Management' },
+    { key: 'roles', label: 'Roles & Permissions', section: 'User Management' },
+    { key: 'homepage', label: 'Homepage', section: 'Website Management' },
+    { key: 'contact-info', label: 'Contact Information', section: 'Website Management' },
+    { key: 'interactive-map', label: 'Interactive Map', section: 'Website Management' },
+    { key: 'emergency-contacts', label: 'Emergency Contacts', section: 'Website Management' },
+    { key: 'website-settings', label: 'Website Settings', section: 'Website Management' },
+    { key: 'analytics', label: 'Analytics & Reports', section: 'Reports & Analytics' },
+    { key: 'activity-logs', label: 'Activity Logs', section: 'System' },
+    { key: 'backup-restore', label: 'Backup & Restore', section: 'System' },
+    { key: 'system-settings', label: 'System Settings', section: 'System' }
+  ];
+
+  function noAccess(){ return { view:false, create:false, edit:false, delete:false }; }
+  function full(){ return { view:true, create:true, edit:true, delete:true }; }
+  function vce(){ return { view:true, create:true, edit:true, delete:false }; }
+  function viewOnly(){ return { view:true, create:false, edit:false, delete:false }; }
+
+  function buildPermissions(specified){
+    var perms = {};
+    MODULES.forEach(function(m){
+      perms[m.key] = specified[m.key] ? Object.assign(noAccess(), specified[m.key]) : noAccess();
+    });
+    return perms;
+  }
+
+  /* =========================================================
+     DATA MODEL — in production this would come from your
+     backend. Everything on this page (stats, role list,
+     permissions matrix) is derived from it.
+  ========================================================= */
+  var roles = [
+    {
+      id: 'role-super-admin',
+      name: 'Super Admin',
+      description: 'Full administrative access to every module. Reserved for the system\'s primary administrator account.',
+      type: 'System',
+      locked: true,
+      usersCount: 1,
+      permissions: (function(){
+        var all = {};
+        MODULES.forEach(function(m){ all[m.key] = full(); });
+        return all;
+      })()
+    },
+    {
+      id: 'role-office-rep',
+      name: 'Office Representative',
+      description: 'Default role for office-assigned staff. Can manage their own office\'s content, subject to approval.',
+      type: 'System',
+      locked: false,
+      usersCount: 8,
+      permissions: buildPermissions({
+        'dashboard': viewOnly(),
+        'announcements': vce(),
+        'news-updates': vce(),
+        'events': vce(),
+        'downloadable-forms': vce(),
+        'gallery': vce()
+      })
+    },
+    {
+      id: 'role-content-editor',
+      name: 'Content Editor',
+      description: 'Can publish Announcements, News, and Events across all offices without requiring approval.',
+      type: 'Custom',
+      locked: false,
+      usersCount: 2,
+      permissions: buildPermissions({
+        'dashboard': viewOnly(),
+        'approval-center': viewOnly(),
+        'announcements': full(),
+        'news-updates': full(),
+        'events': full(),
+        'downloadable-forms': vce(),
+        'gallery': vce()
+      })
+    },
+    {
+      id: 'role-auditor',
+      name: 'Read-Only Auditor',
+      description: 'View-only access to all modules, used for compliance and reporting review.',
+      type: 'Custom',
+      locked: false,
+      usersCount: 1,
+      permissions: (function(){
+        var all = {};
+        MODULES.forEach(function(m){ all[m.key] = viewOnly(); });
+        return all;
+      })()
+    },
+    {
+      id: 'role-marketing',
+      name: 'Marketing Assistant',
+      description: 'Manages Gallery and Homepage content for outreach campaigns.',
+      type: 'Custom',
+      locked: false,
+      usersCount: 0,
+      permissions: buildPermissions({
+        'dashboard': viewOnly(),
+        'gallery': full(),
+        'homepage': vce()
+      })
+    }
+  ];
+
+  var editingRoleId = null;
+  var pendingDeleteRoleId = null;
+
+  function escapeHtml(str){
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  /* ---------- Roles table ---------- */
+  function renderRoles(){
+    var tbody = document.getElementById('roleTableBody');
+    tbody.innerHTML = roles.map(roleRowHtml).join('');
+
+    document.getElementById('rolePageInfo').textContent = 'Showing ' + roles.length + ' of ' + roles.length + ' role' + (roles.length === 1 ? '' : 's');
+
+    document.getElementById('statTotalRoles').textContent = roles.length;
+    document.getElementById('statSystemRoles').textContent = roles.filter(function(r){ return r.type === 'System'; }).length;
+    document.getElementById('statCustomRoles').textContent = roles.filter(function(r){ return r.type === 'Custom'; }).length;
+    document.getElementById('statUsersAssigned').textContent = roles.reduce(function(sum, r){ return sum + r.usersCount; }, 0);
+
+    // Keep the "start from" template list in the Create Role modal in sync
+    var templateSelect = document.getElementById('newRoleTemplate');
+    templateSelect.innerHTML = '<option value="">Blank (no access)</option>' +
+      roles.map(function(r){ return '<option value="' + r.id + '">' + escapeHtml(r.name) + '</option>'; }).join('');
+  }
+
+  function roleRowHtml(r){
+    var typeBadge = r.type === 'System' ? 'badge-gray' : 'badge-blue';
+    var deleteDisabled = r.locked || r.usersCount > 0;
+    var deleteTitle = r.locked ? 'System roles can\'t be deleted' : (r.usersCount > 0 ? 'Reassign ' + r.usersCount + ' user' + (r.usersCount === 1 ? '' : 's') + ' before deleting' : 'Delete role');
+
+    return '' +
+      '<tr>' +
+        '<td>' +
+          '<p class="cell-primary">' + escapeHtml(r.name) + (r.locked ? ' <i class="fa-solid fa-lock" style="font-size:10px;color:var(--gray-400);" title="Fixed permissions"></i>' : '') + '</p>' +
+          '<p class="cell-sub">' + escapeHtml(r.description) + '</p>' +
+        '</td>' +
+        '<td><span class="badge ' + typeBadge + '">' + r.type + '</span></td>' +
+        '<td>' + r.usersCount + '</td>' +
+        '<td>' +
+          '<div class="action-icons">' +
+            '<span class="ic" title="' + (r.locked ? 'View permissions' : 'Edit permissions') + '" onclick="openPermissions(\'' + r.id + '\')"><i class="fa-regular fa-eye"></i></span>' +
+            (deleteDisabled
+              ? '<span class="ic" style="opacity:.35;cursor:not-allowed;" title="' + deleteTitle + '"><i class="fa-regular fa-trash-can"></i></span>'
+              : '<span class="ic" title="Delete role" onclick="openDeleteRole(\'' + r.id + '\')"><i class="fa-regular fa-trash-can"></i></span>') +
+          '</div>' +
+        '</td>' +
+      '</tr>';
+  }
+
+  /* ---------- Permissions matrix modal ---------- */
+  function openPermissions(roleId){
+    var role = roles.find(function(x){ return x.id === roleId; });
+    if(!role) return;
+    editingRoleId = roleId;
+
+    document.getElementById('permissionsModalTitle').textContent = role.name + ' — Permissions';
+    document.getElementById('permissionsRoleDesc').textContent = role.description;
+    document.getElementById('lockedRoleNotice').style.display = role.locked ? 'flex' : 'none';
+    document.getElementById('permissionsActions').style.display = role.locked ? 'none' : 'flex';
+
+    var tbody = document.getElementById('permissionsTableBody');
+    var html = '';
+    var lastSection = null;
+    MODULES.forEach(function(m){
+      if(m.section !== lastSection){
+        html += '<tr><td colspan="5" style="background:var(--gray-25);font-weight:700;font-size:11.5px;color:var(--gray-500);text-transform:uppercase;letter-spacing:.03em;">' + escapeHtml(m.section) + '</td></tr>';
+        lastSection = m.section;
+      }
+      var p = role.permissions[m.key];
+      var dis = role.locked ? 'disabled' : '';
+      html += '' +
+        '<tr>' +
+          '<td><p class="cell-primary" style="font-size:13px;">' + escapeHtml(m.label) + '</p></td>' +
+          '<td style="text-align:center;"><input type="checkbox" data-module="' + m.key + '" data-perm="view" ' + (p.view ? 'checked' : '') + ' ' + dis + ' style="width:16px;height:16px;"></td>' +
+          '<td style="text-align:center;"><input type="checkbox" data-module="' + m.key + '" data-perm="create" ' + (p.create ? 'checked' : '') + ' ' + dis + ' style="width:16px;height:16px;"></td>' +
+          '<td style="text-align:center;"><input type="checkbox" data-module="' + m.key + '" data-perm="edit" ' + (p.edit ? 'checked' : '') + ' ' + dis + ' style="width:16px;height:16px;"></td>' +
+          '<td style="text-align:center;"><input type="checkbox" data-module="' + m.key + '" data-perm="delete" ' + (p.delete ? 'checked' : '') + ' ' + dis + ' style="width:16px;height:16px;"></td>' +
+        '</tr>';
+    });
+    tbody.innerHTML = html;
+
+    openModal('permissionsModal');
+  }
+
+  function savePermissions(){
+    var role = roles.find(function(x){ return x.id === editingRoleId; });
+    if(!role || role.locked) { closeModal('permissionsModal'); return; }
+
+    document.querySelectorAll('#permissionsTableBody input[type="checkbox"]').forEach(function(box){
+      var moduleKey = box.dataset.module;
+      var perm = box.dataset.perm;
+      role.permissions[moduleKey][perm] = box.checked;
+    });
+
+    closeModal('permissionsModal');
+    showToast(role.name + ' permissions updated.');
+  }
+
+  /* ---------- Create role ---------- */
+  function openCreateRole(){
+    document.getElementById('newRoleName').value = '';
+    document.getElementById('newRoleDescription').value = '';
+    document.getElementById('newRoleTemplate').value = '';
+    document.getElementById('createRoleError').style.display = 'none';
+    openModal('createRoleModal');
+  }
+
+  function saveNewRole(){
+    var name = document.getElementById('newRoleName').value.trim();
+    if(!name){
+      var err = document.getElementById('createRoleError');
+      err.textContent = 'Please enter a role name.';
+      err.style.display = 'block';
+      return;
+    }
+    var description = document.getElementById('newRoleDescription').value.trim() || 'Custom role.';
+    var templateId = document.getElementById('newRoleTemplate').value;
+    var permissions;
+    if(templateId){
+      var template = roles.find(function(x){ return x.id === templateId; });
+      permissions = {};
+      MODULES.forEach(function(m){ permissions[m.key] = Object.assign({}, template.permissions[m.key]); });
+    } else {
+      permissions = buildPermissions({});
+    }
+
+    roles.push({
+      id: 'role-' + Date.now(),
+      name: name,
+      description: description,
+      type: 'Custom',
+      locked: false,
+      usersCount: 0,
+      permissions: permissions
+    });
+
+    closeModal('createRoleModal');
+    renderRoles();
+    showToast('Role "' + name + '" created. Edit its permissions from the table.');
+  }
+
+  /* ---------- Delete role ---------- */
+  function openDeleteRole(roleId){
+    var r = roles.find(function(x){ return x.id === roleId; });
+    if(!r) return;
+    pendingDeleteRoleId = roleId;
+    document.getElementById('deleteRoleMsg').textContent =
+      'Are you sure you want to delete "' + r.name + '"? This cannot be undone.';
+    openModal('deleteRoleModal');
+  }
+
+  function confirmDeleteRole(){
+    var r = roles.find(function(x){ return x.id === pendingDeleteRoleId; });
+    roles = roles.filter(function(x){ return x.id !== pendingDeleteRoleId; });
+    closeModal('deleteRoleModal');
+    renderRoles();
+    if(r) showToast('"' + r.name + '" was deleted.');
+    pendingDeleteRoleId = null;
+  }
+
+  /* ---------- Modal + toast helpers ---------- */
+  function openModal(id){
+    document.getElementById(id).classList.add('open');
+    document.body.classList.add('modal-open');
+  }
+  function closeModal(id){
+    document.getElementById(id).classList.remove('open');
+    document.body.classList.remove('modal-open');
+  }
+
+  function showToast(msg){
+    var host = document.getElementById('toastHost');
+    var toast = document.createElement('div');
+    toast.className = 'toast toast-success';
+    toast.innerHTML = '<i class="fa-solid fa-circle-check"></i> ' + msg;
+    host.appendChild(toast);
+    requestAnimationFrame(function(){ toast.classList.add('show'); });
+    setTimeout(function(){
+      toast.classList.remove('show');
+      setTimeout(function(){ toast.remove(); }, 200);
+    }, 2600);
+  }
+
+  ['permissionsModal','createRoleModal','deleteRoleModal'].forEach(function(id){
+    document.getElementById(id).addEventListener('click', function(e){
+      if(e.target === this) closeModal(id);
+    });
+  });
+
+  renderRoles();
+</script>
+
+{% endblock %}

@@ -4,6 +4,7 @@ from django.contrib.auth import authenticate, login as auth_login, logout as aut
 from django.contrib.auth.models import User
 from .models import CitizenProfile
 from office_dashboard.models import OfficeRepresentative
+from admin_dashboard.models import SuperAdmin
 
 
 # Create your views here.
@@ -71,6 +72,8 @@ def login(request):
         user = authenticate(request, username=email, password=password)
         if user is not None:
             auth_login(request, user)
+            if SuperAdmin.objects.filter(user=user).exists():
+                return redirect("admin_dashboard:admin_dash")
             if OfficeRepresentative.objects.filter(user=user).exists():
                 return redirect("office_dashboard:dashboard")
             return redirect(next_url or "home")
@@ -84,3 +87,5 @@ def logout(request):
     auth_logout(request)
     messages.success(request, "You have been logged out.")
     return redirect("home")
+
+

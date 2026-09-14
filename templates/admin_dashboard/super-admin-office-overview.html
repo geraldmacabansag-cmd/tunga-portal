@@ -1,0 +1,231 @@
+{% extends "super-admin-base.html" %}
+{% load static %}
+
+{% block page_title_tag %}Office Overview{% endblock %}
+{% block body_page %}office overview{% endblock %}
+{% block page_title %}Office Overview{% endblock %}
+{% block page_subtitle %}Manage and monitor all municipal offices{% endblock %}
+{% block breadcrumbs %}<span>Dashboard</span><span class="sep">›</span><span>Office Management</span><span class="sep">›</span><span class="current">Office Overview</span>{% endblock %}
+
+{% block content %}
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon blue"><i class="fa-solid fa-building"></i></span></div>
+          <div class="stat-value">15</div>
+          <div class="stat-label">Total Offices</div>
+          <div class="stat-sub">All registered offices</div>
+        </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon green"><i class="fa-solid fa-circle-check"></i></span></div>
+          <div class="stat-value">12</div>
+          <div class="stat-label">Active Offices</div>
+          <div class="stat-sub">Currently active</div>
+        </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon amber"><i class="fa-regular fa-clock"></i></span></div>
+          <div class="stat-value">3</div>
+          <div class="stat-label">Pending Approval</div>
+          <div class="stat-sub">Awaiting review</div>
+        </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon gray"><i class="fa-solid fa-ban"></i></span></div>
+          <div class="stat-value">0</div>
+          <div class="stat-label">Inactive Offices</div>
+          <div class="stat-sub">Not active</div>
+        </div>
+      </div>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>All Offices</h2>
+          <button type="button" class="btn btn-primary btn-sm" id="open-add-office"><i class="fa-solid fa-plus"></i> Add New Office</button>
+        </div>
+        <div class="filters-row">
+          <label class="field search" style="flex:1;"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search office..."></label>
+          <select class="field">
+            <option>All Status</option>
+            <option>Active</option>
+            <option>Pending Approval</option>
+            <option>Inactive</option>
+          </select>
+          <select class="field">
+            <option>All Offices</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Office</th>
+                <th>Representative</th>
+                <th>Status</th>
+                <th>Last Update</th>
+                <th>Published Posts</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+            <tr>
+              <td class="row-icon-name"><span class="row-thumb" style="background:var(--blue-600);color:#fff;"><i class="fa-solid fa-landmark"></i></span><span class="cell-primary">Mayor's Office</span></td>
+              <td>Juan Cruz</td>
+              <td><span class="badge badge-green">Active</span></td>
+              <td>Today, 9:30 AM</td>
+              <td>34</td>
+              <td>
+                <div class="action-icons">
+                  <span class="ic"><i class="fa-regular fa-eye"></i></span>
+                  <span class="ic"><i class="fa-regular fa-pen-to-square"></i></span>
+                  <span class="ic"><i class="fa-solid fa-ellipsis-vertical"></i></span>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="row-icon-name"><span class="row-thumb" style="background:var(--green-600);color:#fff;"><i class="fa-solid fa-house-medical"></i></span><span class="cell-primary">Rural Health Unit (RHU)</span></td>
+              <td>Ana Reyes</td>
+              <td><span class="badge badge-amber">Pending Approval</span></td>
+              <td>Yesterday, 4:20 PM</td>
+              <td>12</td>
+              <td>
+                <div class="action-icons">
+                  <span class="ic"><i class="fa-regular fa-eye"></i></span>
+                  <span class="ic"><i class="fa-regular fa-pen-to-square"></i></span>
+                  <span class="ic"><i class="fa-solid fa-ellipsis-vertical"></i></span>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="row-icon-name"><span class="row-thumb" style="background:var(--green-600);color:#fff;"><i class="fa-solid fa-seedling"></i></span><span class="cell-primary">Agriculture Office</span></td>
+              <td>Pedro Santos</td>
+              <td><span class="badge badge-green">Active</span></td>
+              <td>Today, 10:15 AM</td>
+              <td>18</td>
+              <td>
+                <div class="action-icons">
+                  <span class="ic"><i class="fa-regular fa-eye"></i></span>
+                  <span class="ic"><i class="fa-regular fa-pen-to-square"></i></span>
+                  <span class="ic"><i class="fa-solid fa-ellipsis-vertical"></i></span>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="row-icon-name"><span class="row-thumb" style="background:var(--blue-600);color:#fff;"><i class="fa-solid fa-umbrella-beach"></i></span><span class="cell-primary">Tourism Office</span></td>
+              <td>Maria Lopez</td>
+              <td><span class="badge badge-green">Active</span></td>
+              <td>Today, 8:50 AM</td>
+              <td>21</td>
+              <td>
+                <div class="action-icons">
+                  <span class="ic"><i class="fa-regular fa-eye"></i></span>
+                  <span class="ic"><i class="fa-regular fa-pen-to-square"></i></span>
+                  <span class="ic"><i class="fa-solid fa-ellipsis-vertical"></i></span>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="row-icon-name"><span class="row-thumb" style="background:var(--red-600);color:#fff;"><i class="fa-solid fa-scale-balanced"></i></span><span class="cell-primary">Assessor's Office</span></td>
+              <td>Lito Garcia</td>
+              <td><span class="badge badge-green">Active</span></td>
+              <td>Yesterday, 2:11 PM</td>
+              <td>15</td>
+              <td>
+                <div class="action-icons">
+                  <span class="ic"><i class="fa-regular fa-eye"></i></span>
+                  <span class="ic"><i class="fa-regular fa-pen-to-square"></i></span>
+                  <span class="ic"><i class="fa-solid fa-ellipsis-vertical"></i></span>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="row-icon-name"><span class="row-thumb" style="background:var(--blue-600);color:#fff;"><i class="fa-solid fa-coins"></i></span><span class="cell-primary">Municipal Treasurer's Office</span></td>
+              <td>Riza Delos Santos</td>
+              <td><span class="badge badge-green">Active</span></td>
+              <td>Today, 11:05 AM</td>
+              <td>17</td>
+              <td>
+                <div class="action-icons">
+                  <span class="ic"><i class="fa-regular fa-eye"></i></span>
+                  <span class="ic"><i class="fa-regular fa-pen-to-square"></i></span>
+                  <span class="ic"><i class="fa-solid fa-ellipsis-vertical"></i></span>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="row-icon-name"><span class="row-thumb" style="background:var(--amber-600);color:#fff;"><i class="fa-solid fa-id-card"></i></span><span class="cell-primary">Civil Registrar Office</span></td>
+              <td>Mark Villanueva</td>
+              <td><span class="badge badge-amber">Pending Approval</span></td>
+              <td>Today, 1:40 PM</td>
+              <td>8</td>
+              <td>
+                <div class="action-icons">
+                  <span class="ic"><i class="fa-regular fa-eye"></i></span>
+                  <span class="ic"><i class="fa-regular fa-pen-to-square"></i></span>
+                  <span class="ic"><i class="fa-solid fa-ellipsis-vertical"></i></span>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td class="row-icon-name"><span class="row-thumb" style="background:var(--gray-500);color:#fff;"><i class="fa-solid fa-road"></i></span><span class="cell-primary">Engineering Office</span></td>
+              <td>Ryan Caballero</td>
+              <td><span class="badge badge-green">Active</span></td>
+              <td>Today, 7:20 AM</td>
+              <td>11</td>
+              <td>
+                <div class="action-icons">
+                  <span class="ic"><i class="fa-regular fa-eye"></i></span>
+                  <span class="ic"><i class="fa-regular fa-pen-to-square"></i></span>
+                  <span class="ic"><i class="fa-solid fa-ellipsis-vertical"></i></span>
+                </div>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <span>Showing 1 to 8 of 15 offices</span>
+          <div class="page-nums">
+            <button class="page-btn"><i class="fa-solid fa-chevron-left"></i></button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn">2</button>
+            <button class="page-btn"><i class="fa-solid fa-chevron-right"></i></button>
+          </div>
+        </div>
+      </section>
+
+<div class="modal-backdrop" id="add-office-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Add New Office</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form>
+        <div class="form-group">
+          <label class="form-label">Office Name <span class="req">*</span></label>
+          <input class="form-input" type="text" name="title" placeholder="e.g. Business Permits and Licensing Office" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Representative</label>
+          <input class="form-input" type="text" name="rep" placeholder="Full name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-input" name="status">
+            <option>Active</option>
+            <option>Pending Approval</option>
+            <option>Inactive</option>
+          </select>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Add Office</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="super_admin.js"></script>
+
+
+{% endblock %}
