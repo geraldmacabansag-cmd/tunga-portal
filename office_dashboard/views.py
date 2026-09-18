@@ -90,6 +90,11 @@ def rep_announcement(request, rep):
 def edit_announcement(request, rep, pk):
     announcement = get_object_or_404(Announcement, pk=pk, representative=rep)
 
+    if announcement.status == 'published':
+        messages.error(request, "This announcement is already published and can no longer be edited.")
+        return redirect('office_dashboard:rep_announce')
+
+
     if request.method == "POST":
         title = request.POST.get('title', '').strip()
         if not title:
@@ -214,6 +219,10 @@ def news_update(request, rep):
 def edit_news(request, rep, pk):
     news = get_object_or_404(NewsUpdate, pk=pk, representative=rep)
 
+    if news.status == 'published':
+        messages.error(request, "This news post is already published and can no longer be edited.")
+        return redirect('office_dashboard:news_update')
+
     if request.method == "POST":
         title = request.POST.get('title', '').strip()
         if not title:
@@ -283,7 +292,7 @@ def events(request, rep):
     if status:
         events_qs = events_qs.filter(status=status)
 
-    when = request.GET.get('when', 'upcoming')
+    when = request.GET.get('when', 'all')
     today = timezone.localdate()
     if when == 'upcoming':
         events_qs = events_qs.filter(event_date__gte=today)
@@ -315,6 +324,10 @@ def events(request, rep):
 @office_rep_required
 def edit_event(request, rep, pk):
     event = get_object_or_404(Event, pk=pk, representative=rep)
+
+    if event.status == 'published':
+        messages.error(request, "This event is already published and can no longer be edited.")
+        return redirect('office_dashboard:event')
 
     if request.method == "POST":
         title = request.POST.get('title', '').strip()
@@ -541,6 +554,10 @@ def download_form(request, rep, pk):
 @office_rep_required
 def edit_form(request, rep, pk):
     form = get_object_or_404(DownloadableForm, pk=pk, office=rep.office)
+
+    if form.status == 'published':
+        messages.error(request, "This form is already published and can no longer be edited.")
+        return redirect('office_dashboard:downloadable_form')
 
     if request.method == "POST":
         title = request.POST.get('title', '').strip()

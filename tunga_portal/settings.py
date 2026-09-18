@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'django.contrib.humanize',
 
     'cloudinary_storage',
     'django.contrib.staticfiles',
@@ -75,12 +76,14 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'admin_dashboard.context_processors.site_contact_info',
             ],
         },
     },
 ]
 
 WSGI_APPLICATION = 'tunga_portal.wsgi.application'
+
 
 
 # Database

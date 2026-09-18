@@ -27,23 +27,23 @@ Home | Digital Governance Portal
         <ul class="contact-channels">
           <li>
             <i class="fa-solid fa-phone contact-channel__icon"></i>
-            <div><strong>Phone</strong><span>(053) 456 789<br>Local 100</span></div>
+            <div><strong>Phone</strong><span>{{ site_contact.phone }}{% if site_contact.phone_local %}<br>{{ site_contact.phone_local }}{% endif %}</span></div>
           </li>
           <li>
             <i class="fa-solid fa-envelope contact-channel__icon"></i>
-            <div><strong>Email</strong><span>tunga@gmail.com<br>info@tunga.gov.ph</span></div>
+            <div><strong>Email</strong><span>{{ site_contact.email }}{% if site_contact.email_secondary %}<br>{{ site_contact.email_secondary }}{% endif %}</span></div>
           </li>
           <li>
             <i class="fa-solid fa-location-dot contact-channel__icon"></i>
-            <div><strong>Address</strong><span>2nd Floor, Municipal Hall<br>Tunga, Leyte</span></div>
+            <div><strong>Address</strong><span>{{ site_contact.address }}</span></div>
           </li>
           <li>
             <i class="fa-brands fa-facebook-f contact-channel__icon"></i>
-            <div><strong>Facebook Page</strong><span>Municipality of Tunga - Official</span></div>
+            <div><strong>Facebook Page</strong><span>{{ site_contact.facebook_name }}</span></div>
           </li>
           <li>
             <i class="fa-regular fa-clock contact-channel__icon"></i>
-            <div><strong>Office Hours</strong><span>Monday &ndash; Friday<br>8:00 AM &ndash; 5:00 PM</span></div>
+            <div><strong>Office Hours</strong><span>{{ site_contact.office_hours }}</span></div>
           </li>
         </ul>
       </div>

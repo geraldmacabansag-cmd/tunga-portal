@@ -20,41 +20,22 @@
   <div class="stat-grid">
     <div class="stat-card">
       <div class="top"><span class="stat-icon blue"><i class="fa-solid fa-bullhorn"></i></span></div>
-      <div class="stat-value" id="statTotal">0</div>
-      <div class="stat-label">Total announcements</div>
-      <div class="stat-sub">All statuses</div>
-    </div>
-    <div class="stat-card">
-      <div class="top"><span class="stat-icon green"><i class="fa-solid fa-circle-check"></i></span></div>
-      <div class="stat-value" id="statPublished">0</div>
-      <div class="stat-label">Published &amp; live</div>
-      <div class="stat-sub">Visible on the website now</div>
-    </div>
-    <div class="stat-card">
-      <div class="top"><span class="stat-icon amber"><i class="fa-regular fa-clock"></i></span></div>
-      <div class="stat-value" id="statScheduled">0</div>
-      <div class="stat-label">Scheduled</div>
-      <div class="stat-sub" id="statScheduledSub">Not yet live</div>
+      <div class="stat-value">{{ total_count }}</div>
+      <div class="stat-label">Published announcements</div>
+      <div class="stat-sub">Live on the website</div>
     </div>
     <div class="stat-card">
       <div class="top"><span class="stat-icon gray"><i class="fa-regular fa-eye"></i></span></div>
-      <div class="stat-value" id="statViews">0</div>
-      <div class="stat-label">Total views this month</div>
+      <div class="stat-value">{{ total_views }}</div>
+      <div class="stat-label">Total views</div>
       <div class="stat-sub">Across all announcements</div>
     </div>
   </div>
 
   <div class="panel">
-    <div class="tabs">
-      <div class="tab active" data-filter="all">All <span class="count" id="tabAllCount">0</span></div>
-      <div class="tab" data-filter="Published">Published <span class="count" id="tabPublishedCount">0</span></div>
-      <div class="tab" data-filter="Scheduled">Scheduled <span class="count" id="tabScheduledCount">0</span></div>
-      <div class="tab" data-filter="Archived">Archived <span class="count" id="tabArchivedCount">0</span></div>
-    </div>
-
     <div class="filters-row">
-      <label class="field search"><i class="fa-solid fa-magnifying-glass"></i><input type="text" id="annSearch" placeholder="Search announcements..." oninput="renderTable()"></label>
-      <select class="field" id="annCategoryFilter" onchange="renderTable()">
+      <label class="field search"><i class="fa-solid fa-magnifying-glass"></i><input type="text" id="annSearch" placeholder="Search announcements..."></label>
+      <select class="field" id="annCategoryFilter">
         <option>All categories</option>
         <option>Public Advisory</option>
         <option>Health</option>
@@ -64,7 +45,7 @@
         <option>Safety</option>
         <option>General</option>
       </select>
-      <select class="field" id="annSort" onchange="renderTable()">
+      <select class="field" id="annSort">
         <option>Newest first</option>
         <option>Oldest first</option>
         <option>Most viewed</option>
@@ -85,7 +66,31 @@
           </tr>
         </thead>
         <tbody id="annTableBody">
-          <!-- rows are rendered by JS from the announcements[] array -->
+          {% for a in announcements %}
+          <tr>
+            <td>
+              <div class="row-icon-name">
+                {% if a.image %}<img class="list-thumb" src="{{ a.image.url }}" alt="">{% else %}<span class="row-thumb" style="background:var(--blue-50);color:var(--blue-600);"><i class="fa-solid fa-bullhorn"></i></span>{% endif %}
+                <div>
+                  <p class="cell-primary">{{ a.title }}</p>
+                  <p class="cell-sub">{{ a.subtitle|default:a.content|truncatewords:14 }}</p>
+                </div>
+              </div>
+            </td>
+            <td><span class="tag tag-gray">{{ a.category|default:"—" }}</span></td>
+            <td>{{ a.representative.office.name|default:"—" }}</td>
+            <td>{{ a.date_posted|default:a.created_at|date:"M j, Y" }}</td>
+            <td><span class="badge {{ a.badge_class }}">{{ a.get_status_display }}</span></td>
+            <td>{{ a.views }}</td>
+            <td>
+              <div class="action-icons">
+                <a class="ic" title="View" href="{% url 'admin_dashboard:approval_details' 'Announcement' a.pk %}"><i class="fa-regular fa-eye"></i></a>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr class="no-results-row"><td colspan="7">No announcements yet.</td></tr>
+          {% endfor %}
         </tbody>
       </table>
     </div>
@@ -218,11 +223,12 @@
   <script>
     /* =========================================================
        DATA MODEL
-       In production this array would come from your backend.
-       Everything below (stats, tab counts, table rows, pagination
-       text) is derived from it and re-rendered after every
-       create / edit / delete, so the page is fully functional
-       on its own.
+       This is the old demo-only array still used by the Create/
+       Edit/Delete modals above. It is NOT what populates the
+       table anymore — the table rows are rendered server-side
+       from the real database (see the {% verbatim %}for-loop over "announcements"{% endverbatim %} above).
+       Saving/editing/deleting here only affects this in-memory
+       array, not the database, until those are wired up too.
     ========================================================= */
     var announcements = [
       {
@@ -445,22 +451,7 @@
       var archived = announcements.filter(function(a){ return a.status === 'Archived'; }).length;
       var totalViews = announcements.reduce(function(sum, a){ return sum + a.views; }, 0);
 
-      document.getElementById('statTotal').textContent = total;
-      document.getElementById('statPublished').textContent = published;
-      document.getElementById('statScheduled').textContent = scheduled;
-      document.getElementById('statViews').textContent = totalViews.toLocaleString();
 
-      document.getElementById('tabAllCount').textContent = total;
-      document.getElementById('tabPublishedCount').textContent = published;
-      document.getElementById('tabScheduledCount').textContent = scheduled;
-      document.getElementById('tabArchivedCount').textContent = archived;
-
-      var nextScheduled = announcements
-        .filter(function(a){ return a.status === 'Scheduled'; })
-        .sort(function(a, b){ return a.date.localeCompare(b.date); })[0];
-      document.getElementById('statScheduledSub').textContent = nextScheduled
-        ? 'Next: ' + formatDateDisplay(nextScheduled.date)
-        : 'Nothing scheduled';
     }
 
     document.querySelectorAll('.tabs .tab').forEach(function(tabEl){
@@ -631,7 +622,10 @@
       if(e.target === this) closeModal('deleteAnnModal');
     });
 
-    renderTable();
+    // renderTable() intentionally NOT called here — the table above is
+    // now rendered server-side from the real database. Calling it would
+    // wipe those real rows and replace them with the fake array above.
   </script>
+
 
 {% endblock %}

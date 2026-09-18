@@ -76,7 +76,11 @@
                 </td>
                 <td><div class="action-icons">
                   <span class="ic" data-view-target="view-news-modal-{{ n.id }}"><i class="fa-regular fa-eye"></i></span>
-                  <span class="ic" data-edit-target="edit-news-modal-{{ n.id }}"><i class="fa-regular fa-pen-to-square"></i></span>
+                  {% if n.status == 'published' %}
+                    <span class="ic" style="opacity:.35;cursor:not-allowed;" title="Published content cannot be edited"><i class="fa-regular fa-pen-to-square"></i></span>
+                  {% else %}
+                    <span class="ic" data-edit-target="edit-news-modal-{{ n.id }}"><i class="fa-regular fa-pen-to-square"></i></span>
+                  {% endif %}
                   <span class="ic" data-delete-target="delete-news-modal-{{ n.id }}"><i class="fa-regular fa-trash-can"></i></span>
                 </div></td>
               </tr>
@@ -207,6 +211,13 @@
       <div class="modal-view-row"><span class="k">Tags</span><span class="v">{{ n.tags|default:"—" }}</span></div>
       <div class="modal-view-row"><span class="k">Status</span><span class="v">{{ n.get_status_display }}</span></div>
       <div class="modal-view-row"><span class="k">Views</span><span class="v">{{ n.views }}</span></div>
+
+      {% if n.admin_note %}
+      <div class="reminder-box">
+        <span class="ic"><i class="fa-regular fa-comment-dots"></i></span>
+        <div><strong>Note from Super Admin</strong><p>{{ n.admin_note|linebreaksbr }}</p></div>
+      </div>
+      {% endif %}
 
       <div class="modal-actions">
         <button type="button" class="btn btn-secondary" data-act="cancel">Close</button>

@@ -65,7 +65,11 @@
                 <td>
                   <div class="action-icons">
                     <a class="ic" href="{% url 'office_dashboard:download_form' form.pk %}" title="Download"><i class="fa-solid fa-download"></i></a>
+                    {% if form.status == 'published' %}
+                      <span class="ic" style="opacity:.35;cursor:not-allowed;" title="Published content cannot be edited"><i class="fa-regular fa-pen-to-square"></i></span>
+                    {% else %}
                     <button type="button" class="ic" title="Edit" data-edit-target="edit-form-modal-{{ form.pk }}"><i class="fa-regular fa-pen-to-square"></i></button>
+                    {% endif %}
                     <button type="button" class="ic" title="Delete" data-delete-target="delete-form-modal-{{ form.pk }}"><i class="fa-regular fa-trash-can"></i></button>
                   </div>
                 </td>

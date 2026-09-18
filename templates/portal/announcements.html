@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load humanize %}
 
 {% block title %}
 Home | Digital Governance Portal
@@ -47,34 +48,20 @@ Home | Digital Governance Portal
           <a href="#" class="view-all">View All</a>
         </div>
         <ul class="update-list">
+          {% for a in announcements %}
           <li class="update-item">
-            <div class="update-item__date">JUL<strong>15</strong>2026</div>
+            <div class="update-item__date">{{ a.display_date|date:"M"|upper }}<strong>{{ a.display_date|date:"d" }}</strong>{{ a.display_date|date:"Y" }}</div>
             <div class="update-item__body">
-              <span class="badge-new">NEW</span>
-              <a href="#" class="update-item__title">Mayor's Listening Session</a>
-              <p>The Mayor will hold a listening session with barangay representatives on July 15, 2026 at the Municipal Hall Conference Room.</p>
-              <div class="update-item__meta"><i class="fa-regular fa-user"></i> Mayor's Office &nbsp; <i class="fa-regular fa-clock"></i> 2 hours ago</div>
+              {% if forloop.first %}<span class="badge-new">NEW</span>{% endif %}
+              <a href="#" class="update-item__title">{{ a.title }}</a>
+              <p>{{ a.content|truncatewords:28 }}</p>
+              <div class="update-item__meta"><i class="fa-regular fa-user"></i> {{ a.representative.office.name|default:"—" }} &nbsp; <i class="fa-regular fa-clock"></i> {{ a.created_at|naturaltime }}</div>
             </div>
-            <img src="{% static 'images/photo-meeting.svg' %}" alt="Mayor's listening session with barangay representatives">
+            {% if a.image %}<img src="{{ a.image.url }}" alt="{{ a.title }}">{% endif %}
           </li>
-          <li class="update-item">
-            <div class="update-item__date">JUL<strong>10</strong>2026</div>
-            <div class="update-item__body">
-              <a href="#" class="update-item__title">Schedule of Barangay Visits</a>
-              <p>Please be informed of the Mayor's schedule of barangay visits for the month of July 2026.</p>
-              <div class="update-item__meta"><i class="fa-regular fa-user"></i> Mayor's Office &nbsp; <i class="fa-regular fa-clock"></i> 1 day ago</div>
-            </div>
-            <img src="{% static 'images/photo-flagceremony.svg' %}" alt="Barangay visit group photo">
-          </li>
-          <li class="update-item">
-            <div class="update-item__date">JUL<strong>08</strong>2026</div>
-            <div class="update-item__body">
-              <a href="#" class="update-item__title">Flag Raising Ceremony</a>
-              <p>Monthly flag raising ceremony will be on July 1, 2026 at 7:30 AM in front of the Municipal Hall.</p>
-              <div class="update-item__meta"><i class="fa-regular fa-user"></i> Mayor's Office &nbsp; <i class="fa-regular fa-clock"></i> 2 days ago</div>
-            </div>
-            <img src="{% static 'images/photo-flagceremony.svg' %}" alt="Flag raising ceremony at the Municipal Hall">
-          </li>
+          {% empty %}
+          <li class="update-item"><div class="update-item__body"><p>No announcements published yet.</p></div></li>
+          {% endfor %}
         </ul>
       </div>
 
@@ -84,33 +71,19 @@ Home | Digital Governance Portal
           <a href="#" class="view-all">View All</a>
         </div>
         <ul class="update-list">
+          {% for n in news_items %}
           <li class="update-item">
-            <div class="update-item__date">JUL<strong>12</strong>2026</div>
+            <div class="update-item__date">{{ n.display_date|date:"M"|upper }}<strong>{{ n.display_date|date:"d" }}</strong>{{ n.display_date|date:"Y" }}</div>
             <div class="update-item__body">
-              <a href="#" class="update-item__title">Tunga Conducts Community Clean-Up Drive</a>
-              <p>The Municipality of Tunga successfully conducted a community-wide clean-up drive with the participation of municipal employees, barangay officials, volunteers, and residents.</p>
-              <div class="update-item__meta"><i class="fa-regular fa-building"></i> Municipal Environment and Natural Resources Office &nbsp; <i class="fa-regular fa-clock"></i> 1 day ago</div>
+              <a href="#" class="update-item__title">{{ n.title }}</a>
+              <p>{{ n.summary|default:n.content|truncatewords:28 }}</p>
+              <div class="update-item__meta"><i class="fa-regular fa-building"></i> {{ n.representative.office.name|default:"—" }} &nbsp; <i class="fa-regular fa-clock"></i> {{ n.created_at|naturaltime }}</div>
             </div>
-            <img src="{% static 'images/photo-cleanup.svg' %}" alt="Community clean-up drive volunteers">
+            {% if n.image %}<img src="{{ n.image.url }}" alt="{{ n.title }}">{% endif %}
           </li>
-          <li class="update-item">
-            <div class="update-item__date">JUL<strong>07</strong>2026</div>
-            <div class="update-item__body">
-              <a href="#" class="update-item__title">Health Caravan Serves 350 Residents</a>
-              <p>The Municipal Health Office conducted a medical and dental mission at Brgy. Poblacion, benefiting 350 residents.</p>
-              <div class="update-item__meta"><i class="fa-regular fa-user"></i> Municipal Health Office &nbsp; <i class="fa-regular fa-clock"></i> 3 days ago</div>
-            </div>
-            <img src="images/photo-health.svg" alt="Health caravan medical mission">
-          </li>
-          <li class="update-item">
-            <div class="update-item__date">JUL<strong>03</strong>2026</div>
-            <div class="update-item__body">
-              <a href="#" class="update-item__title">LGU Tunga Supports Farmers' Training Program</a>
-              <p>The Municipal Agriculture Office, in partnership with DA-Leyte, conducted a training on organic farming for local farmers.</p>
-              <div class="update-item__meta"><i class="fa-regular fa-user"></i> Municipal Agriculture Office &nbsp; <i class="fa-regular fa-clock"></i> 4 days ago</div>
-            </div>
-            <img src="images/photo-training.svg" alt="Farmers' organic farming training program">
-          </li>
+          {% empty %}
+          <li class="update-item"><div class="update-item__body"><p>No news posted yet.</p></div></li>
+          {% endfor %}
         </ul>
       </div>
     </div>

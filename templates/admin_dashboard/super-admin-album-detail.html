@@ -1,0 +1,114 @@
+{% extends "super-admin-base.html" %}
+{% load static %}
+
+{% block page_title_tag %}{{ album.name }}{% endblock %}
+{% block body_page %}gallery{% endblock %}
+{% block page_title %}{{ album.name }}{% endblock %}
+{% block page_subtitle %}{{ album.representative.office.name }}{% endblock %}
+{% block breadcrumbs %}<span>Dashboard</span><span class="sep">›</span><span>Content Management</span><span class="sep">›</span><a href="{% url 'admin_dashboard:ad_gallery' %}">Gallery</a><span class="sep">›</span><span class="current">{{ album.name }}</span>{% endblock %}
+
+{% block content %}
+
+<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <a href="{% url 'admin_dashboard:ad_gallery' %}" class="btn btn-secondary btn-sm"><i class="fa-solid fa-arrow-left"></i> Albums</a>
+    <div>
+      <h2 style="margin:0;font-size:16px;font-weight:800;color:var(--gray-900);">{{ album.name }}</h2>
+      <p style="margin:3px 0 0;font-size:12.5px;color:var(--gray-500);">{{ album.representative.office.name }} · {{ album.created_at|date:"M d, Y" }} · {{ all_count }} photo{{ all_count|pluralize }}</p>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="tabs">
+    <a href="?tab=all" class="tab {% if current_tab == 'all' %}active{% endif %}" style="text-decoration:none;">All <span class="count">{{ all_count }}</span></a>
+    <a href="?tab=active" class="tab {% if current_tab == 'active' %}active{% endif %}" style="text-decoration:none;">Active <span class="count">{{ active_count }}</span></a>
+    <a href="?tab=archived" class="tab {% if current_tab == 'archived' %}active{% endif %}" style="text-decoration:none;">Archived <span class="count">{{ archived_count }}</span></a>
+  </div>
+
+  <div class="table-wrap" style="border:none;border-radius:0;">
+    <table class="data-table">
+      <thead><tr><th>Photo</th><th>Uploaded by</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for p in photos %}
+        <tr>
+          <td>
+            <div class="row-icon-name">
+              <img src="{{ p.image.url }}" alt="" style="width:44px;height:44px;border-radius:8px;object-fit:cover;">
+              <p class="cell-primary">{{ p.title }}</p>
+            </div>
+          </td>
+          <td>{{ p.representative.user.get_full_name|default:p.representative.user.username }}</td>
+          <td>{{ p.created_at|date:"M d, Y" }}</td>
+          <td><span class="badge {% if p.status == 'published' %}badge-green{% else %}badge-gray{% endif %}">{{ p.get_status_display }}</span></td>
+          <td>
+            <div class="action-icons">
+              <span class="ic" data-view-target="view-photo-modal-{{ p.id }}"><i class="fa-regular fa-eye"></i></span>
+              <span class="ic" data-delete-target="delete-photo-modal-{{ p.id }}"><i class="fa-regular fa-trash-can"></i></span>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" style="text-align:center;color:var(--gray-400);padding:24px;">No photos here.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% for p in photos %}
+<div class="modal-backdrop" id="view-photo-modal-{{ p.id }}">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Photo Details</h3>
+      <button type="button" class="modal-x" onclick="closeModal('view-photo-modal-{{ p.id }}')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <img src="{{ p.image.url }}" style="width:100%;max-height:320px;object-fit:cover;border-radius:10px;margin-bottom:16px;">
+      <div class="modal-view-row"><span class="k">Title</span><span class="v">{{ p.title }}</span></div>
+      <div class="modal-view-row"><span class="k">Uploaded by</span><span class="v">{{ p.representative.user.get_full_name|default:p.representative.user.username }}</span></div>
+      <div class="modal-view-row"><span class="k">Office</span><span class="v">{{ p.representative.office.name }}</span></div>
+      <div class="modal-view-row"><span class="k">Date</span><span class="v">{{ p.created_at|date:"F j, Y, g:i A" }}</span></div>
+      <div class="modal-view-row"><span class="k">Status</span><span class="v">{{ p.get_status_display }}</span></div>
+
+      <div class="modal-actions">
+        <form method="post" action="{% url 'admin_dashboard:admin_photo_archive' p.id %}" style="display:inline;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-secondary"><i class="fa-solid fa-box-archive"></i> {% if p.status == 'archive' %}Restore{% else %}Archive{% endif %}</button>
+        </form>
+        <button type="button" class="btn btn-secondary" onclick="closeModal('view-photo-modal-{{ p.id }}')">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="delete-photo-modal-{{ p.id }}">
+  <div class="modal-box" style="max-width:400px;">
+    <div class="modal-head">
+      <h3>Delete Photo</h3>
+      <button type="button" class="modal-x" onclick="closeModal('delete-photo-modal-{{ p.id }}')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <p>Are you sure you want to permanently delete <strong>"{{ p.title }}"</strong>? This cannot be undone.</p>
+      <form method="post" action="{% url 'admin_dashboard:admin_photo_delete' p.id %}">
+        {% csrf_token %}
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('delete-photo-modal-{{ p.id }}')">Cancel</button>
+          <button type="submit" class="btn btn-danger">Yes, Delete</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<script>
+document.querySelectorAll('[data-view-target]').forEach(function (t) {
+  t.addEventListener('click', function () { document.getElementById(t.dataset.viewTarget).classList.add('open'); });
+});
+document.querySelectorAll('[data-delete-target]').forEach(function (t) {
+  t.addEventListener('click', function () { document.getElementById(t.dataset.deleteTarget).classList.add('open'); });
+});
+</script>
+
+{% endblock %}

@@ -125,5 +125,14 @@
 
 <script src="{% static 'js/super_admin.js' %}"></script>
 {% block extra_js %}{% endblock %}
+
+{% if messages %}
+<div id="server-messages" hidden>
+  {% for message in messages %}
+    <div data-type="{{ message.tags }}">{{ message }}</div>
+  {% endfor %}
+</div>
+{% endif %}
+
 </body>
 </html>

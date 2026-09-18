@@ -239,6 +239,13 @@
       <div class="modal-view-row"><span class="k">Status</span><span class="v">{{ p.get_status_display }}</span></div>
       <div class="modal-view-row"><span class="k">Uploaded</span><span class="v">{{ p.created_at|date:"F j, Y, g:i A" }}</span></div>
 
+      {% if p.admin_note %}
+      <div class="reminder-box">
+        <span class="ic"><i class="fa-regular fa-comment-dots"></i></span>
+        <div><strong>Note from Super Admin</strong><p>{{ p.admin_note|linebreaksbr }}</p></div>
+      </div>
+      {% endif %}
+
       <div class="modal-actions">
         <button type="button" class="btn btn-secondary" data-act="cancel">Close</button>
         <button type="button" class="btn btn-primary" style="background:#dc2626;border-color:#dc2626;" data-open-delete="delete-photo-modal-{{ p.id }}">

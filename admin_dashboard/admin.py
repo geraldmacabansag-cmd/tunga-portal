@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import SuperAdmin
+from .models import SuperAdmin, EmergencyContact
 
 
 @admin.register(SuperAdmin)
@@ -12,3 +12,8 @@ class SuperAdminAdmin(admin.ModelAdmin):
         if SuperAdmin.objects.exists():
             return False
         return super().has_add_permission(request)
+
+@admin.register(EmergencyContact)
+class EmergencyContactAdmin(admin.ModelAdmin):
+    list_display = ("name", "category", "phone_number", "order")
+    list_filter = ("category",)

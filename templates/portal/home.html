@@ -37,30 +37,14 @@ Home | Digital Governance Portal
   <div class="container">
     <h2><i class="fa-solid fa-phone"></i> Emergency Contact Information</h2>
     <div class="emergency__grid">
-      <div class="emergency__card emergency__card--red">
-        <i class="fa-solid fa-truck-medical"></i>
-        <h3>MDRRMO</h3>
-        <p>TNT: 0981 551 9256<br>Radio Frequency: 158.710</p>
-        <a href="tel:09815519256" class="btn emergency__btn emergency__btn--red">CALL</a>
+      {% for c in emergency_contacts %}
+      <div class="emergency__card emergency__card--{{ c.color }}">
+        <i class="fa-solid {{ c.icon }}"></i>
+        <h3>{{ c.name }}</h3>
+        <p>{{ c.carrier_label }}: {{ c.phone_number }}{% if c.extra_detail %}<br>{{ c.extra_detail }}{% endif %}</p>
+        <a href="tel:{{ c.phone_number|cut:' ' }}" class="btn emergency__btn emergency__btn--{{ c.color }}">CALL</a>
       </div>
-      <div class="emergency__card emergency__card--navy">
-        <i class="fa-solid fa-user-shield"></i>
-        <h3>Police Station</h3>
-        <p>TM: 0906 286 3422<br>PMAJ Jenyzen M. Veloso, Officer-in-Charge</p>
-        <a href="tel:09062863422" class="btn emergency__btn emergency__btn--navy">CALL</a>
-      </div>
-      <div class="emergency__card emergency__card--teal">
-        <i class="fa-solid fa-heart-pulse"></i>
-        <h3>RHU</h3>
-        <p>GLOBE: 0915 763 2405</p>
-        <a href="tel:09157632405" class="btn emergency__btn emergency__btn--teal">CALL</a>
-      </div>
-      <div class="emergency__card emergency__card--orange">
-        <i class="fa-solid fa-fire"></i>
-        <h3>Fire Station</h3>
-        <p>SMART: 0985 619 3119<br>SFO4 Noel V. Permejo, OIC&ndash;Municipal Fire Marshal</p>
-        <a href="tel:09856193119" class="btn emergency__btn emergency__btn--orange">CALL</a>
-      </div>
+      {% endfor %}
     </div>
   </div>
 </section>
@@ -74,28 +58,18 @@ Home | Digital Governance Portal
         <a href="{% url 'announcement' %}" class="view-all">View All</a>
       </div>
       <ul class="feed-list">
+        {% for a in home_announcements %}
         <li class="feed-item">
-          <div class="feed-item__date">JUL<strong>17</strong>2026</div>
+          <div class="feed-item__date">{{ a.display_date|date:"M"|upper }}<strong>{{ a.display_date|date:"d" }}</strong>{{ a.display_date|date:"Y" }}</div>
           <div class="feed-item__body">
-            <span class="badge-new">NEW</span>
-            <a href="{% url 'announcement' %}" class="feed-item__title">Discussion for the Development of the Municipal Website</a>
-            <p>The public is invited to attend the meeting between the heads of the municipal offices and the students of EVSU-CC regarding the development of the Official Website of the Municipality of Tunga.</p>
+            {% if forloop.first %}<span class="badge-new">NEW</span>{% endif %}
+            <a href="{% url 'announcement' %}" class="feed-item__title">{{ a.title }}</a>
+            <p>{{ a.content|truncatewords:24 }}</p>
           </div>
         </li>
-        <li class="feed-item">
-          <div class="feed-item__date">JUN<strong>12</strong>2026</div>
-          <div class="feed-item__body">
-            <a href="{% url 'announcement' %}" class="feed-item__title">Barangay Clean-Up Drive</a>
-            <p>Residents are encouraged to join the community clean-up drive this Saturday to promote a cleaner and healthier environment.</p>
-          </div>
-        </li>
-        <li class="feed-item">
-          <div class="feed-item__date">JUN<strong>17</strong>2026</div>
-          <div class="feed-item__body">
-            <a href="{% url 'announcement' %}" class="feed-item__title">Free Medical Consultation</a>
-            <p>The Municipal Health Office will provide free medical check-ups and basic consultations for all residents at the Municipal Hall.</p>
-          </div>
-        </li>
+        {% empty %}
+        <li class="feed-item"><div class="feed-item__body"><p>No announcements published yet.</p></div></li>
+        {% endfor %}
       </ul>
     </div>
 
@@ -105,14 +79,18 @@ Home | Digital Governance Portal
         <a href="announcements.html" class="view-all">View All</a>
       </div>
       <div class="event-highlight">
+        {% if upcoming_event %}
         <div class="event-highlight__date">
-          <div class="event-highlight__daterange">JUL<br>15-16<br>2026</div>
+          <div class="event-highlight__daterange">{{ upcoming_event.event_date|date:"M"|upper }}<br>{{ upcoming_event.event_date|date:"d" }}<br>{{ upcoming_event.event_date|date:"Y" }}</div>
           <div>
-            <p class="event-highlight__title">LGBTQIA+ Exhibition Basketball Game</p>
-            <p class="event-highlight__meta"><i class="fa-regular fa-clock"></i> 5:00 PM &nbsp; <i class="fa-solid fa-location-dot"></i> LGU Grounds, Tunga, Leyte</p>
+            <p class="event-highlight__title">{{ upcoming_event.title }}</p>
+            <p class="event-highlight__meta"><i class="fa-regular fa-clock"></i> {{ upcoming_event.start_time|time:"g:i A"|default:"TBA" }} &nbsp; <i class="fa-solid fa-location-dot"></i> {{ upcoming_event.location|default:"—" }}</p>
           </div>
         </div>
-        <img src="{% static 'images/event-banner.svg' %}" alt="LGBTQIA+ Exhibition Basketball Game 2026 poster" class="event-highlight__img">
+        {% if upcoming_event.poster %}<img src="{{ upcoming_event.poster.url }}" alt="{{ upcoming_event.title }}" class="event-highlight__img">{% endif %}
+        {% else %}
+        <p style="padding:12px 0;color:var(--gray-500,#6b7286);">No upcoming events at this time.</p>
+        {% endif %}
       </div>
     </div>
 
@@ -122,12 +100,16 @@ Home | Digital Governance Portal
         <a href="announcements.html" class="view-all">View All</a>
       </div>
       <div class="news-item">
-        <img src="{% static 'images/photo-cleanup.svg' %}" alt="Community clean-up drive volunteers">
+        {% if latest_news %}
+        {% if latest_news.image %}<img src="{{ latest_news.image.url }}" alt="{{ latest_news.title }}">{% endif %}
         <div>
-          <p class="news-item__date">Published on: July 9, 2026, 5:00 PM</p>
-          <a href="#" class="news-item__title">Municipality Conducts Community Clean-Up Drive</a>
-          <p class="news-item__excerpt">The Municipality of Tunga successfully conducted a community-wide clean-up drive with the participation of municipal employees, barangay officials, volunteers, and residents. The activity aimed to promote environmental awareness and encourage active community involvement.</p>
+          <p class="news-item__date">Published on: {{ latest_news.date_published|default:latest_news.created_at|date:"F j, Y, g:i A" }}</p>
+          <a href="{% url 'announcement' %}" class="news-item__title">{{ latest_news.title }}</a>
+          <p class="news-item__excerpt">{{ latest_news.summary|default:latest_news.content|truncatewords:35 }}</p>
         </div>
+        {% else %}
+        <p style="padding:12px 0;color:var(--gray-500,#6b7286);">No news posted yet.</p>
+        {% endif %}
       </div>
     </div>
 
@@ -143,11 +125,11 @@ Home | Digital Governance Portal
     <div class="gallery-strip">
       <button class="gallery-nav gallery-nav--prev" aria-label="Previous photo"><i class="fa-solid fa-arrow-left"></i></button>
       <div class="gallery-strip__track">
-        <img src="{% static 'images/hero-building.svg' %}" alt="Tunga Municipal Hall front view">
-        <img src="{% static 'images/photo-flagceremony.svg' %}" alt="Flag raising ceremony">
-        <img src="{% static 'images/photo-meeting.svg' %}" alt="Mayor delivering a speech">
-        <img src="{% static 'images/photo-training.svg' %}" alt="Municipal employees group photo">
-        <img src="{% static 'images/photo-health.svg' %}" alt="Residents during a community event">
+        {% for p in gallery_photos %}
+        <img src="{{ p.image.url }}" alt="{{ p.title }}">
+        {% empty %}
+        <p style="padding:12px;color:var(--gray-500,#6b7286);">No photos published yet.</p>
+        {% endfor %}
       </div>
       <button class="gallery-nav gallery-nav--next" aria-label="Next photo"><i class="fa-solid fa-arrow-right"></i></button>
     </div>

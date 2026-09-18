@@ -3,16 +3,66 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib.auth.models import User
 from .models import CitizenProfile
-from office_dashboard.models import OfficeRepresentative
-from admin_dashboard.models import SuperAdmin
-
+from office_dashboard.models import OfficeRepresentative, Announcement, NewsUpdate, Event, Photo
+from admin_dashboard.models import SuperAdmin, EmergencyContact
+from django.utils import timezone
 
 # Create your views here.
 def home(request):
-    return render(request, "portal/home.html")
+    home_announcements = list(
+        Announcement.objects.filter(status='published')
+        .order_by('-date_posted', '-created_at')[:3]
+    )
+    for a in home_announcements:
+        a.display_date = a.date_posted or a.created_at.date()
+
+    upcoming_event = (
+        Event.objects.filter(status='published', event_date__gte=timezone.localdate())
+        .order_by('event_date')
+        .first()
+    )
+
+    latest_news = (
+        NewsUpdate.objects.filter(status='published')
+        .select_related('representative__office')
+        .order_by('-date_published', '-created_at')
+        .first()
+    )
+
+    gallery_photos = list(
+        Photo.objects.filter(status='published')
+        .order_by('-created_at')[:8]
+    )
+
+    return render(request, "portal/home.html", {
+        "emergency_contacts": EmergencyContact.objects.all(),
+        "home_announcements": home_announcements,
+        "upcoming_event": upcoming_event,
+        "latest_news": latest_news,
+        "gallery_photos": gallery_photos,
+    })
 
 def announcement(request):
-    return render(request, "portal/announcements.html")
+    announcements = list(
+        Announcement.objects.filter(status='published')
+        .select_related('representative__office')
+        .order_by('-date_posted', '-created_at')[:5]
+    )
+    for a in announcements:
+        a.display_date = a.date_posted or a.created_at.date()
+
+    news_items = list(
+        NewsUpdate.objects.filter(status='published')
+        .select_related('representative__office')
+        .order_by('-date_published', '-created_at')[:5]
+    )
+    for n in news_items:
+        n.display_date = n.date_published or n.created_at.date()
+
+    return render(request, "portal/announcements.html", {
+        "announcements": announcements,
+        "news_items": news_items,
+    })
 
 def offices(request):
     return render(request, "offices/offices.html")

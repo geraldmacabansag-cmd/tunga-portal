@@ -620,7 +620,7 @@ table.data-table {
 .tag-green{background:var(--green-50);color:var(--green-700);}
 .tag-purple{background:#f1e8fe;color:#7c3aed;}
 .tag-pink{background:#fde8f3;color:#db2777;}
-.tag-gray{background:var(--gray-100);color:var(--gray-600);}
+.tag-indigo{background:#e6e9fd;color:#4338ca;}
 
 /* =========================================================
    TAGS
@@ -1014,6 +1014,43 @@ table.data-table {
 .detail-value{font-size:14px;color:var(--gray-900);font-weight:600;margin-bottom:16px;}
 .detail-value .sub{display:block;font-size:11.5px;color:var(--gray-500);font-weight:500;margin-top:2px;}
 
+/* Overview panel: compact key-value rows */
+.ov-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--gray-100);}
+.ov-row:last-child{border-bottom:none;}
+.ov-k{font-size:11.5px;color:var(--gray-500);font-weight:600;flex-shrink:0;}
+.ov-v{font-size:13px;color:var(--gray-900);font-weight:700;text-align:right;}
+.ov-v .sub{display:block;font-weight:500;color:var(--gray-500);font-size:11px;margin-top:1px;}
+
+/* Content Details: 2-col grid for short fields, .full spans both columns */
+.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px;}
+.field-grid .full{grid-column:1/-1;}
+.fl-label{font-size:10.5px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.03em;margin-bottom:3px;}
+.fl-value{font-size:13px;color:var(--gray-900);font-weight:600;line-height:1.5;}
+.fl-value.muted{color:var(--gray-500);font-weight:400;}
+
+/* Service sub-lists: Process Steps / Requirements / Fees */
+.sub-block{margin-bottom:16px;}
+.sub-block:last-child{margin-bottom:0;}
+.sub-block-title{display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:800;color:var(--gray-700);margin-bottom:8px;}
+.sub-block-title .count{font-weight:700;color:var(--gray-400);}
+
+.step-chip{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--gray-50);}
+.step-chip:last-child{border-bottom:none;}
+.step-num{width:20px;height:20px;border-radius:50%;background:var(--blue-600);color:#fff;font-size:10.5px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.step-text{font-size:12.5px;color:var(--gray-800);line-height:1.4;}
+
+.req-chip{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--gray-50);font-size:12.5px;}
+.req-chip:last-child{border-bottom:none;}
+.req-tag{font-size:10px;font-weight:800;padding:2px 7px;border-radius:999px;flex-shrink:0;}
+.req-tag.required{background:var(--red-50);color:var(--red-700);}
+.req-tag.optional{background:var(--gray-100);color:var(--gray-600);}
+
+.fee-chip{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--gray-50);font-size:12.5px;}
+.fee-chip:last-child{border-bottom:none;}
+.fee-amount{font-weight:800;color:var(--gray-900);}
+
+.empty-note{font-size:12px;color:var(--gray-400);font-style:italic;}
+
 .preview-card{border:1px solid var(--gray-100);border-radius:12px;overflow:hidden;}
 .preview-card img{width:100%;height:170px;object-fit:cover;}
 .preview-card .pc-body{padding:16px;}
@@ -1207,11 +1244,69 @@ body.modal-open{overflow:hidden;}
 .row-removing{opacity:0 !important; transform:scale(.97); transition:opacity .2s ease, transform .2s ease;}
 .gallery-item.row-removing{transform:scale(.9);}
 
+/* this is for grid of gallery */
+.ec-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+.ec-grid .preview-card {
+  max-width: 280px;
+}
+
 /* office switcher dropdown */
 .office-switcher{cursor:pointer;}
 .office-switcher.open .chev{transform:rotate(180deg);}
 
 .no-results-row td{text-align:center; padding:28px 10px; color:var(--gray-400); font-size:13px;}
+
+/* =========================================================
+   COLOR PICKER FOR EMREGENCY CONTACT
+========================================================= */
+
+.color-picker { display:flex; flex-wrap:wrap; gap:10px; }
+.color-option { cursor:pointer; }
+.color-option input[type="radio"] { display:none; }
+.color-option span {
+  display:flex; align-items:center; justify-content:center;
+  width:34px; height:34px; border-radius:50%;
+  border:2px solid transparent;
+}
+.color-option input[type="radio"]:checked + span { border-color: var(--gray-900); }
+.color-option span i { color:#fff; font-size:11px; }
+
+.cc-color-red    { background:#d8302a; }
+.cc-color-navy   { background:#16325c; }
+.cc-color-teal   { background:#0f9488; }
+.cc-color-orange { background:#e07b0f; }
+.cc-color-purple { background:#7c4fe0; }
+.cc-color-gray   { background:#4d5468; }
+
+.cc-icon-red    { background:#fdecec; color:#d8302a; }
+.cc-icon-navy   { background:#eaf0fb; color:#16325c; }
+.cc-icon-teal   { background:#e6f7f5; color:#0f9488; }
+.cc-icon-orange { background:#fdf1e2; color:#e07b0f; }
+.cc-icon-purple { background:#f1ecfc; color:#7c4fe0; }
+.cc-icon-gray   { background:#e9ebf2; color:#4d5468; }
+
+.cc-call-red    { background:#d8302a; }
+.cc-call-navy   { background:#16325c; }
+.cc-call-teal   { background:#0f9488; }
+.cc-call-orange { background:#e07b0f; }
+.cc-call-purple { background:#7c4fe0; }
+.cc-call-gray   { background:#4d5468; }
+
+.icon-picker { display:flex; flex-wrap:wrap; gap:8px; }
+.icon-option { cursor:pointer; }
+.icon-option input[type="radio"] { display:none; }
+.icon-option span {
+  display:flex; align-items:center; justify-content:center;
+  width:34px; height:34px; border-radius:8px;
+  border:1px solid var(--gray-200); background:var(--gray-50); color:var(--gray-500); font-size:13px;
+  transition:border-color .15s ease, background-color .15s ease, color .15s ease;
+}
+.icon-option:hover span { border-color:var(--gray-300); }
+.icon-option input[type="radio"]:checked + span { border-color:var(--blue-600); background:var(--blue-50); color:var(--blue-600); }
 
 /* =========================================================
    MODAL FORM

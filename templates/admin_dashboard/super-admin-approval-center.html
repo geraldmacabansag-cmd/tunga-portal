@@ -24,6 +24,8 @@
       <a class="tab {% if current_type == 'News' %}active{% endif %}" style="text-decoration:none;" href="?type=News">News <span class="count">{{ type_counts.News|default:0 }}</span></a>
       <a class="tab {% if current_type == 'Event' %}active{% endif %}" style="text-decoration:none;" href="?type=Event">Events <span class="count">{{ type_counts.Event|default:0 }}</span></a>
       <a class="tab {% if current_type == 'Gallery' %}active{% endif %}" style="text-decoration:none;" href="?type=Gallery">Gallery <span class="count">{{ type_counts.Gallery|default:0 }}</span></a>
+      <a class="tab {% if current_type == 'Service' %}active{% endif %}" style="text-decoration:none;" href="?type=Service">Services <span class="count">{{ type_counts.Service|default:0 }}</span></a>
+
     </div>
 
     <form method="get" class="filters-row">

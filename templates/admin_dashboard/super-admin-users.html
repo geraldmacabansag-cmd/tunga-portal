@@ -12,230 +12,76 @@
       <div class="stat-grid">
         <div class="stat-card">
           <div class="top"><span class="stat-icon blue"><i class="fa-solid fa-users"></i></span></div>
-          <div class="stat-value">8</div>
+          <div class="stat-value">{{ total_users }}</div>
           <div class="stat-label">Total Users</div>
-          <div class="stat-sub">All registered accounts</div>
+          <div class="stat-sub">Registered citizen accounts</div>
         </div>
         <div class="stat-card">
           <div class="top"><span class="stat-icon green"><i class="fa-solid fa-circle-check"></i></span></div>
-          <div class="stat-value">6</div>
+          <div class="stat-value">{{ active_count }}</div>
           <div class="stat-label">Active Users</div>
           <div class="stat-sub">Can currently log in</div>
         </div>
         <div class="stat-card">
           <div class="top"><span class="stat-icon gray"><i class="fa-solid fa-ban"></i></span></div>
-          <div class="stat-value">2</div>
+          <div class="stat-value">{{ inactive_count }}</div>
           <div class="stat-label">Inactive Users</div>
           <div class="stat-sub">Access disabled</div>
         </div>
         <div class="stat-card">
-          <div class="top"><span class="stat-icon amber"><i class="fa-solid fa-circle-dot"></i></span></div>
-          <div class="stat-value">4</div>
-          <div class="stat-label">Online Now</div>
-          <div class="stat-sub">Active in the last hour</div>
+          <div class="top"><span class="stat-icon amber"><i class="fa-regular fa-calendar-plus"></i></span></div>
+          <div class="stat-value">{{ new_this_month }}</div>
+          <div class="stat-label">New This Month</div>
+          <div class="stat-sub">Signed up recently</div>
         </div>
       </div>
 
       <section class="panel">
         <div class="panel-header">
           <h2>All Users</h2>
-          <button type="button" class="btn btn-primary btn-sm" id="open-add-user"><i class="fa-solid fa-plus"></i> Add User</button>
+
         </div>
-        <div class="filters-row">
-          <label class="field search" style="flex:1;"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search name or email..."></label>
-          <select class="field">
-            <option>All Status</option>
-            <option>Active</option>
-            <option>Inactive</option>
+        <form method="get" class="filters-row">
+          <label class="field search" style="flex:1;"><i class="fa-solid fa-magnifying-glass"></i><input type="text" name="q" value="{{ current_q }}" placeholder="Search name or email..." onchange="this.form.submit()"></label>
+          <select class="field" name="status" onchange="this.form.submit()">
+            <option value="" {% if current_status == "" %}selected{% endif %}>All Status</option>
+            <option value="active" {% if current_status == "active" %}selected{% endif %}>Active</option>
+            <option value="inactive" {% if current_status == "inactive" %}selected{% endif %}>Inactive</option>
           </select>
-          <select class="field">
-            <option>All Roles</option>
-            <option>Super Admin</option>
-            <option>Office Representative</option>
-          </select>
-        </div>
+        </form>
         <div class="table-wrap">
           <table class="data-table">
             <thead>
-              <tr>
-                <th>User</th>
-                <th>Role</th>
-                <th>Office</th>
-                <th>Status</th>
-                <th>Last Login</th>
-                <th>Date Joined</th>
-                <th>Actions</th>
-              </tr>
+              <tr><th>User</th><th>Mobile Number</th><th>Status</th><th>Last Login</th><th>Date Joined</th><th>Actions</th></tr>
             </thead>
             <tbody>
-            <tr>
-              <td class="row-icon-name" style="min-width:240px;">
-                <div class="row-avatar-wrap">
-                  <img src="https://i.pravatar.cc/72?img=12" alt="">
-                  <span class="dot online" title="Online now"></span>
-                </div>
-                <div><div class="cell-primary">Juan Dela Cruz</div><div class="cell-sub">juan.delacruz@tunga.gov.ph</div></div>
-              </td>
-              <td><span class="badge badge-blue">Super Admin</span></td>
-              <td>Mayor's Office</td>
-              <td><span class="badge badge-green">Active</span></td>
-              <td>Just now</td>
-              <td>Jan 5, 2025</td>
-              <td>
-                <div class="action-icons">
-                  <span class="ic"><i class="fa-regular fa-eye"></i></span>
-                  <span class="ic"><i class="fa-regular fa-pen-to-square"></i></span>
-                  <span class="ic"><i class="fa-regular fa-trash-can"></i></span>
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td class="row-icon-name" style="min-width:240px;">
-                <div class="row-avatar-wrap">
-                  <img src="https://i.pravatar.cc/72?img=47" alt="">
-                  <span class="dot online" title="Online now"></span>
-                </div>
-                <div><div class="cell-primary">Ana Reyes</div><div class="cell-sub">ana.reyes@tunga.gov.ph</div></div>
-              </td>
-              <td><span class="badge badge-gray">Office Representative</span></td>
-              <td>Rural Health Unit (RHU)</td>
-              <td><span class="badge badge-green">Active</span></td>
-              <td>Today, 8:40 AM</td>
-              <td>Mar 12, 2025</td>
-              <td>
-                <div class="action-icons">
-                  <span class="ic"><i class="fa-regular fa-eye"></i></span>
-                  <span class="ic"><i class="fa-regular fa-pen-to-square"></i></span>
-                  <span class="ic"><i class="fa-regular fa-trash-can"></i></span>
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td class="row-icon-name" style="min-width:240px;">
-                <div class="row-avatar-wrap">
-                  <img src="https://i.pravatar.cc/72?img=51" alt="">
-                  <span class="dot " title="Offline"></span>
-                </div>
-                <div><div class="cell-primary">Pedro Santos</div><div class="cell-sub">pedro.santos@tunga.gov.ph</div></div>
-              </td>
-              <td><span class="badge badge-gray">Office Representative</span></td>
-              <td>Agriculture Office</td>
-              <td><span class="badge badge-green">Active</span></td>
-              <td>Yesterday, 4:05 PM</td>
-              <td>Mar 12, 2025</td>
-              <td>
-                <div class="action-icons">
-                  <span class="ic"><i class="fa-regular fa-eye"></i></span>
-                  <span class="ic"><i class="fa-regular fa-pen-to-square"></i></span>
-                  <span class="ic"><i class="fa-regular fa-trash-can"></i></span>
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td class="row-icon-name" style="min-width:240px;">
-                <div class="row-avatar-wrap">
-                  <img src="https://i.pravatar.cc/72?img=32" alt="">
-                  <span class="dot online" title="Online now"></span>
-                </div>
-                <div><div class="cell-primary">Maria Lopez</div><div class="cell-sub">maria.lopez@tunga.gov.ph</div></div>
-              </td>
-              <td><span class="badge badge-gray">Office Representative</span></td>
-              <td>Tourism Office</td>
-              <td><span class="badge badge-green">Active</span></td>
-              <td>Today, 7:55 AM</td>
-              <td>Apr 2, 2025</td>
-              <td>
-                <div class="action-icons">
-                  <span class="ic"><i class="fa-regular fa-eye"></i></span>
-                  <span class="ic"><i class="fa-regular fa-pen-to-square"></i></span>
-                  <span class="ic"><i class="fa-regular fa-trash-can"></i></span>
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td class="row-icon-name" style="min-width:240px;">
-                <div class="row-avatar-wrap">
-                  <img src="https://i.pravatar.cc/72?img=15" alt="">
-                  <span class="dot " title="Offline"></span>
-                </div>
-                <div><div class="cell-primary">Lito Garcia</div><div class="cell-sub">lito.garcia@tunga.gov.ph</div></div>
-              </td>
-              <td><span class="badge badge-gray">Office Representative</span></td>
-              <td>Assessor's Office</td>
-              <td><span class="badge badge-gray">Inactive</span></td>
-              <td>May 20, 2026</td>
-              <td>Feb 18, 2025</td>
-              <td>
-                <div class="action-icons">
-                  <span class="ic"><i class="fa-regular fa-eye"></i></span>
-                  <span class="ic"><i class="fa-regular fa-pen-to-square"></i></span>
-                  <span class="ic"><i class="fa-regular fa-trash-can"></i></span>
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td class="row-icon-name" style="min-width:240px;">
-                <div class="row-avatar-wrap">
-                  <img src="https://i.pravatar.cc/72?img=44" alt="">
-                  <span class="dot online" title="Online now"></span>
-                </div>
-                <div><div class="cell-primary">Riza Delos Santos</div><div class="cell-sub">riza.delossantos@tunga.gov.ph</div></div>
-              </td>
-              <td><span class="badge badge-gray">Office Representative</span></td>
-              <td>Municipal Treasurer's Office</td>
-              <td><span class="badge badge-green">Active</span></td>
-              <td>Today, 10:20 AM</td>
-              <td>Jan 30, 2025</td>
-              <td>
-                <div class="action-icons">
-                  <span class="ic"><i class="fa-regular fa-eye"></i></span>
-                  <span class="ic"><i class="fa-regular fa-pen-to-square"></i></span>
-                  <span class="ic"><i class="fa-regular fa-trash-can"></i></span>
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td class="row-icon-name" style="min-width:240px;">
-                <div class="row-avatar-wrap">
-                  <img src="https://i.pravatar.cc/72?img=22" alt="">
-                  <span class="dot " title="Offline"></span>
-                </div>
-                <div><div class="cell-primary">Mark Villanueva</div><div class="cell-sub">mark.villanueva@tunga.gov.ph</div></div>
-              </td>
-              <td><span class="badge badge-gray">Office Representative</span></td>
-              <td>Civil Registrar Office</td>
-              <td><span class="badge badge-green">Active</span></td>
-              <td>Today, 11:02 AM</td>
-              <td>Jun 9, 2025</td>
-              <td>
-                <div class="action-icons">
-                  <span class="ic"><i class="fa-regular fa-eye"></i></span>
-                  <span class="ic"><i class="fa-regular fa-pen-to-square"></i></span>
-                  <span class="ic"><i class="fa-regular fa-trash-can"></i></span>
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td class="row-icon-name" style="min-width:240px;">
-                <div class="row-avatar-wrap">
-                  <img src="https://i.pravatar.cc/72?img=58" alt="">
-                  <span class="dot " title="Offline"></span>
-                </div>
-                <div><div class="cell-primary">Ryan Caballero</div><div class="cell-sub">ryan.caballero@tunga.gov.ph</div></div>
-              </td>
-              <td><span class="badge badge-gray">Office Representative</span></td>
-              <td>Engineering Office</td>
-              <td><span class="badge badge-gray">Inactive</span></td>
-              <td>Apr 30, 2026</td>
-              <td>Jul 22, 2025</td>
-              <td>
-                <div class="action-icons">
-                  <span class="ic"><i class="fa-regular fa-eye"></i></span>
-                  <span class="ic"><i class="fa-regular fa-pen-to-square"></i></span>
-                  <span class="ic"><i class="fa-regular fa-trash-can"></i></span>
-                </div>
-              </td>
-            </tr>
+              {% for u in users %}
+              <tr>
+                <td class="row-icon-name" style="min-width:240px;">
+                  <div class="row-avatar-wrap">
+                    <img src="{% static 'images/icon/profile_logo.jpeg' %}" alt="">
+                  </div>
+                  <div><div class="cell-primary">{{ u.get_full_name|default:u.username }}</div><div class="cell-sub">{{ u.email }}</div></div>
+                </td>
+                <td>{{ u.profile.mobile_number|default:"—" }}</td>
+                <td><span class="badge {% if u.is_active %}badge-green{% else %}badge-gray{% endif %}">{% if u.is_active %}Active{% else %}Inactive{% endif %}</span></td>
+                <td>{{ u.last_login|date:"M d, Y, g:i A"|default:"Never" }}</td>
+                <td>{{ u.date_joined|date:"M d, Y" }}</td>
+                <td>
+                  <div class="action-icons">
+                    <a class="ic" href="/admin/auth/user/{{ u.id }}/change/" title="View / edit"><i class="fa-regular fa-eye"></i></a>
+                    <form method="post" action="{% url 'admin_dashboard:admin_user_toggle_active' u.id %}" style="display:inline;">
+                      {% csrf_token %}
+                      <button type="submit" class="ic" style="border:none;background:none;cursor:pointer;" title="{% if u.is_active %}Deactivate{% else %}Activate{% endif %}">
+                        <i class="fa-regular {% if u.is_active %}fa-circle-pause{% else %}fa-circle-play{% endif %}"></i>
+                      </button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="6" style="text-align:center;color:var(--gray-400);padding:24px;">No citizen accounts yet.</td></tr>
+              {% endfor %}
             </tbody>
           </table>
         </div>

@@ -15,65 +15,53 @@
           <h2 style="margin:0;font-size:16px;font-weight:800;color:var(--gray-900);">Representative accounts</h2>
           <p style="margin:3px 0 0;font-size:12.5px;color:var(--gray-500);">Staff accounts that manage content on behalf of each municipal office</p>
         </div>
-        <button class="btn btn-primary" onclick="openAddRep()"><i class="fa-solid fa-user-plus"></i> Add Representative</button>
       </div>
 
       <div class="stat-grid">
         <div class="stat-card">
           <div class="top"><span class="stat-icon blue"><i class="fa-regular fa-address-book"></i></span></div>
-          <div class="stat-value">8</div>
+          <div class="stat-value">{{ total_reps }}</div>
           <div class="stat-label">Total representatives</div>
-          <div class="stat-sub">Across 9 offices</div>
+          <div class="stat-sub">Across {{ total_offices }} offices</div>
         </div>
         <div class="stat-card">
           <div class="top"><span class="stat-icon green"><i class="fa-solid fa-circle-check"></i></span></div>
-          <div class="stat-value">5</div>
+          <div class="stat-value">{{ active_count }}</div>
           <div class="stat-label">Active accounts</div>
           <div class="stat-sub">Signed in within 7 days</div>
         </div>
         <div class="stat-card">
           <div class="top"><span class="stat-icon amber"><i class="fa-regular fa-clock"></i></span></div>
-          <div class="stat-value">2</div>
-          <div class="stat-label">Pending invitations</div>
-          <div class="stat-sub">Awaiting first sign-in</div>
+          <div class="stat-value">{{ pending_count }}</div>
+          <div class="stat-label">Pending sign-in</div>
+          <div class="stat-sub">Never logged in yet</div>
         </div>
         <div class="stat-card">
           <div class="top"><span class="stat-icon gray"><i class="fa-solid fa-building"></i></span></div>
-          <div class="stat-value">1</div>
+          <div class="stat-value">{{ offices_without_rep }}</div>
           <div class="stat-label">Offices without a rep</div>
-          <div class="stat-sub">Business Permits &amp; Licensing</div>
+          <div class="stat-sub">No account assigned</div>
         </div>
       </div>
 
       <div class="panel">
         <div class="tabs">
-          <div class="tab active">All <span class="count">8</span></div>
-          <div class="tab">Active <span class="count">5</span></div>
-          <div class="tab">Pending <span class="count">2</span></div>
-          <div class="tab">Inactive <span class="count">1</span></div>
+          <a href="?status=" class="tab {% if current_status == '' %}active{% endif %}" style="text-decoration:none;">All <span class="count">{{ total_reps }}</span></a>
+          <a href="?status=active" class="tab {% if current_status == 'active' %}active{% endif %}" style="text-decoration:none;">Active <span class="count">{{ active_count }}</span></a>
+          <a href="?status=pending" class="tab {% if current_status == 'pending' %}active{% endif %}" style="text-decoration:none;">Pending <span class="count">{{ pending_count }}</span></a>
+          <a href="?status=inactive" class="tab {% if current_status == 'inactive' %}active{% endif %}" style="text-decoration:none;">Inactive <span class="count">{{ inactive_count }}</span></a>
         </div>
 
-        <div class="filters-row">
-          <label class="field search"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search by name or email..."></label>
-          <select class="field">
-            <option>All offices</option>
-            <option>Office of the Municipal Mayor</option>
-            <option>Office of the Municipal Treasurer</option>
-            <option>Office of the Municipal Civil Registrar</option>
-            <option>Office of the Municipal Assessor</option>
-            <option>Office of the Municipal Health Officer</option>
-            <option>Municipal Social Welfare and Development</option>
-            <option>Office of the Municipal Tourism Officer</option>
-            <option>Office of the Municipal Agriculturist</option>
-            <option>Municipal Disaster Risk Reduction &amp; Management</option>
+        <form method="get" class="filters-row">
+          <input type="hidden" name="status" value="{{ current_status }}">
+          <label class="field search"><i class="fa-solid fa-magnifying-glass"></i><input type="text" name="q" value="{{ current_q }}" placeholder="Search by name or email..." onchange="this.form.submit()"></label>
+          <select class="field" name="office" onchange="this.form.submit()">
+            <option value="">All offices</option>
+            {% for o in offices %}
+              <option value="{{ o.id }}" {% if current_office == o.id|stringformat:"s" %}selected{% endif %}>{{ o.name }}</option>
+            {% endfor %}
           </select>
-          <select class="field">
-            <option>All statuses</option>
-            <option>Active</option>
-            <option>Pending</option>
-            <option>Inactive</option>
-          </select>
-        </div>
+        </form>
 
         <div class="table-wrap" style="border:none;border-radius:0;">
           <table class="data-table">
@@ -88,191 +76,43 @@
               </tr>
             </thead>
             <tbody>
-
+              {% for r in rows %}
               <tr>
                 <td>
                   <div class="row-icon-name">
-                    <div class="row-avatar-wrap"><img src="https://i.pravatar.cc/64?img=32" alt=""><span class="dot online"></span></div>
-                    <div><p class="cell-primary">Maria L. Enriquez</p><p class="cell-sub">m.enriquez@tunga.gov.ph</p></div>
+                    <div class="row-avatar-wrap">
+                      <img src="{% if r.rep.photo %}{{ r.rep.photo.url }}{% else %}{% static 'images/icon/profile_logo.jpeg' %}{% endif %}" alt="">
+                      <span class="dot {% if r.status == 'active' %}online{% endif %}"></span>
+                    </div>
+                    <div>
+                      <p class="cell-primary">{{ r.rep.user.get_full_name|default:r.rep.user.username }}</p>
+                      <p class="cell-sub">{{ r.rep.user.email }}</p>
+                    </div>
                   </div>
                 </td>
-                <td><span class="tag tag-blue">Municipal Civil Registrar</span></td>
-                <td>Records Officer</td>
-                <td><span class="badge badge-green">Active</span></td>
-                <td>18 minutes ago</td>
+                <td><span class="tag tag-blue">{{ r.rep.office.name }}</span></td>
+                <td>{{ r.rep.position|default:"—" }}</td>
+                <td>
+                  <span class="badge {% if r.status == 'active' %}badge-green{% elif r.status == 'pending' %}badge-amber{% else %}badge-gray{% endif %}">
+                    {% if r.status == 'active' %}Active{% elif r.status == 'pending' %}Pending{% else %}Inactive{% endif %}
+                  </span>
+                </td>
+                <td>{{ r.rep.user.last_login|date:"M d, Y, g:i A"|default:"Never" }}</td>
                 <td>
                   <div class="action-icons">
-                    <span class="ic" title="View profile"><i class="fa-regular fa-eye"></i></span>
-                    <span class="ic" title="Edit" onclick="openEditRep(this)"
-                      data-name="Maria L. Enriquez" data-email="m.enriquez@tunga.gov.ph" data-phone="0917 302 5511"
-                      data-office="Office of the Municipal Civil Registrar" data-position="Records Officer"
-                      data-access="Standard Access" data-status="Active"><i class="fa-regular fa-pen-to-square"></i></span>
-                    <span class="ic" title="Deactivate" onclick="openDeactivate('Maria L. Enriquez')"><i class="fa-regular fa-trash-can"></i></span>
+                    <a class="ic" href="/admin/office_dashboard/officerepresentative/{{ r.rep.id }}/change/" title="View / edit"><i class="fa-regular fa-eye"></i></a>
+                    <form method="post" action="{% url 'admin_dashboard:admin_rep_toggle_active' r.rep.id %}" style="display:inline;">
+                      {% csrf_token %}
+                      <button type="submit" class="ic" style="border:none;background:none;cursor:pointer;" title="{% if r.rep.user.is_active %}Deactivate{% else %}Activate{% endif %}">
+                        <i class="fa-regular {% if r.rep.user.is_active %}fa-circle-pause{% else %}fa-circle-play{% endif %}"></i>
+                      </button>
+                    </form>
                   </div>
                 </td>
               </tr>
-
-              <tr>
-                <td>
-                  <div class="row-icon-name">
-                    <div class="row-avatar-wrap"><img src="https://i.pravatar.cc/64?img=51" alt=""><span class="dot online"></span></div>
-                    <div><p class="cell-primary">Ramon P. Cabahug</p><p class="cell-sub">r.cabahug@tunga.gov.ph</p></div>
-                  </div>
-                </td>
-                <td><span class="tag tag-blue">Municipal DRRM Office</span></td>
-                <td>Operations Staff</td>
-                <td><span class="badge badge-green">Active</span></td>
-                <td>5 hours ago</td>
-                <td>
-                  <div class="action-icons">
-                    <span class="ic" title="View profile"><i class="fa-regular fa-eye"></i></span>
-                    <span class="ic" title="Edit" onclick="openEditRep(this)"
-                      data-name="Ramon P. Cabahug" data-email="r.cabahug@tunga.gov.ph" data-phone="0918 664 2290"
-                      data-office="Municipal Disaster Risk Reduction &amp; Management" data-position="Operations Staff"
-                      data-access="Full Office Access" data-status="Active"><i class="fa-regular fa-pen-to-square"></i></span>
-                    <span class="ic" title="Deactivate" onclick="openDeactivate('Ramon P. Cabahug')"><i class="fa-regular fa-trash-can"></i></span>
-                  </div>
-                </td>
-              </tr>
-
-              <tr>
-                <td>
-                  <div class="row-icon-name">
-                    <div class="row-avatar-wrap"><img src="https://i.pravatar.cc/64?img=15" alt=""><span class="dot"></span></div>
-                    <div><p class="cell-primary">Juan D. Salazar</p><p class="cell-sub">j.salazar@tunga.gov.ph</p></div>
-                  </div>
-                </td>
-                <td><span class="tag tag-blue">Municipal Health Office</span></td>
-                <td>Admin Staff</td>
-                <td><span class="badge badge-amber">Pending</span></td>
-                <td>Never signed in</td>
-                <td>
-                  <div class="action-icons">
-                    <span class="ic" title="Resend invite"><i class="fa-regular fa-paper-plane"></i></span>
-                    <span class="ic" title="Edit" onclick="openEditRep(this)"
-                      data-name="Juan D. Salazar" data-email="j.salazar@tunga.gov.ph" data-phone="0920 411 7783"
-                      data-office="Office of the Municipal Health Officer" data-position="Admin Staff"
-                      data-access="Standard Access" data-status="Pending"><i class="fa-regular fa-pen-to-square"></i></span>
-                    <span class="ic" title="Remove" onclick="openDeactivate('Juan D. Salazar')"><i class="fa-regular fa-trash-can"></i></span>
-                  </div>
-                </td>
-              </tr>
-
-              <tr>
-                <td>
-                  <div class="row-icon-name">
-                    <div class="row-avatar-wrap"><img src="https://i.pravatar.cc/64?img=44" alt=""><span class="dot online"></span></div>
-                    <div><p class="cell-primary">Corazon T. Villaflor</p><p class="cell-sub">c.villaflor@tunga.gov.ph</p></div>
-                  </div>
-                </td>
-                <td><span class="tag tag-blue">Municipal Treasurer's Office</span></td>
-                <td>Revenue Clerk</td>
-                <td><span class="badge badge-green">Active</span></td>
-                <td>1 hour ago</td>
-                <td>
-                  <div class="action-icons">
-                    <span class="ic" title="View profile"><i class="fa-regular fa-eye"></i></span>
-                    <span class="ic" title="Edit" onclick="openEditRep(this)"
-                      data-name="Corazon T. Villaflor" data-email="c.villaflor@tunga.gov.ph" data-phone="0917 880 3342"
-                      data-office="Office of the Municipal Treasurer" data-position="Revenue Clerk"
-                      data-access="Standard Access" data-status="Active"><i class="fa-regular fa-pen-to-square"></i></span>
-                    <span class="ic" title="Deactivate" onclick="openDeactivate('Corazon T. Villaflor')"><i class="fa-regular fa-trash-can"></i></span>
-                  </div>
-                </td>
-              </tr>
-
-              <tr>
-                <td>
-                  <div class="row-icon-name">
-                    <div class="row-avatar-wrap"><img src="https://i.pravatar.cc/64?img=23" alt=""><span class="dot"></span></div>
-                    <div><p class="cell-primary">Herminia S. Baclayon</p><p class="cell-sub">h.baclayon@tunga.gov.ph</p></div>
-                  </div>
-                </td>
-                <td><span class="tag tag-blue">Social Welfare &amp; Development</span></td>
-                <td>Case Officer</td>
-                <td><span class="badge badge-gray">Inactive</span></td>
-                <td>32 days ago</td>
-                <td>
-                  <div class="action-icons">
-                    <span class="ic" title="View profile"><i class="fa-regular fa-eye"></i></span>
-                    <span class="ic" title="Edit" onclick="openEditRep(this)"
-                      data-name="Herminia S. Baclayon" data-email="h.baclayon@tunga.gov.ph" data-phone="0915 220 9981"
-                      data-office="Municipal Social Welfare and Development Office" data-position="Case Officer"
-                      data-access="Standard Access" data-status="Inactive"><i class="fa-regular fa-pen-to-square"></i></span>
-                    <span class="ic" title="Remove" onclick="openDeactivate('Herminia S. Baclayon')"><i class="fa-regular fa-trash-can"></i></span>
-                  </div>
-                </td>
-              </tr>
-
-              <tr>
-                <td>
-                  <div class="row-icon-name">
-                    <div class="row-avatar-wrap"><img src="https://i.pravatar.cc/64?img=8" alt=""><span class="dot online"></span></div>
-                    <div><p class="cell-primary">Dexter M. Oquendo</p><p class="cell-sub">d.oquendo@tunga.gov.ph</p></div>
-                  </div>
-                </td>
-                <td><span class="tag tag-blue">Office of the Municipal Assessor</span></td>
-                <td>Assessment Clerk</td>
-                <td><span class="badge badge-green">Active</span></td>
-                <td>3 hours ago</td>
-                <td>
-                  <div class="action-icons">
-                    <span class="ic" title="View profile"><i class="fa-regular fa-eye"></i></span>
-                    <span class="ic" title="Edit" onclick="openEditRep(this)"
-                      data-name="Dexter M. Oquendo" data-email="d.oquendo@tunga.gov.ph" data-phone="0921 556 1187"
-                      data-office="Office of the Municipal Assessor" data-position="Assessment Clerk"
-                      data-access="Standard Access" data-status="Active"><i class="fa-regular fa-pen-to-square"></i></span>
-                    <span class="ic" title="Deactivate" onclick="openDeactivate('Dexter M. Oquendo')"><i class="fa-regular fa-trash-can"></i></span>
-                  </div>
-                </td>
-              </tr>
-
-              <tr>
-                <td>
-                  <div class="row-icon-name">
-                    <div class="row-avatar-wrap"><img src="https://i.pravatar.cc/64?img=61" alt=""><span class="dot"></span></div>
-                    <div><p class="cell-primary">Anthony G. Reyes</p><p class="cell-sub">a.reyes@tunga.gov.ph</p></div>
-                  </div>
-                </td>
-                <td><span class="tag tag-blue">Office of the Municipal Tourism Officer</span></td>
-                <td>Tourism Aide</td>
-                <td><span class="badge badge-amber">Pending</span></td>
-                <td>Never signed in</td>
-                <td>
-                  <div class="action-icons">
-                    <span class="ic" title="Resend invite"><i class="fa-regular fa-paper-plane"></i></span>
-                    <span class="ic" title="Edit" onclick="openEditRep(this)"
-                      data-name="Anthony G. Reyes" data-email="a.reyes@tunga.gov.ph" data-phone="0906 774 0092"
-                      data-office="Office of the Municipal Tourism Officer" data-position="Tourism Aide"
-                      data-access="Standard Access" data-status="Pending"><i class="fa-regular fa-pen-to-square"></i></span>
-                    <span class="ic" title="Remove" onclick="openDeactivate('Anthony G. Reyes')"><i class="fa-regular fa-trash-can"></i></span>
-                  </div>
-                </td>
-              </tr>
-
-              <tr>
-                <td>
-                  <div class="row-icon-name">
-                    <div class="row-avatar-wrap"><img src="https://i.pravatar.cc/64?img=68" alt=""><span class="dot online"></span></div>
-                    <div><p class="cell-primary">Leilani F. Dumaguit</p><p class="cell-sub">l.dumaguit@tunga.gov.ph</p></div>
-                  </div>
-                </td>
-                <td><span class="tag tag-blue">Office of the Municipal Agriculturist</span></td>
-                <td>Extension Worker</td>
-                <td><span class="badge badge-green">Active</span></td>
-                <td>Yesterday, 4:40 PM</td>
-                <td>
-                  <div class="action-icons">
-                    <span class="ic" title="View profile"><i class="fa-regular fa-eye"></i></span>
-                    <span class="ic" title="Edit" onclick="openEditRep(this)"
-                      data-name="Leilani F. Dumaguit" data-email="l.dumaguit@tunga.gov.ph" data-phone="0928 013 6654"
-                      data-office="Office of the Municipal Agriculturist" data-position="Extension Worker"
-                      data-access="Standard Access" data-status="Active"><i class="fa-regular fa-pen-to-square"></i></span>
-                    <span class="ic" title="Deactivate" onclick="openDeactivate('Leilani F. Dumaguit')"><i class="fa-regular fa-trash-can"></i></span>
-                  </div>
-                </td>
-              </tr>
-
+              {% empty %}
+              <tr><td colspan="6" style="text-align:center;color:var(--gray-400);padding:24px;">No representatives found.</td></tr>
+              {% endfor %}
             </tbody>
           </table>
         </div>

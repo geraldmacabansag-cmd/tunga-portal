@@ -11,27 +11,138 @@
 
   <div class="approval-grid">
 
-    <section class="panel">
-      <div class="panel-header"><h2>Submission Details</h2></div>
-      <div class="panel-body">
-        <div class="detail-label">Content Title</div>
-        <div class="detail-value">{{ obj.title }}</div>
-
-        <div class="detail-label">Type</div>
-        <div class="detail-value"><span class="tag {{ tag_class }}">{{ item_type }}</span></div>
-
-        <div class="detail-label">Submitted By</div>
-        <div class="detail-value">{{ office.name|default:"—" }}<span class="sub">{{ submitted_by_name }}</span></div>
-
-        <div class="detail-label">Date Submitted</div>
-        <div class="detail-value" style="margin-bottom:0;">{{ date_submitted|date:"F j, Y, g:i A" }}</div>
-
-        <div class="detail-label" style="margin-top:16px;">Status</div>
-        <div class="detail-value" style="margin-bottom:0;">
-          <span class="badge {% if obj.status == 'returned' %}badge-red{% else %}badge-amber{% endif %}">{{ obj.get_status_display }}</span>
+    <div>
+      <section class="panel">
+        <div class="panel-header"><h2>Overview</h2></div>
+        <div class="panel-body">
+          <div class="ov-row">
+            <span class="ov-k">{% if item_type == 'News' %}Headline{% elif item_type == 'Service' %}Service Name{% elif item_type == 'Form' %}Form Name{% elif item_type == 'Gallery' %}Caption / Title{% else %}Title{% endif %}</span>
+            <span class="ov-v">{{ obj_label }}</span>
+          </div>
+          <div class="ov-row">
+            <span class="ov-k">Type</span>
+            <span class="ov-v"><span class="tag {{ tag_class }}">{{ item_type }}</span></span>
+          </div>
+          <div class="ov-row">
+            <span class="ov-k">Submitted By</span>
+            <span class="ov-v">{{ office.name|default:"—" }}<span class="sub">{{ submitted_by_name }}</span></span>
+          </div>
+          <div class="ov-row">
+            <span class="ov-k">Date Submitted</span>
+            <span class="ov-v">{{ date_submitted|date:"M j, Y" }}<span class="sub">{{ date_submitted|date:"g:i A" }}</span></span>
+          </div>
+          <div class="ov-row">
+            <span class="ov-k">Status</span>
+            <span class="ov-v"><span class="badge {% if obj.status == 'returned' %}badge-red{% else %}badge-amber{% endif %}">{{ obj.get_status_display }}</span></span>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header"><h2>Content Details</h2></div>
+        <div class="panel-body">
+          <div class="field-grid">
+
+            {% if item_type == 'Announcement' %}
+              <div class="full"><div class="fl-label">Content</div><div class="fl-value muted">{{ obj.content|linebreaksbr|default:"—" }}</div></div>
+              <div><div class="fl-label">Subtitle</div><div class="fl-value">{{ obj.subtitle|default:"—" }}</div></div>
+              <div><div class="fl-label">Category</div><div class="fl-value">{{ obj.category|default:"—" }}</div></div>
+              <div><div class="fl-label">Author</div><div class="fl-value">{{ obj.author|default:"—" }}</div></div>
+              <div><div class="fl-label">Priority</div><div class="fl-value">{{ obj.priority }}</div></div>
+              <div><div class="fl-label">Date Posted</div><div class="fl-value">{{ obj.date_posted|date:"F j, Y"|default:"—" }}</div></div>
+              <div><div class="fl-label">Expiration Date</div><div class="fl-value">{{ obj.expiration_date|date:"F j, Y, g:i A"|default:"—" }}</div></div>
+              <div><div class="fl-label">Last Updated</div><div class="fl-value">{{ obj.last_updated|date:"F j, Y, g:i A" }}</div></div>
+              <div><div class="fl-label">Views</div><div class="fl-value">{{ obj.views }}</div></div>
+              <div class="full"><div class="fl-label">Image / Attachment</div><div class="fl-value">{% if obj.image %}<a href="{{ obj.image.url }}" target="_blank">View image</a>{% else %}No image attached{% endif %}</div></div>
+
+            {% elif item_type == 'News' %}
+              <div class="full"><div class="fl-label">Summary</div><div class="fl-value muted">{{ obj.summary|default:"—" }}</div></div>
+              <div class="full"><div class="fl-label">Content</div><div class="fl-value muted">{{ obj.content|linebreaksbr|default:"—" }}</div></div>
+              <div><div class="fl-label">Category</div><div class="fl-value">{{ obj.category|default:"—" }}</div></div>
+              <div><div class="fl-label">Author</div><div class="fl-value">{{ obj.author|default:"—" }}</div></div>
+              <div><div class="fl-label">Source</div><div class="fl-value">{{ obj.source|default:"—" }}</div></div>
+              <div><div class="fl-label">Tags</div><div class="fl-value">{{ obj.tags|default:"—" }}</div></div>
+              <div><div class="fl-label">Date Published</div><div class="fl-value">{{ obj.date_published|date:"F j, Y"|default:"—" }}</div></div>
+              <div><div class="fl-label">Last Updated</div><div class="fl-value">{{ obj.last_updated|date:"F j, Y, g:i A" }}</div></div>
+              <div><div class="fl-label">Views</div><div class="fl-value">{{ obj.views }}</div></div>
+
+            {% elif item_type == 'Event' %}
+              <div class="full"><div class="fl-label">Description</div><div class="fl-value muted">{{ obj.description|linebreaksbr|default:"—" }}</div></div>
+              <div><div class="fl-label">Category</div><div class="fl-value">{{ obj.category|default:"—" }}</div></div>
+              <div><div class="fl-label">Location</div><div class="fl-value">{{ obj.location|default:"—" }}</div></div>
+              <div><div class="fl-label">Event Date</div><div class="fl-value">{{ obj.event_date|date:"F j, Y"|default:"—" }}</div></div>
+              <div><div class="fl-label">Start – End Time</div><div class="fl-value">{{ obj.start_time|time:"g:i A"|default:"—" }} – {{ obj.end_time|time:"g:i A"|default:"—" }}</div></div>
+              <div><div class="fl-label">Organizer</div><div class="fl-value">{{ obj.organizer|default:"—" }}</div></div>
+              <div><div class="fl-label">Contact Person</div><div class="fl-value">{{ obj.contact_person|default:"—" }}</div></div>
+              <div><div class="fl-label">Contact Info</div><div class="fl-value">{{ obj.contact_info|default:"—" }}</div></div>
+              <div><div class="fl-label">Last Updated</div><div class="fl-value">{{ obj.last_updated|date:"F j, Y, g:i A" }}</div></div>
+
+            {% elif item_type == 'Service' %}
+              <div class="full"><div class="fl-label">Description</div><div class="fl-value muted">{{ obj.description|linebreaksbr|default:"—" }}</div></div>
+              <div><div class="fl-label">Category</div><div class="fl-value">{{ obj.get_category_display }}</div></div>
+              <div><div class="fl-label">Availability</div><div class="fl-value">{{ obj.availability|default:"—" }}</div></div>
+              <div><div class="fl-label">Processing Time</div><div class="fl-value">{{ obj.processing_time|default:"—" }}</div></div>
+              <div><div class="fl-label">Icon</div><div class="fl-value"><i class="{{ obj.icon }}"></i>&nbsp; {{ obj.get_icon_display }}</div></div>
+              <div class="full"><div class="fl-label">Published</div><div class="fl-value">{{ obj.published_at|date:"F j, Y, g:i A" }}</div></div>
+
+            {% elif item_type == 'Form' %}
+              <div class="full"><div class="fl-label">Description</div><div class="fl-value muted">{{ obj.description|linebreaksbr|default:"—" }}</div></div>
+              <div class="full"><div class="fl-label">Attachment</div><div class="fl-value"><a href="{{ obj.file.url }}" target="_blank">{{ obj.file.name|slice:"18:" }}</a></div></div>
+              <div><div class="fl-label">Category</div><div class="fl-value">{{ obj.category|default:"—" }}</div></div>
+              <div><div class="fl-label">Last Update</div><div class="fl-value">{{ obj.date_uploaded|date:"F j, Y, g:i A" }}</div></div>
+
+            {% elif item_type == 'Gallery' %}
+              <div class="full"><div class="fl-label">Photo Attachment</div><div class="fl-value">{% if obj.image %}<a href="{{ obj.image.url }}" target="_blank">View photo</a>{% else %}No image{% endif %}</div></div>
+              <div><div class="fl-label">Album</div><div class="fl-value">{{ obj.album.name|default:"—" }}</div></div>
+              <div><div class="fl-label">Last Update</div><div class="fl-value">{{ obj.last_updated|date:"F j, Y, g:i A" }}</div></div>
+
+            {% endif %}
+
+          </div>
+        </div>
+      </section>
+
+      {% if item_type == 'Service' %}
+      <section class="panel">
+        <div class="panel-header"><h2>Process, Requirements &amp; Fees</h2></div>
+        <div class="panel-body">
+
+          <div class="sub-block">
+            <div class="sub-block-title">Process Steps <span class="count">{{ obj.steps.count }}</span></div>
+            {% for step in obj.steps.all %}
+              <div class="step-chip"><span class="step-num">{{ forloop.counter }}</span><span class="step-text">{{ step.title }}</span></div>
+            {% empty %}
+              <div class="empty-note">None added yet.</div>
+            {% endfor %}
+          </div>
+
+          <div class="sub-block">
+            <div class="sub-block-title">Requirements <span class="count">{{ obj.requirements.count }}</span></div>
+            {% for req in obj.requirements.all %}
+              <div class="req-chip"><span>{{ req.title }}</span><span class="req-tag {% if req.is_required %}required{% else %}optional{% endif %}">{% if req.is_required %}Required{% else %}Optional{% endif %}</span></div>
+            {% empty %}
+              <div class="empty-note">None added yet.</div>
+            {% endfor %}
+          </div>
+
+          <div class="sub-block">
+            <div class="sub-block-title">Fees <span class="count">{{ obj.fees.count }}</span></div>
+            {% for fee in obj.fees.all %}
+              <div class="fee-chip"><span>{{ fee.title }}</span><span class="fee-amount">&#8369;{{ fee.amount }}</span></div>
+            {% empty %}
+              <div class="empty-note">None added yet.</div>
+            {% endfor %}
+          </div>
+
+          <div class="sub-block">
+            <div class="sub-block-title">Downloadable Forms</div>
+            <div class="empty-note">Managed separately under the office's Downloadable Forms — not tied to a specific service.</div>
+          </div>
+
+        </div>
+      </section>
+      {% endif %}
+    </div>
 
     <section class="preview-card">
       {% if item_type == 'Announcement' %}
@@ -74,6 +185,12 @@
             <a class="dl" href="{{ obj.file.url }}"><i class="fa-solid fa-download"></i></a>
           </div>
         </div>
+      {% elif item_type == 'Service' %}
+        <div class="pc-body">
+          <h3>{{ obj.name }}</h3>
+          <div class="byline">{{ office.name|default:"—" }} &middot; {{ obj.get_category_display }}</div>
+          <p>{{ obj.description|linebreaksbr }}</p>
+        </div>
       {% endif %}
     </section>
 
@@ -112,9 +229,9 @@
           <div class="note-to">
             <div><div class="nr">Note will be sent to:</div><div class="nn">{{ submitted_by_name }}</div><div class="nr">{{ office.name|default:"—" }}</div></div>
           </div>
-          <p class="form-help" style="margin-top:8px;">Click Approve, Return for Revision, or Reject above to submit your review — this note field isn't saved to the database yet.</p>
+          <p class="form-help" style="margin-top:8px;">Click Approve, Return for Revision, or Reject above to submit your review.</p>
         </div>
-        <div class="modal-actions" style="padding:0 20px 5px;justify-content:center;">
+        <div class="modal-actions" style="padding:0 20px 20px;justify-content:center;">
           <a href="{% url 'admin_dashboard:approval_center' %}" class="btn btn-secondary" id="cancelReviewBtn">Cancel</a>
           <button type="submit" class="btn btn-primary" id="submitReviewBtn" disabled>Submit</button>
         </div>
@@ -122,47 +239,47 @@
 
     </form>
 
-<script>
-  (function () {
-    var hiddenAction = document.getElementById('reviewActionValue');
-    var submitBtn = document.getElementById('submitReviewBtn');
-    var cancelBtn = document.getElementById('cancelReviewBtn');
-    var form = cancelBtn.closest('form');
-
-    document.querySelectorAll('.review-action').forEach(function (card) {
-      card.addEventListener('click', function () {
-        hiddenAction.value = card.dataset.action;
-        submitBtn.disabled = false;
-      });
-    });
-
-    // Cancel: stopImmediatePropagation blocks super_admin.js's own
-    // text-matched Cancel handler, which points at a fake static
-    // filename instead of this real Django URL.
-    cancelBtn.addEventListener('click', function (e) {
-      e.stopImmediatePropagation();
-    });
-
-    // Submit: a real form submission (no JS needed to actually send it),
-    // just confirm before Return/Reject and block super_admin.js's own
-    // fake "Submit Review" handler from also firing on this button.
-    form.addEventListener('submit', function (e) {
-      e.stopImmediatePropagation();
-      var action = hiddenAction.value;
-      if (!action) {
-        e.preventDefault();
-        alert('Please select an action before submitting.');
-        return;
-      }
-      if (action === 'return' && !confirm('Return this submission for revision?')) {
-        e.preventDefault();
-      } else if (action === 'reject' && !confirm('Reject this submission? It will not be published.')) {
-        e.preventDefault();
-      }
-    });
-  })();
-</script>    
-
   </div>
+
+  <script>
+    (function () {
+      var hiddenAction = document.getElementById('reviewActionValue');
+      var submitBtn = document.getElementById('submitReviewBtn');
+      var cancelBtn = document.getElementById('cancelReviewBtn');
+      var form = cancelBtn.closest('form');
+
+      document.querySelectorAll('.review-action').forEach(function (card) {
+        card.addEventListener('click', function () {
+          hiddenAction.value = card.dataset.action;
+          submitBtn.disabled = false;
+        });
+      });
+
+      // Cancel: stopImmediatePropagation blocks super_admin.js's own
+      // text-matched Cancel handler, which points at a fake static
+      // filename instead of this real Django URL.
+      cancelBtn.addEventListener('click', function (e) {
+        e.stopImmediatePropagation();
+      });
+
+      // Submit: a real form submission (no JS needed to actually send it),
+      // just confirm before Return/Reject and block super_admin.js's own
+      // fake "Submit Review" handler from also firing on this button.
+      form.addEventListener('submit', function (e) {
+        e.stopImmediatePropagation();
+        var action = hiddenAction.value;
+        if (!action) {
+          e.preventDefault();
+          alert('Please select an action before submitting.');
+          return;
+        }
+        if (action === 'return' && !confirm('Return this submission for revision?')) {
+          e.preventDefault();
+        } else if (action === 'reject' && !confirm('Reject this submission? It will not be published.')) {
+          e.preventDefault();
+        }
+      });
+    })();
+  </script>
 
 {% endblock %}

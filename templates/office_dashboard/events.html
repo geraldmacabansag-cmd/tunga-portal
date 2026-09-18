@@ -55,9 +55,10 @@
             </select>
 
             <select class="field" name="when" onchange="this.form.submit()">
+              <option value="all" {% if current_when == "all" %}selected{% endif %}>All</option>
               <option value="upcoming" {% if current_when == "upcoming" %}selected{% endif %}>Upcoming</option>
               <option value="past" {% if current_when == "past" %}selected{% endif %}>Past</option>
-              <option value="all" {% if current_when == "all" %}selected{% endif %}>All</option>
+
             </select>
           </form>
           <div class="panel-body" style="padding-top:6px;">
@@ -78,7 +79,11 @@
               </span>
               <div class="action-icons">
                 <span class="ic" data-view-target="view-event-modal-{{ e.id }}"><i class="fa-regular fa-eye"></i></span>
+                {% if e.status == 'published' %}
+                  <span class="ic" style="opacity:.35;cursor:not-allowed;" title="Published content cannot be edited"><i class="fa-regular fa-pen-to-square"></i></span>
+                {% else %}
                 <span class="ic" data-edit-target="edit-event-modal-{{ e.id }}"><i class="fa-regular fa-pen-to-square"></i></span>
+                {% endif %}
                 <span class="ic" data-delete-target="delete-event-modal-{{ e.id }}"><i class="fa-regular fa-trash-can"></i></span>
               </div>
             </div>
@@ -210,6 +215,13 @@
       <div class="modal-view-row"><span class="k">Contact Info</span><span class="v">{{ e.contact_info|default:"—" }}</span></div>
       <div class="modal-view-row"><span class="k">Status</span><span class="v">{{ e.get_status_display }}</span></div>
       <div class="modal-view-row"><span class="k">Last Updated</span><span class="v">{{ e.last_updated|date:"F j, Y, g:i A" }}</span></div>
+
+      {% if e.admin_note %}
+      <div class="reminder-box">
+        <span class="ic"><i class="fa-regular fa-comment-dots"></i></span>
+        <div><strong>Note from Super Admin</strong><p>{{ e.admin_note|linebreaksbr }}</p></div>
+      </div>
+      {% endif %}
 
       <div class="modal-actions">
         <button type="button" class="btn btn-secondary" data-act="cancel">Close</button>

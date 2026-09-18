@@ -1,5 +1,6 @@
 {% extends "representative_dashboard_base.html" %}
 {% load static %}
+
 {% block body_page %}announcements{% endblock %}
 {% block content %}
 
@@ -76,7 +77,11 @@
                 <td>
                     <div class="action-icons">
                       <span class="ic" data-view-target="view-modal-{{ a.id }}"><i class="fa-regular fa-eye"></i></span>
-                      <span class="ic" data-edit-target="edit-modal-{{ a.id }}"><i class="fa-regular fa-pen-to-square"></i></span>
+                      {% if a.status == 'published' %}
+                        <span class="ic" style="opacity:.35;cursor:not-allowed;" title="Published content cannot be edited"><i class="fa-regular fa-pen-to-square"></i></span>
+                      {% else %}
+                        <span class="ic" data-edit-target="edit-modal-{{ a.id }}"><i class="fa-regular fa-pen-to-square"></i></span>
+                      {% endif %}
                       <span class="ic" data-delete-target="delete-modal-{{ a.id }}"><i class="fa-regular fa-trash-can"></i></span>
                     </div>
                 </td>
@@ -402,6 +407,13 @@
       <div class="modal-view-row"><span class="k">Priority</span><span class="v">{{ a.priority }}</span></div>
       <div class="modal-view-row"><span class="k">Status</span><span class="v">{{ a.get_status_display }}</span></div>
       <div class="modal-view-row"><span class="k">Views</span><span class="v">{{ a.views }}</span></div>
+
+      {% if a.admin_note %}
+      <div class="reminder-box">
+        <span class="ic"><i class="fa-regular fa-comment-dots"></i></span>
+        <div><strong>Note from Super Admin</strong><p>{{ a.admin_note|linebreaksbr }}</p></div>
+      </div>
+      {% endif %}
 
       <div class="modal-actions">
         <button type="button" class="btn btn-secondary" data-act="cancel">Close</button>

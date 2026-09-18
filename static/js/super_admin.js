@@ -417,7 +417,7 @@
 
   function openEditModal(row, panel) {
     if (row.classList && row.classList.contains('directory-card')) { openDirectoryEditModal(row); return; }
-    if (row.classList && row.classList.contains('contact-card')) { openContactEditModal(row); return; }
+
     var titleEl = row.querySelector('.cell-primary, .list-title, .gi-title, .dc-name, .an, .step-title');
     var subEl = row.querySelector('.cell-sub, .list-meta, .step-desc');
     var badge = getRowBadge(row);
@@ -505,6 +505,7 @@
     var panel = ic.closest('.panel');
 
     if (/fa-trash-can/.test(cls)) {
+      if (document.body.dataset.page === 'emergency-contacts' || document.body.dataset.page === 'services') return;
       e.preventDefault();
       var label = getRowLabel(row);
       confirmAction('Delete "' + label + '"? This cannot be undone.', function () {
@@ -512,13 +513,14 @@
         toast(label + ' deleted.');
       }, { danger: true, okText: 'Delete' });
     } else if (/fa-pen-to-square/.test(cls)) {
+      if (document.body.dataset.page === 'emergency-contacts') return; 
       e.preventDefault();
       openEditModal(row, panel);
     } else if (/fa-eye/.test(cls)) {
       // On the approval center, the eye icon is now a real link to the
       // server-rendered Approval Details page — let the browser follow
       // its href natively instead of intercepting the click.
-      if (document.body.dataset.page === 'approval-center') {
+      if (document.body.dataset.page === 'approval-center' || document.body.dataset.page === 'services') {
         return;
       }
       e.preventDefault();
@@ -531,6 +533,22 @@
       openRowMenu(ic, row, panel);
     }
   });
+
+  /* ------------------------------------------------------------------ */
+  /* wiring for delete modal of services in super admin               */
+  /* ------------------------------------------------------------------ */
+  function wireServicesDeleteModals() {
+    if (document.body.dataset.page !== 'services') return;
+    document.querySelectorAll('[data-delete-target]').forEach(function (trigger) {
+      var modal = document.getElementById(trigger.dataset.deleteTarget);
+      if (!modal) return;
+      wireStaticModalChrome(modal);
+      trigger.addEventListener('click', function (e) {
+        e.stopPropagation();
+        openStaticModal(modal);
+      });
+    });
+  }
 
   /* ------------------------------------------------------------------ */
   /* Search + filter + sort for tables / lists / grids                   */
@@ -1319,6 +1337,16 @@
   document.addEventListener('DOMContentLoaded', function () {
     wireTopbar();
     wireSidebarLogout();
+    wireServicesDeleteModals();
+      
+    var serverMessages = document.getElementById('server-messages');
+    if (serverMessages) {
+      serverMessages.querySelectorAll('[data-type]').forEach(function (node) {
+        var tags = node.dataset.type || '';
+        var type = tags.indexOf('error') !== -1 ? 'error' : 'success';
+        toast(node.textContent.trim(), type);
+      });
+    }
     wireFilters();
     wirePagination();
     wireDashboardQuickCreateLinks();

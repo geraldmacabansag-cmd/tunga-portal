@@ -91,6 +91,8 @@ class Announcement(models.Model):
         default="pending"
     )
 
+    admin_note = models.TextField(blank=True)
+
     views = models.PositiveIntegerField(
         default=0
     )
@@ -130,6 +132,7 @@ class NewsUpdate(models.Model):
     tags = models.CharField(max_length=255, blank=True)
 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    admin_note = models.TextField(blank=True)
     views = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -168,6 +171,7 @@ class Event(models.Model):
     poster = models.ImageField(upload_to="events/", blank=True, null=True)
 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    admin_note = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     last_updated = models.DateTimeField(auto_now=True)
@@ -219,6 +223,7 @@ class Photo(models.Model):
     image = models.ImageField(upload_to="gallery/")
 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    admin_note = models.TextField(blank=True)
     last_updated = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -272,6 +277,7 @@ class Service(models.Model):
     category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default="other")
     icon = models.CharField(max_length=60, choices=ICON_CHOICES, default="fa-solid fa-file-signature")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")  
+    admin_note = models.TextField(blank=True)
 
     availability = models.CharField(max_length=150, blank=True)  # e.g. "Monday - Friday, 8:00 AM - 5:00 PM"
     processing_time = models.CharField(max_length=100, blank=True)  # e.g. "3-5 business days"
@@ -317,6 +323,7 @@ class DownloadableForm(models.Model):
     file = models.FileField(upload_to="downloadable_forms/")
 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    admin_note = models.TextField(blank=True)
     uploaded_by = models.CharField(max_length=150, blank=True)
     date_uploaded = models.DateTimeField(auto_now_add=True)
     download_count = models.PositiveIntegerField(default=0)

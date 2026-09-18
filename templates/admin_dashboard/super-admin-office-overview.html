@@ -12,183 +12,71 @@
       <div class="stat-grid">
         <div class="stat-card">
           <div class="top"><span class="stat-icon blue"><i class="fa-solid fa-building"></i></span></div>
-          <div class="stat-value">15</div>
+          <div class="stat-value">{{ total_offices }}</div>
           <div class="stat-label">Total Offices</div>
           <div class="stat-sub">All registered offices</div>
         </div>
         <div class="stat-card">
           <div class="top"><span class="stat-icon green"><i class="fa-solid fa-circle-check"></i></span></div>
-          <div class="stat-value">12</div>
+          <div class="stat-value">{{ active_count }}</div>
           <div class="stat-label">Active Offices</div>
           <div class="stat-sub">Currently active</div>
         </div>
         <div class="stat-card">
           <div class="top"><span class="stat-icon amber"><i class="fa-regular fa-clock"></i></span></div>
-          <div class="stat-value">3</div>
-          <div class="stat-label">Pending Approval</div>
-          <div class="stat-sub">Awaiting review</div>
+          <div class="stat-value">{{ pending_count }}</div>
+          <div class="stat-label">Pending</div>
+          <div class="stat-sub">No representative assigned</div>
         </div>
         <div class="stat-card">
           <div class="top"><span class="stat-icon gray"><i class="fa-solid fa-ban"></i></span></div>
-          <div class="stat-value">0</div>
+          <div class="stat-value">{{ inactive_count }}</div>
           <div class="stat-label">Inactive Offices</div>
-          <div class="stat-sub">Not active</div>
+          <div class="stat-sub">Account disabled</div>
         </div>
       </div>
 
       <section class="panel">
         <div class="panel-header">
           <h2>All Offices</h2>
-          <button type="button" class="btn btn-primary btn-sm" id="open-add-office"><i class="fa-solid fa-plus"></i> Add New Office</button>
         </div>
-        <div class="filters-row">
-          <label class="field search" style="flex:1;"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search office..."></label>
-          <select class="field">
-            <option>All Status</option>
-            <option>Active</option>
-            <option>Pending Approval</option>
-            <option>Inactive</option>
+        <form method="get" class="filters-row">
+          <label class="field search" style="flex:1;"><i class="fa-solid fa-magnifying-glass"></i><input type="text" name="q" value="{{ current_q }}" placeholder="Search office..." onchange="this.form.submit()"></label>
+          <select class="field" name="status" onchange="this.form.submit()">
+            <option value="" {% if current_status == "" %}selected{% endif %}>All Status</option>
+            <option value="active" {% if current_status == "active" %}selected{% endif %}>Active</option>
+            <option value="pending" {% if current_status == "pending" %}selected{% endif %}>Pending</option>
+            <option value="inactive" {% if current_status == "inactive" %}selected{% endif %}>Inactive</option>
           </select>
-          <select class="field">
-            <option>All Offices</option>
-          </select>
-        </div>
+        </form>
         <div class="table-wrap">
           <table class="data-table">
             <thead>
-              <tr>
-                <th>Office</th>
-                <th>Representative</th>
-                <th>Status</th>
-                <th>Last Update</th>
-                <th>Published Posts</th>
-                <th>Actions</th>
-              </tr>
+              <tr><th>Office</th><th>Representative</th><th>Status</th><th>Last Login</th><th>Published Posts</th><th>Actions</th></tr>
             </thead>
             <tbody>
-            <tr>
-              <td class="row-icon-name"><span class="row-thumb" style="background:var(--blue-600);color:#fff;"><i class="fa-solid fa-landmark"></i></span><span class="cell-primary">Mayor's Office</span></td>
-              <td>Juan Cruz</td>
-              <td><span class="badge badge-green">Active</span></td>
-              <td>Today, 9:30 AM</td>
-              <td>34</td>
-              <td>
-                <div class="action-icons">
-                  <span class="ic"><i class="fa-regular fa-eye"></i></span>
-                  <span class="ic"><i class="fa-regular fa-pen-to-square"></i></span>
-                  <span class="ic"><i class="fa-solid fa-ellipsis-vertical"></i></span>
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td class="row-icon-name"><span class="row-thumb" style="background:var(--green-600);color:#fff;"><i class="fa-solid fa-house-medical"></i></span><span class="cell-primary">Rural Health Unit (RHU)</span></td>
-              <td>Ana Reyes</td>
-              <td><span class="badge badge-amber">Pending Approval</span></td>
-              <td>Yesterday, 4:20 PM</td>
-              <td>12</td>
-              <td>
-                <div class="action-icons">
-                  <span class="ic"><i class="fa-regular fa-eye"></i></span>
-                  <span class="ic"><i class="fa-regular fa-pen-to-square"></i></span>
-                  <span class="ic"><i class="fa-solid fa-ellipsis-vertical"></i></span>
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td class="row-icon-name"><span class="row-thumb" style="background:var(--green-600);color:#fff;"><i class="fa-solid fa-seedling"></i></span><span class="cell-primary">Agriculture Office</span></td>
-              <td>Pedro Santos</td>
-              <td><span class="badge badge-green">Active</span></td>
-              <td>Today, 10:15 AM</td>
-              <td>18</td>
-              <td>
-                <div class="action-icons">
-                  <span class="ic"><i class="fa-regular fa-eye"></i></span>
-                  <span class="ic"><i class="fa-regular fa-pen-to-square"></i></span>
-                  <span class="ic"><i class="fa-solid fa-ellipsis-vertical"></i></span>
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td class="row-icon-name"><span class="row-thumb" style="background:var(--blue-600);color:#fff;"><i class="fa-solid fa-umbrella-beach"></i></span><span class="cell-primary">Tourism Office</span></td>
-              <td>Maria Lopez</td>
-              <td><span class="badge badge-green">Active</span></td>
-              <td>Today, 8:50 AM</td>
-              <td>21</td>
-              <td>
-                <div class="action-icons">
-                  <span class="ic"><i class="fa-regular fa-eye"></i></span>
-                  <span class="ic"><i class="fa-regular fa-pen-to-square"></i></span>
-                  <span class="ic"><i class="fa-solid fa-ellipsis-vertical"></i></span>
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td class="row-icon-name"><span class="row-thumb" style="background:var(--red-600);color:#fff;"><i class="fa-solid fa-scale-balanced"></i></span><span class="cell-primary">Assessor's Office</span></td>
-              <td>Lito Garcia</td>
-              <td><span class="badge badge-green">Active</span></td>
-              <td>Yesterday, 2:11 PM</td>
-              <td>15</td>
-              <td>
-                <div class="action-icons">
-                  <span class="ic"><i class="fa-regular fa-eye"></i></span>
-                  <span class="ic"><i class="fa-regular fa-pen-to-square"></i></span>
-                  <span class="ic"><i class="fa-solid fa-ellipsis-vertical"></i></span>
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td class="row-icon-name"><span class="row-thumb" style="background:var(--blue-600);color:#fff;"><i class="fa-solid fa-coins"></i></span><span class="cell-primary">Municipal Treasurer's Office</span></td>
-              <td>Riza Delos Santos</td>
-              <td><span class="badge badge-green">Active</span></td>
-              <td>Today, 11:05 AM</td>
-              <td>17</td>
-              <td>
-                <div class="action-icons">
-                  <span class="ic"><i class="fa-regular fa-eye"></i></span>
-                  <span class="ic"><i class="fa-regular fa-pen-to-square"></i></span>
-                  <span class="ic"><i class="fa-solid fa-ellipsis-vertical"></i></span>
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td class="row-icon-name"><span class="row-thumb" style="background:var(--amber-600);color:#fff;"><i class="fa-solid fa-id-card"></i></span><span class="cell-primary">Civil Registrar Office</span></td>
-              <td>Mark Villanueva</td>
-              <td><span class="badge badge-amber">Pending Approval</span></td>
-              <td>Today, 1:40 PM</td>
-              <td>8</td>
-              <td>
-                <div class="action-icons">
-                  <span class="ic"><i class="fa-regular fa-eye"></i></span>
-                  <span class="ic"><i class="fa-regular fa-pen-to-square"></i></span>
-                  <span class="ic"><i class="fa-solid fa-ellipsis-vertical"></i></span>
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td class="row-icon-name"><span class="row-thumb" style="background:var(--gray-500);color:#fff;"><i class="fa-solid fa-road"></i></span><span class="cell-primary">Engineering Office</span></td>
-              <td>Ryan Caballero</td>
-              <td><span class="badge badge-green">Active</span></td>
-              <td>Today, 7:20 AM</td>
-              <td>11</td>
-              <td>
-                <div class="action-icons">
-                  <span class="ic"><i class="fa-regular fa-eye"></i></span>
-                  <span class="ic"><i class="fa-regular fa-pen-to-square"></i></span>
-                  <span class="ic"><i class="fa-solid fa-ellipsis-vertical"></i></span>
-                </div>
-              </td>
-            </tr>
+              {% for r in rows %}
+              <tr>
+                <td class="row-icon-name"><span class="row-thumb" style="background:var(--blue-600);color:#fff;"><i class="fa-solid fa-landmark"></i></span><span class="cell-primary">{{ r.office.name }}</span></td>
+                <td>{% if r.rep %}{{ r.rep.user.get_full_name|default:r.rep.user.username }}{% else %}<span style="color:var(--gray-400);">Unassigned</span>{% endif %}</td>
+                <td>
+                  <span class="badge {% if r.status == 'active' %}badge-green{% elif r.status == 'pending' %}badge-amber{% else %}badge-gray{% endif %}">
+                    {% if r.status == 'active' %}Active{% elif r.status == 'pending' %}Pending{% else %}Inactive{% endif %}
+                  </span>
+                </td>
+                <td>{{ r.last_update|date:"M d, Y, g:i A"|default:"—" }}</td>
+                <td>{{ r.published_count }}</td>
+                <td>
+                  <div class="action-icons">
+                    <a class="ic" href="/admin/offices/office/{{ r.office.id }}/change/" title="Manage in Django Admin"><i class="fa-regular fa-pen-to-square"></i></a>
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="6" style="text-align:center;color:var(--gray-400);padding:24px;">No offices found.</td></tr>
+              {% endfor %}
             </tbody>
           </table>
-        </div>
-        <div class="pagination">
-          <span>Showing 1 to 8 of 15 offices</span>
-          <div class="page-nums">
-            <button class="page-btn"><i class="fa-solid fa-chevron-left"></i></button>
-            <button class="page-btn active">1</button>
-            <button class="page-btn">2</button>
-            <button class="page-btn"><i class="fa-solid fa-chevron-right"></i></button>
-          </div>
         </div>
       </section>
 

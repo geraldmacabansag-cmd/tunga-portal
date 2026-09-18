@@ -2,19 +2,73 @@
 {% load static %}
 
 {% block page_title_tag %}Contact Information{% endblock %}
-{% block body_page %}contact information{% endblock %}
+{% block body_page %}contact-information{% endblock %}
 {% block page_title %}Contact Information{% endblock %}
-{% block page_subtitle %}Manage publishes contact details{% endblock %}
+{% block page_subtitle %}Manage published contact details{% endblock %}
 
 {% block breadcrumbs %}<span>Dashboard</span><span class="sep">›</span><span>Website Management</span><span class="sep">›</span><span class="current">Contact Information</span>{% endblock %}
 
 {% block content %}
-      <div class="empty-state">
-        <div class="ei"><i class="fa-solid fa-phone"></i></div>
-        <h2>Contact Information</h2>
-        <p>This page is ready and waiting &mdash; nothing has been built here yet.</p>
-      </div>
 
-<script src="super_admin.js"></script>
+  <div style="margin-bottom:18px;">
+    <h2 style="margin:0;font-size:16px;font-weight:800;color:var(--gray-900);">Contact Information</h2>
+    <p style="margin:3px 0 0;font-size:12.5px;color:var(--gray-500);">Shown on the public Contact Us page and in the website footer</p>
+  </div>
+
+  <section class="panel">
+    <div class="panel-body">
+      <form method="post">
+        {% csrf_token %}
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Phone Number</label>
+            <input class="form-input" type="text" name="phone" value="{{ info.phone }}" placeholder="e.g. (053) 456 789">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Phone (Local / Extension)</label>
+            <input class="form-input" type="text" name="phone_local" value="{{ info.phone_local }}" placeholder="e.g. Local 100">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Email Address</label>
+            <input class="form-input" type="email" name="email" value="{{ info.email }}" placeholder="e.g. tunga@gmail.com">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Secondary Email</label>
+            <input class="form-input" type="email" name="email_secondary" value="{{ info.email_secondary }}" placeholder="e.g. info@tunga.gov.ph">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Address</label>
+          <input class="form-input" type="text" name="address" value="{{ info.address }}" placeholder="e.g. 2nd Floor, Municipal Hall, Tunga, Leyte">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Facebook Page Name</label>
+            <input class="form-input" type="text" name="facebook_name" value="{{ info.facebook_name }}" placeholder="e.g. Municipality of Tunga - Official">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Facebook Page URL</label>
+            <input class="form-input" type="url" name="facebook_url" value="{{ info.facebook_url }}" placeholder="https://facebook.com/...">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Office Hours</label>
+          <input class="form-input" type="text" name="office_hours" value="{{ info.office_hours }}" placeholder="e.g. Monday – Friday, 8:00 AM – 5:00 PM">
+        </div>
+
+        <div class="modal-actions" style="justify-content:flex-start;border-top:none;padding-top:4px;">
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </section>
 
 {% endblock %}
+

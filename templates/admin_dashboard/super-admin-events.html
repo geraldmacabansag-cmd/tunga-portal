@@ -8,12 +8,310 @@
 {% block breadcrumbs %}<span>Dashboard</span><span class="sep">›</span><span>Content Management</span><span class="sep">›</span><span class="current">Events</span>{% endblock %}
 
 {% block content %}
-      <div class="empty-state">
-        <div class="ei"><i class="fa-regular fa-calendar"></i></div>
-        <h2>Events</h2>
-        <p>This page is ready and waiting &mdash; nothing has been built here yet.</p>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;">
+        <div>
+          <h2 style="margin:0;font-size:16px;font-weight:800;color:var(--gray-900);">Events</h2>
+          <p style="margin:3px 0 0;font-size:12.5px;color:var(--gray-500);">Municipal events published to the community</p>
+        </div>
+        <button type="button" class="btn btn-primary" id="eventCreateBtn"><i class="fa-solid fa-plus"></i> Add Event</button>
       </div>
 
-<script src="super_admin.js"></script>
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon blue"><i class="fa-regular fa-calendar"></i></span></div>
+          <div class="stat-value">{{ total_count }}</div>
+          <div class="stat-label">Published events</div>
+          <div class="stat-sub">Live on the website</div>
+        </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon green"><i class="fa-solid fa-calendar-days"></i></span></div>
+          <div class="stat-value">{{ upcoming_count }}</div>
+          <div class="stat-label">Upcoming</div>
+          <div class="stat-sub">Not yet held</div>
+        </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon gray"><i class="fa-regular fa-clock"></i></span></div>
+          <div class="stat-value">{{ past_count }}</div>
+          <div class="stat-label">Past</div>
+          <div class="stat-sub">Already held</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="table-wrap" style="border:none;border-radius:0;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Event</th>
+                <th>Category</th>
+                <th>Organized by</th>
+                <th>Event Date</th>
+                <th>Status</th>
+                <th>Location</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for e in events %}
+              <tr>
+                <td>
+                  <div class="row-icon-name">
+                    {% if e.poster %}<img class="list-thumb" src="{{ e.poster.url }}" alt="">{% else %}<span class="row-thumb" style="background:var(--blue-50);color:var(--blue-600);"><i class="fa-regular fa-calendar"></i></span>{% endif %}
+                    <div>
+                      <p class="cell-primary">{{ e.title }}</p>
+                      <p class="cell-sub">{{ e.description|truncatewords:14 }}</p>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="tag tag-gray">{{ e.category|default:"—" }}</span></td>
+                <td>{{ e.representative.office.name|default:"—" }}</td>
+                <td>{{ e.event_date|date:"M j, Y"|default:"—" }}</td>
+                <td><span class="badge {{ e.badge_class }}">{{ e.get_status_display }}</span></td>
+                <td>{{ e.location|default:"—" }}</td>
+                <td>
+                  <div class="action-icons">
+                    <a class="ic" title="View" href="{% url 'admin_dashboard:approval_details' 'Event' e.pk %}"><i class="fa-regular fa-eye"></i></a>
+                    <button type="button" class="ic event-edit-btn" title="Edit"
+                      data-id="{{ e.pk }}"
+                      data-title="{{ e.title }}"
+                      data-category="{{ e.category }}"
+                      data-description="{{ e.description }}"
+                      data-event-date="{{ e.event_date|date:'Y-m-d' }}"
+                      data-start-time="{{ e.start_time|time:'H:i' }}"
+                      data-end-time="{{ e.end_time|time:'H:i' }}"
+                      data-location="{{ e.location }}"
+                      data-organizer="{{ e.organizer }}"
+                      data-contact-person="{{ e.contact_person }}"
+                      data-contact-info="{{ e.contact_info }}"
+                      data-status="{{ e.status }}"
+                      data-representative="{{ e.representative_id }}">
+                      <i class="fa-regular fa-pen-to-square"></i>
+                    </button>
+                    <button type="button" class="ic" title="Delete" data-delete-target="delete-event-modal-{{ e.pk }}"><i class="fa-regular fa-trash-can"></i></button>
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr class="no-results-row"><td colspan="7">No events yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+<!-- Create / Edit Event modal -->
+<div class="modal-backdrop" id="eventModal">
+  <div class="modal-box modal-wide">
+    <div class="modal-head">
+      <h3 id="eventModalTitle">Add Event</h3>
+      <button type="button" class="modal-x" id="eventModalClose"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form id="eventForm" method="post" enctype="multipart/form-data" data-url-template="{% url 'admin_dashboard:admin_event_save' 0 %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label">Title<span class="req">*</span></label>
+          <input class="form-input" type="text" name="title" id="eventTitle" placeholder="e.g. Youth Leadership Training">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <select class="form-input" name="category" id="eventCategory">
+              <option value="">—</option>
+              <option>Community</option>
+              <option>Government</option>
+              <option>Health</option>
+              <option>Education</option>
+              <option>Sports</option>
+              <option>Culture &amp; Tourism</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Organized by (office)<span class="req">*</span></label>
+            <select class="form-input" name="representative" id="eventRepresentative">
+              {% for rep in office_reps %}
+                <option value="{{ rep.pk }}">{{ rep.office.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Poster / cover image</label>
+          <input class="form-input file-input" type="file" accept="image/*" name="poster" id="eventPosterFile">
+          <span class="form-help" id="eventPosterHelp">JPG or PNG. Leave empty to keep the current poster when editing.</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea class="form-input form-textarea" name="description" id="eventDescription" style="min-height:120px;" placeholder="What this event is about."></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Event date</label>
+            <input class="form-input" type="date" name="event_date" id="eventDate">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select class="form-input" name="status" id="eventStatus">
+              <option value="pending">Pending Approval</option>
+              <option value="published">Published</option>
+              <option value="returned">Returned</option>
+              <option value="reject">Reject</option>
+              <option value="archive">Archived</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Start time</label>
+            <input class="form-input" type="time" name="start_time" id="eventStartTime">
+          </div>
+          <div class="form-group">
+            <label class="form-label">End time</label>
+            <input class="form-input" type="time" name="end_time" id="eventEndTime">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Location</label>
+          <input class="form-input" type="text" name="location" id="eventLocation" placeholder="e.g. Municipal Gymnasium">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Organizer</label>
+            <input class="form-input" type="text" name="organizer" id="eventOrganizer" placeholder="e.g. Office of the Municipal Mayor">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Contact person</label>
+            <input class="form-input" type="text" name="contact_person" id="eventContactPerson">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Contact info</label>
+          <input class="form-input" type="text" name="contact_info" id="eventContactInfo" placeholder="Phone number or email">
+        </div>
+      </form>
+    </div>
+    <div class="modal-actions" style="padding:0 20px 20px;">
+      <button type="button" class="btn btn-secondary" id="eventCancelBtn">Cancel</button>
+      <button type="submit" form="eventForm" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save event</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete confirmation popups, one per event -->
+{% for e in events %}
+<div class="modal-backdrop" id="delete-event-modal-{{ e.pk }}">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Delete Event</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <p>Are you sure you want to delete <strong>"{{ e.title }}"</strong>? This will remove it from the public website immediately and cannot be undone.</p>
+      <form method="post" action="{% url 'admin_dashboard:admin_event_delete' e.pk %}">
+        {% csrf_token %}
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" style="background:#dc2626;border-color:#dc2626;">Yes, Delete</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<script>
+(function () {
+  var modal = document.getElementById('eventModal');
+  var form = document.getElementById('eventForm');
+  var modalTitle = document.getElementById('eventModalTitle');
+
+  function openModal() {
+    modal.classList.add('open');
+    document.body.classList.add('modal-open');
+  }
+  function closeModal() {
+    modal.classList.remove('open');
+    document.body.classList.remove('modal-open');
+    setTimeout(function () { form.reset(); }, 200);
+  }
+
+  document.getElementById('eventCreateBtn').addEventListener('click', function () {
+    modalTitle.textContent = 'Add Event';
+    form.action = form.dataset.urlTemplate;
+    document.getElementById('eventPosterHelp').textContent = 'JPG or PNG.';
+    openModal();
+  });
+
+  document.getElementById('eventCancelBtn').addEventListener('click', closeModal);
+  document.getElementById('eventModalClose').addEventListener('click', closeModal);
+  modal.addEventListener('click', function (e) {
+    if (e.target === modal) closeModal();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && modal.classList.contains('open')) closeModal();
+  });
+
+  document.querySelectorAll('.event-edit-btn').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var d = btn.dataset;
+      modalTitle.textContent = 'Edit Event';
+      form.action = form.dataset.urlTemplate.replace('/0/', '/' + d.id + '/');
+      document.getElementById('eventTitle').value = d.title || '';
+      document.getElementById('eventCategory').value = d.category || '';
+      document.getElementById('eventDescription').value = d.description || '';
+      document.getElementById('eventDate').value = d.eventDate || '';
+      document.getElementById('eventStartTime').value = d.startTime || '';
+      document.getElementById('eventEndTime').value = d.endTime || '';
+      document.getElementById('eventLocation').value = d.location || '';
+      document.getElementById('eventOrganizer').value = d.organizer || '';
+      document.getElementById('eventContactPerson').value = d.contactPerson || '';
+      document.getElementById('eventContactInfo').value = d.contactInfo || '';
+      document.getElementById('eventStatus').value = d.status || 'pending';
+      if (d.representative) document.getElementById('eventRepresentative').value = d.representative;
+      document.getElementById('eventPosterHelp').textContent = 'Choose a new image to replace the current poster, or leave empty to keep it.';
+      openModal();
+    });
+  });
+
+  // Delete popups: same pattern used elsewhere in this app.
+  document.querySelectorAll('[data-delete-target]').forEach(function (trigger) {
+    var delModal = document.getElementById(trigger.dataset.deleteTarget);
+    if (!delModal) return;
+
+    trigger.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      delModal.classList.add('open');
+      document.body.classList.add('modal-open');
+    });
+
+    function closeDelModal() {
+      delModal.classList.remove('open');
+      document.body.classList.remove('modal-open');
+    }
+    delModal.querySelectorAll('[data-act="cancel"], .modal-x').forEach(function (b) {
+      b.addEventListener('click', closeDelModal);
+    });
+    delModal.addEventListener('click', function (e) {
+      if (e.target === delModal) closeDelModal();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && delModal.classList.contains('open')) closeDelModal();
+    });
+  });
+})();
+</script>
 
 {% endblock %}
+

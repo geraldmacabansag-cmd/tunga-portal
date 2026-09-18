@@ -1,0 +1,69 @@
+{% extends "super-admin-base.html" %}
+{% load static %}
+
+{% block page_title_tag %}Service Details{% endblock %}
+{% block body_page %}services{% endblock %}
+{% block page_title %}Service Details{% endblock %}
+{% block page_subtitle %}{{ service.name }}{% endblock %}
+
+{% block breadcrumbs %}<span>Dashboard</span><span class="sep">›</span><span>Office Management</span><span class="sep">›</span><a href="{% url 'admin_dashboard:ad_services' %}" style="color:inherit;">Services</a><span class="sep">›</span><span class="current">{{ service.name }}</span>{% endblock %}
+
+{% block content %}
+
+  <section class="panel">
+    <div class="panel-header">
+      <h2>{{ service.name }}</h2>
+      <span class="ic" data-delete-target="delete-service-modal-{{ service.pk }}" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:1px solid var(--gray-200);border-radius:7px;color:var(--red-600);cursor:pointer;">
+        <i class="fa-regular fa-trash-can"></i>
+      </span>
+    </div>
+    <div class="panel-body">
+      <div class="field-grid">
+        <div>
+          <div class="fl-label">Office</div>
+          <div class="fl-value">{{ service.office.name }}</div>
+        </div>
+        <div>
+          <div class="fl-label">Category</div>
+          <div class="fl-value">{{ service.get_category_display }}</div>
+        </div>
+        <div>
+          <div class="fl-label">Availability</div>
+          <div class="fl-value">{{ service.availability|default:"—" }}</div>
+        </div>
+        <div>
+          <div class="fl-label">Processing Time</div>
+          <div class="fl-value">{{ service.processing_time|default:"—" }}</div>
+        </div>
+        <div class="full">
+          <div class="fl-label">Description</div>
+          <div class="fl-value {% if not service.description %}muted{% endif %}">{{ service.description|default:"No description provided."|linebreaksbr }}</div>
+        </div>
+        <div>
+          <div class="fl-label">Published</div>
+          <div class="fl-value">{{ service.published_at|date:"F j, Y, g:i A" }}</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="modal-backdrop" id="delete-service-modal-{{ service.pk }}">
+    <div class="modal-box" style="max-width:400px;">
+      <div class="modal-head">
+        <h3>Delete Service</h3>
+        <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <p class="confirm-msg">Are you sure you want to permanently delete <strong>"{{ service.name }}"</strong>? This cannot be undone.</p>
+        <form method="post" action="{% url 'admin_dashboard:ad_service_delete' service.pk %}">
+          {% csrf_token %}
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+            <button type="submit" class="btn btn-danger">Yes, Delete</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+{% endblock %}
