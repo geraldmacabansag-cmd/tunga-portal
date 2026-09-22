@@ -17,18 +17,12 @@
         <button type="button" class="btn btn-primary" id="eventCreateBtn"><i class="fa-solid fa-plus"></i> Add Event</button>
       </div>
 
-      <div class="stat-grid">
+      <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);max-width:520px;">
         <div class="stat-card">
           <div class="top"><span class="stat-icon blue"><i class="fa-regular fa-calendar"></i></span></div>
           <div class="stat-value">{{ total_count }}</div>
           <div class="stat-label">Published events</div>
           <div class="stat-sub">Live on the website</div>
-        </div>
-        <div class="stat-card">
-          <div class="top"><span class="stat-icon green"><i class="fa-solid fa-calendar-days"></i></span></div>
-          <div class="stat-value">{{ upcoming_count }}</div>
-          <div class="stat-label">Upcoming</div>
-          <div class="stat-sub">Not yet held</div>
         </div>
         <div class="stat-card">
           <div class="top"><span class="stat-icon gray"><i class="fa-regular fa-clock"></i></span></div>
@@ -39,6 +33,20 @@
       </div>
 
       <div class="panel">
+        <form method="get" class="filters-row">
+          <label class="field search" style="flex:1;"><i class="fa-solid fa-magnifying-glass"></i><input type="text" name="q" value="{{ current_q }}" placeholder="Search events..." onchange="this.form.submit()"></label>
+          <select class="field" name="when" onchange="this.form.submit()">
+            <option value="all" {% if current_when == "all" %}selected{% endif %}>All</option>
+            <option value="upcoming" {% if current_when == "upcoming" %}selected{% endif %}>Upcoming</option>
+            <option value="past" {% if current_when == "past" %}selected{% endif %}>Past</option>
+          </select>
+          <select class="field" name="category" onchange="this.form.submit()">
+            <option value="">All categories</option>
+            {% for cat in categories %}
+              <option value="{{ cat }}" {% if current_category == cat %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+          </select>
+        </form>
         <div class="table-wrap" style="border:none;border-radius:0;">
           <table class="data-table">
             <thead>
@@ -71,7 +79,24 @@
                 <td>{{ e.location|default:"—" }}</td>
                 <td>
                   <div class="action-icons">
-                    <a class="ic" title="View" href="{% url 'admin_dashboard:approval_details' 'Event' e.pk %}"><i class="fa-regular fa-eye"></i></a>
+                    <button type="button" class="ic view-event-btn" title="View"
+                      data-title="{{ e.title }}"
+                      data-category="{{ e.category }}"
+                      data-description="{{ e.description }}"
+                      data-office="{{ e.representative.office.name|default:'—' }}"
+                      data-event-date="{{ e.event_date|date:'F j, Y'|default:'—' }}"
+                      data-start-time="{{ e.start_time|time:'g:i A'|default:'—' }}"
+                      data-end-time="{{ e.end_time|time:'g:i A'|default:'—' }}"
+                      data-location="{{ e.location }}"
+                      data-organizer="{{ e.organizer }}"
+                      data-contact-person="{{ e.contact_person }}"
+                      data-contact-info="{{ e.contact_info }}"
+                      data-status="{{ e.get_status_display }}"
+                      data-status-class="{{ e.badge_class }}"
+                      data-image="{% if e.poster %}{{ e.poster.url }}{% endif %}"
+                      data-created="{{ e.created_at|date:'F j, Y g:i A' }}"
+                      data-details-url="{% url 'admin_dashboard:approval_details' 'Event' e.pk %}"
+                    ><i class="fa-regular fa-eye"></i></button>
                     <button type="button" class="ic event-edit-btn" title="Edit"
                       data-id="{{ e.pk }}"
                       data-title="{{ e.title }}"
@@ -111,26 +136,20 @@
       <form id="eventForm" method="post" enctype="multipart/form-data" data-url-template="{% url 'admin_dashboard:admin_event_save' 0 %}">
         {% csrf_token %}
         <div class="form-group">
-          <label class="form-label">Title<span class="req">*</span></label>
-          <input class="form-input" type="text" name="title" id="eventTitle" placeholder="e.g. Youth Leadership Training">
+          <label class="form-label">Event Title <span class="req">*</span></label>
+          <input class="form-input" type="text" name="title" id="eventTitle" placeholder="e.g. Barangay Sports Fest">
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Category</label>
-            <select class="form-input" name="category" id="eventCategory">
-              <option value="">—</option>
-              <option>Community</option>
-              <option>Government</option>
-              <option>Health</option>
-              <option>Education</option>
-              <option>Sports</option>
-              <option>Culture &amp; Tourism</option>
-            </select>
+            <label class="form-label">Event Category</label>
+            <input class="form-input" type="text" name="category" id="eventCategory" placeholder="e.g. Sports">
           </div>
           <div class="form-group">
             <label class="form-label">Organized by (office)<span class="req">*</span></label>
             <select class="form-input" name="representative" id="eventRepresentative">
+              <option value="">Select office</option>
+              <option value="super_admin" selected>LGU Super Admin</option>
               {% for rep in office_reps %}
                 <option value="{{ rep.pk }}">{{ rep.office.name }}</option>
               {% endfor %}
@@ -139,69 +158,101 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">Poster / cover image</label>
-          <input class="form-input file-input" type="file" accept="image/*" name="poster" id="eventPosterFile">
-          <span class="form-help" id="eventPosterHelp">JPG or PNG. Leave empty to keep the current poster when editing.</span>
-        </div>
-
-        <div class="form-group">
           <label class="form-label">Description</label>
-          <textarea class="form-input form-textarea" name="description" id="eventDescription" style="min-height:120px;" placeholder="What this event is about."></textarea>
+          <textarea class="form-input form-textarea" name="description" id="eventDescription" rows="4" placeholder="Details about the event..."></textarea>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Event date</label>
+            <label class="form-label">Event Date</label>
             <input class="form-input" type="date" name="event_date" id="eventDate">
           </div>
           <div class="form-group">
-            <label class="form-label">Status</label>
-            <select class="form-input" name="status" id="eventStatus">
-              <option value="pending">Pending Approval</option>
-              <option value="published">Published</option>
-              <option value="returned">Returned</option>
-              <option value="reject">Reject</option>
-              <option value="archive">Archived</option>
-            </select>
+            <label class="form-label">Start Time</label>
+            <input class="form-input" type="time" name="start_time" id="eventStart">
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Start time</label>
-            <input class="form-input" type="time" name="start_time" id="eventStartTime">
+            <label class="form-label">End Time</label>
+            <input class="form-input" type="time" name="end_time" id="eventEnd">
           </div>
           <div class="form-group">
-            <label class="form-label">End time</label>
-            <input class="form-input" type="time" name="end_time" id="eventEndTime">
+            <label class="form-label">Location / Venue</label>
+            <input class="form-input" type="text" name="location" id="eventLocation" placeholder="e.g. Municipal Grounds">
           </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Location</label>
-          <input class="form-input" type="text" name="location" id="eventLocation" placeholder="e.g. Municipal Gymnasium">
         </div>
 
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">Organizer</label>
-            <input class="form-input" type="text" name="organizer" id="eventOrganizer" placeholder="e.g. Office of the Municipal Mayor">
+            <input class="form-input" type="text" name="organizer" id="eventOrganizer" placeholder="e.g. SB Office">
           </div>
           <div class="form-group">
-            <label class="form-label">Contact person</label>
-            <input class="form-input" type="text" name="contact_person" id="eventContactPerson">
+            <label class="form-label">Contact Person</label>
+            <input class="form-input" type="text" name="contact_person" id="eventContactPerson" placeholder="e.g. Juan Dela Cruz">
           </div>
         </div>
 
         <div class="form-group">
-          <label class="form-label">Contact info</label>
-          <input class="form-input" type="text" name="contact_info" id="eventContactInfo" placeholder="Phone number or email">
+          <label class="form-label">Contact Information</label>
+          <input class="form-input" type="text" name="contact_info" id="eventContactInfo" placeholder="e.g. 0917-xxx-xxxx">
         </div>
+
+        <div class="form-group">
+          <label class="form-label">Event Poster / Image</label>
+          <input class="form-input file-input" type="file" name="poster" id="eventPosterFile" accept="image/*">
+          <span class="form-help" id="eventPosterHelp">JPG or PNG. Leave empty to keep the current poster when editing.</span>
+        </div>
+
+        <p class="form-help">This event will be published immediately and appear on the public site right away.</p>
       </form>
     </div>
     <div class="modal-actions" style="padding:0 20px 20px;">
       <button type="button" class="btn btn-secondary" id="eventCancelBtn">Cancel</button>
       <button type="submit" form="eventForm" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save event</button>
+    </div>
+  </div>
+</div>
+
+<!-- View Event modal -->
+<div class="modal-backdrop" id="view-event-modal">
+  <div class="modal-box modal-wide">
+    <div class="modal-head">
+      <h3>Event Details</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div id="ve-image-wrap" style="margin-bottom:16px;display:none;">
+        <img id="ve-image" src="" alt="" style="width:100%;border-radius:10px;max-height:260px;object-fit:cover;">
+      </div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;">
+        <h2 id="ve-title" style="margin:0;font-size:18px;"></h2>
+        <span id="ve-status" class="badge"></span>
+      </div>
+
+      <div class="field-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:14px 20px;margin-bottom:16px;">
+        <div><div class="fl-label" style="font-size:11px;color:var(--gray-400);text-transform:uppercase;font-weight:700;">Category</div><div id="ve-category" class="fl-value"></div></div>
+        <div><div class="fl-label" style="font-size:11px;color:var(--gray-400);text-transform:uppercase;font-weight:700;">Organized By</div><div id="ve-office" class="fl-value"></div></div>
+        <div><div class="fl-label" style="font-size:11px;color:var(--gray-400);text-transform:uppercase;font-weight:700;">Event Date</div><div id="ve-event-date" class="fl-value"></div></div>
+        <div><div class="fl-label" style="font-size:11px;color:var(--gray-400);text-transform:uppercase;font-weight:700;">Time</div><div id="ve-time" class="fl-value"></div></div>
+        <div><div class="fl-label" style="font-size:11px;color:var(--gray-400);text-transform:uppercase;font-weight:700;">Location</div><div id="ve-location" class="fl-value"></div></div>
+        <div><div class="fl-label" style="font-size:11px;color:var(--gray-400);text-transform:uppercase;font-weight:700;">Organizer</div><div id="ve-organizer" class="fl-value"></div></div>
+        <div><div class="fl-label" style="font-size:11px;color:var(--gray-400);text-transform:uppercase;font-weight:700;">Contact Person</div><div id="ve-contact-person" class="fl-value"></div></div>
+        <div><div class="fl-label" style="font-size:11px;color:var(--gray-400);text-transform:uppercase;font-weight:700;">Contact Info</div><div id="ve-contact-info" class="fl-value"></div></div>
+        <div><div class="fl-label" style="font-size:11px;color:var(--gray-400);text-transform:uppercase;font-weight:700;">Created</div><div id="ve-created" class="fl-value"></div></div>
+      </div>
+
+      <div style="border-top:1px solid var(--gray-100);padding-top:14px;">
+        <div class="fl-label" style="font-size:11px;color:var(--gray-400);text-transform:uppercase;font-weight:700;margin-bottom:6px;">Description</div>
+        <p id="ve-description" style="white-space:pre-wrap;font-size:13.5px;color:var(--gray-700);line-height:1.6;"></p>
+      </div>
+    </div>
+    <div class="modal-actions" style="padding:0 20px 20px;">
+      <button type="button" class="btn btn-secondary" data-act="cancel">Close</button>
+      <a id="ve-details-link" href="#" class="btn btn-primary">Open Full Review</a>
     </div>
   </div>
 </div>
@@ -271,13 +322,12 @@
       document.getElementById('eventCategory').value = d.category || '';
       document.getElementById('eventDescription').value = d.description || '';
       document.getElementById('eventDate').value = d.eventDate || '';
-      document.getElementById('eventStartTime').value = d.startTime || '';
-      document.getElementById('eventEndTime').value = d.endTime || '';
+      document.getElementById('eventStart').value = d.startTime || '';
+      document.getElementById('eventEnd').value = d.endTime || '';
       document.getElementById('eventLocation').value = d.location || '';
       document.getElementById('eventOrganizer').value = d.organizer || '';
       document.getElementById('eventContactPerson').value = d.contactPerson || '';
       document.getElementById('eventContactInfo').value = d.contactInfo || '';
-      document.getElementById('eventStatus').value = d.status || 'pending';
       if (d.representative) document.getElementById('eventRepresentative').value = d.representative;
       document.getElementById('eventPosterHelp').textContent = 'Choose a new image to replace the current poster, or leave empty to keep it.';
       openModal();
@@ -310,6 +360,72 @@
       if (e.key === 'Escape' && delModal.classList.contains('open')) closeDelModal();
     });
   });
+
+  (function () {
+    var modal = document.getElementById('view-event-modal');
+    if (!modal) return;
+
+    function openModal() {
+      modal.classList.add('open');
+      document.body.classList.add('modal-open');
+    }
+    function closeViewModal() {
+      modal.classList.remove('open');
+      document.body.classList.remove('modal-open');
+    }
+
+    document.querySelectorAll('.view-event-btn').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var d = btn.dataset;
+
+        document.getElementById('ve-title').textContent = d.title || '';
+        document.getElementById('ve-category').textContent = d.category || '—';
+        document.getElementById('ve-office').textContent = d.office || '—';
+        document.getElementById('ve-event-date').textContent = d.eventDate || '—';
+
+        var timeParts = [];
+        if (d.startTime && d.startTime !== '—') timeParts.push(d.startTime);
+        if (d.endTime && d.endTime !== '—') timeParts.push(d.endTime);
+        document.getElementById('ve-time').textContent = timeParts.length ? timeParts.join(' – ') : '—';
+
+        document.getElementById('ve-location').textContent = d.location || '—';
+        document.getElementById('ve-organizer').textContent = d.organizer || '—';
+        document.getElementById('ve-contact-person').textContent = d.contactPerson || '—';
+        document.getElementById('ve-contact-info').textContent = d.contactInfo || '—';
+        document.getElementById('ve-created').textContent = d.created || '—';
+        document.getElementById('ve-description').textContent = d.description || '';
+
+        var statusEl = document.getElementById('ve-status');
+        statusEl.textContent = d.status || '';
+        statusEl.className = 'badge ' + (d.statusClass || 'badge-gray');
+
+        var imgWrap = document.getElementById('ve-image-wrap');
+        var img = document.getElementById('ve-image');
+        if (d.image) {
+          img.src = d.image;
+          imgWrap.style.display = '';
+        } else {
+          imgWrap.style.display = 'none';
+        }
+
+        document.getElementById('ve-details-link').href = d.detailsUrl || '#';
+
+        openModal();
+      });
+    });
+
+    modal.querySelectorAll('.modal-x, [data-act="cancel"]').forEach(function (btn) {
+      btn.addEventListener('click', closeViewModal);
+    });
+    modal.addEventListener('click', function (e) {
+      if (e.target === modal) closeViewModal();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && modal.classList.contains('open')) closeViewModal();
+    });
+  })();
 })();
 </script>
 

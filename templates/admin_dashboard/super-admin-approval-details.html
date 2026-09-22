@@ -146,14 +146,14 @@
 
     <section class="preview-card">
       {% if item_type == 'Announcement' %}
-        {% if obj.image %}<img src="{{ obj.image.url }}" alt="{{ obj.title }}">{% endif %}
+        {% if obj.image %}<a href="{{ obj.image.url }}" target="_blank"><img src="{{ obj.image.url }}" alt="{{ obj.title }}"></a>{% endif %}
         <div class="pc-body">
           <h3>{{ obj.title }}</h3>
           <div class="byline">by {{ office.name|default:"—" }} &middot; {{ obj.created_at|date:"F j, Y g:i A" }}</div>
           <p>{{ obj.content|linebreaksbr }}</p>
         </div>
       {% elif item_type == 'News' %}
-        {% if obj.image %}<img src="{{ obj.image.url }}" alt="{{ obj.title }}">{% endif %}
+        {% if obj.image %}<a href="{{ obj.image.url }}" target="_blank"><img src="{{ obj.image.url }}" alt="{{ obj.title }}"></a>{% endif %}
         <div class="pc-body">
           <h3>{{ obj.title }}</h3>
           <div class="byline">by {{ obj.author|default:office.name }} &middot; {{ obj.created_at|date:"F j, Y g:i A" }}</div>
@@ -161,14 +161,14 @@
           <p>{{ obj.content|linebreaksbr }}</p>
         </div>
       {% elif item_type == 'Event' %}
-        {% if obj.poster %}<img src="{{ obj.poster.url }}" alt="{{ obj.title }}">{% endif %}
+        {% if obj.poster %}<a href="{{ obj.poster.url }}" target="_blank"><img src="{{ obj.poster.url }}" alt="{{ obj.title }}"></a>{% endif %}
         <div class="pc-body">
           <h3>{{ obj.title }}</h3>
           <div class="byline">{{ obj.location }} &middot; {{ obj.event_date|date:"F j, Y" }}{% if obj.start_time %} {{ obj.start_time|time:"g:i A" }}{% endif %}</div>
           <p>{{ obj.description|linebreaksbr }}</p>
         </div>
       {% elif item_type == 'Gallery' %}
-        {% if obj.image %}<img src="{{ obj.image.url }}" alt="{{ obj.title }}">{% endif %}
+        {% if obj.image %}<a href="{{ obj.image.url }}" target="_blank"><img src="{{ obj.image.url }}" alt="{{ obj.title }}"></a>{% endif %}
         <div class="pc-body">
           <h3>{{ obj.title }}</h3>
           <div class="byline">by {{ office.name|default:"—" }} &middot; {{ obj.created_at|date:"F j, Y g:i A" }}</div>

@@ -14,6 +14,10 @@
     <h2 style="margin:0;font-size:16px;font-weight:800;color:var(--gray-900);">Photo Albums</h2>
     <p style="margin:3px 0 0;font-size:12.5px;color:var(--gray-500);">Published photos uploaded from municipal events and activities, organized by album</p>
   </div>
+  <div style="display:flex;gap:10px;">
+    <button type="button" class="btn btn-secondary" id="open-add-album-modal"><i class="fa-solid fa-layer-group"></i> Add Album</button>
+    <button type="button" class="btn btn-primary" id="open-add-photo"><i class="fa-solid fa-plus"></i> Add Photo</button>
+  </div>
 </div>
 
 <div class="stat-grid">
@@ -55,17 +59,18 @@
   </form>
 
   <div class="panel-body">
-    <div class="ec-grid">
+    <div class="gallery-grid">
       {% for a in albums %}
-      <a href="{% url 'admin_dashboard:ad_album_detail' a.id %}" class="preview-card" style="text-decoration:none;color:inherit;">
-        {% if a.cover %}
-          <img src="{{ a.cover.image.url }}" alt="" style="width:100%;height:140px;object-fit:cover;border-radius:8px 8px 0 0;">
+      <a class="gallery-item" href="{% url 'admin_dashboard:ad_album_detail' a.id %}" style="display:block;">
+        {% if a.published_cover %}
+          <img src="{{ a.published_cover.image.url }}" alt="{{ a.name }}">
         {% else %}
-          <div style="width:100%;height:140px;background:var(--gray-100);border-radius:8px 8px 0 0;"></div>
+          <div class="gallery-item-empty"><i class="fa-solid fa-layer-group"></i></div>
         {% endif %}
-        <div style="padding:12px;">
-          <p class="cell-primary" style="margin:0;">{{ a.name }}</p>
-          <p class="cell-sub" style="margin:3px 0 0;">{{ a.representative.office.name }} · {{ a.photo_count }} photo{{ a.photo_count|pluralize }}</p>
+        <span class="badge badge-green gi-badge">{{ a.photo_count }} photo{{ a.photo_count|pluralize }}</span>
+        <div class="gi-overlay">
+          <span class="gi-title">{{ a.name }}</span>
+          <span class="gi-title" style="font-weight:500;opacity:.85;">{{ a.representative.office.name }}</span>
         </div>
       </a>
       {% empty %}
@@ -76,6 +81,126 @@
 </div>
 
 
+{{ albums_by_office|json_script:"albums-by-office-data" }}
 
+<div class="modal-backdrop" id="add-photo-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Add Photo</h3>
+      <button type="button" class="modal-x" onclick="document.getElementById('add-photo-modal').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form method="post" enctype="multipart/form-data" action="{% url 'admin_dashboard:admin_photo_save' %}">
+        {% csrf_token %}
 
+        <div class="form-group">
+          <label class="form-label">Photo <span class="req">*</span></label>
+          <input class="form-input file-input" type="file" name="image" accept="image/*" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Caption / Title <span class="req">*</span></label>
+          <input class="form-input" type="text" name="title" placeholder="e.g. Barangay Assembly 2026" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Posted by (office)<span class="req">*</span></label>
+            <select class="form-input" name="office" id="photoOffice" required>
+              <option value="super_admin" selected>LGU Super Admin</option>
+              {% for o in offices_with_reps %}
+                <option value="{{ o.id }}">{{ o.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Album</label>
+            <select class="form-input" name="album" id="photoAlbum">
+              <option value="__new__">+ Create New Album</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group" id="photo-new-album-wrap" style="display:none;">
+          <label class="form-label">New Album Name <span class="req">*</span></label>
+          <input class="form-input" type="text" name="new_album_name" id="photo-new-album-name" placeholder="e.g. Barangay Fiesta 2026">
+        </div>
+
+        <p class="form-help">This photo will be published immediately and appear on the public gallery right away.</p>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('add-photo-modal').classList.remove('open')">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Add Photo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Add Album modal — design only, not yet wired to a backend -->
+<div class="modal-backdrop" id="add-album-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Add Album</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form onsubmit="return false;">
+        <div class="form-group">
+          <label class="form-label" for="gal-album-name">Album Name <span class="req">*</span></label>
+          <input class="form-input" type="text" id="gal-album-name" placeholder="e.g. Barangay Assembly 2026">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="gal-album-description">Description</label>
+          <textarea class="form-input" id="gal-album-description" rows="3" placeholder="Optional"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add Album</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+var ALBUMS_BY_OFFICE = JSON.parse(document.getElementById('albums-by-office-data').textContent);
+
+function refreshAlbumOptions() {
+  var officeSelect = document.getElementById('photoOffice');
+  var albumSelect = document.getElementById('photoAlbum');
+  var albums = ALBUMS_BY_OFFICE[officeSelect.value] || [];
+
+  albumSelect.innerHTML = '';
+  albums.forEach(function (a) {
+    var opt = document.createElement('option');
+    opt.value = a.id;
+    opt.textContent = a.name;
+    albumSelect.appendChild(opt);
+  });
+  var newOpt = document.createElement('option');
+  newOpt.value = '__new__';
+  newOpt.textContent = '+ Create New Album';
+  albumSelect.appendChild(newOpt);
+
+  toggleNewAlbumField();
+}
+
+function toggleNewAlbumField() {
+  var albumSelect = document.getElementById('photoAlbum');
+  var wrap = document.getElementById('photo-new-album-wrap');
+  var input = document.getElementById('photo-new-album-name');
+  var isNew = albumSelect.value === '__new__';
+  wrap.style.display = isNew ? 'block' : 'none';
+  input.required = isNew;
+  if (!isNew) input.value = '';
+}
+
+document.getElementById('photoOffice').addEventListener('change', refreshAlbumOptions);
+document.getElementById('photoAlbum').addEventListener('change', toggleNewAlbumField);
+document.getElementById('open-add-photo').addEventListener('click', function () {
+  refreshAlbumOptions();
+  document.getElementById('add-photo-modal').classList.add('open');
+});
+</script>
 {% endblock %}

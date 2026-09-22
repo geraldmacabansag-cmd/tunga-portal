@@ -195,6 +195,11 @@ class Album(models.Model):
     def __str__(self):
         return self.name
 
+    @property
+    def cover(self):
+        """The album's cover thumbnail — the first photo ever uploaded to it."""
+        return self.photos.order_by('created_at').first()
+
 
 class Photo(models.Model):
 
@@ -278,6 +283,7 @@ class Service(models.Model):
     icon = models.CharField(max_length=60, choices=ICON_CHOICES, default="fa-solid fa-file-signature")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")  
     admin_note = models.TextField(blank=True)
+    reminders = models.TextField(blank=True)  # one reminder per line
 
     availability = models.CharField(max_length=150, blank=True)  # e.g. "Monday - Friday, 8:00 AM - 5:00 PM"
     processing_time = models.CharField(max_length=100, blank=True)  # e.g. "3-5 business days"
@@ -316,6 +322,7 @@ class DownloadableForm(models.Model):
     ]
 
     office = models.ForeignKey(Office, on_delete=models.CASCADE, related_name="downloadable_forms")
+    service = models.ForeignKey(Service, on_delete=models.SET_NULL, related_name="forms", null=True, blank=True)
 
     title = models.CharField(max_length=150)
     description = models.TextField(blank=True)

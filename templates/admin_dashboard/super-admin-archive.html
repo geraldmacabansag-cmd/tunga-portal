@@ -1,0 +1,149 @@
+{% extends "super-admin-base.html" %}
+{% load static %}
+
+{% block page_title_tag %}Archive{% endblock %}
+{% block body_page %}archive{% endblock %}
+{% block page_title %}Archive{% endblock %}
+{% block page_subtitle %}Content that has been removed from the public website{% endblock %}
+{% block breadcrumbs %}<span>Dashboard</span><span class="sep">›</span><span class="current">Archive</span>{% endblock %}
+
+{% block content %}
+
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;">
+    <div>
+      <h2 style="margin:0;font-size:16px;font-weight:800;color:var(--gray-900);">Archived Content</h2>
+      <p style="margin:3px 0 0;font-size:12.5px;color:var(--gray-500);">Deleted announcements, forms, news, and other content — restore it or remove it for good</p>
+    </div>
+  </div>
+
+  <section class="panel">
+    <div class="tabs">
+      <a class="tab {% if current_type == 'all' %}active{% endif %}" style="text-decoration:none;" href="?type=all">All <span class="count">{{ total_count }}</span></a>
+      <a class="tab {% if current_type == 'Announcement' %}active{% endif %}" style="text-decoration:none;" href="?type=Announcement">Announcements <span class="count">{{ type_counts.Announcement|default:0 }}</span></a>
+      <a class="tab {% if current_type == 'Form' %}active{% endif %}" style="text-decoration:none;" href="?type=Form">Forms <span class="count">{{ type_counts.Form|default:0 }}</span></a>
+      <a class="tab {% if current_type == 'News' %}active{% endif %}" style="text-decoration:none;" href="?type=News">News <span class="count">{{ type_counts.News|default:0 }}</span></a>
+      <a class="tab {% if current_type == 'Event' %}active{% endif %}" style="text-decoration:none;" href="?type=Event">Events <span class="count">{{ type_counts.Event|default:0 }}</span></a>
+      <a class="tab {% if current_type == 'Gallery' %}active{% endif %}" style="text-decoration:none;" href="?type=Gallery">Gallery <span class="count">{{ type_counts.Gallery|default:0 }}</span></a>
+      <a class="tab {% if current_type == 'Service' %}active{% endif %}" style="text-decoration:none;" href="?type=Service">Services <span class="count">{{ type_counts.Service|default:0 }}</span></a>
+    </div>
+
+    <form method="get" class="filters-row">
+      <input type="hidden" name="type" value="{{ current_type }}">
+      <label class="field search" style="flex:1;"><i class="fa-solid fa-magnifying-glass"></i><input type="text" name="q" value="{{ current_q }}" placeholder="Search archived content..." onchange="this.form.submit()"></label>
+    </form>
+
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Content</th>
+            <th>Type</th>
+            <th>Office</th>
+            <th>Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for item in page_obj %}
+        <tr class="row-clickable" data-href="{% url 'admin_dashboard:approval_details' item.type item.pk %}">
+          <td class="row-icon-name">
+            <span class="row-thumb {{ item.thumb_class }}"><i class="{{ item.icon }}"></i></span>
+            <div><div class="cell-primary">{{ item.title }}</div><div class="cell-sub">{{ item.type }}</div></div>
+          </td>
+          <td><span class="tag {{ item.tag_class }}">{{ item.type }}</span></td>
+          <td>{{ item.office }}</td>
+          <td>{{ item.date|date:"M j, Y" }}<br>{{ item.date|date:"g:i A" }}</td>
+          <td>
+            <div class="action-icons">
+              <a class="ic" href="{% url 'admin_dashboard:approval_details' item.type item.pk %}"><i class="fa-regular fa-eye"></i></a>
+              <div class="row-action-menu">
+                <button type="button" class="ic row-action-menu__toggle" aria-haspopup="true" aria-expanded="false"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                <div class="row-action-menu__dropdown">
+                  <form method="post" action="{% url 'admin_dashboard:admin_archive_restore' item.type item.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="row-action-menu__item row-action-menu__item--approve"><i class="fa-solid fa-rotate-right"></i> Restore &amp; Publish</button>
+                  </form>
+                  <form method="post" action="{% url 'admin_dashboard:admin_archive_delete_permanent' item.type item.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" class="row-action-menu__item row-action-menu__item--danger" data-confirm="Permanently delete this? This cannot be undone.">
+                      <i class="fa-solid fa-trash-can"></i> Delete Permanently
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--gray-400);">Nothing in the archive right now.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if page_obj.paginator.count > 0 %}
+    <div class="pagination">
+      <span>Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} items</span>
+      <div class="page-nums">
+        {% if page_obj.has_previous %}
+          <a class="page-btn" href="?type={{ current_type }}&q={{ current_q }}&page={{ page_obj.previous_page_number }}"><i class="fa-solid fa-chevron-left"></i></a>
+        {% else %}
+          <span class="page-btn disabled"><i class="fa-solid fa-chevron-left"></i></span>
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+          {% if num == page_obj.number %}
+            <span class="page-btn active">{{ num }}</span>
+          {% else %}
+            <a class="page-btn" href="?type={{ current_type }}&q={{ current_q }}&page={{ num }}">{{ num }}</a>
+          {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+          <a class="page-btn" href="?type={{ current_type }}&q={{ current_q }}&page={{ page_obj.next_page_number }}"><i class="fa-solid fa-chevron-right"></i></a>
+        {% else %}
+          <span class="page-btn disabled"><i class="fa-solid fa-chevron-right"></i></span>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </section>
+
+<script>
+  (function () {
+    function closeAllMenus() {
+      document.querySelectorAll('.row-action-menu.open').forEach(function (menu) {
+        menu.classList.remove('open');
+        var toggle = menu.querySelector('.row-action-menu__toggle');
+        if (toggle) toggle.setAttribute('aria-expanded', 'false');
+      });
+    }
+
+    document.querySelectorAll('.row-action-menu__toggle').forEach(function (toggle) {
+      toggle.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var menu = toggle.closest('.row-action-menu');
+        var wasOpen = menu.classList.contains('open');
+        closeAllMenus();
+        if (!wasOpen) {
+          menu.classList.add('open');
+          toggle.setAttribute('aria-expanded', 'true');
+        }
+      });
+    });
+
+    document.addEventListener('click', function (e) {
+      if (!e.target.closest('.row-action-menu')) closeAllMenus();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeAllMenus();
+    });
+
+    document.querySelectorAll('.row-action-menu__item[data-confirm]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        if (!confirm(btn.dataset.confirm)) e.preventDefault();
+      });
+    });
+  })();
+</script>
+
+{% endblock %}

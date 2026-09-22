@@ -22,6 +22,8 @@ urlpatterns = [
     path('office-services/<int:pk>/delete', views.delete_service, name='delete_service'),
     path('office-services/<int:service_pk>/requirements/save', views.save_requirements, name='save_requirements'),
     path('office-services/<int:service_pk>/fees/save', views.save_fees, name='save_fees'),
+    path('office-services/<int:service_pk>/reminders/save', views.save_reminders, name='save_reminders'),
+    path('office-services/<int:service_pk>/forms/<int:pk>/delete', views.delete_service_form, name='delete_service_form'),
     
     path('office-downloadable-forms', views.downloadable_forms, name='downloadable_form'),
     path('office-downloadable-forms/upload', views.upload_form, name='upload_form'),

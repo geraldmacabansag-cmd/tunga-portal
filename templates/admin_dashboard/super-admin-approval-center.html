@@ -65,7 +65,17 @@
           <td>
             <div class="action-icons">
               <a class="ic" href="{% url 'admin_dashboard:approval_details' item.type item.pk %}"><i class="fa-regular fa-eye"></i></a>
-              <span class="ic"><i class="fa-solid fa-ellipsis-vertical"></i></span>
+              <div class="row-action-menu">
+                <button type="button" class="ic row-action-menu__toggle" aria-haspopup="true" aria-expanded="false"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                <div class="row-action-menu__dropdown">
+                  <form method="post" action="{% url 'admin_dashboard:approval_details' item.type item.pk %}">
+                    {% csrf_token %}
+                    <button type="submit" name="action" value="approve" class="row-action-menu__item row-action-menu__item--approve"><i class="fa-solid fa-check"></i> Approve</button>
+                    <button type="submit" name="action" value="return" class="row-action-menu__item" data-confirm="Return this submission for revision?"><i class="fa-solid fa-rotate-left"></i> Return for Revision</button>
+                    <button type="submit" name="action" value="reject" class="row-action-menu__item row-action-menu__item--danger" data-confirm="Reject this submission? It will not be published."><i class="fa-solid fa-xmark"></i> Reject</button>
+                  </form>
+                </div>
+              </div>
             </div>
           </td>
         </tr>
@@ -101,5 +111,44 @@
     </div>
     {% endif %}
   </section>
+
+<script>
+  (function () {
+    function closeAllMenus() {
+      document.querySelectorAll('.row-action-menu.open').forEach(function (menu) {
+        menu.classList.remove('open');
+        var toggle = menu.querySelector('.row-action-menu__toggle');
+        if (toggle) toggle.setAttribute('aria-expanded', 'false');
+      });
+    }
+
+    document.querySelectorAll('.row-action-menu__toggle').forEach(function (toggle) {
+      toggle.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var menu = toggle.closest('.row-action-menu');
+        var wasOpen = menu.classList.contains('open');
+        closeAllMenus();
+        if (!wasOpen) {
+          menu.classList.add('open');
+          toggle.setAttribute('aria-expanded', 'true');
+        }
+      });
+    });
+
+    document.addEventListener('click', function (e) {
+      if (!e.target.closest('.row-action-menu')) closeAllMenus();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeAllMenus();
+    });
+
+    document.querySelectorAll('.row-action-menu__item[data-confirm]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        if (!confirm(btn.dataset.confirm)) e.preventDefault();
+      });
+    });
+  })();
+</script>
 
 {% endblock %}

@@ -65,9 +65,9 @@
 
       <div class="grid-3" style="margin-bottom:18px;">
         <!-- Recent announcements -->
-        <section class="panel">
+        <section class="panel" style="display:flex;flex-direction:column;">
           <div class="panel-header"><h2>Recent Announcements</h2><a class="link" href="{% url 'office_dashboard:rep_announce' %}">View All</a></div>
-          <div class="panel-body" style="padding-top:6px;">
+          <div class="panel-body" id="recent-announcements-list" style="padding-top:6px;flex:1;">
             {% for a in recent_announcements %}
             <div class="list-row">
               <span class="list-icon" style="background:var(--blue-600);"><i class="fa-solid fa-bullhorn"></i></span>
@@ -75,37 +75,37 @@
               <span class="badge {% if a.status == 'published' %}badge-green{% elif a.status == 'draft' %}badge-gray{% elif a.status == 'returned' %}badge-red{% else %}badge-amber{% endif %}">{{ a.get_status_display }}</span>
             </div>
             {% empty %}
-            <p style="color:var(--gray-400);padding:8px 0;">No announcements yet.</p>
+            <p id="no-announcements-msg" style="color:var(--gray-400);padding:8px 0;">No announcements yet.</p>
             {% endfor %}
           </div>
-          <div style="padding:0 20px 20px;"><button class="btn btn-secondary btn-block"><i class="fa-solid fa-plus"></i> Create Announcement</button></div>
+          <div style="padding:0 20px 20px;"><button type="button" id="open-create-announcement" class="btn btn-secondary btn-block"><i class="fa-solid fa-plus"></i> Create Announcement</button></div>
         </section>
 
         <!-- Content overview chart -->
         <section class="panel">
           <div class="panel-header">
-            <h2>Content Overview <span style="font-weight:500;color:var(--gray-400);font-size:12px;">(This Month)</span></h2>
-            <select class="field" style="font-size:12px;padding:6px 10px;">
-              <option>This Month</option>
-              <option>Last Month</option>
+            <h2>Content Overview <span style="font-weight:500;color:var(--gray-400);font-size:12px;">({{ range_label }})</span></h2>
+            <select class="field" id="content-overview-range" style="font-size:12px;padding:6px 10px;">
+              <option value="month" {% if chart_range == 'month' %}selected{% endif %}>This Month</option>
+              <option value="last_month" {% if chart_range == 'last_month' %}selected{% endif %}>Last Month</option>
             </select>
           </div>
           <div class="panel-body">
             <div class="bar-chart">
-              <div class="bar-col"><span class="val">{{ announcements_count }}</span><span class="bar" data-height="{{ bar_heights.announcements }}" style="background:var(--blue-600);"></span><span class="lbl">Announcements</span></div>
-              <div class="bar-col"><span class="val">{{ news_count }}</span><span class="bar" data-height="{{ bar_heights.news }}" style="background:var(--green-600);"></span><span class="lbl">News</span></div>
-              <div class="bar-col"><span class="val">{{ events_count }}</span><span class="bar" data-height="{{ bar_heights.events }}" style="background:var(--amber-600);"></span><span class="lbl">Events</span></div>
-              <div class="bar-col"><span class="val">{{ forms_count }}</span><span class="bar" data-height="{{ bar_heights.forms }}" style="background:#7c4fe0;"></span><span class="lbl">Forms</span></div>
-              <div class="bar-col"><span class="val">{{ photos_count }}</span><span class="bar" data-height="{{ bar_heights.photos }}" style="background:#12b3c4;"></span><span class="lbl">Photos</span></div>
+              <div class="bar-col"><span class="val">{{ chart_counts.announcements }}</span><span class="bar" data-height="{{ bar_heights.announcements }}" style="background:var(--blue-600);"></span><span class="lbl">Announcements</span></div>
+              <div class="bar-col"><span class="val">{{ chart_counts.news }}</span><span class="bar" data-height="{{ bar_heights.news }}" style="background:var(--green-600);"></span><span class="lbl">News</span></div>
+              <div class="bar-col"><span class="val">{{ chart_counts.events }}</span><span class="bar" data-height="{{ bar_heights.events }}" style="background:var(--amber-600);"></span><span class="lbl">Events</span></div>
+              <div class="bar-col"><span class="val">{{ chart_counts.forms }}</span><span class="bar" data-height="{{ bar_heights.forms }}" style="background:#7c4fe0;"></span><span class="lbl">Forms</span></div>
+              <div class="bar-col"><span class="val">{{ chart_counts.photos }}</span><span class="bar" data-height="{{ bar_heights.photos }}" style="background:#12b3c4;"></span><span class="lbl">Photos</span></div>
             </div>
             <div class="metric-tiles">
               <div class="metric-tile">
                 <span class="mi"><i class="fa-regular fa-eye"></i></span>
-                <div><div class="mv">1,248</div><div class="ml">Total Views (This Month) <span class="delta">↑ 15%</span></div></div>
+                <div><div class="mv">{{ total_views }}</div><div class="ml">Total Views ({{ range_label }})</div></div>
               </div>
               <div class="metric-tile">
-                <span class="mi"><i class="fa-solid fa-users"></i></span>
-                <div><div class="mv">856</div><div class="ml">Total Users <span class="delta">↑ 12%</span></div></div>
+                <span class="mi"><i class="fa-solid fa-download"></i></span>
+                <div><div class="mv">{{ total_downloads }}</div><div class="ml">Total Downloads ({{ range_label }})</div></div>
               </div>
             </div>
           </div>
@@ -114,9 +114,9 @@
 
       <div class="grid-3">
         <!-- Recent news -->
-        <section class="panel">
+        <section class="panel" style="display:flex;flex-direction:column;">
           <div class="panel-header"><h2>Recent News &amp; Updates</h2><a class="link" href="{% url 'office_dashboard:news_update' %}">View All</a></div>
-          <div class="panel-body" style="padding-top:6px;">
+          <div class="panel-body" id="recent-news-list" style="padding-top:6px;flex:1;">
             {% for n in recent_news %}
             <div class="list-row">
               {% if n.image %}
@@ -128,26 +128,26 @@
               <span class="badge {% if n.status == 'published' %}badge-green{% elif n.status == 'draft' %}badge-gray{% elif n.status == 'returned' %}badge-red{% else %}badge-amber{% endif %}">{{ n.get_status_display }}</span>
             </div>
             {% empty %}
-            <p style="color:var(--gray-400);padding:8px 0;">No news posted yet.</p>
+            <p id="no-news-msg" style="color:var(--gray-400);padding:8px 0;">No news posted yet.</p>
             {% endfor %}
           </div>
-          <div style="padding:0 20px 20px;"><button class="btn btn-secondary btn-block"><i class="fa-solid fa-plus"></i> Add News</button></div>
+          <button type="button" id="open-add-news" class="btn btn-secondary btn-block"><i class="fa-solid fa-plus"></i> Add News</button>
         </section>
 
         <!-- Upcoming events -->
-        <section class="panel">
+        <section class="panel" style="display:flex;flex-direction:column;">
           <div class="panel-header"><h2>Upcoming Events</h2><a class="link" href="{% url 'office_dashboard:event' %}">View All</a></div>
-          <div class="panel-body" style="padding-top:6px;">
+          <div class="panel-body" id="upcoming-events-list" style="padding-top:6px;flex:1;">
             {% for e in upcoming_events %}
             <div class="list-row">
               <span class="event-date"><span class="mon">{{ e.event_date|date:"M"|upper }}</span><span class="day">{{ e.event_date|date:"d" }}</span></span>
               <div><div class="list-title">{{ e.title }}</div><div class="list-meta">{{ e.event_date|date:"F j, Y" }}{% if e.start_time %} · {{ e.start_time|time:"g:i A" }}{% endif %}{% if e.location %} · {{ e.location }}{% endif %}</div></div>
             </div>
             {% empty %}
-            <p style="color:var(--gray-400);padding:8px 0;">No upcoming events.</p>
+            <p id="no-events-msg" style="color:var(--gray-400);padding:8px 0;">No upcoming events.</p>
             {% endfor %}
           </div>
-          <div style="padding:0 20px 20px;"><button class="btn btn-secondary btn-block"><i class="fa-solid fa-plus"></i> Add Event</button></div>
+          <div style="padding:0 20px 20px;"><button type="button" id="open-add-event" class="btn btn-secondary btn-block"><i class="fa-solid fa-plus"></i> Add Event</button></div>
         </section>
 
         <!-- Quick actions -->
@@ -155,12 +155,12 @@
           <div class="panel-header"><h2>Quick Actions</h2></div>
           <div class="panel-body">
             <div class="dash-quick-grid">
-              <div class="quick-action"><span class="qi"><i class="fa-solid fa-bullhorn"></i></span>Create Announcement</div>
-              <div class="quick-action"><span class="qi"><i class="fa-solid fa-newspaper"></i></span>Add News</div>
-              <div class="quick-action"><span class="qi"><i class="fa-regular fa-calendar"></i></span>Add Event</div>
-              <div class="quick-action"><span class="qi"><i class="fa-solid fa-upload"></i></span>Upload Form</div>
-              <div class="quick-action"><span class="qi"><i class="fa-regular fa-image"></i></span>Upload Photo</div>
-              <div class="quick-action"><span class="qi"><i class="fa-solid fa-building"></i></span>Edit Office Profile</div>
+              <div class="quick-action" id="qa-announcement"><span class="qi"><i class="fa-solid fa-bullhorn"></i></span>Create Announcement</div>
+              <div class="quick-action" id="qa-news"><span class="qi"><i class="fa-solid fa-newspaper"></i></span>Add News</div>
+              <div class="quick-action" id="qa-event"><span class="qi"><i class="fa-regular fa-calendar"></i></span>Add Event</div>
+              <div class="quick-action" id="qa-form"><span class="qi"><i class="fa-solid fa-upload"></i></span>Upload Form</div>
+              <div class="quick-action" id="qa-photo"><span class="qi"><i class="fa-regular fa-image"></i></span>Upload Photo</div>
+              <a class="quick-action" href="{% url 'office_dashboard:profile' %}" style="text-decoration:none;color:inherit;"><span class="qi"><i class="fa-solid fa-building"></i></span>Edit Office Profile</a>
             </div>
 
             <div class="reminder-box">
@@ -175,6 +175,339 @@
         </section>
       </div>
 
+      <div class="modal-backdrop" id="create-announcement-modal">
+        <div class="modal-box">
+          <div class="modal-head">
+            <h3>Create Announcement</h3>
+            <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+        <div class="modal-body">
+
+        <form id="announcement-form" method="post" action="{% url 'office_dashboard:rep_announce' %}" enctype="multipart/form-data">
+          {% csrf_token %}
+
+          <div class="form-group">
+            <label class="form-label" for="dash-ann-title">
+              Announcement Title <span class="req">*</span>
+            </label>
+            <input
+              class="form-input"
+              type="text"
+              id="dash-ann-title"
+              name="title"
+              placeholder="e.g. Office Advisory"
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="dash-ann-sub">
+              Subtitle / Short Description
+            </label>
+            <input
+              class="form-input"
+              type="text"
+              id="dash-ann-sub"
+              name="subtitle"
+              placeholder="Enter a brief description"
+            >
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="dash-ann-cat">Category</label>
+            <select class="form-input" id="dash-ann-cat" name="category" required>
+              <option value="">Select Category</option>
+              <option value="Community Engagement">Community Engagement</option>
+              <option value="Public Notice">Public Notice</option>
+              <option value="Office Advisory">Office Advisory</option>
+              <option value="Event">Event</option>
+              <option value="Government Service">Government Service</option>
+              <option value="Emergency">Emergency</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="dash-ann-desc">
+              Content / Full Description
+            </label>
+            <textarea
+              class="form-input form-textarea"
+              id="dash-ann-desc"
+              name="content"
+              rows="5"
+              placeholder="Enter the complete announcement details..."
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="dash-ann-image">Featured Image</label>
+            <input
+              class="form-input file-input"
+              type="file"
+              id="dash-ann-image"
+              name="image"
+              accept="image/*"
+            >
+            <small class="form-help">
+              Accepted formats: JPG, PNG, or WEBP.
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="dash-ann-auth">
+              Author / Posted By
+            </label>
+            <input
+              class="form-input"
+              type="text"
+              id="dash-ann-auth"
+              name="author"
+              placeholder="e.g. Office of the Mayor"
+            >
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="dash-ann-date-posted">
+              Date Posted
+            </label>
+            <input
+              class="form-input"
+              type="date"
+              id="dash-ann-date-posted"
+              name="date_posted"
+            >
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="dash-ann-expiration">
+              Expiration Date
+            </label>
+            <input
+              class="form-input"
+              type="datetime-local"
+              id="dash-ann-expiration"
+              name="expiration_date"
+            >
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="dash-ann-prio">
+              Priority Level
+            </label>
+            <select class="form-input" id="dash-ann-prio" name="priority">
+              <option value="Normal">Normal</option>
+              <option value="Low">Low</option>
+              <option value="High">High</option>
+              <option value="Urgent">Urgent</option>
+            </select>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Create Announcement</button>
+          </div>
+
+        </form>
+        </div>
+      </div>
+      </div>
+
+      <div class="modal-backdrop" id="add-news-modal">
+        <div class="modal-box">
+          <div class="modal-head">
+            <h3>Add News</h3>
+            <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <div class="modal-body">
+            <form id="dash-news-form" method="post" action="{% url 'office_dashboard:news_update' %}" enctype="multipart/form-data">
+              {% csrf_token %}
+
+              <div class="form-group">
+                <label class="form-label" for="dash-news-title">News Headline <span class="req">*</span></label>
+                <input class="form-input" type="text" id="dash-news-title" name="title" placeholder="e.g. New Health Program Launched" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="dash-news-cat">Category</label>
+                <input class="form-input" type="text" id="dash-news-cat" name="category" placeholder="e.g. Community">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="dash-news-summary">Summary</label>
+                <input class="form-input" type="text" id="dash-news-summary" name="summary" placeholder="One-line summary">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="dash-news-content">Full News Content</label>
+                <textarea class="form-input form-textarea" id="dash-news-content" name="content" rows="5" placeholder="Full story..."></textarea>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="dash-news-image">Featured Image</label>
+                <input class="form-input" type="file" id="dash-news-image" name="image" accept="image/*">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="dash-news-author">Author / Reporter</label>
+                <input class="form-input" type="text" id="dash-news-author" name="author" placeholder="e.g. Juan Dela Cruz">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="dash-news-date">Date Published</label>
+                <input class="form-input" type="date" id="dash-news-date" name="date_published">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="dash-news-source">Source</label>
+                <input class="form-input" type="text" id="dash-news-source" name="source" placeholder="e.g. Municipal Information Office">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="dash-news-tags">Tags / Keywords</label>
+                <input class="form-input" type="text" id="dash-news-tags" name="tags" placeholder="e.g. health, community">
+              </div>
+
+              <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+                <button type="submit" class="btn btn-primary">Add News</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-backdrop" id="add-event-modal">
+        <div class="modal-box">
+          <div class="modal-head">
+            <h3>Add Event</h3>
+            <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <div class="modal-body">
+            <form id="dash-event-form" method="post" action="{% url 'office_dashboard:event' %}" enctype="multipart/form-data">
+              {% csrf_token %}
+              <div class="form-group">
+                <label class="form-label" for="dash-ev-title">Event Title <span class="req">*</span></label>
+                <input class="form-input" type="text" id="dash-ev-title" name="title" placeholder="e.g. Barangay Sports Fest" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="dash-ev-category">Event Category</label>
+                <input class="form-input" type="text" id="dash-ev-category" name="category" placeholder="e.g. Sports">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="dash-ev-description">Description</label>
+                <textarea class="form-input form-textarea" id="dash-ev-description" name="description" rows="4" placeholder="Details about the event..."></textarea>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="dash-ev-date">Event Date</label>
+                <input class="form-input" type="date" id="dash-ev-date" name="event_date">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="dash-ev-start">Start Time</label>
+                <input class="form-input" type="time" id="dash-ev-start" name="start_time">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="dash-ev-end">End Time</label>
+                <input class="form-input" type="time" id="dash-ev-end" name="end_time">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="dash-ev-location">Location / Venue</label>
+                <input class="form-input" type="text" id="dash-ev-location" name="location" placeholder="e.g. Municipal Grounds">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="dash-ev-organizer">Organizer</label>
+                <input class="form-input" type="text" id="dash-ev-organizer" name="organizer" placeholder="e.g. SB Office">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="dash-ev-contact-person">Contact Person</label>
+                <input class="form-input" type="text" id="dash-ev-contact-person" name="contact_person" placeholder="e.g. Juan Dela Cruz">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="dash-ev-contact-info">Contact Information</label>
+                <input class="form-input" type="text" id="dash-ev-contact-info" name="contact_info" placeholder="e.g. 0917-xxx-xxxx">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="dash-ev-poster">Event Poster / Image</label>
+                <input class="form-input" type="file" id="dash-ev-poster" name="poster" accept="image/*">
+              </div>
+
+              <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+                <button type="submit" class="btn btn-primary">Add Event</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-backdrop" id="qa-upload-form-modal">
+        <div class="modal-box">
+          <div class="modal-head">
+            <h3>Add Form</h3>
+            <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <div class="modal-body">
+            <form id="qa-upload-form-form" method="post" enctype="multipart/form-data" action="{% url 'office_dashboard:upload_form' %}">
+              {% csrf_token %}
+              <div class="form-group">
+                <label class="form-label" for="qa-df-file">Attachment (PDF) <span class="req">*</span></label>
+                <input class="form-input" type="file" id="qa-df-file" name="file" accept=".pdf,application/pdf" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="qa-df-title">Form Name <span class="req">*</span></label>
+                <input class="form-input" type="text" id="qa-df-title" name="title" placeholder="e.g. Solid Waste Complaint Form" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="qa-df-description">Description</label>
+                <textarea class="form-input" id="qa-df-description" name="description" rows="3" placeholder="What this form is for"></textarea>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="qa-df-category">Category</label>
+                <select class="form-input" id="qa-df-category" name="category">
+                  {% for cat in category_choices %}
+                    <option value="{{ cat }}">{{ cat }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+                <button type="submit" class="btn btn-primary">Add Form</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-backdrop" id="qa-upload-photo-modal">
+        <div class="modal-box">
+          <div class="modal-head">
+            <h3>Upload Photo</h3>
+            <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+          </div>
+          <div class="modal-body">
+            <form id="qa-upload-photo-form" method="post" enctype="multipart/form-data" action="{% url 'office_dashboard:gallery' %}">
+              {% csrf_token %}
+              <div class="form-group">
+                <label class="form-label" for="qa-gal-photo">Photo <span class="req">*</span></label>
+                <input class="form-input" type="file" id="qa-gal-photo" name="image" accept="image/*" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="qa-gal-title">Caption / Title <span class="req">*</span></label>
+                <input class="form-input" type="text" id="qa-gal-title" name="title" placeholder="e.g. Barangay Assembly 2026" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="qa-gal-album">Album</label>
+                <select class="form-input" id="qa-gal-album" name="album">
+                  {% for album in all_albums_for_upload %}
+                    <option value="{{ album.id }}">{{ album.name }}</option>
+                  {% endfor %}
+                  <option value="__new__">+ Create New Album</option>
+                </select>
+              </div>
+              <div class="form-group" id="qa-new-album-wrap" style="display:none;">
+                <label class="form-label" for="qa-new-album-name">New Album Name <span class="req">*</span></label>
+                <input class="form-input" type="text" id="qa-new-album-name" name="new_album_name" placeholder="e.g. Barangay Fiesta 2026">
+              </div>
+              <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+                <button type="submit" class="btn btn-primary">Upload</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
     
     </main>
   </div>
@@ -184,5 +517,416 @@
   document.querySelectorAll('.bar-chart .bar[data-height]').forEach(function (bar) {
     bar.style.height = bar.dataset.height + '%';
   });
+
+  document.getElementById('content-overview-range').addEventListener('change', function (e) {
+    window.location.href = '?range=' + encodeURIComponent(e.target.value);
+  });
+
+  // This function is for announcement
+  (function () {
+    var trigger = document.getElementById('open-create-announcement');
+    var modal = document.getElementById('create-announcement-modal');
+    var form = document.getElementById('announcement-form');
+    var list = document.getElementById('recent-announcements-list');
+    if (!trigger || !modal || !form) return;
+
+    function openModal() {
+      modal.classList.add('open');
+      document.body.classList.add('modal-open');
+    }
+    function closeModal() {
+      modal.classList.remove('open');
+      document.body.classList.remove('modal-open');
+      setTimeout(function () { form.reset(); }, 200);
+    }
+
+    trigger.addEventListener('click', function (e) {
+      e.stopImmediatePropagation();
+      openModal();
+    });
+    modal.querySelectorAll('.modal-x, [data-act="cancel"]').forEach(function (btn) {
+      btn.addEventListener('click', closeModal);
+    });
+    modal.addEventListener('click', function (e) {
+      if (e.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && modal.classList.contains('open')) closeModal();
+    });
+
+    var badgeClassFor = {
+      published: 'badge-green',
+      draft: 'badge-gray',
+      returned: 'badge-red'
+    };
+
+    function showToast(msg) {
+      var host = document.getElementById('toast-host');
+      if (!host) {
+        host = document.createElement('div');
+        host.id = 'toast-host';
+        host.className = 'toast-host';
+        document.body.appendChild(host);
+      }
+      var el = document.createElement('div');
+      el.className = 'toast toast-success';
+      el.innerHTML = '<i class="fa-solid fa-circle-check"></i><span></span>';
+      el.querySelector('span').textContent = msg;
+      host.appendChild(el);
+      requestAnimationFrame(function () { el.classList.add('show'); });
+      setTimeout(function () {
+        el.classList.remove('show');
+        setTimeout(function () { el.remove(); }, 250);
+      }, 2800);
+    }
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
+      var submitBtn = form.querySelector('button[type="submit"]');
+      if (submitBtn) submitBtn.disabled = true;
+
+      fetch(form.action, {
+        method: 'POST',
+        body: new FormData(form),
+        credentials: 'same-origin',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      })
+        .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+        .then(function (result) {
+          if (submitBtn) submitBtn.disabled = false;
+          if (!result.ok || !result.data.success) {
+            alert(result.data.error || 'Something went wrong. Please try again.');
+            return;
+          }
+
+          var noMsg = document.getElementById('no-announcements-msg');
+          if (noMsg) noMsg.remove();
+
+          if (list) {
+            var row = document.createElement('div');
+            row.className = 'list-row';
+            row.innerHTML =
+              '<span class="list-icon" style="background:var(--blue-600);"><i class="fa-solid fa-bullhorn"></i></span>' +
+              '<div style="flex:1;"><div class="list-title"></div><div class="list-meta"></div></div>' +
+              '<span class="badge"></span>';
+            row.querySelector('.list-title').textContent = result.data.title;
+            row.querySelector('.list-meta').textContent = result.data.created_at;
+            var badge = row.querySelector('.badge');
+            badge.textContent = result.data.status_display;
+            badge.className = 'badge ' + (badgeClassFor[result.data.status] || 'badge-amber');
+            list.insertBefore(row, list.firstChild);
+          }
+
+          showToast('"' + result.data.title + '" was created and is pending approval.');
+          closeModal();
+        })
+        .catch(function () {
+          if (submitBtn) submitBtn.disabled = false;
+          alert('Something went wrong. Please try again.');
+        });
+    });
+  })();
+
+  // This function is for news & update
+  (function () {
+    var trigger = document.getElementById('open-add-news');
+    var modal = document.getElementById('add-news-modal');
+    var form = document.getElementById('dash-news-form');
+    var list = document.getElementById('recent-news-list');
+    if (!trigger || !modal || !form) return;
+
+    function openModal() {
+      modal.classList.add('open');
+      document.body.classList.add('modal-open');
+    }
+    function closeModal() {
+      modal.classList.remove('open');
+      document.body.classList.remove('modal-open');
+      setTimeout(function () { form.reset(); }, 200);
+    }
+
+    trigger.addEventListener('click', function (e) {
+      e.stopImmediatePropagation();
+      openModal();
+    });
+    modal.querySelectorAll('.modal-x, [data-act="cancel"]').forEach(function (btn) {
+      btn.addEventListener('click', closeModal);
+    });
+    modal.addEventListener('click', function (e) {
+      if (e.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && modal.classList.contains('open')) closeModal();
+    });
+
+    var badgeClassFor = { published: 'badge-green', draft: 'badge-gray', returned: 'badge-red' };
+
+    function showToast(msg) {
+      var host = document.getElementById('toast-host');
+      if (!host) {
+        host = document.createElement('div');
+        host.id = 'toast-host';
+        host.className = 'toast-host';
+        document.body.appendChild(host);
+      }
+      var el = document.createElement('div');
+      el.className = 'toast toast-success';
+      el.innerHTML = '<i class="fa-solid fa-circle-check"></i><span></span>';
+      el.querySelector('span').textContent = msg;
+      host.appendChild(el);
+      requestAnimationFrame(function () { el.classList.add('show'); });
+      setTimeout(function () {
+        el.classList.remove('show');
+        setTimeout(function () { el.remove(); }, 250);
+      }, 2800);
+    }
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
+      var submitBtn = form.querySelector('button[type="submit"]');
+      if (submitBtn) submitBtn.disabled = true;
+
+      fetch(form.action, {
+        method: 'POST',
+        body: new FormData(form),
+        credentials: 'same-origin',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      })
+        .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+        .then(function (result) {
+          if (submitBtn) submitBtn.disabled = false;
+          if (!result.ok || !result.data.success) {
+            alert(result.data.error || 'Something went wrong. Please try again.');
+            return;
+          }
+
+          var noMsg = document.getElementById('no-news-msg');
+          if (noMsg) noMsg.remove();
+
+          if (list) {
+            var row = document.createElement('div');
+            row.className = 'list-row';
+            row.innerHTML =
+              '<span class="list-icon" style="background:var(--green-600);"><i class="fa-solid fa-newspaper"></i></span>' +
+              '<div style="flex:1;"><div class="list-title"></div><div class="list-meta"></div></div>' +
+              '<span class="badge"></span>';
+            row.querySelector('.list-title').textContent = result.data.title;
+            row.querySelector('.list-meta').textContent = result.data.created_at;
+            var badge = row.querySelector('.badge');
+            badge.textContent = result.data.status_display;
+            badge.className = 'badge ' + (badgeClassFor[result.data.status] || 'badge-amber');
+            list.insertBefore(row, list.firstChild);
+          }
+
+          showToast('"' + result.data.title + '" was added.');
+          closeModal();
+        })
+        .catch(function () {
+          if (submitBtn) submitBtn.disabled = false;
+          alert('Something went wrong. Please try again.');
+        });
+    });
+  })();
+
+  // This function is for events
+  (function () {
+    var trigger = document.getElementById('open-add-event');
+    var modal = document.getElementById('add-event-modal');
+    var form = document.getElementById('dash-event-form');
+    var list = document.getElementById('upcoming-events-list');
+    if (!trigger || !modal || !form) return;
+
+    function openModal() {
+      modal.classList.add('open');
+      document.body.classList.add('modal-open');
+    }
+    function closeModal() {
+      modal.classList.remove('open');
+      document.body.classList.remove('modal-open');
+      setTimeout(function () { form.reset(); }, 200);
+    }
+
+    trigger.addEventListener('click', function (e) {
+      e.stopImmediatePropagation();
+      openModal();
+    });
+    modal.querySelectorAll('.modal-x, [data-act="cancel"]').forEach(function (btn) {
+      btn.addEventListener('click', closeModal);
+    });
+    modal.addEventListener('click', function (e) {
+      if (e.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && modal.classList.contains('open')) closeModal();
+    });
+
+    function showToast(msg) {
+      var host = document.getElementById('toast-host');
+      if (!host) {
+        host = document.createElement('div');
+        host.id = 'toast-host';
+        host.className = 'toast-host';
+        document.body.appendChild(host);
+      }
+      var el = document.createElement('div');
+      el.className = 'toast toast-success';
+      el.innerHTML = '<i class="fa-solid fa-circle-check"></i><span></span>';
+      el.querySelector('span').textContent = msg;
+      host.appendChild(el);
+      requestAnimationFrame(function () { el.classList.add('show'); });
+      setTimeout(function () {
+        el.classList.remove('show');
+        setTimeout(function () { el.remove(); }, 250);
+      }, 2800);
+    }
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
+      var submitBtn = form.querySelector('button[type="submit"]');
+      if (submitBtn) submitBtn.disabled = true;
+
+      fetch(form.action, {
+        method: 'POST',
+        body: new FormData(form),
+        credentials: 'same-origin',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      })
+        .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+        .then(function (result) {
+          if (submitBtn) submitBtn.disabled = false;
+          if (!result.ok || !result.data.success) {
+            alert(result.data.error || 'Something went wrong. Please try again.');
+            return;
+          }
+
+          var noMsg = document.getElementById('no-events-msg');
+          if (noMsg) noMsg.remove();
+
+          if (list) {
+            var row = document.createElement('div');
+            row.className = 'list-row';
+            row.innerHTML =
+              '<span class="event-date"><span class="mon"></span><span class="day"></span></span>' +
+              '<div><div class="list-title"></div><div class="list-meta"></div></div>';
+            row.querySelector('.mon').textContent = result.data.event_mon;
+            row.querySelector('.day').textContent = result.data.event_day;
+            row.querySelector('.list-title').textContent = result.data.title;
+
+            var metaParts = [];
+            if (result.data.event_date) metaParts.push(result.data.event_date);
+            if (result.data.start_time) metaParts.push(result.data.start_time);
+            if (result.data.location) metaParts.push(result.data.location);
+            row.querySelector('.list-meta').textContent = metaParts.join(' · ');
+
+            list.insertBefore(row, list.firstChild);
+          }
+
+          showToast('"' + result.data.title + '" was added and is pending approval.');
+          closeModal();
+        })
+        .catch(function () {
+          if (submitBtn) submitBtn.disabled = false;
+          alert('Something went wrong. Please try again.');
+        });
+    });
+  })();
+
+  (function () {
+    function wireOpen(triggerId, modalId) {
+      var trigger = document.getElementById(triggerId);
+      var modal = document.getElementById(modalId);
+      if (!trigger || !modal) return;
+      trigger.addEventListener('click', function (e) {
+        e.stopImmediatePropagation();
+        modal.classList.add('open');
+        document.body.classList.add('modal-open');
+      });
+    }
+    wireOpen('qa-announcement', 'create-announcement-modal');
+    wireOpen('qa-news', 'add-news-modal');
+    wireOpen('qa-event', 'add-event-modal');
+    wireOpen('qa-form', 'qa-upload-form-modal');
+    wireOpen('qa-photo', 'qa-upload-photo-modal');
+  })();
+
+  function wireSimpleAjaxModal(modalId, formId) {
+    var modal = document.getElementById(modalId);
+    var form = document.getElementById(formId);
+    if (!modal || !form) return;
+
+    function closeModal() {
+      modal.classList.remove('open');
+      document.body.classList.remove('modal-open');
+      setTimeout(function () { form.reset(); }, 200);
+    }
+
+    modal.querySelectorAll('.modal-x, [data-act="cancel"]').forEach(function (btn) {
+      btn.addEventListener('click', closeModal);
+    });
+    modal.addEventListener('click', function (e) {
+      if (e.target === modal) closeModal();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && modal.classList.contains('open')) closeModal();
+    });
+
+    function showToast(msg) {
+      var host = document.getElementById('toast-host');
+      if (!host) {
+        host = document.createElement('div');
+        host.id = 'toast-host';
+        host.className = 'toast-host';
+        document.body.appendChild(host);
+      }
+      var el = document.createElement('div');
+      el.className = 'toast toast-success';
+      el.innerHTML = '<i class="fa-solid fa-circle-check"></i><span></span>';
+      el.querySelector('span').textContent = msg;
+      host.appendChild(el);
+      requestAnimationFrame(function () { el.classList.add('show'); });
+      setTimeout(function () {
+        el.classList.remove('show');
+        setTimeout(function () { el.remove(); }, 250);
+      }, 2800);
+    }
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
+      var submitBtn = form.querySelector('button[type="submit"]');
+      if (submitBtn) submitBtn.disabled = true;
+
+      fetch(form.action, {
+        method: 'POST',
+        body: new FormData(form),
+        credentials: 'same-origin',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      })
+        .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+        .then(function (result) {
+          if (submitBtn) submitBtn.disabled = false;
+          if (!result.ok || !result.data.success) {
+            alert(result.data.error || 'Something went wrong. Please try again.');
+            return;
+          }
+          showToast('"' + result.data.title + '" was uploaded.');
+          closeModal();
+        })
+        .catch(function () {
+          if (submitBtn) submitBtn.disabled = false;
+          alert('Something went wrong. Please try again.');
+        });
+    });
+  }
+
+  wireSimpleAjaxModal('qa-upload-form-modal', 'qa-upload-form-form');
+  wireSimpleAjaxModal('qa-upload-photo-modal', 'qa-upload-photo-form');
 </script>
 {% endblock %}

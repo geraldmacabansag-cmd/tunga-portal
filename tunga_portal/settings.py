@@ -77,6 +77,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'admin_dashboard.context_processors.site_contact_info',
+                'admin_dashboard.context_processors.is_super_admin',
             ],
         },
     },

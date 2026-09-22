@@ -35,9 +35,28 @@
 
     <main class="content">
 
-      {% for message in messages %}
-        <div class="toast-static {{ message.tags }}" style="margin-bottom:14px;">{{ message }}</div>
-      {% endfor %}
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon blue"><i class="fa-solid fa-list-check"></i></span></div>
+          <div class="stat-value">{{ total_count }}</div>
+          <div class="stat-label">Total Services</div>
+        </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon green"><i class="fa-solid fa-circle-check"></i></span></div>
+          <div class="stat-value">{{ published_count }}</div>
+          <div class="stat-label">Published</div>
+        </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon amber"><i class="fa-regular fa-clock"></i></span></div>
+          <div class="stat-value">{{ pending_count }}</div>
+          <div class="stat-label">Pending Approval</div>
+        </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon gray"><i class="fa-solid fa-rotate-left"></i></span></div>
+          <div class="stat-value">{{ returned_count }}</div>
+          <div class="stat-label">Returned</div>
+        </div>
+      </div>
 
       <!-- ============================= -->
       <!-- LIST VIEW: table of services   -->
@@ -47,9 +66,17 @@
           <h2>Services Offered</h2>
           <button type="button" class="btn btn-primary" id="open-add-service-from-services"><i class="fa-solid fa-plus"></i> Add Service</button>
         </div>
-        <div class="filters-row">
-          <label class="field search" style="flex:1;"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search services..."></label>
-        </div>
+
+        <form method="get" class="filters-row">
+          <label class="field search" style="flex:1;"><i class="fa-solid fa-magnifying-glass"></i><input type="text" name="q" value="{{ current_q }}" placeholder="Search services..." onchange="this.form.submit()"></label>
+          <select class="field" name="status" onchange="this.form.submit()">
+            <option value="" {% if current_status == "" %}selected{% endif %}>All Status</option>
+            <option value="published" {% if current_status == "published" %}selected{% endif %}>Published</option>
+            <option value="pending" {% if current_status == "pending" %}selected{% endif %}>Pending Approval</option>
+            <option value="returned" {% if current_status == "returned" %}selected{% endif %}>Returned</option>
+            <option value="archive" {% if current_status == "archive" %}selected{% endif %}>Archived</option>
+          </select>
+        </form>
         <div class="table-wrap">
           <table class="data-table">
             <thead><tr><th>Service</th><th>Category</th><th>Status</th><th>Availability</th><th>Processing Time</th><th>Actions</th></tr></thead>
@@ -62,7 +89,7 @@
                 </td>
                 <td><span class="tag">{{ service.get_category_display }}</span></td>
                 <td>
-                  <span class="badge {% if service.status == 'published' %}badge-green{% elif service.status == 'pending' %}badge-amber{% else %}badge-gray{% endif %}">
+                  <span class="badge {% if service.status == 'published' %}badge-green{% elif service.status == 'pending' %}badge-amber{% elif service.status == 'returned' or service.status == 'reject' %}badge-red{% else %}badge-gray{% endif %}">
                     {{ service.get_status_display }}
                   </span>
                 </td>
@@ -80,6 +107,10 @@
                       data-processing="{{ service.processing_time|default:'3 - 5 Working Days' }}"
                       data-office="{{ service.office.name|default:rep.office.name }}"
                       data-published="{% if service.published_at %}{{ service.published_at|date:'M d, Y g:i A' }}{% else %}May 10, 2026 9:30 AM{% endif %}"
+                      data-admin-note="{{ service.admin_note|default:'' }}"
+                      data-status="{{ service.status }}"
+                      data-status-display="{{ service.get_status_display }}"
+                      data-reminders="{{ service.reminders|default:'' }}"
                       data-steps="{{ service.steps_json }}"
                       data-requirements="{{ service.requirements_json }}"
                       data-fees="{{ service.fees_json }}">
@@ -118,14 +149,14 @@
               <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
                 <i class="fa-solid fa-file-signature" id="detail-icon" style="color:var(--blue-600);font-size:18px;"></i>
                 <h2 style="margin:0;font-size:19px;" id="detail-name">Business Permit Application</h2>
-                <span class="badge badge-green">Published</span>
+                <span class="badge badge-green" id="detail-status-badge">Published</span>
               </div>
               <p style="margin:0;font-size:13px;color:var(--gray-500);max-width:620px;" id="detail-description">This service allows individuals or businesses to apply for a business permit to operate legally within the Municipality of Tunga.</p>
             </div>
             <div style="display:flex;gap:10px;align-items:center;flex-shrink:0;">
               <span style="font-size:11.5px;color:var(--gray-400);">Published: <span id="detail-published">May 10, 2026 9:30 AM</span></span>
               <button class="btn btn-secondary"><i class="fa-regular fa-eye"></i> Preview</button>
-              <button class="btn btn-primary"><i class="fa-regular fa-floppy-disk"></i> Save Changes</button>
+              <button type="button" class="btn btn-primary" id="save-changes-btn"><i class="fa-regular fa-floppy-disk"></i> Save Changes</button>
             </div>
           </div>
 
@@ -133,6 +164,7 @@
             <span class="subtab active" data-subtab="process"><i class="fa-solid fa-diagram-project"></i> Service Process</span>
             <span class="subtab" data-subtab="requirements"><i class="fa-regular fa-file-lines"></i> Requirements</span>
             <span class="subtab" data-subtab="fees"><i class="fa-solid fa-sack-dollar"></i> Fees</span>
+            <span class="subtab" data-subtab="forms"><i class="fa-solid fa-file-arrow-down"></i> Downloadable Forms</span>
           </div>
         </section>
 
@@ -148,44 +180,20 @@
 
             <!-- Important reminders -->
             <section class="panel">
-              <div class="panel-header"><h2>Important Reminders</h2><button class="btn btn-secondary btn-sm"><i class="fa-regular fa-pen-to-square"></i> Edit Reminders</button></div>
+              <div class="panel-header"><h2>Important Reminders</h2><button type="button" class="btn btn-secondary btn-sm" id="reminders-modal-trigger"><i class="fa-regular fa-pen-to-square"></i> Edit Reminders</button></div>
               <div class="panel-body">
-                <ul class="reminder-list">
-                  <li>Make sure all documents are complete and updated.</li>
-                  <li>Applications with incomplete requirements will not be accepted.</li>
-                  <li>Processing time may vary depending on the nature of the business.</li>
+                <ul class="reminder-list" id="reminders-host">
+                  <li style="color:var(--gray-400);">No reminders added yet.</li>
                 </ul>
               </div>
             </section>
           </div>
 
           <div class="stack">
-            <!-- Downloadable forms -->
-            <section class="panel">
-              <div class="panel-header"><h2>Downloadable Forms</h2><button class="btn btn-primary btn-sm"><i class="fa-solid fa-plus"></i> Add Form</button></div>
-              <div class="panel-body">
-                <div class="attachment">
-                  <span class="af"><i class="fa-solid fa-file-pdf"></i></span>
-                  <div><div class="an">Business Permit Application Form</div><div class="as">PDF · 245 KB</div></div>
-                  <span class="badge badge-green" style="margin-left:auto;">Published</span>
-                </div>
-                <div class="attachment">
-                  <span class="af"><i class="fa-solid fa-file-pdf"></i></span>
-                  <div><div class="an">Barangay Clearance Form</div><div class="as">PDF · 210 KB</div></div>
-                  <span class="badge badge-green" style="margin-left:auto;">Published</span>
-                </div>
-                <div class="attachment">
-                  <span class="af"><i class="fa-solid fa-file-pdf"></i></span>
-                  <div><div class="an">Occupancy / Location Clearance</div><div class="as">PDF · 198 KB</div></div>
-                  <span class="badge badge-green" style="margin-left:auto;">Published</span>
-                </div>
-                <a href="#" class="link" style="display:inline-block;margin-top:12px;font-size:12.5px;font-weight:700;color:var(--blue-600);">View all forms →</a>
-              </div>
-            </section>
 
             <!-- Service information -->
             <section class="panel">
-              <div class="panel-header"><h2>Service Information</h2><button class="btn btn-secondary btn-sm">Edit</button></div>
+              <div class="panel-header"><h2>Service Information</h2></div>
               <div class="panel-body">
                 <div class="info-row"><span class="k">Office</span><span class="v" id="detail-office">Mayor's Office</span></div>
                 <div class="info-row"><span class="k">Category</span><span class="v" id="detail-category">Permits</span></div>
@@ -196,13 +204,18 @@
 
             <!-- Status -->
             <section class="panel">
-              <div class="panel-header"><h2>Status</h2><button class="btn btn-secondary btn-sm">Edit</button></div>
+              <div class="panel-header"><h2>Status</h2></div>
               <div class="panel-body">
-                <div class="info-row"><span class="k">Current Status</span><span class="v"><span class="badge badge-green">Published</span></span></div>
+                <div class="info-row"><span class="k">Current Status</span><span class="v"><span class="badge badge-green" id="detail-status-badge-2">Published</span></span></div>
                 <div class="info-row"><span class="k">Visibility</span><span class="v">Public</span></div>
                 <div class="info-row"><span class="k">Date Published</span><span class="v" id="detail-date-published">May 10, 2026 9:30 AM</span></div>
               </div>
             </section>
+            <!-- Super Admin review note -->
+            <div class="reminder-box" id="detail-admin-note-box" style="display:none;">
+              <span class="ic"><i class="fa-regular fa-comment-dots"></i></span>
+              <div><strong>Note from Super Admin</strong><p id="detail-admin-note-text"></p></div>
+            </div>
           </div>
         </div>
 
@@ -225,6 +238,109 @@
                 <span class="fee-total-label">Total Estimated Fees</span>
                 <span class="fee-total-value" id="fee-total-value">₱0.00</span>
               </div>
+            </section>
+          </div>
+
+          <div class="grid-3" data-subtab-panel="forms" style="display:none;">
+            <section class="panel" style="grid-column:1 / -1;">
+              {% for service in services %}
+              <div data-service-forms-for="{{ service.id }}" style="display:none;">
+                <div class="panel-header">
+                  <h2>Downloadable Forms</h2>
+                  <button type="button" class="btn btn-primary" id="add-form-trigger-{{ service.id }}" onclick="document.getElementById('add-form-modal-{{ service.id }}').classList.add('open')"><i class="fa-solid fa-plus"></i> Add Form</button>
+                </div>
+                <div class="table-wrap">
+                  <table class="data-table">
+                    <thead><tr><th>Form</th><th>Category</th><th>Date Uploaded</th><th>Downloads</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody>
+                      {% for form in service.forms.all %}
+                      <tr>
+                        <td class="row-icon-name">
+                          <span class="row-thumb" style="background:var(--red-50);color:var(--red-600);"><i class="fa-solid fa-file-pdf"></i></span>
+                          <span class="cell-primary">{{ form.title }}</span>
+                        </td>
+                        <td><span class="tag">{{ form.category|default:"—" }}</span></td>
+                        <td>{{ form.date_uploaded|date:"M d, Y" }}</td>
+                        <td>{{ form.download_count }}</td>
+                        <td><span class="badge {% if form.status == 'published' %}badge-green{% else %}badge-amber{% endif %}">{{ form.get_status_display }}</span></td>
+                        <td>
+                          <div class="action-icons">
+                            <a class="ic" href="{% url 'office_dashboard:download_form' form.pk %}" title="Download"><i class="fa-solid fa-download"></i></a>
+                            <button type="button" class="ic" title="Delete" data-delete-target="delete-service-form-modal-{{ form.pk }}"><i class="fa-regular fa-trash-can"></i></button>
+                          </div>
+                        </td>
+                      </tr>
+                      {% empty %}
+                      <tr><td colspan="6" style="text-align:center;color:var(--gray-400);padding:24px 0;">No forms uploaded for this service yet.</td></tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Add Form modal — same fields/behavior as the Downloadable Forms page -->
+              <div class="modal-backdrop" id="add-form-modal-{{ service.id }}">
+                <div class="modal-box">
+                  <div class="modal-head">
+                    <h3>Add Form — {{ service.name }}</h3>
+                    <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+                  </div>
+                  <div class="modal-body">
+                    <form class="add-form-inline" data-service-id="{{ service.id }}" onsubmit="return false;">
+                      {% csrf_token %}
+
+                      <div class="form-group">
+                        <label class="form-label" for="df-file-{{ service.id }}">Attachment (PDF) <span class="req">*</span></label>
+                        <input class="form-input" type="file" id="df-file-{{ service.id }}" name="file" accept=".pdf,application/pdf" required>
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label" for="df-title-{{ service.id }}">Form Name <span class="req">*</span></label>
+                        <input class="form-input" type="text" id="df-title-{{ service.id }}" name="title" placeholder="e.g. Solid Waste Complaint Form" required>
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label" for="df-description-{{ service.id }}">Description</label>
+                        <textarea class="form-input" id="df-description-{{ service.id }}" name="description" rows="3" placeholder="What this form is for"></textarea>
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label" for="df-category-{{ service.id }}">Category</label>
+                        <select class="form-input" id="df-category-{{ service.id }}" name="category">
+                          {% for cat in category_choices_forms %}
+                            <option value="{{ cat }}">{{ cat }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                      <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Add Form</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Delete confirm modal for each of this service's forms -->
+              {% for form in service.forms.all %}
+              <div class="modal-backdrop" id="delete-service-form-modal-{{ form.pk }}">
+                <div class="modal-box" style="max-width:400px;">
+                  <div class="modal-head">
+                    <h3>Delete Form</h3>
+                    <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+                  </div>
+                  <div class="modal-body">
+                    <p>Are you sure you want to delete <strong>"{{ form.title }}"</strong>? This cannot be undone.</p>
+                    <form method="post" action="{% url 'office_dashboard:delete_service_form' service.id form.pk %}">
+                      {% csrf_token %}
+                      <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+                        <button type="submit" class="btn btn-primary" style="background:#dc2626;border-color:#dc2626;">Yes, Delete</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+
+              {% endfor %}
             </section>
           </div>
 
@@ -252,6 +368,28 @@
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
           <button type="submit" class="btn btn-primary">Save Steps</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="reminders-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Edit Important Reminders</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form id="reminders-form" method="post" data-url-template="{% url 'office_dashboard:save_reminders' 0 %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label" for="reminders-textarea">One reminder per line</label>
+          <textarea class="form-input form-textarea" id="reminders-textarea" name="items" rows="6" placeholder="e.g. Make sure all documents are complete and updated."></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Reminders</button>
         </div>
       </form>
     </div>
@@ -481,6 +619,189 @@
   var currentSteps = [];
   var currentRequirements = [];
   var currentFees = [];
+  var currentReminders = '';
+
+  var remindersModal = document.getElementById('reminders-modal');
+  var remindersForm = document.getElementById('reminders-form');
+  var remindersTrigger = document.getElementById('reminders-modal-trigger');
+  var remindersTextarea = document.getElementById('reminders-textarea');
+
+  if (remindersTrigger) {
+    remindersTrigger.addEventListener('click', function () {
+      if (!currentServicePk) return;
+      var currentLines = [];
+      document.querySelectorAll('#reminders-host li').forEach(function (li) {
+        if (li.textContent.trim() && li.textContent.trim() !== 'No reminders added yet.') {
+          currentLines.push(li.textContent.trim());
+        }
+      });
+      remindersTextarea.value = currentLines.join('\n');
+      remindersModal.classList.add('open');
+      document.body.classList.add('modal-open');
+    });
+  }
+
+  function closeRemindersModal() {
+    remindersModal.classList.remove('open');
+    document.body.classList.remove('modal-open');
+  }
+
+  if (remindersForm) {
+    remindersForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
+      var lines = remindersTextarea.value.split('\n').map(function (s) { return s.trim(); }).filter(Boolean);
+      currentReminders = lines.join('\n');
+
+      var remindersHost = document.getElementById('reminders-host');
+      remindersHost.innerHTML = lines.length
+        ? lines.map(function () { return '<li></li>'; }).join('')
+        : '<li style="color:var(--gray-400);">No reminders added yet.</li>';
+      remindersHost.querySelectorAll('li').forEach(function (li, i) {
+        if (lines[i]) li.textContent = lines[i];
+      });
+
+      closeRemindersModal();
+    });
+  }
+
+  var pendingForms = [];
+  var uploadFormUrl = "{% url 'office_dashboard:upload_form' %}";
+
+  function renderPendingFormRow(serviceId, entry) {
+    var tbody = document.querySelector('[data-service-forms-for="' + serviceId + '"] tbody');
+    if (!tbody) return;
+    var emptyRow = tbody.querySelector('td[colspan]');
+    if (emptyRow) emptyRow.closest('tr').remove();
+
+    var tr = document.createElement('tr');
+    tr.className = 'pending-form-row';
+    tr.innerHTML =
+      '<td class="row-icon-name">' +
+        '<span class="row-thumb" style="background:var(--red-50);color:var(--red-600);"><i class="fa-solid fa-file-pdf"></i></span>' +
+        '<span class="cell-primary"></span>' +
+      '</td>' +
+      '<td><span class="tag"></span></td>' +
+      '<td>&mdash;</td>' +
+      '<td>0</td>' +
+      '<td><span class="badge badge-amber">Unsaved</span></td>' +
+      '<td><span style="font-size:11.5px;color:var(--gray-400);">Save Changes to upload</span></td>';
+    tr.querySelector('.cell-primary').textContent = entry.title;
+    tr.querySelector('.tag').textContent = entry.category || '—';
+    tbody.appendChild(tr);
+  }
+
+  document.querySelectorAll('.add-form-inline').forEach(function (form) {
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      var serviceId = form.dataset.serviceId;
+      var fileInput = form.querySelector('input[type="file"]');
+      var titleInput = form.querySelector('input[name="title"]');
+      var descInput = form.querySelector('textarea[name="description"]');
+      var catInput = form.querySelector('select[name="category"]');
+
+      var file = fileInput.files[0];
+      var title = titleInput.value.trim();
+
+      if (!file || !title) {
+        alert('Please choose a PDF file and enter a form name.');
+        return;
+      }
+
+      pendingForms.push({
+        serviceId: serviceId,
+        file: file,
+        title: title,
+        description: descInput.value.trim(),
+        category: catInput.value
+      });
+
+      renderPendingFormRow(serviceId, { title: title, category: catInput.value });
+
+      var modal = document.getElementById('add-form-modal-' + serviceId);
+      if (modal) { modal.classList.remove('open'); document.body.classList.remove('modal-open'); }
+      form.reset();
+    });
+  });
+
+  document.querySelectorAll('[id^="add-form-modal-"]').forEach(function (modal) {
+    function closeThisFormModal() {
+      modal.classList.remove('open');
+      document.body.classList.remove('modal-open');
+    }
+    modal.querySelectorAll('[data-act="cancel"], .modal-x').forEach(function (btn) {
+      btn.addEventListener('click', closeThisFormModal);
+    });
+    modal.addEventListener('click', function (e) {
+      if (e.target === modal) closeThisFormModal();
+    });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    document.querySelectorAll('[id^="add-form-modal-"].open').forEach(function (modal) {
+      modal.classList.remove('open');
+      document.body.classList.remove('modal-open');
+    });
+  });
+
+  function getCsrfToken() {
+    var el = document.querySelector('#add-step-form [name=csrfmiddlewaretoken]');
+    return el ? el.value : '';
+  }
+
+  var saveChangesBtn = document.getElementById('save-changes-btn');
+  if (saveChangesBtn) {
+    saveChangesBtn.addEventListener('click', function () {
+      if (!currentServicePk) return;
+
+      var csrf = getCsrfToken();
+      var requests = [];
+
+      var stepsData = new FormData();
+      stepsData.append('csrfmiddlewaretoken', csrf);
+      currentSteps.forEach(function (s) { stepsData.append('title[]', s.title); stepsData.append('desc[]', s.description); });
+      requests.push(fetch(addStepForm.dataset.urlTemplate.replace('/0/', '/' + currentServicePk + '/'), { method: 'POST', body: stepsData, credentials: 'same-origin' }));
+
+      var reqData = new FormData();
+      reqData.append('csrfmiddlewaretoken', csrf);
+      currentRequirements.forEach(function (r) { reqData.append('title[]', r.title); reqData.append('desc[]', r.description); reqData.append('is_required[]', r.is_required ? 'required' : 'optional'); });
+      requests.push(fetch(addRequirementForm.dataset.urlTemplate.replace('/0/', '/' + currentServicePk + '/'), { method: 'POST', body: reqData, credentials: 'same-origin' }));
+
+      var feesData = new FormData();
+      feesData.append('csrfmiddlewaretoken', csrf);
+      currentFees.forEach(function (f) { feesData.append('title[]', f.title); feesData.append('desc[]', f.description); feesData.append('amount[]', f.amount); });
+      requests.push(fetch(addFeeForm.dataset.urlTemplate.replace('/0/', '/' + currentServicePk + '/'), { method: 'POST', body: feesData, credentials: 'same-origin' }));
+
+      var remindersData = new FormData();
+      remindersData.append('csrfmiddlewaretoken', csrf);
+      remindersData.append('items', currentReminders);
+      requests.push(fetch(remindersForm.dataset.urlTemplate.replace('/0/', '/' + currentServicePk + '/'), { method: 'POST', body: remindersData, credentials: 'same-origin' }));
+
+      pendingForms.forEach(function (pf) {
+        var fd = new FormData();
+        fd.append('csrfmiddlewaretoken', csrf);
+        fd.append('service', currentServicePk);
+        fd.append('file', pf.file);
+        fd.append('title', pf.title);
+        fd.append('description', pf.description);
+        fd.append('category', pf.category);
+        requests.push(fetch(uploadFormUrl, { method: 'POST', body: fd, credentials: 'same-origin' }));
+      });
+
+      saveChangesBtn.disabled = true;
+
+      Promise.all(requests).then(function (responses) {
+        var allOk = responses.every(function (r) { return r.ok; });
+        if (!allOk) throw new Error('One or more saves failed');
+        window.location.href = window.location.pathname + '?service=' + currentServicePk;
+      }).catch(function () {
+        alert('Something went wrong while saving. Please try again.');
+        saveChangesBtn.disabled = false;
+      });
+    });
+  }
 
   function renderSteps(stepsJson) {
     var steps = [];
@@ -593,11 +914,46 @@
   function showDetail(data) {
     currentServicePk = data.id || null;
 
+    document.querySelectorAll('[data-service-forms-for]').forEach(function (block) {
+      block.style.display = (block.dataset.serviceFormsFor === String(currentServicePk)) ? '' : 'none';
+    });
+
     document.querySelectorAll('.subtab').forEach(function (t) { t.classList.remove('active'); });
     var processTab = document.querySelector('.subtab[data-subtab="process"]');
     if (processTab) processTab.classList.add('active');
     document.querySelectorAll('[data-subtab-panel]').forEach(function (panel) {
       panel.style.display = (panel.dataset.subtabPanel === 'process') ? '' : 'none';
+    });
+
+    currentReminders = data.reminders || '';
+    pendingForms = [];
+
+    // Discard any staged (unsaved) form-upload rows left over from a
+    // previous service — they were never actually saved, so they
+    // shouldn't still appear once you leave without clicking Save Changes.
+    document.querySelectorAll('.pending-form-row').forEach(function (row) {
+      var tbody = row.closest('tbody');
+      row.remove();
+      if (tbody && !tbody.querySelector('tr')) {
+        var emptyRow = document.createElement('tr');
+        emptyRow.innerHTML = '<td colspan="6" style="text-align:center;color:var(--gray-400);padding:24px 0;">No forms uploaded for this service yet.</td>';
+        tbody.appendChild(emptyRow);
+      }
+    });
+
+    document.querySelectorAll('[id^="add-form-trigger-"]').forEach(function (btn) {
+      btn.disabled = false;
+    });
+    var currentFormTrigger = document.getElementById('add-form-trigger-' + data.id);
+    if (currentFormTrigger) currentFormTrigger.disabled = isPublished;
+
+    var remindersHost = document.getElementById('reminders-host');
+    var reminderLines = (data.reminders || '').split('\n').map(function (s) { return s.trim(); }).filter(Boolean);
+    remindersHost.innerHTML = reminderLines.length
+      ? reminderLines.map(function (line) { return '<li></li>'; }).join('')
+      : '<li style="color:var(--gray-400);">No reminders added yet.</li>';
+    remindersHost.querySelectorAll('li').forEach(function (li, i) {
+      if (reminderLines[i]) li.textContent = reminderLines[i];
     });
 
     document.getElementById('detail-name').textContent = data.name || '';
@@ -609,6 +965,54 @@
     document.getElementById('detail-processing').textContent = data.processing || '';
     document.getElementById('detail-published').textContent = data.published || '';
     document.getElementById('detail-date-published').textContent = data.published || '';
+
+    var noteBox = document.getElementById('detail-admin-note-box');
+    var statusBadgeClass = {
+      published: 'badge-green',
+      pending: 'badge-amber',
+      returned: 'badge-red',
+      reject: 'badge-red',
+      archive: 'badge-gray'
+    }[data.status] || 'badge-gray';
+
+    ['detail-status-badge', 'detail-status-badge-2'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) {
+        el.className = 'badge ' + statusBadgeClass;
+        el.textContent = data.statusDisplay || '';
+      }
+    });
+
+    // A published service has already been approved and gone live —
+    // office reps can no longer edit its process steps, requirements,
+    // fees, or reminders. Disable the controls up front instead of
+    // letting them try and hit a 403 from the server.
+    var isPublished = data.status === 'published';
+    var lockedNote = document.getElementById('detail-locked-note');
+    if (!lockedNote) {
+      lockedNote = document.createElement('div');
+      lockedNote.id = 'detail-locked-note';
+      lockedNote.className = 'reminder-box';
+      lockedNote.style.marginBottom = '14px';
+      lockedNote.innerHTML = '<span class="ic"><i class="fa-solid fa-lock"></i></span><div><strong>Published</strong><p>This service is live and can no longer be edited. Contact the Super Admin if changes are needed.</p></div>';
+      var subtabsEl = document.querySelector('.subtabs');
+      if (subtabsEl && subtabsEl.parentNode) subtabsEl.parentNode.insertBefore(lockedNote, subtabsEl.nextSibling);
+    }
+    lockedNote.style.display = isPublished ? '' : 'none';
+
+    ['save-changes-btn', 'step-modal-trigger', 'requirement-modal-trigger', 'fee-modal-trigger', 'reminders-modal-trigger'].forEach(function (id) {
+      var btn = document.getElementById(id);
+      if (btn) btn.disabled = isPublished;
+    });
+
+    var noteBox = document.getElementById('detail-admin-note-box');
+    var noteText = document.getElementById('detail-admin-note-text');
+    if (data.adminNote) {
+      noteText.textContent = data.adminNote;
+      noteBox.style.display = '';
+    } else {
+      noteBox.style.display = 'none';
+    }
 
     renderSteps(data.steps);
 
@@ -649,6 +1053,20 @@
       showDetail(btn.dataset);
     });
   });
+
+  (function restoreFromQuery() {
+    var params = new URLSearchParams(window.location.search);
+    var wantedId = params.get('service');
+    var wantedTab = params.get('tab');
+    if (!wantedId) return;
+    var btn = document.querySelector('.view-service-btn[data-id="' + wantedId + '"]');
+    if (!btn) return;
+    showDetail(btn.dataset);
+    if (wantedTab) {
+      var tabEl = document.querySelector('.subtab[data-subtab="' + wantedTab + '"]');
+      if (tabEl) tabEl.click();
+    }
+  })();
 
   // Subtabs (Service Process / Requirements / Fees / Office Information /
   // Settings): app.js already toggles the .active class on the tab itself,
@@ -803,7 +1221,6 @@
   /* ---- save via AJAX: closes only the modal, stays on the service ---- */
   if (addStepForm) {
     addStepForm.addEventListener('submit', function (e) {
-      if (!currentServicePk) return;
       e.preventDefault();
       e.stopImmediatePropagation();
 
@@ -814,25 +1231,10 @@
         if (title) newSteps.push({ title: title, description: desc });
       });
 
-      var url = addStepForm.dataset.urlTemplate.replace('/0/', '/' + currentServicePk + '/');
-      var formData = new FormData(addStepForm);
-
-      fetch(url, { method: 'POST', body: formData, credentials: 'same-origin' })
-        .then(function (res) {
-          if (!res.ok) throw new Error('Save failed');
-
-          currentSteps = newSteps;
-          renderSteps(JSON.stringify(newSteps));
-          updateStepButton(newSteps);
-
-          var activeBtn = document.querySelector('.view-service-btn[data-id="' + currentServicePk + '"]');
-          if (activeBtn) activeBtn.dataset.steps = JSON.stringify(newSteps);
-
-          closeAddStepModal();
-        })
-        .catch(function () {
-          alert('Something went wrong saving the steps. Please try again.');
-        });
+      currentSteps = newSteps;
+      renderSteps(JSON.stringify(newSteps));
+      updateStepButton(newSteps);
+      closeAddStepModal();
     });
   }
 
@@ -927,7 +1329,6 @@
   /* ---- save via AJAX: closes only the modal, stays on the service ---- */
   if (addRequirementForm) {
     addRequirementForm.addEventListener('submit', function (e) {
-      if (!currentServicePk) return;
       e.preventDefault();
       e.stopImmediatePropagation();
 
@@ -939,25 +1340,10 @@
         if (title) newRequirements.push({ title: title, description: desc, is_required: isRequired });
       });
 
-      var url = addRequirementForm.dataset.urlTemplate.replace('/0/', '/' + currentServicePk + '/');
-      var formData = new FormData(addRequirementForm);
-
-      fetch(url, { method: 'POST', body: formData, credentials: 'same-origin' })
-        .then(function (res) {
-          if (!res.ok) throw new Error('Save failed');
-
-          currentRequirements = newRequirements;
-          renderRequirements(JSON.stringify(newRequirements));
-          updateRequirementButton(newRequirements);
-
-          var activeBtn = document.querySelector('.view-service-btn[data-id="' + currentServicePk + '"]');
-          if (activeBtn) activeBtn.dataset.requirements = JSON.stringify(newRequirements);
-
-          closeAddRequirementModal();
-        })
-        .catch(function () {
-          alert('Something went wrong saving the requirements. Please try again.');
-        });
+      currentRequirements = newRequirements;
+      renderRequirements(JSON.stringify(newRequirements));
+      updateRequirementButton(newRequirements);
+      closeAddRequirementModal();
     });
   }
 
@@ -1034,7 +1420,6 @@
   /* ---- save via AJAX: closes only the modal, stays on the service ---- */
   if (addFeeForm) {
     addFeeForm.addEventListener('submit', function (e) {
-      if (!currentServicePk) return;
       e.preventDefault();
       e.stopImmediatePropagation();
 
@@ -1046,25 +1431,10 @@
         if (title) newFees.push({ title: title, description: desc, amount: amount || '0' });
       });
 
-      var url = addFeeForm.dataset.urlTemplate.replace('/0/', '/' + currentServicePk + '/');
-      var formData = new FormData(addFeeForm);
-
-      fetch(url, { method: 'POST', body: formData, credentials: 'same-origin' })
-        .then(function (res) {
-          if (!res.ok) throw new Error('Save failed');
-
-          currentFees = newFees;
-          renderFees(JSON.stringify(newFees));
-          updateFeeButton(newFees);
-
-          var activeBtn = document.querySelector('.view-service-btn[data-id="' + currentServicePk + '"]');
-          if (activeBtn) activeBtn.dataset.fees = JSON.stringify(newFees);
-
-          closeAddFeeModal();
-        })
-        .catch(function () {
-          alert('Something went wrong saving the fees. Please try again.');
-        });
+      currentFees = newFees;
+      renderFees(JSON.stringify(newFees));
+      updateFeeButton(newFees);
+      closeAddFeeModal();
     });
   }
 
@@ -1074,6 +1444,8 @@
     if (target) target.click();
   }
 })();
+
+
 </script>
 
 

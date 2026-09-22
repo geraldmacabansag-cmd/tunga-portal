@@ -28,6 +28,28 @@
     </nav>
 
     <main class="content">
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon blue"><i class="fa-solid fa-bullhorn"></i></span></div>
+          <div class="stat-value">{{ total_count }}</div>
+          <div class="stat-label">Total Announcements</div>
+        </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon green"><i class="fa-solid fa-circle-check"></i></span></div>
+          <div class="stat-value">{{ published_count }}</div>
+          <div class="stat-label">Published</div>
+        </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon amber"><i class="fa-regular fa-clock"></i></span></div>
+          <div class="stat-value">{{ pending_count }}</div>
+          <div class="stat-label">Pending Approval</div>
+        </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon gray"><i class="fa-solid fa-rotate-left"></i></span></div>
+          <div class="stat-value">{{ returned_count }}</div>
+          <div class="stat-label">Returned</div>
+        </div>
+      </div>
 
       <section class="panel">
         <div class="panel-header">

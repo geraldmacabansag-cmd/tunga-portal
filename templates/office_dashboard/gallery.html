@@ -66,6 +66,14 @@
           {# ---------- Inside an album: show its photos ---------- #}
           <div class="gallery-grid">
             {% for p in page_obj %}
+            {% if viewing_virtual_album %}
+            <a class="gallery-item" href="{{ p.image.url }}" target="_blank" style="display:block;">
+              <img src="{{ p.image.url }}" alt="{{ p.title }}">
+              <span class="badge {% if p.status == 'published' %}badge-green{% else %}badge-amber{% endif %} gi-badge">{{ p.get_status_display }}</span>
+              <span class="gi-expand-hint"><i class="fa-solid fa-up-right-from-square"></i></span>
+              <div class="gi-overlay"><span class="gi-title">{{ p.title }}</span></div>
+            </a>
+            {% else %}
             <div class="gallery-item" data-view-target="view-photo-modal-{{ p.id }}">
               <img src="{{ p.image.url }}" alt="{{ p.title }}">
               <span class="badge {% if p.status == 'published' %}badge-green{% else %}badge-amber{% endif %} gi-badge">{{ p.get_status_display }}</span>
@@ -76,6 +84,7 @@
               </div>
               <div class="gi-overlay"><span class="gi-title">{{ p.title }}</span></div>
             </div>
+            {% endif %}
             {% empty %}
             <p style="text-align:center;color:var(--gray-400);padding:24px;grid-column:1/-1;">
               {% if current_q %}No photos match "{{ current_q }}".{% else %}No photos in this album yet.{% endif %}
@@ -87,7 +96,7 @@
           <div class="gallery-grid">
             {% for album in page_obj %}
             <div class="gallery-item" data-open-album="{{ album.id }}">
-              {% with cover=album.photos.first %}
+              {% with cover=album.cover %}
                 {% if cover %}
                   <img src="{{ cover.image.url }}" alt="{{ album.name }}">
                 {% else %}
@@ -123,6 +132,27 @@
               <div class="gallery-item-empty"><i class="fa-regular fa-image"></i></div>
               <span class="badge badge-amber gi-badge">{{ uncategorized_count }} photo{{ uncategorized_count|pluralize }}</span>
               <div class="gi-overlay"><span class="gi-title">Uncategorized</span></div>
+            </a>
+            {% endif %}
+            {% if not current_q and announcements_image_count %}
+            <a class="gallery-item" href="?album=announcements" style="display:block;">
+              {% if announcements_cover %}<img src="{{ announcements_cover.image.url }}" alt="Announcements">{% else %}<div class="gallery-item-empty"><i class="fa-solid fa-bullhorn"></i></div>{% endif %}
+              <span class="badge badge-amber gi-badge">{{ announcements_image_count }} photo{{ announcements_image_count|pluralize }}</span>
+              <div class="gi-overlay"><span class="gi-title">Announcements</span></div>
+            </a>
+            {% endif %}
+            {% if not current_q and news_image_count %}
+            <a class="gallery-item" href="?album=news" style="display:block;">
+              {% if news_cover %}<img src="{{ news_cover.image.url }}" alt="News &amp; Updates">{% else %}<div class="gallery-item-empty"><i class="fa-solid fa-newspaper"></i></div>{% endif %}
+              <span class="badge badge-amber gi-badge">{{ news_image_count }} photo{{ news_image_count|pluralize }}</span>
+              <div class="gi-overlay"><span class="gi-title">News &amp; Updates</span></div>
+            </a>
+            {% endif %}
+            {% if not current_q and events_image_count %}
+            <a class="gallery-item" href="?album=events" style="display:block;">
+              {% if events_cover %}<img src="{{ events_cover.poster.url }}" alt="Events">{% else %}<div class="gallery-item-empty"><i class="fa-regular fa-calendar"></i></div>{% endif %}
+              <span class="badge badge-amber gi-badge">{{ events_image_count }} photo{{ events_image_count|pluralize }}</span>
+              <div class="gi-overlay"><span class="gi-title">Events</span></div>
             </a>
             {% endif %}
           </div>
@@ -181,11 +211,15 @@
         <div class="form-group">
           <label class="form-label" for="gal-album">Album</label>
           <select class="form-input" id="gal-album" name="album">
-            <option value="">No Album</option>
             {% for album in all_albums_for_upload %}
               <option value="{{ album.id }}" {% if selected_album and selected_album.id == album.id %}selected{% endif %}>{{ album.name }}</option>
             {% endfor %}
+            <option value="__new__">+ Create New Album</option>
           </select>
+        </div>
+        <div class="form-group" id="gal-new-album-wrap" style="display:none;">
+          <label class="form-label" for="gal-new-album-name">New Album Name <span class="req">*</span></label>
+          <input class="form-input" type="text" id="gal-new-album-name" name="new_album_name" placeholder="e.g. Barangay Fiesta 2026">
         </div>
 
         <div class="modal-actions">

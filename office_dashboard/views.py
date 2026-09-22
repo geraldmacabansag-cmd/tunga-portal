@@ -15,8 +15,9 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 
 from datetime import datetime
-from django.db.models import Count, F
-from django.http import FileResponse, Http404
+from django.db.models import Count, F, Sum
+from django.http import FileResponse, Http404, JsonResponse, HttpResponse
+from django.template.defaultfilters import date as django_date_format
 
 from .models import (
     OfficeRepresentative, Announcement, NewsUpdate, Event, Photo, Album,
@@ -26,11 +27,17 @@ from .models import (
 from itertools import groupby
 from datetime import timedelta
 
+from admin_dashboard.models import SuperAdmin
+
 
 def office_rep_required(view_func):
     @wraps(view_func)
     @login_required
     def wrapper(request, *args, **kwargs):
+        if SuperAdmin.objects.filter(user=request.user).exists():
+            messages.error(request, "Super Admin accounts use the Super Admin dashboard, not the Office Representative dashboard.")
+            return redirect("admin_dashboard:admin_dash")
+
         rep = OfficeRepresentative.objects.filter(user=request.user).first()
         if rep is None:
             messages.error(request, "Your account isn't linked to an Office Representative profile.")
@@ -41,11 +48,14 @@ def office_rep_required(view_func):
 @office_rep_required
 def rep_announcement(request, rep):
     if request.method == "POST":
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
         title = request.POST.get('title', '').strip()
         if not title:
+            if is_ajax:
+                return JsonResponse({"success": False, "error": "Announcement title is required."}, status=400)
             messages.error(request, "Announcement title is required.")
         else:
-            Announcement.objects.create(
+            announcement = Announcement.objects.create(
                 representative=rep,
                 title=title,
                 subtitle=request.POST.get('subtitle', ''),
@@ -57,8 +67,16 @@ def rep_announcement(request, rep):
                 expiration_date=request.POST.get('expiration_date') or None,
                 priority=request.POST.get('priority', 'Normal'),
             )
-            messages.success(request, f'"{title}" was created and is pending approval.')
             log_activity(rep, "Announcement submitted", f'Submitted "{title}" for approval', "content", "fa-solid fa-bullhorn", "var(--blue-600)")
+            if is_ajax:
+                return JsonResponse({
+                    "success": True,
+                    "title": announcement.title,
+                    "created_at": django_date_format(timezone.localtime(announcement.created_at), "F j, Y · g:i A"),
+                    "status": announcement.status,
+                    "status_display": announcement.get_status_display(),
+                })
+            messages.success(request, f'"{title}" was created and is pending approval.')
         return redirect('office_dashboard:rep_announce')
 
     announcements = rep.announcements.all()
@@ -73,6 +91,11 @@ def rep_announcement(request, rep):
 
     sort = request.GET.get('sort', 'newest')
     announcements = announcements.order_by('created_at' if sort == 'oldest' else '-created_at')
+    all_announcements = rep.announcements.all()
+    total_count = all_announcements.count()
+    published_count = all_announcements.filter(status='published').count()
+    pending_count = all_announcements.filter(status='pending').count()
+    returned_count = all_announcements.filter(status='returned').count()
 
     paginator = Paginator(announcements, 5)
     page_obj = paginator.get_page(request.GET.get('page'))
@@ -84,6 +107,10 @@ def rep_announcement(request, rep):
         "current_q": q,
         "current_status": status,
         "current_sort": sort,
+        "total_count": total_count,
+        "published_count": published_count,
+        "pending_count": pending_count,
+        "returned_count": returned_count,
     })
 
 @office_rep_required
@@ -140,19 +167,45 @@ def dashboard(request, rep):
     forms_count = rep.office.downloadable_forms.count()
     photos_count = rep.photos.count()
 
+    recent_announcements = rep.announcements.order_by('-created_at')[:4]
+    recent_news = rep.news_updates.order_by('-created_at')[:3]
+    upcoming_events = rep.events.filter(event_date__gte=today).order_by('event_date')[:3]
+
+    # ---- Content Overview chart: real "This Month" / "Last Month" scoping ----
+    first_of_this_month = today.replace(day=1)
+    if first_of_this_month.month == 1:
+        first_of_last_month = first_of_this_month.replace(year=first_of_this_month.year - 1, month=12)
+    else:
+        first_of_last_month = first_of_this_month.replace(month=first_of_this_month.month - 1)
+
+    chart_range = request.GET.get('range', 'month')
+    if chart_range == 'last_month':
+        range_start, range_end, range_label = first_of_last_month, first_of_this_month, "Last Month"
+    else:
+        chart_range = 'month'
+        range_start, range_end, range_label = first_of_this_month, today + timedelta(days=1), "This Month"
+
+    chart_announcements = rep.announcements.filter(created_at__date__gte=range_start, created_at__date__lt=range_end)
+    chart_news = rep.news_updates.filter(created_at__date__gte=range_start, created_at__date__lt=range_end)
+    chart_events = rep.events.filter(created_at__date__gte=range_start, created_at__date__lt=range_end)
+    chart_forms = rep.office.downloadable_forms.filter(date_uploaded__date__gte=range_start, date_uploaded__date__lt=range_end)
+    chart_photos = rep.photos.filter(created_at__date__gte=range_start, created_at__date__lt=range_end)
+
     counts = {
-        "announcements": announcements_count,
-        "news": news_count,
-        "events": events_count,
-        "forms": forms_count,
-        "photos": photos_count,
+        "announcements": chart_announcements.count(),
+        "news": chart_news.count(),
+        "events": chart_events.count(),
+        "forms": chart_forms.count(),
+        "photos": chart_photos.count(),
     }
     max_count = max(counts.values()) or 1
     bar_heights = {key: round(value / max_count * 100) for key, value in counts.items()}
 
-    recent_announcements = rep.announcements.order_by('-created_at')[:4]
-    recent_news = rep.news_updates.order_by('-created_at')[:3]
-    upcoming_events = rep.events.filter(event_date__gte=today).order_by('event_date')[:3]
+    total_views = (
+        (chart_announcements.aggregate(total=Sum('views'))['total'] or 0)
+        + (chart_news.aggregate(total=Sum('views'))['total'] or 0)
+    )
+    total_downloads = chart_forms.aggregate(total=Sum('download_count'))['total'] or 0
 
     return render(request, "office_dashboard/dashboard.html", {
         "rep": rep,
@@ -161,20 +214,30 @@ def dashboard(request, rep):
         "events_count": events_count,
         "forms_count": forms_count,
         "photos_count": photos_count,
+        "chart_counts": counts,
         "bar_heights": bar_heights,
+        "chart_range": chart_range,
+        "range_label": range_label,
+        "total_views": total_views,
+        "total_downloads": total_downloads,
         "recent_announcements": recent_announcements,
         "recent_news": recent_news,
         "upcoming_events": upcoming_events,
+        "all_albums_for_upload": rep.albums.order_by('name'),
+        "category_choices": FORM_CATEGORY_CHOICES,
     })
 
 @office_rep_required
 def news_update(request, rep):
     if request.method == "POST":
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
         title = request.POST.get('title', '').strip()
         if not title:
+            if is_ajax:
+                return JsonResponse({"success": False, "error": "News headline is required."}, status=400)
             messages.error(request, "News headline is required.")
         else:
-            NewsUpdate.objects.create(
+            news = NewsUpdate.objects.create(
                 representative=rep,
                 title=title,
                 category=request.POST.get('category', ''),
@@ -186,8 +249,16 @@ def news_update(request, rep):
                 source=request.POST.get('source', ''),
                 tags=request.POST.get('tags', ''),
             )
-            messages.success(request, f'"{title}" was added.')
             log_activity(rep, "News published", f'Added "{title}"', "content", "fa-regular fa-newspaper", "#12b3c4")
+            if is_ajax:
+                return JsonResponse({
+                    "success": True,
+                    "title": news.title,
+                    "created_at": django_date_format(timezone.localtime(news.created_at), "F j, Y · g:i A"),
+                    "status": news.status,
+                    "status_display": news.get_status_display(),
+                })
+            messages.success(request, f'"{title}" was added.')
         return redirect('office_dashboard:news_update')
 
     news_items = rep.news_updates.all()
@@ -202,6 +273,11 @@ def news_update(request, rep):
 
     sort = request.GET.get('sort', 'newest')
     news_items = news_items.order_by('created_at' if sort == 'oldest' else '-created_at')
+    all_news = rep.news_updates.all()
+    total_count = all_news.count()
+    published_count = all_news.filter(status='published').count()
+    pending_count = all_news.filter(status='pending').count()
+    returned_count = all_news.filter(status='returned').count()
 
     paginator = Paginator(news_items, 4)
     page_obj = paginator.get_page(request.GET.get('page'))
@@ -213,6 +289,10 @@ def news_update(request, rep):
         "current_q": q,
         "current_status": status,
         "current_sort": sort,
+        "total_count": total_count,
+        "published_count": published_count,
+        "pending_count": pending_count,
+        "returned_count": returned_count,
     })
 
 @office_rep_required
@@ -260,26 +340,55 @@ def delete_news(request, rep, pk):
 @office_rep_required
 def events(request, rep):
     if request.method == "POST":
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
         title = request.POST.get('title', '').strip()
         if not title:
+            if is_ajax:
+                return JsonResponse({"success": False, "error": "Event title is required."}, status=400)
             messages.error(request, "Event title is required.")
         else:
-            Event.objects.create(
+            def parse_date(value):
+                try:
+                    return datetime.strptime(value, '%Y-%m-%d').date() if value else None
+                except ValueError:
+                    return None
+
+            def parse_time(value):
+                try:
+                    return datetime.strptime(value, '%H:%M').time() if value else None
+                except ValueError:
+                    return None
+
+            event_date = parse_date(request.POST.get('event_date'))
+            start_time = parse_time(request.POST.get('start_time'))
+            end_time = parse_time(request.POST.get('end_time'))
+
+            event = Event.objects.create(
                 representative=rep,
                 title=title,
                 category=request.POST.get('category', ''),
                 description=request.POST.get('description', ''),
-                event_date=request.POST.get('event_date') or None,
-                start_time=request.POST.get('start_time') or None,
-                end_time=request.POST.get('end_time') or None,
+                event_date=event_date,
+                start_time=start_time,
+                end_time=end_time,
                 location=request.POST.get('location', ''),
                 organizer=request.POST.get('organizer', ''),
                 contact_person=request.POST.get('contact_person', ''),
                 contact_info=request.POST.get('contact_info', ''),
                 poster=request.FILES.get('poster'),
             )
-            messages.success(request, f'"{title}" was added and is pending approval.')
             log_activity(rep, "Event submitted", f'Submitted "{title}" for approval', "content", "fa-solid fa-calendar-days", "#7c4fe0")
+            if is_ajax:
+                return JsonResponse({
+                    "success": True,
+                    "title": event.title,
+                    "event_date": django_date_format(event_date, "F j, Y") if event_date else "",
+                    "event_mon": django_date_format(event_date, "M").upper() if event_date else "",
+                    "event_day": django_date_format(event_date, "d") if event_date else "",
+                    "start_time": django_date_format(start_time, "g:i A") if start_time else "",
+                    "location": event.location,
+                })
+            messages.success(request, f'"{title}" was added and is pending approval.')
         return redirect('office_dashboard:event')
 
     events_qs = rep.events.all()
@@ -367,7 +476,24 @@ def delete_event(request, rep, pk):
 
 @office_rep_required
 def services(request, rep):
-    services_qs = list(rep.office.services.all())
+    all_services = rep.office.services.all()
+
+    total_count = all_services.count()
+    published_count = all_services.filter(status='published').count()
+    pending_count = all_services.filter(status='pending').count()
+    returned_count = all_services.filter(status='returned').count()
+
+    services_qs = all_services
+
+    q = request.GET.get('q', '').strip()
+    if q:
+        services_qs = services_qs.filter(name__icontains=q)
+
+    status = request.GET.get('status', '')
+    if status:
+        services_qs = services_qs.filter(status=status)
+
+    services_qs = list(services_qs)
     for service in services_qs:
         service.steps_json = json.dumps([
             {"title": step.title, "description": step.description}
@@ -381,16 +507,41 @@ def services(request, rep):
             {"title": f.title, "description": f.description, "amount": str(f.amount)}
             for f in service.fees.all()
         ])
+
     return render(request, "office_dashboard/office-rep-service-details.html", {
         "rep": rep,
         "services": services_qs,
         "category_choices": Service.CATEGORY_CHOICES,
         "icon_choices": Service.ICON_CHOICES,
+        "total_count": total_count,
+        "published_count": published_count,
+        "pending_count": pending_count,
+        "returned_count": returned_count,
+        "current_q": q,
+        "current_status": status,
+        "category_choices_forms": FORM_CATEGORY_CHOICES,
     })
+
+@office_rep_required
+def delete_service_form(request, rep, service_pk, pk):
+    form = get_object_or_404(DownloadableForm, pk=pk, office=rep.office, service_id=service_pk)
+
+    if request.method == "POST":
+        title = form.title
+        form.file.delete(save=False)
+        form.delete()
+        messages.success(request, f'"{title}" was deleted.')
+
+    return redirect(f"{reverse('office_dashboard:services')}?service={service_pk}")
 
 @office_rep_required
 def save_process_steps(request, rep, service_pk):
     service = get_object_or_404(Service, pk=service_pk, office=rep.office)
+
+    if request.method == "POST":
+        if service.status == 'published':
+            return HttpResponse("This service is already published and can no longer be edited.", status=403)
+
 
     if request.method == "POST":
         titles = request.POST.getlist('title[]')
@@ -419,8 +570,30 @@ def save_process_steps(request, rep, service_pk):
     return redirect(f"{reverse('office_dashboard:services')}?service={service.pk}")
 
 @office_rep_required
+def save_reminders(request, rep, service_pk):
+    service = get_object_or_404(Service, pk=service_pk, office=rep.office)
+
+    if request.method == "POST":
+        if service.status == 'published':
+            return HttpResponse("This service is already published and can no longer be edited.", status=403)
+
+
+    if request.method == "POST":
+        items_raw = request.POST.get('items', '')
+        lines = [line.strip() for line in items_raw.splitlines() if line.strip()]
+        service.reminders = "\n".join(lines)
+        service.save()
+
+    return redirect('office_dashboard:services')
+
+@office_rep_required
 def save_requirements(request, rep, service_pk):
     service = get_object_or_404(Service, pk=service_pk, office=rep.office)
+
+    if request.method == "POST":
+        if service.status == 'published':
+            return HttpResponse("This service is already published and can no longer be edited.", status=403)
+
 
     if request.method == "POST":
         titles = request.POST.getlist('title[]')
@@ -455,6 +628,11 @@ def save_requirements(request, rep, service_pk):
 @office_rep_required
 def save_fees(request, rep, service_pk):
     service = get_object_or_404(Service, pk=service_pk, office=rep.office)
+
+    if request.method == "POST":
+        if service.status == 'published':
+            return HttpResponse("This service is already published and can no longer be edited.", status=403)
+
 
     if request.method == "POST":
         titles = request.POST.getlist('title[]')
@@ -502,20 +680,30 @@ def downloadable_forms(request, rep):
 @office_rep_required
 def upload_form(request, rep):
     if request.method == "POST":
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
         title = request.POST.get('title', '').strip()
         description = request.POST.get('description', '').strip()
         category = request.POST.get('category', '').strip()
         uploaded_file = request.FILES.get('file')
+        service_id = request.POST.get('service')
 
+        error = None
         if not title:
-            messages.error(request, "Form name is required.")
+            error = "Form name is required."
         elif not uploaded_file:
-            messages.error(request, "Please attach a PDF file.")
+            error = "Please attach a PDF file."
         elif not uploaded_file.name.lower().endswith('.pdf'):
-            messages.error(request, "Only PDF files are allowed.")
+            error = "Only PDF files are allowed."
+
+        if error:
+            if is_ajax:
+                return JsonResponse({"success": False, "error": error}, status=400)
+            messages.error(request, error)
         else:
+            service = Service.objects.filter(pk=service_id, office=rep.office).first() if service_id else None
             DownloadableForm.objects.create(
                 office=rep.office,
+                service=service,
                 title=title,
                 description=description,
                 category=category,
@@ -523,7 +711,11 @@ def upload_form(request, rep):
                 uploaded_by=rep.office.name,
                 download_count=0,
             )
+            if is_ajax:
+                return JsonResponse({"success": True, "title": title})
             messages.success(request, f'"{title}" was uploaded.')
+            if service_id:
+                return redirect(f"{reverse('office_dashboard:services')}?service={service_id}&tab=forms")
 
     return redirect('office_dashboard:downloadable_form')
 
@@ -532,6 +724,10 @@ def delete_form(request, rep, pk):
     form = get_object_or_404(DownloadableForm, pk=pk, office=rep.office)
 
     if request.method == "POST":
+        if form.service:
+            messages.error(request, f'"{form.title}" was uploaded from {form.service.name} and can only be deleted from that service\'s page.')
+            return redirect('office_dashboard:downloadable_form')
+
         title = form.title
         form.file.delete(save=False)
         form.delete()
@@ -554,6 +750,10 @@ def download_form(request, rep, pk):
 @office_rep_required
 def edit_form(request, rep, pk):
     form = get_object_or_404(DownloadableForm, pk=pk, office=rep.office)
+
+    if form.service:
+        messages.error(request, f'"{form.title}" was uploaded from {form.service.name} and can only be managed from that service\'s page.')
+        return redirect('office_dashboard:downloadable_form')
 
     if form.status == 'published':
         messages.error(request, "This form is already published and can no longer be edited.")
@@ -585,16 +785,30 @@ def edit_form(request, rep, pk):
 @office_rep_required
 def gallery(request, rep):
     if request.method == "POST":
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
         title = request.POST.get('title', '').strip()
         image = request.FILES.get('image')
         album_id = request.POST.get('album') or None
+        new_album_name = request.POST.get('new_album_name', '').strip()
 
+        error = None
         if not title:
-            messages.error(request, "Caption / title is required.")
+            error = "Caption / title is required."
         elif not image:
-            messages.error(request, "Please choose a photo to upload.")
+            error = "Please choose a photo to upload."
+
+        if error:
+            if is_ajax:
+                return JsonResponse({"success": False, "error": error}, status=400)
+            messages.error(request, error)
         else:
-            album = Album.objects.filter(pk=album_id, representative=rep).first() if album_id else None
+            if album_id == '__new__' and new_album_name:
+                album, _ = Album.objects.get_or_create(representative=rep, name=new_album_name)
+            elif album_id and album_id != '__new__':
+                album = Album.objects.filter(pk=album_id, representative=rep).first()
+            else:
+                album = None
+
             Photo.objects.create(
                 representative=rep,
                 title=title,
@@ -602,54 +816,99 @@ def gallery(request, rep):
                 album=album,
                 # status not set -> defaults to "pending"
             )
-            messages.success(request, f'"{title}" was uploaded and is pending approval.')
+
             log_activity(rep, "Photo uploaded", f'Uploaded "{title}" for approval', "content", "fa-regular fa-image", "#12b3c4")
+            if is_ajax:
+                return JsonResponse({"success": True, "title": title})
+            messages.success(request, f'"{title}" was uploaded and is pending approval.')
         return redirect('office_dashboard:gallery')
 
     album_param = request.GET.get('album', '').strip()
     q = request.GET.get('q', '').strip()
-    in_album_view = bool(album_param)
 
+    total_photo_count = Photo.objects.filter(representative=rep).count()
+    total_album_count = Album.objects.filter(representative=rep).count()
+    pending_count = Photo.objects.filter(representative=rep, status='pending').count()
+    uncategorized_count = Photo.objects.filter(representative=rep, album__isnull=True).count()
+
+    all_albums_for_upload = Album.objects.filter(representative=rep).order_by('name')
+
+    announcements_image_count = Announcement.objects.filter(representative=rep).exclude(image='').count()
+    news_image_count = NewsUpdate.objects.filter(representative=rep).exclude(image='').count()
+    events_image_count = Event.objects.filter(representative=rep).exclude(poster='').count()
+
+    announcements_cover = Announcement.objects.filter(representative=rep).exclude(image='').order_by('created_at').first()
+    news_cover = NewsUpdate.objects.filter(representative=rep).exclude(image='').order_by('created_at').first()
+    events_cover = Event.objects.filter(representative=rep).exclude(poster='').order_by('created_at').first()
+
+    VIRTUAL_ALBUMS = {
+        'announcements': 'Announcements',
+        'news': 'News & Updates',
+        'events': 'Events',
+    }
+
+    in_album_view = bool(album_param)
     selected_album = None
-    selected_album_name = None
+    selected_album_name = ''
+    viewing_virtual_album = album_param in VIRTUAL_ALBUMS
 
     if in_album_view:
         if album_param == 'none':
-            photos_qs = rep.photos.filter(album__isnull=True).order_by('-created_at')
-            selected_album_name = "Uncategorized"
+            selected_album_name = 'Uncategorized'
+            photos = Photo.objects.filter(representative=rep, album__isnull=True)
+        elif album_param in VIRTUAL_ALBUMS:
+            selected_album_name = VIRTUAL_ALBUMS[album_param]
+            if album_param == 'announcements':
+                photos = list(Announcement.objects.filter(representative=rep).exclude(image='').order_by('-created_at'))
+            elif album_param == 'news':
+                photos = list(NewsUpdate.objects.filter(representative=rep).exclude(image='').order_by('-created_at'))
+            else:
+                photos = list(Event.objects.filter(representative=rep).exclude(poster='').order_by('-created_at'))
+                for item in photos:
+                    item.image = item.poster  # normalize so the template can use {{ p.image.url }} uniformly
+            if q:
+                photos = [p for p in photos if q.lower() in p.title.lower()]
         else:
             selected_album = get_object_or_404(Album, pk=album_param, representative=rep)
-            photos_qs = selected_album.photos.order_by('-created_at')
             selected_album_name = selected_album.name
+            photos = Photo.objects.filter(representative=rep, album=selected_album)
 
-        if q:
-            photos_qs = photos_qs.filter(title__icontains=q)
+        if q and not viewing_virtual_album:
+            photos = photos.filter(title__icontains=q)
+        if not viewing_virtual_album:
+            photos = photos.order_by('-created_at')
 
-        paginator = Paginator(photos_qs, 8)
+        paginator = Paginator(photos, 12)
         page_obj = paginator.get_page(request.GET.get('page'))
     else:
-        albums_qs = rep.albums.annotate(photo_count=Count('photos')).order_by('name')
+        albums = Album.objects.filter(representative=rep).annotate(photo_count=Count('photos'))
         if q:
-            albums_qs = albums_qs.filter(name__icontains=q)
+            albums = albums.filter(name__icontains=q)
+        albums = albums.order_by('name')
 
-        paginator = Paginator(albums_qs, 8)
+        paginator = Paginator(albums, 12)
         page_obj = paginator.get_page(request.GET.get('page'))
-
-    uncategorized_count = rep.photos.filter(album__isnull=True).count()
 
     return render(request, "office_dashboard/gallery.html", {
         "rep": rep,
         "page_obj": page_obj,
         "in_album_view": in_album_view,
+        "album_param": album_param,
         "selected_album": selected_album,
         "selected_album_name": selected_album_name,
-        "album_param": album_param,
-        "uncategorized_count": uncategorized_count,
-        "all_albums_for_upload": rep.albums.order_by('name'),
-        "total_photo_count": rep.photos.count(),
-        "total_album_count": rep.albums.count(),
-        "pending_count": rep.photos.filter(status="pending").count(),
+        "viewing_virtual_album": viewing_virtual_album,
         "current_q": q,
+        "total_photo_count": total_photo_count,
+        "total_album_count": total_album_count,
+        "pending_count": pending_count,
+        "uncategorized_count": uncategorized_count,
+        "all_albums_for_upload": all_albums_for_upload,
+        "announcements_image_count": announcements_image_count,
+        "news_image_count": news_image_count,
+        "events_image_count": events_image_count,
+        "announcements_cover": announcements_cover,
+        "news_cover": news_cover,
+        "events_cover": events_cover,
     })
 
 @office_rep_required

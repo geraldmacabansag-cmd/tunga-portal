@@ -513,21 +513,27 @@
         toast(label + ' deleted.');
       }, { danger: true, okText: 'Delete' });
     } else if (/fa-pen-to-square/.test(cls)) {
-      if (document.body.dataset.page === 'emergency-contacts') return; 
+      if (document.body.dataset.page === 'emergency-contacts' || document.body.dataset.page === 'office overview') return; 
       e.preventDefault();
       openEditModal(row, panel);
-    } else if (/fa-eye/.test(cls)) {
+    } else if (/fa-eye/.test(cls)) {  
       // On the approval center, the eye icon is now a real link to the
       // server-rendered Approval Details page — let the browser follow
       // its href natively instead of intercepting the click.
-      if (document.body.dataset.page === 'approval-center' || document.body.dataset.page === 'services') {
+      if (document.body.dataset.page === 'approval-center' || document.body.dataset.page === 'services' || document.body.dataset.page === 'office overview') {
         return;
       }
       e.preventDefault();
       openViewModal(row);
-    } else if (/fa-download/.test(cls)) {
-      e.preventDefault();
-      toast('Downloading ' + getRowLabel(row) + '…');
+      } else if (/fa-download/.test(cls)) {
+        // On Approval Details and Downloadable Forms, this is a real
+        // download link to the uploaded file — let the browser follow
+        // it natively instead of intercepting the click with a fake toast.
+        if (document.body.dataset.page === 'approval-details' || document.body.dataset.page === 'downloadable forms') {
+          return;
+        }
+        e.preventDefault();
+        toast('Downloading ' + getRowLabel(row) + '…');
     } else if (/fa-ellipsis-vertical/.test(cls)) {
       e.preventDefault();
       openRowMenu(ic, row, panel);
@@ -890,6 +896,42 @@
       } else {
         insert('https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=500&auto=format&fit=crop');
       }
+    });
+  }
+
+  function wireGalleryAddModals() {
+    if (document.body.dataset.page !== 'gallery') return;
+
+    var photoTrigger = document.getElementById('open-add-photo-modal');
+    var photoModal = document.getElementById('add-photo-modal');
+    if (photoTrigger && photoModal) {
+      photoTrigger.addEventListener('click', function () {
+        photoModal.classList.add('open');
+        document.body.classList.add('modal-open');
+      });
+    }
+
+    var albumTrigger = document.getElementById('open-add-album-modal');
+    var albumModal = document.getElementById('add-album-modal');
+    if (albumTrigger && albumModal) {
+      albumTrigger.addEventListener('click', function () {
+        albumModal.classList.add('open');
+        document.body.classList.add('modal-open');
+      });
+    }
+
+    [photoModal, albumModal].forEach(function (modal) {
+      if (!modal) return;
+      function closeThisModal() {
+        modal.classList.remove('open');
+        document.body.classList.remove('modal-open');
+      }
+      modal.querySelectorAll('[data-act="cancel"], .modal-x').forEach(function (btn) {
+        btn.addEventListener('click', closeThisModal);
+      });
+      modal.addEventListener('click', function (e) {
+        if (e.target === modal) closeThisModal();
+      });
     });
   }
 
@@ -1355,6 +1397,8 @@
     wireEventsCreate();
     wireDownloadableFormsCreate();
     wireGalleryCreate();
+    wireGalleryAddModals();
+    
     wireOfficeOverviewCreate();
     wireUsersCreate();
     wireDirectoryCreate();

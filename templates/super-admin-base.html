@@ -25,6 +25,8 @@
       <li class="nav-item{% if request.path == dash_url %} active{% endif %}"><a href="{{ dash_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-house"></i></span> Dashboard</a></li>
       {% url 'admin_dashboard:approval_center' as approval_url %}
       <li class="nav-item{% if request.path == approval_url %} active{% endif %}"><a href="{{ approval_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-square-check"></i></span> Approval Center</a> <span class="badge">18</span></li>
+      {% url 'admin_dashboard:ad_archive' as archive_url %}
+      <li class="nav-item{% if request.path == archive_url %} active{% endif %}"><a href="{{ archive_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-box-archive"></i></span> Archive</a></li>
     </ul>
 
     <ul>

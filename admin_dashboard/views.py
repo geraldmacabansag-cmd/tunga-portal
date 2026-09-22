@@ -5,13 +5,35 @@ from django.contrib import messages
 from .models import SuperAdmin, SiteContactInfo, EmergencyContact
 from django.core.paginator import Paginator
 from django.contrib.auth.models import User
-from django.db.models import Count, Sum, Q
+from django.db.models import Count, Sum, Q, F
 from django.utils import timezone
 from office_dashboard.models import Announcement, NewsUpdate, Event, DownloadableForm, Photo, Album, Service, OfficeRepresentative
 from offices.models import Office
-from django.http import Http404
+from django.http import Http404, FileResponse
 from datetime import timedelta
+from office_dashboard.views import FORM_CATEGORY_CHOICES
+from django.utils.text import slugify
+import secrets
+import json
+from django.utils.text import slugify
 
+# The synthetic office created by get_or_create_lgu_rep() so the Super
+# Admin can post content through the same representative/office FK the
+# content models require. It's an internal bookkeeping record, not a
+# real municipal office — it must never appear in office listings.
+LGU_SUPER_ADMIN_SLUG = "lgu-super-admin"
+
+
+def get_or_create_lgu_rep(user):
+    office, _ = Office.objects.get_or_create(
+        slug="lgu-super-admin",
+        defaults={"name": "LGU Super Admin"}
+    )
+    rep, _ = OfficeRepresentative.objects.get_or_create(
+        user=user,
+        defaults={"office": office, "position": "Super Administrator"}
+    )
+    return rep
 
 def super_admin_required(view_func):
     @wraps(view_func)
@@ -151,15 +173,17 @@ def admin_approval_details(request, item_type, pk):
         if note:
             obj.admin_note = note
 
+        display_name = getattr(obj, 'title', None) or getattr(obj, 'name', '')
+
         if action == 'approve':
             obj.status = 'published'
-            messages.success(request, f'"{obj.title}" was approved and published.')
+            messages.success(request, f'"{display_name}" was approved and published.')
         elif action == 'return':
             obj.status = 'returned'
-            messages.success(request, f'"{obj.title}" was returned for revision.')
+            messages.success(request, f'"{display_name}" was returned for revision.')
         elif action == 'reject':
             obj.status = 'reject'
-            messages.success(request, f'"{obj.title}" was rejected.')
+            messages.success(request, f'"{display_name}" was rejected.')
         obj.save()
         return redirect('admin_dashboard:approval_center')
 
@@ -185,10 +209,26 @@ ANNOUNCEMENT_STATUS_BADGE = {
 
 @super_admin_required
 def admin_announcement(request):
+    q = request.GET.get('q', '').strip()
+    category = request.GET.get('category', '').strip()
+    sort = request.GET.get('sort', 'newest')
+
     qs = (Announcement.objects
           .select_related('representative__office')
-          .filter(status='published')
-          .order_by('-date_posted', '-created_at'))
+          .filter(status='published'))
+
+    if q:
+        qs = qs.filter(title__icontains=q)
+    if category:
+        qs = qs.filter(category=category)
+
+    if sort == 'oldest':
+        qs = qs.order_by('date_posted', 'created_at')
+    elif sort == 'most_viewed':
+        qs = qs.order_by('-views')
+    else:
+        sort = 'newest'
+        qs = qs.order_by('-date_posted', '-created_at')
 
     total_count = qs.count()
     total_views = qs.aggregate(total=Sum('views'))['total'] or 0
@@ -201,7 +241,93 @@ def admin_announcement(request):
         "announcements": announcements,
         "total_count": total_count,
         "total_views": total_views,
+        "current_q": q,
+        "current_category": category,
+        "current_sort": sort,
+        "offices_with_reps": Office.objects.exclude(slug=LGU_SUPER_ADMIN_SLUG).filter(representative__isnull=False).select_related('representative').order_by('name'),
     })
+
+@super_admin_required
+def admin_create_announcement(request):
+    if request.method == "POST":
+        title = request.POST.get('title', '').strip()
+        office_choice = request.POST.get('office')
+
+        if office_choice == 'super_admin':
+            rep = get_or_create_lgu_rep(request.user)
+        else:
+            office = Office.objects.filter(pk=office_choice).select_related('representative').first() if office_choice else None
+            rep = getattr(office, 'representative', None) if office else None
+
+        if not title:
+            messages.error(request, "Title is required.")
+        elif not rep:
+            messages.error(request, "Please select an office with an assigned representative.")
+        else:
+            Announcement.objects.create(
+                representative=rep,
+                title=title,
+                subtitle=request.POST.get('subtitle', '').strip(),
+                category=request.POST.get('category', '').strip(),
+                content=request.POST.get('content', '').strip(),
+                image=request.FILES.get('image'),
+                author=request.POST.get('author', '').strip(),
+                date_posted=request.POST.get('date_posted') or None,
+                expiration_date=request.POST.get('expiration_date') or None,
+                priority=request.POST.get('priority', 'Normal'),
+                status='published',
+            )
+            messages.success(request, f'"{title}" was published.')
+
+    return redirect('admin_dashboard:ad_announcement')
+
+@super_admin_required
+def admin_edit_announcement(request, pk):
+    announcement = get_object_or_404(Announcement, pk=pk)
+
+    if request.method == "POST":
+        title = request.POST.get('title', '').strip()
+        office_choice = request.POST.get('office')
+
+        if office_choice == 'super_admin':
+            rep = get_or_create_lgu_rep(request.user)
+        else:
+            office = Office.objects.filter(pk=office_choice).select_related('representative').first() if office_choice else None
+            rep = getattr(office, 'representative', None) if office else None
+
+        if not title:
+            messages.error(request, "Title is required.")
+        elif not rep:
+            messages.error(request, "Please select an office with an assigned representative.")
+        else:
+            announcement.representative = rep
+            announcement.title = title
+            announcement.subtitle = request.POST.get('subtitle', '').strip()
+            announcement.category = request.POST.get('category', '').strip()
+            announcement.content = request.POST.get('content', '').strip()
+            if request.FILES.get('image'):
+                announcement.image = request.FILES.get('image')
+            announcement.author = request.POST.get('author', '').strip()
+            announcement.date_posted = request.POST.get('date_posted') or None
+            announcement.expiration_date = request.POST.get('expiration_date') or None
+            announcement.priority = request.POST.get('priority', 'Normal')
+            announcement.save()
+            messages.success(request, f'"{title}" was updated.')
+
+    return redirect('admin_dashboard:ad_announcement')
+
+@super_admin_required
+def admin_delete_announcement(request, pk):
+    announcement = get_object_or_404(Announcement, pk=pk)
+
+    if request.method == "POST":
+        title = announcement.title
+        announcement.status = 'archive'
+        announcement.save()
+        messages.success(request, f'"{title}" was archived.')
+
+    return redirect('admin_dashboard:ad_announcement')
+
 NEWS_STATUS_BADGE = {
     "pending": "badge-amber",
     "published": "badge-green",
@@ -212,13 +338,23 @@ NEWS_STATUS_BADGE = {
 
 @super_admin_required
 def admin_news_update(request):
+    q = request.GET.get('q', '').strip()
+    category = request.GET.get('category', '').strip()
+
     qs = (NewsUpdate.objects
           .select_related('representative__office')
           .filter(status='published')
           .order_by('-date_published', '-created_at'))
 
-    total_count = qs.count()
-    total_views = qs.aggregate(total=Sum('views'))['total'] or 0
+    categories = list(qs.exclude(category='').values_list('category', flat=True).distinct().order_by('category'))
+
+    if category:
+        qs = qs.filter(category=category)
+    if q:
+        qs = qs.filter(Q(title__icontains=q) | Q(summary__icontains=q) | Q(content__icontains=q))
+
+    total_count = NewsUpdate.objects.filter(status='published').count()
+    total_views = NewsUpdate.objects.filter(status='published').aggregate(total=Sum('views'))['total'] or 0
 
     news_items = list(qs)
     for n in news_items:
@@ -228,6 +364,10 @@ def admin_news_update(request):
         "news_items": news_items,
         "total_count": total_count,
         "total_views": total_views,
+        "categories": categories,
+        "current_q": q,
+        "current_category": category,
+        "office_reps": OfficeRepresentative.objects.select_related('office').order_by('office__name'),
     })
 
 @super_admin_required
@@ -236,8 +376,12 @@ def admin_news_save(request, pk):
         return redirect('admin_dashboard:ad_news_update')
 
     title = request.POST.get('title', '').strip()
-    rep_id = request.POST.get('representative')
-    representative = OfficeRepresentative.objects.filter(pk=rep_id).first() if rep_id else None
+    rep_choice = request.POST.get('representative')
+
+    if rep_choice == 'super_admin':
+        representative = get_or_create_lgu_rep(request.user)
+    else:
+        representative = OfficeRepresentative.objects.filter(pk=rep_choice).first() if rep_choice else None
 
     if not title or not representative:
         messages.error(request, "Headline and posting office are required.")
@@ -253,15 +397,18 @@ def admin_news_save(request, pk):
     n.category = request.POST.get('category', '').strip()
     n.summary = request.POST.get('summary', '').strip()
     n.content = request.POST.get('content', '').strip()
+    n.author = request.POST.get('author', '').strip()
     n.date_published = request.POST.get('date_published') or None
-    n.status = request.POST.get('status', 'pending')
+    n.source = request.POST.get('source', '').strip()
+    n.tags = request.POST.get('tags', '').strip()
+    n.status = 'published'
 
     image = request.FILES.get('image')
     if image:
         n.image = image
 
     n.save()
-    messages.success(request, f'"{title}" was saved.')
+    messages.success(request, f'"{title}" was published.')
     return redirect('admin_dashboard:ad_news_update')
 
 @super_admin_required
@@ -269,8 +416,9 @@ def admin_news_delete(request, pk):
     n = get_object_or_404(NewsUpdate, pk=pk)
     if request.method == "POST":
         title = n.title
-        n.delete()
-        messages.success(request, f'"{title}" was deleted.')
+        n.status = 'archive'
+        n.save()
+        messages.success(request, f'"{title}" was archived.')
     return redirect('admin_dashboard:ad_news_update')
 
 EVENT_STATUS_BADGE = {
@@ -283,12 +431,28 @@ EVENT_STATUS_BADGE = {
 
 @super_admin_required
 def admin_events(request):
-    qs = Event.objects.filter(status='published').select_related('representative__office').order_by('-event_date', '-created_at')
+    q = request.GET.get('q', '').strip()
+    category = request.GET.get('category', '').strip()
+    when = request.GET.get('when', 'all')
 
     today = timezone.localdate()
-    total_count = qs.count()
-    upcoming_count = qs.filter(event_date__gte=today).count()
-    past_count = qs.filter(event_date__lt=today).count()
+
+    qs = Event.objects.filter(status='published').select_related('representative__office').order_by('-event_date', '-created_at')
+
+    categories = list(qs.exclude(category='').values_list('category', flat=True).distinct().order_by('category'))
+
+    if when == 'upcoming':
+        qs = qs.filter(event_date__gte=today)
+    elif when == 'past':
+        qs = qs.filter(event_date__lt=today)
+
+    if category:
+        qs = qs.filter(category=category)
+    if q:
+        qs = qs.filter(Q(title__icontains=q) | Q(description__icontains=q) | Q(location__icontains=q))
+
+    total_count = Event.objects.filter(status='published').count()
+    past_count = Event.objects.filter(status='published', event_date__lt=today).count()
 
     events = list(qs)
     for e in events:
@@ -299,9 +463,12 @@ def admin_events(request):
     return render(request, "admin_dashboard/super-admin-events.html", {
         "events": events,
         "total_count": total_count,
-        "upcoming_count": upcoming_count,
         "past_count": past_count,
         "office_reps": office_reps,
+        "categories": categories,
+        "current_q": q,
+        "current_category": category,
+        "current_when": when,
     })
 
 @super_admin_required
@@ -310,8 +477,12 @@ def admin_event_save(request, pk):
         return redirect('admin_dashboard:ad_events')
 
     title = request.POST.get('title', '').strip()
-    rep_id = request.POST.get('representative')
-    representative = OfficeRepresentative.objects.filter(pk=rep_id).first() if rep_id else None
+    rep_choice = request.POST.get('representative')
+
+    if rep_choice == 'super_admin':
+        representative = get_or_create_lgu_rep(request.user)
+    else:
+        representative = OfficeRepresentative.objects.filter(pk=rep_choice).first() if rep_choice else None
 
     if not title or not representative:
         messages.error(request, "Title and organizing office are required.")
@@ -333,14 +504,14 @@ def admin_event_save(request, pk):
     e.organizer = request.POST.get('organizer', '').strip()
     e.contact_person = request.POST.get('contact_person', '').strip()
     e.contact_info = request.POST.get('contact_info', '').strip()
-    e.status = request.POST.get('status', 'pending')
+    e.status = 'published'  
 
     poster = request.FILES.get('poster')
     if poster:
         e.poster = poster
 
     e.save()
-    messages.success(request, f'"{title}" was saved.')
+    messages.success(request, f'"{title}" was published.')
     return redirect('admin_dashboard:ad_events')
 
 @super_admin_required
@@ -348,8 +519,9 @@ def admin_event_delete(request, pk):
     e = get_object_or_404(Event, pk=pk)
     if request.method == "POST":
         title = e.title
-        e.delete()
-        messages.success(request, f'"{title}" was deleted.')
+        e.status = 'archive'
+        e.save()
+        messages.success(request, f'"{title}" was archived.')
     return redirect('admin_dashboard:ad_events')
 
 @super_admin_required
@@ -382,7 +554,70 @@ def admin_download_forms(request):
         "current_q": q,
         "current_category": category,
         "current_sort": sort,
+        "category_choices": FORM_CATEGORY_CHOICES,
+        "offices_with_reps": Office.objects.exclude(slug=LGU_SUPER_ADMIN_SLUG).filter(representative__isnull=False).order_by('name'),
     })
+
+@super_admin_required
+def admin_form_save(request, pk):
+    if request.method != "POST":
+        return redirect('admin_dashboard:ad_forms')
+
+    title = request.POST.get('title', '').strip()
+    office_choice = request.POST.get('office')
+    uploaded_file = request.FILES.get('file')
+
+    if office_choice == 'super_admin':
+        office = get_or_create_lgu_rep(request.user).office
+    else:
+        office = Office.objects.filter(pk=office_choice).first() if office_choice else None
+
+    if pk:
+        f = get_object_or_404(DownloadableForm, pk=pk)
+    else:
+        f = None
+
+    if not title or not office:
+        messages.error(request, "Form name and posting office are required.")
+    elif not f and not uploaded_file:
+        messages.error(request, "Please attach a PDF file.")
+    elif uploaded_file and not uploaded_file.name.lower().endswith('.pdf'):
+        messages.error(request, "Only PDF files are allowed.")
+    else:
+        if f is None:
+            f = DownloadableForm(uploaded_by=office.name, status='published')
+        f.office = office
+        f.title = title
+        f.description = request.POST.get('description', '').strip()
+        f.category = request.POST.get('category', '').strip()
+        if uploaded_file:
+            f.file = uploaded_file
+        f.save()
+        messages.success(request, f'"{title}" was published.')
+
+    return redirect('admin_dashboard:ad_forms')
+
+@super_admin_required
+def admin_form_delete(request, pk):
+    f = get_object_or_404(DownloadableForm, pk=pk)
+    if request.method == "POST":
+        title = f.title
+        f.status = 'archive'
+        f.save()
+        messages.success(request, f'"{title}" was archived.')
+    return redirect('admin_dashboard:ad_forms')
+
+@super_admin_required
+def admin_download_form_file(request, pk):
+    form = get_object_or_404(DownloadableForm, pk=pk)
+
+    DownloadableForm.objects.filter(pk=pk).update(download_count=F('download_count') + 1)
+
+    try:
+        filename = form.file.name.rsplit('/', 1)[-1]
+        return FileResponse(form.file.open('rb'), as_attachment=True, filename=filename)
+    except FileNotFoundError:
+        raise Http404("File not found.")
 
 @super_admin_required
 def admin_gallery(request):
@@ -407,10 +642,17 @@ def admin_gallery(request):
 
     albums = list(albums)
     for a in albums:
-        a.cover = a.photos.filter(status='published').order_by('-created_at').first()
+        a.published_cover = a.photos.filter(status='published').order_by('-created_at').first()
 
     published_photos = Photo.objects.filter(status='published')
     month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    albums_by_office = {}
+    for rep in OfficeRepresentative.objects.select_related('office').prefetch_related('albums'):
+        albums_by_office[str(rep.office_id)] = [{"id": a.id, "name": a.name} for a in rep.albums.all()]
+
+    lgu_rep = OfficeRepresentative.objects.filter(office__slug='lgu-super-admin').prefetch_related('albums').first()
+    albums_by_office['super_admin'] = [{"id": a.id, "name": a.name} for a in lgu_rep.albums.all()] if lgu_rep else []
 
     return render(request, "admin_dashboard/super-admin-gallery.html", {
         "albums": albums,
@@ -420,8 +662,49 @@ def admin_gallery(request):
         "recent_photos": published_photos.filter(created_at__gte=month_start).count(),
         "current_q": q,
         "current_sort": sort,
+        "albums_by_office": albums_by_office,
+        "offices_with_reps": Office.objects.exclude(slug=LGU_SUPER_ADMIN_SLUG).filter(representative__isnull=False).order_by('name'),
     })
 
+@super_admin_required
+def admin_photo_save(request):
+    if request.method != "POST":
+        return redirect('admin_dashboard:ad_gallery')
+
+    title = request.POST.get('title', '').strip()
+    office_choice = request.POST.get('office')
+    image = request.FILES.get('image')
+    album_choice = request.POST.get('album')
+    new_album_name = request.POST.get('new_album_name', '').strip()
+
+    if office_choice == 'super_admin':
+        representative = get_or_create_lgu_rep(request.user)
+    else:
+        office = Office.objects.filter(pk=office_choice).select_related('representative').first() if office_choice else None
+        representative = getattr(office, 'representative', None) if office else None
+
+    if not title or not representative:
+        messages.error(request, "Title and posting office are required.")
+    elif not image:
+        messages.error(request, "Please choose a photo to upload.")
+    else:
+        if album_choice == '__new__' and new_album_name:
+            album, _ = Album.objects.get_or_create(representative=representative, name=new_album_name)
+        elif album_choice and album_choice != '__new__':
+            album = Album.objects.filter(pk=album_choice, representative=representative).first()
+        else:
+            album = None
+
+        Photo.objects.create(
+            representative=representative,
+            album=album,
+            title=title,
+            image=image,
+            status='published',
+        )
+        messages.success(request, f'"{title}" was published.')
+
+    return redirect('admin_dashboard:ad_gallery')
 
 @super_admin_required
 def admin_album_detail(request, pk):
@@ -466,7 +749,7 @@ def admin_photo_delete(request, pk):
 
 @super_admin_required
 def admin_offices(request):
-    all_offices = list(Office.objects.select_related('representative__user'))
+    all_offices = list(Office.objects.exclude(slug=LGU_SUPER_ADMIN_SLUG).select_related('representative__user'))
 
     rows = []
     active_count = 0
@@ -526,8 +809,70 @@ def admin_offices(request):
     })
 
 @super_admin_required
+def admin_office_create(request):
+    if request.method == "POST":
+        name = request.POST.get('name', '').strip()
+
+        if not name:
+            messages.error(request, "Office name is required.")
+        elif Office.objects.filter(name__iexact=name).exists():
+            messages.error(request, f'An office named "{name}" already exists.')
+        else:
+            base_slug = slugify(name)
+            slug = base_slug
+            counter = 2
+            while Office.objects.filter(slug=slug).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+
+            Office.objects.create(
+                name=name,
+                slug=slug,
+                logo=request.FILES.get('logo'),
+                about=request.POST.get('about', '').strip(),
+                description=request.POST.get('description', '').strip(),
+                head_name=request.POST.get('head_name', '').strip(),
+                position_title=request.POST.get('position_title', '').strip(),
+                office_hours=request.POST.get('office_hours', '').strip(),
+                location=request.POST.get('location', '').strip(),
+                email=request.POST.get('email', '').strip(),
+                telephone=request.POST.get('telephone', '').strip(),
+            )
+            messages.success(request, f'"{name}" was added.')
+
+    return redirect('admin_dashboard:ad_offices')
+
+@super_admin_required
+def admin_office_edit(request, pk):
+    office = get_object_or_404(Office, pk=pk)
+
+    if request.method == "POST":
+        name = request.POST.get('name', '').strip()
+
+        if not name:
+            messages.error(request, "Office name is required.")
+        elif Office.objects.filter(name__iexact=name).exclude(pk=office.pk).exists():
+            messages.error(request, f'An office named "{name}" already exists.')
+        else:
+            office.name = name
+            office.about = request.POST.get('about', '').strip()
+            office.description = request.POST.get('description', '').strip()
+            office.head_name = request.POST.get('head_name', '').strip()
+            office.position_title = request.POST.get('position_title', '').strip()
+            office.office_hours = request.POST.get('office_hours', '').strip()
+            office.location = request.POST.get('location', '').strip()
+            office.email = request.POST.get('email', '').strip()
+            office.telephone = request.POST.get('telephone', '').strip()
+            if request.FILES.get('logo'):
+                office.logo = request.FILES.get('logo')
+            office.save()
+            messages.success(request, f'"{name}" was updated.')
+
+    return redirect('admin_dashboard:ad_offices')
+
+@super_admin_required
 def admin_office_rep(request):
-    reps = list(OfficeRepresentative.objects.select_related('user', 'office'))
+    reps = list(OfficeRepresentative.objects.exclude(office__slug=LGU_SUPER_ADMIN_SLUG).select_related('user', 'office'))
 
     week_ago = timezone.now() - timedelta(days=7)
 
@@ -552,7 +897,7 @@ def admin_office_rep(request):
 
         rows.append({"rep": rep, "status": status})
 
-    total_offices = Office.objects.count()
+    total_offices = Office.objects.exclude(slug=LGU_SUPER_ADMIN_SLUG).count()
     assigned_office_ids = {r["rep"].office_id for r in rows}
     offices_without_rep = total_offices - len(assigned_office_ids)
 
@@ -572,7 +917,7 @@ def admin_office_rep(request):
 
     return render(request, "admin_dashboard/super-admin-office-reps.html", {
         "rows": rows,
-        "offices": Office.objects.order_by('name'),
+        "offices": Office.objects.exclude(slug=LGU_SUPER_ADMIN_SLUG).order_by('name'),
         "total_reps": len(reps),
         "total_offices": total_offices,
         "active_count": active_count,
@@ -583,7 +928,6 @@ def admin_office_rep(request):
         "current_office": office_id,
         "current_status": status_filter,
     })
-
 
 @super_admin_required
 def admin_rep_toggle_active(request, pk):
@@ -774,3 +1118,96 @@ def admin_activity_log(request):
 @super_admin_required
 def admin_system_setting(request):
     return render(request, "admin_dashboard/super-admin-system-settings.html")
+
+@super_admin_required
+def admin_archive(request):
+    q = request.GET.get('q', '').strip()
+    type_filter = request.GET.get('type', 'all')
+
+    items = []
+    for a in Announcement.objects.filter(status='archive').select_related('representative__office'):
+        items.append({'pk': a.pk, 'title': a.title, 'type': 'Announcement',
+                       'office': a.representative.office.name if a.representative.office else '—',
+                       'date': a.created_at})
+    for n in NewsUpdate.objects.filter(status='archive').select_related('representative__office'):
+        items.append({'pk': n.pk, 'title': n.title, 'type': 'News',
+                       'office': n.representative.office.name if n.representative.office else '—',
+                       'date': n.created_at})
+    for e in Event.objects.filter(status='archive').select_related('representative__office'):
+        items.append({'pk': e.pk, 'title': e.title, 'type': 'Event',
+                       'office': e.representative.office.name if e.representative.office else '—',
+                       'date': e.created_at})
+    for f in DownloadableForm.objects.filter(status='archive').select_related('office'):
+        items.append({'pk': f.pk, 'title': f.title, 'type': 'Form',
+                       'office': f.office.name if f.office else '—',
+                       'date': f.date_uploaded})
+    for p in Photo.objects.filter(status='archive').select_related('representative__office'):
+        items.append({'pk': p.pk, 'title': p.title, 'type': 'Gallery',
+                       'office': p.representative.office.name if p.representative.office else '—',
+                       'date': p.created_at})
+    for s in Service.objects.filter(status='archive').select_related('office'):
+        items.append({'pk': s.pk, 'title': s.name, 'type': 'Service',
+                       'office': s.office.name if s.office else '—',
+                       'date': s.published_at})
+
+    type_counts = {}
+    for item in items:
+        type_counts[item['type']] = type_counts.get(item['type'], 0) + 1
+
+    filtered = items
+    if type_filter != 'all':
+        filtered = [i for i in filtered if i['type'] == type_filter]
+    if q:
+        ql = q.lower()
+        filtered = [i for i in filtered if ql in i['title'].lower()]
+
+    filtered.sort(key=lambda i: i['date'] or timezone.now(), reverse=True)
+
+    for item in filtered:
+        meta = TYPE_META.get(item['type'], {})
+        item['tag_class'] = meta.get('tag_class', 'tag-gray')
+        item['icon'] = meta.get('icon', 'fa-solid fa-file')
+        item['thumb_class'] = meta.get('thumb_class', 'tag-gray')
+
+    paginator = Paginator(filtered, 10)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    return render(request, "admin_dashboard/super-admin-archive.html", {
+        "page_obj": page_obj,
+        "total_count": len(items),
+        "type_counts": type_counts,
+        "current_q": q,
+        "current_type": type_filter,
+    })
+
+@super_admin_required
+def admin_archive_restore(request, item_type, pk):
+    model = MODEL_MAP.get(item_type)
+    if model is None:
+        raise Http404("Unknown content type.")
+    obj = get_object_or_404(model, pk=pk)
+
+    if request.method == "POST":
+        title = getattr(obj, 'title', None) or getattr(obj, 'name', '')
+        obj.status = 'published'
+        obj.save()
+        messages.success(request, f'"{title}" was restored and published again.')
+
+    return redirect('admin_dashboard:ad_archive')
+
+@super_admin_required
+def admin_archive_delete_permanent(request, item_type, pk):
+    model = MODEL_MAP.get(item_type)
+    if model is None:
+        raise Http404("Unknown content type.")
+    obj = get_object_or_404(model, pk=pk)
+
+    if request.method == "POST":
+        title = getattr(obj, 'title', None) or getattr(obj, 'name', '')
+        image_field = getattr(obj, 'image', None) or getattr(obj, 'poster', None) or getattr(obj, 'file', None)
+        if image_field:
+            image_field.delete(save=False)
+        obj.delete()
+        messages.success(request, f'"{title}" was permanently deleted.')
+
+    return redirect('admin_dashboard:ad_archive')

@@ -62,7 +62,7 @@
   </div>
 
   <div class="side-panel__links">
-      {% if user.office_rep %}
+      {% if user.office_rep and not is_super_admin %}
       <a href="{% url 'office_dashboard:dashboard' %}" style="font-weight:600;">
         <i class="fa-solid fa-user-shield"></i> Switch to Office Dashboard
       </a>

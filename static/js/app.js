@@ -760,6 +760,23 @@ function wireLogout() {
       }
   }
 
+  function wireNewAlbumToggle(selectId, wrapId, inputId) {
+    var select = document.getElementById(selectId);
+    var wrap = document.getElementById(wrapId);
+    var input = document.getElementById(inputId);
+    if (!select || !wrap || !input) return;
+
+    function sync() {
+      var isNew = select.value === '__new__';
+      wrap.style.display = isNew ? 'block' : 'none';
+      input.required = isNew;
+      if (!isNew) input.value = '';
+    }
+
+    select.addEventListener('change', sync);
+    sync();   // run once immediately, in case "__new__" is already selected on load
+  }
+
   function wireNotificationTabs() {
     if (document.body.dataset.page !== 'notification') return;
     var tabs = document.querySelectorAll('.notif-tab');
@@ -1155,25 +1172,6 @@ function wireOfficeProfileToggle() {
     });
     var previewBtn = $$('.btn-secondary').find(function (b) { return /preview/i.test(b.textContent); });
     if (previewBtn) previewBtn.addEventListener('click', function () { toast('Opening public preview…'); });
-    var topSaveBtn = $$('.panel .btn-primary').find(function (b) { return /save changes/i.test(b.textContent); });
-    if (topSaveBtn) topSaveBtn.addEventListener('click', function () { toast('Changes saved as draft.'); });
-
-    var editReminders = $$('.btn-secondary.btn-sm').find(function (b) { return /edit reminders/i.test(b.textContent); });
-    if (editReminders) editReminders.addEventListener('click', function () {
-      var list = $('.reminder-list');
-      var items = $$('li', list).map(function (li) { return li.textContent.trim(); }).join('\n');
-      var box = openModal('Edit Important Reminders', buildFields([{ name: 'items', label: 'One reminder per line', type: 'textarea', value: items }]) +
-        '<div class="modal-actions"><button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button><button type="button" class="btn btn-primary" data-act="save">Save</button></div>', { wide: true });
-      box.querySelector('[data-act="cancel"]').addEventListener('click', closeModal);
-      box.querySelector('[data-act="save"]').addEventListener('click', function () {
-        var v = readFields(box);
-        var lines = v.items.split('\n').map(function (l) { return l.trim(); }).filter(Boolean);
-        list.innerHTML = lines.map(function (l) { return '<li></li>'; }).join('');
-        $$('li', list).forEach(function (li, i) { li.textContent = lines[i]; });
-        closeModal();
-        toast('Reminders updated.');
-      });
-    });
 
     var addStepBtn = $$('.btn-secondary.btn-sm').find(function (b) { return /add step/i.test(b.textContent); });
     var addStepModal = document.getElementById('add-step-modal');
@@ -1468,6 +1466,8 @@ function wireOfficeProfileToggle() {
     wireGalleryDeleteModals();
     wireGalleryLightboxDelete();
     wireAlbumTiles();
+    wireNewAlbumToggle('gal-album', 'gal-new-album-wrap', 'gal-new-album-name');
+    wireNewAlbumToggle('qa-gal-album', 'qa-new-album-wrap', 'qa-new-album-name');
 
     wireOfficeProfileToggle();
 

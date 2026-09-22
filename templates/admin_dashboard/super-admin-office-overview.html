@@ -39,6 +39,7 @@
       <section class="panel">
         <div class="panel-header">
           <h2>All Offices</h2>
+          <button type="button" class="btn btn-primary" onclick="document.getElementById('add-office-modal').classList.add('open')"><i class="fa-solid fa-plus"></i> Add Office</button>
         </div>
         <form method="get" class="filters-row">
           <label class="field search" style="flex:1;"><i class="fa-solid fa-magnifying-glass"></i><input type="text" name="q" value="{{ current_q }}" placeholder="Search office..." onchange="this.form.submit()"></label>
@@ -68,7 +69,12 @@
                 <td>{{ r.published_count }}</td>
                 <td>
                   <div class="action-icons">
-                    <a class="ic" href="/admin/offices/office/{{ r.office.id }}/change/" title="Manage in Django Admin"><i class="fa-regular fa-pen-to-square"></i></a>
+                    <span class="ic" onclick="document.getElementById('view-office-modal-{{ r.office.id }}').classList.add('open')" title="View Details"><i class="fa-regular fa-eye"></i></span>
+                    <span class="ic" onclick="document.getElementById('edit-office-modal-{{ r.office.id }}').classList.add('open')" title="Edit Office"><i class="fa-regular fa-pen-to-square"></i></span>
+                    <label class="toggle-switch" title="Show this office on the public website (not yet functional)">
+                      <input type="checkbox" disabled {% if r.status == 'active' %}checked{% endif %}>
+                      <span class="slider"></span>
+                    </label>
                   </div>
                 </td>
               </tr>
@@ -80,38 +86,196 @@
         </div>
       </section>
 
+{% for r in rows %}
+<div class="modal-backdrop" id="view-office-modal-{{ r.office.id }}">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>{{ r.office.name }}</h3>
+      <button type="button" class="modal-x" onclick="document.getElementById('view-office-modal-{{ r.office.id }}').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+
+      {% if r.office.logo %}
+        <img src="{{ r.office.logo.url }}" alt="" style="width:72px;height:72px;object-fit:cover;border-radius:50%;display:block;margin:0 auto 16px;">
+      {% endif %}
+
+      <div class="modal-view-row"><span class="k">Office Name</span><span class="v">{{ r.office.name }}</span></div>
+      <div class="modal-view-row"><span class="k">Status</span><span class="v">{% if r.status == 'active' %}Active{% elif r.status == 'pending' %}Pending{% else %}Inactive{% endif %}</span></div>
+      <div class="modal-view-row"><span class="k">Representative</span><span class="v">{% if r.rep %}{{ r.rep.user.get_full_name|default:r.rep.user.username }}{% else %}Unassigned{% endif %}</span></div>
+      <div class="modal-view-row"><span class="k">Office Head</span><span class="v">{{ r.office.head_name|default:"—" }}</span></div>
+      <div class="modal-view-row"><span class="k">Position Title</span><span class="v">{{ r.office.position_title|default:"—" }}</span></div>
+      <div class="modal-view-row" style="align-items:flex-start;">
+        <span class="k" style="flex:0 0 170px;white-space:nowrap;">About Office</span>
+        <span class="v" style="flex:1;text-align:right;max-height:110px;overflow-y:auto;line-height:1.6;padding-left:8px;">{{ r.office.about|default:"—" }}</span>
+      </div>
+      <div class="modal-view-row" style="align-items:flex-start;">
+        <span class="k" style="flex:0 0 170px;white-space:nowrap;">Description</span>
+        <span class="v" style="flex:1;text-align:right;max-height:110px;overflow-y:auto;line-height:1.6;padding-left:8px;">{{ r.office.description|default:"—" }}</span>
+      </div>
+      <div class="modal-view-row"><span class="k">Office Hours</span><span class="v">{{ r.office.office_hours|default:"—" }}</span></div>
+      <div class="modal-view-row"><span class="k">Location</span><span class="v">{{ r.office.location|default:"—" }}</span></div>
+      <div class="modal-view-row"><span class="k">Email</span><span class="v">{{ r.office.email|default:"—" }}</span></div>
+      <div class="modal-view-row"><span class="k">Telephone</span><span class="v">{{ r.office.telephone|default:"—" }}</span></div>
+      <div class="modal-view-row"><span class="k">Last Login</span><span class="v">{{ r.last_update|date:"M d, Y, g:i A"|default:"—" }}</span></div>
+      <div class="modal-view-row"><span class="k">Published Posts</span><span class="v">{{ r.published_count }}</span></div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-primary" onclick="document.getElementById('view-office-modal-{{ r.office.id }}').classList.remove('open')">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
 <div class="modal-backdrop" id="add-office-modal">
   <div class="modal-box">
     <div class="modal-head">
-      <h3>Add New Office</h3>
-      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+      <h3>Add Office</h3>
+      <button type="button" class="modal-x" onclick="document.getElementById('add-office-modal').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="modal-body">
-      <form>
+      <form method="post" enctype="multipart/form-data" action="{% url 'admin_dashboard:admin_office_create' %}">
+        {% csrf_token %}
+
         <div class="form-group">
           <label class="form-label">Office Name <span class="req">*</span></label>
-          <input class="form-input" type="text" name="title" placeholder="e.g. Business Permits and Licensing Office" required>
+          <input class="form-input" type="text" name="name" placeholder="e.g. Office of the Municipal Engineer" required>
         </div>
+
         <div class="form-group">
-          <label class="form-label">Representative</label>
-          <input class="form-input" type="text" name="rep" placeholder="Full name">
+          <label class="form-label">Logo</label>
+          <input class="form-input file-input" type="file" name="logo" accept="image/*">
         </div>
+
         <div class="form-group">
-          <label class="form-label">Status</label>
-          <select class="form-input" name="status">
-            <option>Active</option>
-            <option>Pending Approval</option>
-            <option>Inactive</option>
-          </select>
+          <label class="form-label">About Office</label>
+          <textarea class="form-input form-textarea" name="about" rows="3" placeholder="Short introduction about this office"></textarea>
         </div>
+
+        <div class="form-group">
+          <label class="form-label">Office Description</label>
+          <textarea class="form-input form-textarea" name="description" rows="3" placeholder="What this office does"></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Office Head</label>
+            <input class="form-input" type="text" name="head_name" placeholder="e.g. Hon. Juan Dela Cruz">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Position Title</label>
+            <input class="form-input" type="text" name="position_title" placeholder="e.g. Municipal Engineer">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Office Hours</label>
+          <input class="form-input" type="text" name="office_hours" placeholder="e.g. Monday - Friday, 8:00 AM - 5:00 PM">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Location</label>
+          <input class="form-input" type="text" name="location" placeholder="e.g. 2nd Floor, Municipal Hall">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input class="form-input" type="email" name="email" placeholder="office@tunga.gov.ph">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Telephone</label>
+            <input class="form-input" type="text" name="telephone" placeholder="(053) 123-4567">
+          </div>
+        </div>
+
+        <p class="form-help">A representative login account for this office still needs to be created separately in Django admin.</p>
+
         <div class="modal-actions">
-          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
-          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Add Office</button>
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('add-office-modal').classList.remove('open')">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Add Office</button>
         </div>
       </form>
     </div>
   </div>
 </div>
+
+{% for r in rows %}
+<div class="modal-backdrop" id="edit-office-modal-{{ r.office.id }}">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Edit Office</h3>
+      <button type="button" class="modal-x" onclick="document.getElementById('edit-office-modal-{{ r.office.id }}').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form method="post" enctype="multipart/form-data" action="{% url 'admin_dashboard:admin_office_edit' r.office.id %}">
+        {% csrf_token %}
+
+        <div class="form-group">
+          <label class="form-label">Office Name <span class="req">*</span></label>
+          <input class="form-input" type="text" name="name" value="{{ r.office.name }}" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Logo</label>
+          {% if r.office.logo %}
+            <div style="margin-bottom:8px;"><img src="{{ r.office.logo.url }}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;"></div>
+          {% endif %}
+          <input class="form-input file-input" type="file" name="logo" accept="image/*">
+          <span class="form-help">Leave empty to keep the current logo.</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">About Office</label>
+          <textarea class="form-input form-textarea" name="about" rows="3">{{ r.office.about }}</textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Office Description</label>
+          <textarea class="form-input form-textarea" name="description" rows="3">{{ r.office.description }}</textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Office Head</label>
+            <input class="form-input" type="text" name="head_name" value="{{ r.office.head_name }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Position Title</label>
+            <input class="form-input" type="text" name="position_title" value="{{ r.office.position_title }}">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Office Hours</label>
+          <input class="form-input" type="text" name="office_hours" value="{{ r.office.office_hours }}">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Location</label>
+          <input class="form-input" type="text" name="location" value="{{ r.office.location }}">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input class="form-input" type="email" name="email" value="{{ r.office.email }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Telephone</label>
+            <input class="form-input" type="text" name="telephone" value="{{ r.office.telephone }}">
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('edit-office-modal-{{ r.office.id }}').classList.remove('open')">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
 
 <script src="super_admin.js"></script>
 
