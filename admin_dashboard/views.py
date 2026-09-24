@@ -1187,7 +1187,11 @@ def admin_system_setting(request):
         else:
             email_settings.email_address = email_address
             if app_password:
-                email_settings.set_app_password(app_password)
+                try:
+                    email_settings.set_app_password(app_password)
+                except RuntimeError as e:
+                    messages.error(request, f"Could not save the App Password: {e}")
+                    return redirect('admin_dashboard:ad_system_settings')
             email_settings.is_configured = bool(
                 email_settings.email_address and email_settings.app_password_encrypted
             )
