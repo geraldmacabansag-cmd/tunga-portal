@@ -60,8 +60,9 @@ class SiteContactInfo(models.Model):
         return obj
 
 class EmailProviderSettings(models.Model):
-    email_address = models.EmailField(blank=True)
-    app_password_encrypted = models.TextField(blank=True)
+    email_address = models.EmailField(blank=True, help_text="The verified sender email in Brevo")
+    app_password_encrypted = models.TextField(blank=True)  # unused since the switch to Brevo — kept to avoid a destructive migration
+    api_key_encrypted = models.TextField(blank=True)
     is_configured = models.BooleanField(default=False)
     last_updated = models.DateTimeField(auto_now=True)
 
@@ -77,13 +78,13 @@ class EmailProviderSettings(models.Model):
         obj, _ = cls.objects.get_or_create(pk=1)
         return obj
 
-    def set_app_password(self, plain_password):
+    def set_api_key(self, plain_key):
         from .crypto_utils import encrypt_value
-        self.app_password_encrypted = encrypt_value(plain_password)
+        self.api_key_encrypted = encrypt_value(plain_key)
 
-    def get_app_password(self):
+    def get_api_key(self):
         from .crypto_utils import decrypt_value
-        return decrypt_value(self.app_password_encrypted)
+        return decrypt_value(self.api_key_encrypted)
 
 class EmergencyContact(models.Model):
 

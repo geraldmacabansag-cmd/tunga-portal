@@ -1,4 +1,4 @@
-from django.core.mail import get_connection, EmailMultiAlternatives
+import requests
 
 
 def send_via_configured_provider(subject, plain_body, html_body, to_email):
@@ -9,29 +9,30 @@ def send_via_configured_provider(subject, plain_body, html_body, to_email):
         return False, "Email provider is not configured yet. Go to Super Admin → System Settings."
 
     try:
-        app_password = settings_obj.get_app_password()
-        if not app_password:
-            return False, "Stored App Password could not be read (encryption key may be missing or changed)."
+        api_key = settings_obj.get_api_key()
+        if not api_key:
+            return False, "Stored API key could not be read (encryption key may be missing or changed)."
 
-        connection = get_connection(
-            backend="django.core.mail.backends.smtp.EmailBackend",
-            host="smtp.gmail.com",
-            port=465,
-            username=settings_obj.email_address,
-            password=app_password,
-            use_ssl=True,
+        response = requests.post(
+            "https://api.brevo.com/v3/smtp/email",
+            headers={
+                "api-key": api_key,
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+            json={
+                "sender": {"email": settings_obj.email_address},
+                "to": [{"email": to_email}],
+                "subject": subject,
+                "textContent": plain_body,
+                "htmlContent": html_body or plain_body,
+            },
             timeout=15,
         )
-        message = EmailMultiAlternatives(
-            subject=subject,
-            body=plain_body,
-            from_email=settings_obj.email_address,
-            to=[to_email],
-            connection=connection,
-        )
-        if html_body:
-            message.attach_alternative(html_body, "text/html")
-        message.send(fail_silently=False)
-        return True, None
+
+        if response.status_code in (200, 201):
+            return True, None
+        return False, f"Brevo rejected the request ({response.status_code}): {response.text}"
+
     except Exception as e:
         return False, str(e)

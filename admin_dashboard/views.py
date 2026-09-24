@@ -1180,20 +1180,20 @@ def admin_system_setting(request):
 
     if request.method == "POST":
         email_address = request.POST.get('email_address', '').strip()
-        app_password = request.POST.get('app_password', '').strip()
+        api_key = request.POST.get('api_key', '').strip()
 
         if not email_address:
-            messages.error(request, "Gmail address is required.")
+            messages.error(request, "Sender email is required.")
         else:
             email_settings.email_address = email_address
-            if app_password:
+            if api_key:
                 try:
-                    email_settings.set_app_password(app_password)
+                    email_settings.set_api_key(api_key)
                 except RuntimeError as e:
-                    messages.error(request, f"Could not save the App Password: {e}")
+                    messages.error(request, f"Could not save the API key: {e}")
                     return redirect('admin_dashboard:ad_system_settings')
             email_settings.is_configured = bool(
-                email_settings.email_address and email_settings.app_password_encrypted
+                email_settings.email_address and email_settings.api_key_encrypted
             )
             email_settings.save()
             messages.success(request, "Email provider settings were saved.")

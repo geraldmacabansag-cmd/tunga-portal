@@ -20,8 +20,8 @@
         </div>
         <div class="panel-body">
           <p class="form-help" style="margin-top:0;">
-            This Gmail account is used to send one-time codes (for forgot password) and other system emails.
-            The App Password is encrypted before it's stored — it's never shown back to you after saving, only whether one is currently on file.
+            This is used to send one-time codes (for forgot password) and other system emails, via Brevo's email API.
+            The API key is encrypted before it's stored — it's never shown back to you after saving, only whether one is currently on file.
           </p>
 
           {% if email_settings.is_configured %}
@@ -34,14 +34,15 @@
             {% csrf_token %}
 
             <div class="form-group">
-              <label class="form-label">Gmail Address <span class="req">*</span></label>
+              <label class="form-label">Sender Email <span class="req">*</span></label>
               <input class="form-input" type="email" name="email_address" value="{{ email_settings.email_address }}" placeholder="e.g. tungalgu.webapps@gmail.com" required>
+              <span class="form-help">Must be a sender you've verified in your Brevo account.</span>
             </div>
 
             <div class="form-group">
-              <label class="form-label">Gmail App Password {% if not email_settings.app_password_encrypted %}<span class="req">*</span>{% endif %}</label>
-              <input class="form-input" type="password" name="app_password" autocomplete="new-password" placeholder="{% if email_settings.app_password_encrypted %}•••••••••••••••• (saved — leave blank to keep it){% else %}16-character App Password from Google{% endif %}">
-              <span class="form-help">Not your regular Gmail password — this must be a Google App Password. <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">Generate one here</a> if you don't have it yet.</span>
+              <label class="form-label">Brevo API Key {% if not email_settings.api_key_encrypted %}<span class="req">*</span>{% endif %}</label>
+              <input class="form-input" type="password" name="api_key" autocomplete="new-password" placeholder="{% if email_settings.api_key_encrypted %}•••••••••••••••• (saved — leave blank to keep it){% else %}Paste your Brevo API key here{% endif %}">
+              <span class="form-help">Found under your Brevo account → SMTP &amp; API → API Keys. <a href="https://app.brevo.com/settings/keys/api" target="_blank" rel="noopener">Open Brevo API Keys</a>.</span>
             </div>
 
             <div class="modal-actions" style="justify-content:flex-start;border-top:none;padding-top:4px;">
