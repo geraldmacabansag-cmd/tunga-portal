@@ -14,12 +14,13 @@ def send_via_configured_provider(subject, plain_body, html_body, to_email):
 
     try:
         connection = get_connection(
-            backend="django.core.mail.backends.smtp.EmailBackend",
+            backend="django.core.mail.backends.smtp.EmailBackend", 
             host="smtp.gmail.com",
-            port=587,
+            port=465,
             username=settings_obj.email_address,
             password=app_password,
             use_tls=True,
+            timeout=15, 
         )
         message = EmailMultiAlternatives(
             subject=subject,
