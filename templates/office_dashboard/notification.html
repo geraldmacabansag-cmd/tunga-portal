@@ -14,7 +14,7 @@
         </div>
       </div>
       <div class="topbar-right">
-        <button class="icon-button" id="notifBellBtn" type="button" aria-haspopup="true" aria-expanded="false"><i class="fa-regular fa-bell"></i><span class="dot">3</span></button>
+        <button class="icon-button" id="notifBellBtn" type="button" aria-haspopup="true" aria-expanded="false"><i class="fa-regular fa-bell"></i>{% if unread_count > 0 %}<span class="dot">{{ unread_count }}</span>{% endif %}</button>
         <div class="user-chip">
           <img src="{% if rep.photo %}{{ rep.photo.url }}{% else %}{% static 'images/icon/profile_logo.jpeg' %}{% endif %}" alt="">
           <div class="who"><div class="name">{{ rep.user.get_full_name|default:rep.user.username }}</div><div class="role">{{ rep.position|default:"Office Representative" }}</div></div>
@@ -42,7 +42,8 @@
         </div>
 
         {% for n in notifications %}
-        <a href="{% url 'office_dashboard:mark_notification_read' n.id %}" class="notif-item {% if not n.is_read %}unread{% endif %}" data-status="{% if n.is_read %}read{% else %}unread{% endif %}" style="text-decoration:none;color:inherit;">
+        <div class="notif-item {% if not n.is_read %}unread{% endif %}" data-status="{% if n.is_read %}read{% else %}unread{% endif %}" style="display:flex;align-items:flex-start;">
+          <a href="{% url 'office_dashboard:mark_notification_read' n.id %}" style="text-decoration:none;color:inherit;display:flex;align-items:flex-start;flex:1;min-width:0;">
             <span class="notif-icon notif-icon-{{ n.level }}">
               <i class="fa-solid {% if n.level == 'success' %}fa-check{% elif n.level == 'warning' %}fa-triangle-exclamation{% elif n.level == 'danger' %}fa-xmark{% else %}fa-bullhorn{% endif %}"></i>
             </span>
@@ -52,7 +53,15 @@
             <div class="notif-time">{{ n.created_at|timesince }} ago</div>
           </div>
           {% if not n.is_read %}<span class="notif-dot"></span>{% endif %}
-        </a>
+          {% if n.link_url %}<i class="fa-solid fa-chevron-right" style="margin-left:8px;color:var(--gray-300);font-size:12px;flex-shrink:0;"></i>{% endif %}
+          </a>
+          <form method="post" action="{% url 'office_dashboard:delete_notification' n.id %}" style="margin-left:8px;flex-shrink:0;">
+            {% csrf_token %}
+            <button type="submit" title="Delete notification" style="background:none;border:none;cursor:pointer;color:var(--gray-400);padding:6px;font-size:14px;line-height:1;">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </form>
+        </div>
         {% empty %}
         <p style="text-align:center;color:var(--gray-400);padding:24px;">No notifications yet.</p>
         {% endfor %}

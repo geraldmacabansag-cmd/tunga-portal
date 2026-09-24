@@ -108,10 +108,31 @@ button {
   white-space: nowrap;
 }
 
-.top-bar__msg {
+.top-bar__msg-wrap {
   flex: 1;
   min-width: 200px;
+  position: relative;
+  height: 1.4em;
+  overflow: hidden;
+}
+
+.top-bar__msg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
   color: #dbe6fb;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.4s ease;
+}
+
+.top-bar__msg--active {
+  opacity: 1;
+  visibility: visible;
 }
 
 .top-bar__links {

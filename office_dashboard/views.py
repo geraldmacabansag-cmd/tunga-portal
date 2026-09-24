@@ -1138,8 +1138,17 @@ def mark_notification_read(request, rep, pk):
     if not notif.is_read:
         notif.is_read = True
         notif.save()
+    if notif.link_url:
+        return redirect(notif.link_url)
     return redirect('office_dashboard:notification')
 
+@office_rep_required
+def delete_notification(request, rep, pk):
+    notif = get_object_or_404(Notification, pk=pk, representative=rep)
+    if request.method == "POST":
+        notif.delete()
+        messages.success(request, "Notification deleted.")
+    return redirect('office_dashboard:notification')
 
 @office_rep_required
 def mark_all_notifications_read(request, rep):

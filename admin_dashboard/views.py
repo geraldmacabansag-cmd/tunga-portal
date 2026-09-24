@@ -7,7 +7,7 @@ from django.core.paginator import Paginator
 from django.contrib.auth.models import User
 from django.db.models import Count, Sum, Q, F
 from django.utils import timezone
-from office_dashboard.models import Announcement, NewsUpdate, Event, DownloadableForm, Photo, Album, Service, OfficeRepresentative
+from office_dashboard.models import Announcement, NewsUpdate, Event, DownloadableForm, Photo, Album, Service, OfficeRepresentative, Notification
 from offices.models import Office
 from django.http import Http404, FileResponse
 from datetime import timedelta
@@ -154,17 +154,31 @@ def admin_approval_details(request, item_type, pk):
         obj = get_object_or_404(model.objects.select_related('office'), pk=pk)
         office = obj.office
         submitted_by_name = obj.uploaded_by or "—"
+        notify_rep = getattr(office, 'representative', None)
     elif model is Service:
         obj = get_object_or_404(model.objects.select_related('office'), pk=pk)
         office = obj.office
         rep = getattr(office, 'representative', None)
         submitted_by_name = (rep.user.get_full_name() or rep.user.username) if rep else "—"
+        notify_rep = rep
     else:
         obj = get_object_or_404(model.objects.select_related('representative__office', 'representative__user'), pk=pk)
         office = obj.representative.office
         submitted_by_name = obj.representative.user.get_full_name() or obj.representative.user.username
+        notify_rep = obj.representative
 
     obj_label = getattr(obj, 'title', None) or getattr(obj, 'name', '')
+
+    REP_PAGE_URL_NAMES = {
+        'Announcement': 'office_dashboard:rep_announce',
+        'News': 'office_dashboard:news_update',
+        'Event': 'office_dashboard:event',
+        'Form': 'office_dashboard:downloadable_form',
+        'Gallery': 'office_dashboard:gallery',
+        'Service': 'office_dashboard:services',
+    }
+    url_name = REP_PAGE_URL_NAMES.get(item_type)
+    content_link_url = reverse(url_name) if url_name else ''
 
     if request.method == "POST":
         action = request.POST.get('action')
@@ -178,12 +192,36 @@ def admin_approval_details(request, item_type, pk):
         if action == 'approve':
             obj.status = 'published'
             messages.success(request, f'"{display_name}" was approved and published.')
+            if notify_rep:
+                Notification.objects.create(
+                    representative=notify_rep,
+                    link_url=content_link_url,
+                    title=f'"{display_name}" was approved',
+                    description=f'Your {item_type.lower()} submission is now published on the public website.',
+                    level='success',
+                )
         elif action == 'return':
             obj.status = 'returned'
             messages.success(request, f'"{display_name}" was returned for revision.')
+            if notify_rep:
+                Notification.objects.create(
+                    representative=notify_rep,
+                    link_url=content_link_url,
+                    title=f'"{display_name}" was returned for revision',
+                    description=note or f'Your {item_type.lower()} submission needs changes before it can be published. Check the admin note for details.',
+                    level='warning',
+                )
         elif action == 'reject':
             obj.status = 'reject'
             messages.success(request, f'"{display_name}" was rejected.')
+            if notify_rep:
+                Notification.objects.create(
+                    representative=notify_rep,
+                    link_url=content_link_url,
+                    title=f'"{display_name}" was rejected',
+                    description=note or f'Your {item_type.lower()} submission was not approved.',
+                    level='danger',
+                )
         obj.save()
         return redirect('admin_dashboard:approval_center')
 
@@ -963,6 +1001,16 @@ def admin_rep_toggle_active(request, pk):
         rep.user.save()
         label = rep.user.get_full_name() or rep.user.username
         messages.success(request, f'{label} was {"activated" if rep.user.is_active else "deactivated"}.')
+        Notification.objects.create(
+            representative=rep,
+            title="Account activated" if rep.user.is_active else "Account deactivated",
+            description=(
+                "Your office representative account has been reactivated. You now have access to the dashboard again."
+                if rep.user.is_active else
+                "Your office representative account has been deactivated by a Super Admin."
+            ),
+            level='success' if rep.user.is_active else 'danger',
+        )
     return redirect('admin_dashboard:ad_office_rep')
 
 SERVICE_STATUS_BADGE = {

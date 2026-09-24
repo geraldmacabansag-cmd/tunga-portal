@@ -96,18 +96,16 @@
      opened/closed with plain JavaScript only — see script below. -->
 <div class="dropdown-panel notif-panel" id="notifDropdown" role="menu" aria-hidden="true">
   <div class="dd-head">Notifications</div>
+  {% for n in rep.recent_notifications %}
+  <a href="{% url 'office_dashboard:mark_notification_read' n.id %}" class="dd-item dd-notif{% if not n.is_read %} dd-notif--unread{% endif %}" role="menuitem" style="text-decoration:none;color:inherit;display:block;">
+    <span class="n-title">{{ n.title }}</span>
+    <span class="n-desc">{% if n.description %}{{ n.description }} · {% endif %}{{ n.created_at|timesince }} ago</span>
+  </a>
+  {% empty %}
   <div class="dd-item dd-notif" role="menuitem">
-    <span class="n-title">New document request submitted</span>
-    <span class="n-desc">Barangay Clearance · TNG-00481023 · 10:45 AM</span>
+    <span class="n-desc">No notifications yet.</span>
   </div>
-  <div class="dd-item dd-notif" role="menuitem">
-    <span class="n-title">Announcement approved</span>
-    <span class="n-desc">"Mayor's Listening Session" is now published</span>
-  </div>
-  <div class="dd-item dd-notif" role="menuitem">
-    <span class="n-title">Reminder</span>
-    <span class="n-desc">Please confirm your office hours</span>
-  </div>
+  {% endfor %}
   <a href="{% url 'office_dashboard:notification' %}" class="dd-view-all">View all notifications</a>
 </div>
 

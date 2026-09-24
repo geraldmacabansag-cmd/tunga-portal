@@ -47,6 +47,8 @@ urlpatterns = [
     path('office-notifications', views.notification, name='notification'),
     path('office-notifications/<int:pk>/read', views.mark_notification_read, name='mark_notification_read'),
     path('office-notifications/mark-all-read', views.mark_all_notifications_read, name='mark_all_notifications_read'),
+    path('office-notifications/<int:pk>/delete', views.delete_notification, name='delete_notification'),
+
     path('office-log', views.activity_log, name='log'),
 
 ]

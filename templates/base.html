@@ -27,7 +27,13 @@
   <header class="top-bar">
   <div class="container">
     <span class="top-bar__tag">Announcement</span>
-    <span class="top-bar__msg">The Municipal Hall will be closed on July 25, 2026 in observance of the Founding Anniversary.</span>
+    <span class="top-bar__msg-wrap">
+      {% for a in ticker_announcements %}
+        <span class="top-bar__msg{% if forloop.first %} top-bar__msg--active{% endif %}">{{ a.title }} — {{ a.subtitle|default:a.content|truncatewords:20 }}</span>
+      {% empty %}
+        <span class="top-bar__msg top-bar__msg--active">No announcements at this time.</span>
+      {% endfor %}
+    </span>
         <div class="top-bar__links">
           {% if user.is_authenticated %}
             <span class="top-bar__welcome">Welcome, {{ user.first_name|default:user.username }}</span>
@@ -285,6 +291,18 @@
         }
       });
     }
+
+  (function () {
+    var messages = document.querySelectorAll('.top-bar__msg-wrap .top-bar__msg');
+    if (messages.length <= 1) return;
+
+    var current = 0;
+    setInterval(function () {
+      messages[current].classList.remove('top-bar__msg--active');
+      current = (current + 1) % messages.length;
+      messages[current].classList.add('top-bar__msg--active');
+    }, 2000);
+  })();
 </script>
 
 {% block extra_js %}{% endblock %}

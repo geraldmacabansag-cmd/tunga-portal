@@ -14,6 +14,10 @@ class OfficeRepresentative(models.Model):
     def unread_notifications_count(self):
         return self.notifications.filter(is_read=False).count()
 
+    @property
+    def recent_notifications(self):
+        return self.notifications.order_by('-created_at')[:5]
+
     def __str__(self):
         return f"{self.user.get_full_name() or self.user.username} — {self.office}"
 
@@ -391,6 +395,7 @@ class Notification(models.Model):
     title = models.CharField(max_length=255)
     description = models.CharField(max_length=500, blank=True)
     level = models.CharField(max_length=20, choices=LEVEL_CHOICES, default="info")
+    link_url = models.CharField(max_length=255, blank=True)
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
