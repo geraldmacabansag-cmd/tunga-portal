@@ -30,14 +30,15 @@ urlpatterns = [
     path('Admin-Gallery/<int:pk>/', views.admin_album_detail, name='ad_album_detail'),
     path('Admin-Gallery/photo/<int:pk>/archive/', views.admin_photo_archive_toggle, name='admin_photo_archive'),
     path('Admin-Gallery/photo/<int:pk>/delete/', views.admin_photo_delete, name='admin_photo_delete'),
-    path('Admin-Gallery/photo/save/', views.admin_photo_save, name='admin_photo_save'),
+    path('Admin-Gallery/photo/<int:pk>/save/', views.admin_photo_save, name='admin_photo_save'),
 
     path('Admin-Offices/', views.admin_offices, name='ad_offices'),
-    path('Admin-Offices/create/', views.admin_office_create, name='admin_office_create'),
     path('Admin-Offices/<int:pk>/edit/', views.admin_office_edit, name='admin_office_edit'),
     
     path('Admin-Office-Representative/', views.admin_office_rep, name='ad_office_rep'),
     path('Admin-Office-Representative/<int:pk>/toggle-active/', views.admin_rep_toggle_active, name='admin_rep_toggle_active'),
+    path('Admin-Office-Representative/assign/', views.admin_assign_representative, name='admin_assign_representative'),
+    path('Admin-Office-Representative/<int:pk>/replace-user/', views.admin_rep_replace_user, name='admin_rep_replace_user'),
 
     path('Admin-Services/', views.admin_services, name='ad_services'),
     path('Admin-Services/<int:pk>/', views.admin_service_detail, name='ad_service_detail'),
@@ -48,7 +49,6 @@ urlpatterns = [
 
     path('Admin-Roles-Permision/', views.admin_roles, name='ad_roles'),
     path('Admin-Homepage/', views.admin_homepage, name='ad_homepage'),
-    path('Admin-Contact-information/', views.admin_contact_info, name='ad_contact_info'),
     path('Admin-Interactive-Map/', views.admin_interactive_map, name='ad_map'),
 
     path('Admin-Emergency-Contact/', views.admin_emergency_contact, name='ad_emergency_contact'),

@@ -28,122 +28,139 @@
 
         <div class="panel-body">
 
-          <!-- ============ GENERAL ============ -->
+          <!-- ============ GENERAL (real — moved from the old Contact Information page) ============ -->
           <div class="settings-section" id="section-general">
-            <div class="form-group">
-              <label class="form-label">Site name<span class="req">*</span></label>
-              <input class="form-input" type="text" id="siteName" value="Municipality of Tunga">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Tagline</label>
-              <input class="form-input" type="text" id="siteTagline" value="Official website of the Local Government Unit of Tunga, Leyte">
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Contact email</label>
-                <input class="form-input" type="email" id="contactEmail" value="info@tunga.gov.ph">
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="section" value="general">
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Phone Number</label>
+                  <input class="form-input" type="text" name="phone" value="{{ info.phone }}" placeholder="e.g. (053) 456 789">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Phone (Local / Extension)</label>
+                  <input class="form-input" type="text" name="phone_local" value="{{ info.phone_local }}" placeholder="e.g. Local 100">
+                </div>
               </div>
-              <div class="form-group">
-                <label class="form-label">Contact phone</label>
-                <input class="form-input" type="text" id="contactPhone" value="(053) 555-0123">
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Email Address</label>
+                  <input class="form-input" type="email" name="email" value="{{ info.email }}" placeholder="e.g. tunga@gmail.com">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Secondary Email</label>
+                  <input class="form-input" type="email" name="email_secondary" value="{{ info.email_secondary }}" placeholder="e.g. info@tunga.gov.ph">
+                </div>
               </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Office address</label>
-              <input class="form-input" type="text" id="officeAddress" value="Municipal Hall, Poblacion, Tunga, Leyte">
-            </div>
-            <div class="form-row">
+
               <div class="form-group">
-                <label class="form-label">Office hours</label>
-                <input class="form-input" type="text" id="officeHours" value="Monday–Friday, 8:00 AM–5:00 PM">
+                <label class="form-label">Address</label>
+                <input class="form-input" type="text" name="address" value="{{ info.address }}" placeholder="e.g. 2nd Floor, Municipal Hall, Tunga, Leyte">
               </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Facebook Page Name</label>
+                  <input class="form-input" type="text" name="facebook_name" value="{{ info.facebook_name }}" placeholder="e.g. Municipality of Tunga - Official">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Facebook Page URL</label>
+                  <input class="form-input" type="url" name="facebook_url" value="{{ info.facebook_url }}" placeholder="https://facebook.com/...">
+                </div>
+              </div>
+
               <div class="form-group">
-                <label class="form-label">Default language</label>
-                <select class="form-input" id="defaultLanguage">
-                  <option>English</option>
-                  <option>Filipino</option>
-                </select>
+                <label class="form-label">Office Hours</label>
+                <input class="form-input" type="text" name="office_hours" value="{{ info.office_hours }}" placeholder="e.g. Monday – Friday, 8:00 AM – 5:00 PM">
               </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Timezone</label>
-              <select class="form-input" id="timezone">
-                <option>(GMT+8:00) Asia/Manila</option>
-                <option>(GMT+0:00) UTC</option>
-              </select>
-            </div>
+
+              <div class="modal-actions" style="justify-content:flex-start;border-top:none;padding-top:4px;">
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Contact Information</button>
+              </div>
+            </form>
           </div>
 
-          <!-- ============ APPEARANCE ============ -->
+          <!-- ============ APPEARANCE (real — logo and hero banner) ============ -->
           <div class="settings-section" id="section-appearance" style="display:none;">
-            <div class="form-row">
+            <form method="post" enctype="multipart/form-data">
+              {% csrf_token %}
+              <input type="hidden" name="section" value="appearance">
+
               <div class="form-group">
                 <label class="form-label">Site logo</label>
                 <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
-                  <img src="https://images.unsplash.com/photo-1592194996308-7b43878e84a6?w=100&h=100&fit=crop" alt="" style="width:56px;height:56px;border-radius:10px;object-fit:cover;border:1px solid var(--gray-200);">
-                  <span class="form-help" style="margin:0;">Current logo</span>
+                  <img id="logo-preview" src="{% if info.logo %}{{ info.logo.url }}{% else %}{% static 'images/tunga_leyte_logo.png' %}{% endif %}" alt="" style="width:56px;height:56px;border-radius:10px;object-fit:cover;border:1px solid var(--gray-200);">
+                  <span class="form-help" id="logo-preview-label" style="margin:0;">{% if info.logo %}Current logo — shown in the site header and footer{% else %}Current logo (default) — shown in the site header and footer{% endif %}</span>
                 </div>
-                <input class="form-input file-input" type="file" accept="image/*">
-                <span class="form-help">Square image recommended, at least 256×256px.</span>
+                <input class="form-input file-input" type="file" name="logo" id="logo-input" accept="image/*">
+                <span class="form-help">Square image recommended, at least 256×256px. Replaces the logo shown in the site header and footer. The preview updates immediately, but nothing changes on the live site until you click Save Appearance.</span>
               </div>
-              <div class="form-group">
-                <label class="form-label">Favicon</label>
-                <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
-                  <img src="https://images.unsplash.com/photo-1592194996308-7b43878e84a6?w=100&h=100&fit=crop" alt="" style="width:32px;height:32px;border-radius:6px;object-fit:cover;border:1px solid var(--gray-200);">
-                  <span class="form-help" style="margin:0;">Current favicon</span>
-                </div>
-                <input class="form-input file-input" type="file" accept="image/*">
-                <span class="form-help">Displayed in browser tabs. 32×32px or 64×64px PNG.</span>
-              </div>
-            </div>
 
-            <div class="form-group">
-              <label class="form-label">Hero banner image</label>
-              <img src="https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=600&h=200&fit=crop" alt="" style="width:100%;max-width:420px;height:130px;border-radius:10px;object-fit:cover;border:1px solid var(--gray-200);margin-bottom:8px;display:block;">
-              <input class="form-input file-input" type="file" accept="image/*">
-              <span class="form-help">Shown at the top of the public homepage. Recommended size 1600×600px.</span>
-            </div>
+              <div class="form-group">
+                <label class="form-label">Hero banner image</label>
+                <img id="banner-preview" src="{% if info.hero_banner %}{{ info.hero_banner.url }}{% else %}{% static 'images/lgu_bldg.jpeg' %}{% endif %}" alt="" style="width:100%;max-width:420px;height:130px;border-radius:10px;object-fit:cover;border:1px solid var(--gray-200);margin-bottom:8px;display:block;">
+                <span class="form-help" id="banner-preview-label" style="display:block;margin-bottom:8px;">{% if info.hero_banner %}Current banner{% else %}Current banner (default){% endif %}</span>
+                <input class="form-input file-input" type="file" name="hero_banner" id="banner-input" accept="image/*">
+                <span class="form-help">Shown as the background image at the top of the public homepage. Recommended size 1600×600px. The preview updates immediately, but nothing changes on the live site until you click Save Appearance.</span>
+              </div>
 
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Primary theme color</label>
-                <input class="form-input" type="color" value="#2f5bea" style="height:42px;padding:4px;">
+              <div class="modal-actions" style="justify-content:flex-start;border-top:none;padding-top:4px;">
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Appearance</button>
               </div>
-              <div class="form-group">
-                <label class="form-label">Homepage layout</label>
-                <select class="form-input" id="homepageLayout">
-                  <option>Classic</option>
-                  <option>Modern Grid</option>
-                  <option>Minimal</option>
-                </select>
-              </div>
-            </div>
+            </form>
           </div>
 
-          <!-- ============ SOCIAL MEDIA ============ -->
+          <!-- ============ SOCIAL MEDIA (real, per-platform visibility) ============ -->
           <div class="settings-section" id="section-social" style="display:none;">
-            <div class="form-group">
-              <label class="form-label"><i class="fa-brands fa-facebook" style="color:#1877f2;margin-right:6px;"></i>Facebook page URL</label>
-              <input class="form-input" type="text" id="socialFacebook" value="https://facebook.com/MunicipalityOfTunga">
-            </div>
-            <div class="form-group">
-              <label class="form-label"><i class="fa-brands fa-square-x-twitter" style="margin-right:6px;"></i>X (Twitter) URL</label>
-              <input class="form-input" type="text" id="socialTwitter" placeholder="https://x.com/yourpage">
-            </div>
-            <div class="form-group">
-              <label class="form-label"><i class="fa-brands fa-instagram" style="color:#c1338d;margin-right:6px;"></i>Instagram URL</label>
-              <input class="form-input" type="text" id="socialInstagram" placeholder="https://instagram.com/yourpage">
-            </div>
-            <div class="form-group">
-              <label class="form-label"><i class="fa-brands fa-youtube" style="color:#ff0000;margin-right:6px;"></i>YouTube channel URL</label>
-              <input class="form-input" type="text" id="socialYoutube" placeholder="https://youtube.com/@yourchannel">
-            </div>
-            <div class="form-group">
-              <label class="form-label" style="display:flex;align-items:center;gap:8px;font-weight:600;">
-                <input type="checkbox" id="showSocialFooter" checked style="width:16px;height:16px;">
-                Show social media icons in the website footer
-              </label>
-            </div>
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="section" value="social">
+
+              <div class="form-group">
+                <label class="form-label"><i class="fa-brands fa-facebook" style="color:#1877f2;margin-right:6px;"></i>Facebook page URL</label>
+                <input class="form-input" type="url" name="social_facebook" value="{{ info.social_facebook }}" placeholder="https://facebook.com/yourpage">
+                <label class="form-label social-visibility-toggle" style="display:flex;align-items:center;gap:8px;font-weight:500;margin-top:8px;">
+                  <input type="checkbox" class="social-visibility-checkbox" data-platform="Facebook" name="show_facebook_footer" {% if info.show_facebook_footer %}checked{% endif %} style="width:16px;height:16px;">
+                  Show Facebook icon in footer
+                </label>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label"><i class="fa-brands fa-square-x-twitter" style="margin-right:6px;"></i>X (Twitter) URL</label>
+                <input class="form-input" type="url" name="social_twitter" value="{{ info.social_twitter }}" placeholder="https://x.com/yourpage">
+                <label class="form-label social-visibility-toggle" style="display:flex;align-items:center;gap:8px;font-weight:500;margin-top:8px;">
+                  <input type="checkbox" class="social-visibility-checkbox" data-platform="X (Twitter)" name="show_twitter_footer" {% if info.show_twitter_footer %}checked{% endif %} style="width:16px;height:16px;">
+                  Show X (Twitter) icon in footer
+                </label>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label"><i class="fa-brands fa-instagram" style="color:#c1338d;margin-right:6px;"></i>Instagram URL</label>
+                <input class="form-input" type="url" name="social_instagram" value="{{ info.social_instagram }}" placeholder="https://instagram.com/yourpage">
+                <label class="form-label social-visibility-toggle" style="display:flex;align-items:center;gap:8px;font-weight:500;margin-top:8px;">
+                  <input type="checkbox" class="social-visibility-checkbox" data-platform="Instagram" name="show_instagram_footer" {% if info.show_instagram_footer %}checked{% endif %} style="width:16px;height:16px;">
+                  Show Instagram icon in footer
+                </label>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label"><i class="fa-brands fa-youtube" style="color:#ff0000;margin-right:6px;"></i>YouTube channel URL</label>
+                <input class="form-input" type="url" name="social_youtube" value="{{ info.social_youtube }}" placeholder="https://youtube.com/@yourchannel">
+                <label class="form-label social-visibility-toggle" style="display:flex;align-items:center;gap:8px;font-weight:500;margin-top:8px;">
+                  <input type="checkbox" class="social-visibility-checkbox" data-platform="YouTube" name="show_youtube_footer" {% if info.show_youtube_footer %}checked{% endif %} style="width:16px;height:16px;">
+                  Show YouTube icon in footer
+                </label>
+              </div>
+
+              <p class="form-help">A platform's icon only appears in the footer when its link above is filled in <em>and</em> its checkbox here is checked.</p>
+
+              <div class="modal-actions" style="justify-content:flex-start;border-top:none;padding-top:4px;">
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Social Media</button>
+              </div>
+            </form>
           </div>
 
           <!-- ============ SEO & INTEGRATIONS ============ -->
@@ -226,14 +243,26 @@
 
 {% block extra_js %}
 <script>
+  var TAB_NAMES = ['general', 'appearance', 'social', 'seo', 'maintenance'];
+
+  function activateTab(name){
+    if (TAB_NAMES.indexOf(name) === -1) name = 'general';
+    document.querySelectorAll('.subtabs .subtab').forEach(function(t){
+      t.classList.toggle('active', t.dataset.section === name);
+    });
+    document.querySelectorAll('.settings-section').forEach(function(sec){
+      sec.style.display = (sec.id === 'section-' + name) ? 'block' : 'none';
+    });
+  }
+
   document.querySelectorAll('.subtabs .subtab').forEach(function(tabEl){
     tabEl.addEventListener('click', function(){
-      document.querySelectorAll('.subtabs .subtab').forEach(function(t){ t.classList.remove('active'); });
-      tabEl.classList.add('active');
-      document.querySelectorAll('.settings-section').forEach(function(sec){ sec.style.display = 'none'; });
-      document.getElementById('section-' + tabEl.dataset.section).style.display = 'block';
+      activateTab(tabEl.dataset.section);
+      history.replaceState(null, '', '#' + tabEl.dataset.section);
     });
   });
+
+  activateTab(window.location.hash.replace('#', ''));
 
   function toggleMaintenanceWarning(){
     var on = document.getElementById('maintenanceMode').checked;
@@ -265,5 +294,37 @@
       setTimeout(function(){ toast.remove(); }, 200);
     }, 2600);
   }
+
+  function wireImagePreview(inputId, previewId, labelId, newFileLabel){
+    var input = document.getElementById(inputId);
+    var preview = document.getElementById(previewId);
+    var label = document.getElementById(labelId);
+    if (!input) return;
+
+    input.addEventListener('change', function(){
+      var file = input.files && input.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function(e){
+        preview.src = e.target.result;
+        if (label) label.textContent = newFileLabel;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  wireImagePreview('logo-input', 'logo-preview', 'logo-preview-label', 'New logo selected — not saved yet, click Save Appearance to apply it.');
+  wireImagePreview('banner-input', 'banner-preview', 'banner-preview-label', 'New banner selected — not saved yet, click Save Appearance to apply it.');
+
+  document.querySelectorAll('.social-visibility-checkbox').forEach(function(box){
+    box.addEventListener('change', function(){
+      var platform = box.dataset.platform;
+      if (box.checked) {
+        showToast(platform + ' icon will show in the footer once saved.');
+      } else {
+        showToast(platform + ' icon will be hidden from the footer once saved.');
+      }
+    });
+  });
 </script>
 {% endblock %}

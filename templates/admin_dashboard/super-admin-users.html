@@ -72,7 +72,12 @@
                     <a class="ic" href="/admin/auth/user/{{ u.id }}/change/" title="View / edit"><i class="fa-regular fa-eye"></i></a>
                     <form method="post" action="{% url 'admin_dashboard:admin_user_toggle_active' u.id %}" style="display:inline;">
                       {% csrf_token %}
-                      <button type="submit" class="ic" style="border:none;background:none;cursor:pointer;" title="{% if u.is_active %}Deactivate{% else %}Activate{% endif %}">
+                      <button type="button" class="ic toggle-active-btn" style="border:none;background:none;cursor:pointer;"
+                        title="{% if u.is_active %}Deactivate{% else %}Activate{% endif %}"
+                        data-name="{{ u.get_full_name|default:u.username }}"
+                        data-is-active="{{ u.is_active|yesno:'1,0' }}"
+                        data-toggle-url="{% url 'admin_dashboard:admin_user_toggle_active' u.id %}"
+                      >
                         <i class="fa-regular {% if u.is_active %}fa-circle-pause{% else %}fa-circle-play{% endif %}"></i>
                       </button>
                     </form>
@@ -141,6 +146,76 @@
   </div>
 </div>
 
-<script src="super_admin.js"></script>
+<!-- Activate / Deactivate confirmation modal -->
+<div class="modal-backdrop" id="deactivateModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="deactivateTitle">Deactivate account</h3>
+      <button type="button" class="modal-x" onclick="closeModal('deactivateModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <p class="confirm-msg" id="deactivateMsg">Are you sure you want to deactivate this user's account? They will immediately lose access to their account.</p>
+      <form id="toggleActiveForm" method="post" action="">
+        {% csrf_token %}
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('deactivateModal')">Cancel</button>
+          <button type="submit" class="btn btn-danger" id="deactivateConfirmBtn"><i class="fa-solid fa-user-slash"></i> Deactivate</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openModal(id){
+    document.getElementById(id).classList.add('open');
+    document.body.classList.add('modal-open');
+  }
+  function closeModal(id){
+    document.getElementById(id).classList.remove('open');
+    document.body.classList.remove('modal-open');
+  }
+
+  function openToggleActive(btn){
+    var isActive = btn.dataset.isActive === '1';
+    var name = btn.dataset.name;
+    var title = document.getElementById('deactivateTitle');
+    var msg = document.getElementById('deactivateMsg');
+    var confirmBtn = document.getElementById('deactivateConfirmBtn');
+    var form = document.getElementById('toggleActiveForm');
+
+    form.action = btn.dataset.toggleUrl;
+
+    if (isActive) {
+      title.textContent = 'Deactivate account';
+      msg.textContent = 'Are you sure you want to deactivate ' + name + '\'s account? They will immediately lose access to their account.';
+      confirmBtn.className = 'btn btn-danger';
+      confirmBtn.innerHTML = '<i class="fa-solid fa-user-slash"></i> Deactivate';
+    } else {
+      title.textContent = 'Activate account';
+      msg.textContent = 'Are you sure you want to activate ' + name + '\'s account? They will immediately regain access to their account.';
+      confirmBtn.className = 'btn btn-primary';
+      confirmBtn.innerHTML = '<i class="fa-solid fa-user-check"></i> Activate';
+    }
+
+    openModal('deactivateModal');
+  }
+
+  document.querySelectorAll('.toggle-active-btn').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      openToggleActive(btn);
+    });
+  });
+
+  document.getElementById('deactivateModal').addEventListener('click', function(e){
+    if(e.target === this) closeModal('deactivateModal');
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && document.getElementById('deactivateModal').classList.contains('open')) {
+      closeModal('deactivateModal');
+    }
+  });
+</script>
 
 {% endblock %}

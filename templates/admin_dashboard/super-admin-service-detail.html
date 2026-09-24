@@ -10,12 +10,17 @@
 
 {% block content %}
 
+  <a href="{% url 'admin_dashboard:ad_services' %}" class="btn btn-secondary" style="margin-bottom:14px;display:inline-flex;text-decoration:none;"><i class="fa-solid fa-arrow-left"></i> Back to Services</a>
+
   <section class="panel">
     <div class="panel-header">
-      <h2>{{ service.name }}</h2>
-      <span class="ic" data-delete-target="delete-service-modal-{{ service.pk }}" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:1px solid var(--gray-200);border-radius:7px;color:var(--red-600);cursor:pointer;">
-        <i class="fa-regular fa-trash-can"></i>
-      </span>
+      <h2>{{ service.name }} <span class="badge {{ service.badge_class }}" style="margin-left:8px;">{{ service.get_status_display }}</span></h2>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <a href="{% url 'admin_dashboard:approval_details' 'Service' service.pk %}" class="btn btn-primary" style="text-decoration:none;">Open Full Review</a>
+        <span class="ic" data-delete-target="delete-service-modal-{{ service.pk }}" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:1px solid var(--gray-200);border-radius:7px;color:var(--red-600);cursor:pointer;">
+          <i class="fa-regular fa-trash-can"></i>
+        </span>
+      </div>
     </div>
     <div class="panel-body">
       <div class="field-grid">
@@ -41,11 +46,71 @@
         </div>
         <div>
           <div class="fl-label">Published</div>
-          <div class="fl-value">{{ service.published_at|date:"F j, Y, g:i A" }}</div>
+          <div class="fl-value">{{ service.published_at|date:"F j, Y, g:i A"|default:"—" }}</div>
         </div>
       </div>
     </div>
   </section>
+
+  <section class="panel" style="margin-top:16px;">
+    <div class="panel-header"><h2>Process Steps</h2></div>
+    <div class="panel-body">
+      {% for step in steps %}
+      <div class="sub-block">
+        <div class="step-chip"><span class="step-num">{{ forloop.counter }}</span><span class="step-text"><strong>{{ step.title }}</strong>{% if step.description %} — {{ step.description }}{% endif %}</span></div>
+      </div>
+      {% empty %}
+      <p class="empty-note">No process steps have been added for this service.</p>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="panel" style="margin-top:16px;">
+    <div class="panel-header"><h2>Requirements</h2></div>
+    <div class="panel-body">
+      {% for req in requirements %}
+      <div class="req-chip">
+        <span>{{ req.title }}{% if req.description %} — {{ req.description }}{% endif %}</span>
+        <span class="req-tag {% if req.is_required %}required{% else %}optional{% endif %}">{% if req.is_required %}Required{% else %}Optional{% endif %}</span>
+      </div>
+      {% empty %}
+      <p class="empty-note">No requirements have been added for this service.</p>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="panel" style="margin-top:16px;">
+    <div class="panel-header"><h2>Fees</h2></div>
+    <div class="panel-body">
+      {% for fee in fees %}
+      <div class="fee-chip">
+        <span>{{ fee.title }}{% if fee.description %} — {{ fee.description }}{% endif %}</span>
+        <span class="fee-amount">₱{{ fee.amount }}</span>
+      </div>
+      {% empty %}
+      <p class="empty-note">No fees have been added for this service.</p>
+      {% endfor %}
+    </div>
+  </section>
+
+{% if forms %}
+<section class="panel" style="margin-top:16px;">
+  <div class="panel-header"><h2>Downloadable Forms</h2></div>
+  <div class="panel-body">
+    {% for form in forms %}
+    <div class="attachment" style="margin-bottom:10px;">
+      <span class="af"><i class="fa-solid fa-file-pdf"></i></span>
+      <div>
+        <div class="an">{{ form.title }}</div>
+        <div class="as">{{ form.date_uploaded|date:"M j, Y" }} · {{ form.download_count }} download{{ form.download_count|pluralize }}</div>
+      </div>
+      <span class="badge {% if form.status == 'published' %}badge-green{% elif form.status == 'pending' %}badge-amber{% else %}badge-gray{% endif %}" style="margin-left:auto;margin-right:10px;">{{ form.get_status_display }}</span>
+      <a class="dl" href="{% url 'admin_dashboard:admin_download_form_file' form.pk %}" title="Download"><i class="fa-solid fa-download"></i></a>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
 
   <div class="modal-backdrop" id="delete-service-modal-{{ service.pk }}">
     <div class="modal-box" style="max-width:400px;">

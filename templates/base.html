@@ -89,11 +89,11 @@
 <nav class="site-header">
   <div class="container">
     <a href="{% url 'home' %}" class="brand">
-      <img src="{% static 'images/tunga_leyte_logo.png' %}" alt="Municipality of Tunga Seal" class="brand__seal">
+      <img src="{% if site_contact.logo %}{{ site_contact.logo.url }}{% else %}{% static 'images/tunga_leyte_logo.png' %}{% endif %}" alt="Municipality of Tunga Seal" class="brand__seal">
       <div class="brand__text">
         <div class="brand__label">MUNICIPALITY OF</div>
         <div class="brand__name">TUNGA</div>
-        <div class="brand__tagline">Atik na serbisyo, masulong na bungto.</div>
+        <div class="brand__tagline">Abtik na serbisyo, masulong na bungto.</div>
       </div>
     </a>
     <div class="main-nav">
@@ -124,11 +124,24 @@
 <footer class="site-footer">
   <div class="footer-main container">
     <div class="footer-brand">
-      <img src="{% static 'images/seal.svg' %}" alt="Municipality of Tunga seal" class="footer-brand__seal">
+      <img src="{% if site_contact.logo %}{{ site_contact.logo.url }}{% else %}{% static 'images/seal.svg' %}{% endif %}" alt="Municipality of Tunga seal" class="footer-brand__seal">
       <div>
-        <h4>Municipality of Tunga</h4>
-        <p>Tunga, Leyte Philippines</p>
-        <span class="footer-social"><i class="fa-brands fa-facebook-f"></i> Tunga LGU</span>
+          <h4>Municipality of Tunga</h4>
+          <p>Tunga, Leyte Philippines</p>
+          <div class="footer-social-icons">
+            {% if site_contact.social_facebook and site_contact.show_facebook_footer %}
+              <a href="{{ site_contact.social_facebook }}" target="_blank" rel="noopener" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
+            {% endif %}
+            {% if site_contact.social_twitter and site_contact.show_twitter_footer %}
+              <a href="{{ site_contact.social_twitter }}" target="_blank" rel="noopener" aria-label="X (Twitter)"><i class="fa-brands fa-square-x-twitter"></i></a>
+            {% endif %}
+            {% if site_contact.social_instagram and site_contact.show_instagram_footer %}
+              <a href="{{ site_contact.social_instagram }}" target="_blank" rel="noopener" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
+            {% endif %}
+            {% if site_contact.social_youtube and site_contact.show_youtube_footer %}
+              <a href="{{ site_contact.social_youtube }}" target="_blank" rel="noopener" aria-label="YouTube"><i class="fa-brands fa-youtube"></i></a>
+            {% endif %}
+          </div>
       </div>
     </div>
     <div class="footer-col footer-col--links">
@@ -162,7 +175,7 @@
       <a href="{% url 'contact' %}" class="btn">Contact us <i class="fa-solid fa-arrow-right"></i></a>
     </div>
     <div class="footer-badge">
-      <img src="{% static 'images/badge.svg' %}" alt="Bagong Pilipinas badge">
+      <img src="{% if site_contact.logo %}{{ site_contact.logo.url }}{% else %}{% static 'images/tunga_leyte_logo.png' %}{% endif %}" alt="Municipality of Tunga Seal" class="brand__seal">
     </div>
   </div>
   <div class="footer-bottom container">

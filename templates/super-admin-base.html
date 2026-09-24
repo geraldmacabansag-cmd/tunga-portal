@@ -65,8 +65,6 @@
       <li class="nav-section-title">Website Management</li>
       {% url 'admin_dashboard:ad_homepage' as homepage_url %}
       <li class="nav-item{% if request.path == homepage_url %} active{% endif %}"><a href="{{ homepage_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-globe"></i></span> Homepage</a></li>
-      {% url 'admin_dashboard:ad_contact_info' as contact_url %}
-      <li class="nav-item{% if request.path == contact_url %} active{% endif %}"><a href="{{ contact_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-phone"></i></span> Contact Information</a></li>
       {% url 'admin_dashboard:ad_map' as map_url %}
       <li class="nav-item{% if request.path == map_url %} active{% endif %}"><a href="{{ map_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-map-location-dot"></i></span> Interactive Map</a></li>
       {% url 'admin_dashboard:ad_emergency_contact' as emergency_url %}

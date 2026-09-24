@@ -520,7 +520,7 @@
       // On the approval center, the eye icon is now a real link to the
       // server-rendered Approval Details page — let the browser follow
       // its href natively instead of intercepting the click.
-      if (document.body.dataset.page === 'approval-center' || document.body.dataset.page === 'services' || document.body.dataset.page === 'office overview') {
+      if (document.body.dataset.page === 'approval-center' || document.body.dataset.page === 'services' || document.body.dataset.page === 'office overview' || document.body.dataset.page === 'gallery') {
         return;
       }
       e.preventDefault();
@@ -529,7 +529,7 @@
         // On Approval Details and Downloadable Forms, this is a real
         // download link to the uploaded file — let the browser follow
         // it natively instead of intercepting the click with a fake toast.
-        if (document.body.dataset.page === 'approval-details' || document.body.dataset.page === 'downloadable forms') {
+        if (document.body.dataset.page === 'approval-center' || document.body.dataset.page === 'downloadable forms' || document.body.dataset.page === 'services') {
           return;
         }
         e.preventDefault();

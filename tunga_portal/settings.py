@@ -13,9 +13,16 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 from pathlib import Path
 import os
 import dj_database_url
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load variables from a .env file in the project root (if one exists).
+# This only affects local development — on Render, environment
+# variables are set directly in the dashboard and this call is a no-op
+# there since no .env file is deployed.
+load_dotenv(BASE_DIR / '.env')
 
 STATICFILES_DIRS = [
     BASE_DIR / "static",
@@ -42,16 +49,48 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.humanize',
+    'django.contrib.sites',
 
     'cloudinary_storage',
     'django.contrib.staticfiles',
     'cloudinary',
-    
+
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
+
     'portal',
     'offices',
     'office_dashboard',
     'admin_dashboard',
 ]
+
+SITE_ID = 1
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+SOCIALACCOUNT_FORMS = {
+    'signup': 'portal.forms.CustomSocialSignupForm',
+}
+ACCOUNT_EMAIL_VERIFICATION = 'none'
+
+SOCIALACCOUNT_LOGIN_ON_GET = True
+
+ACCOUNT_ADAPTER = 'portal.adapters.AccountAdapter'
+SOCIALACCOUNT_ADAPTER = 'portal.adapters.SocialAccountAdapter'
+
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': ['profile', 'email'],
+        'AUTH_PARAMS': {'access_type': 'online'},
+    }
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -60,6 +99,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]

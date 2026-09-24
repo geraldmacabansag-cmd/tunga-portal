@@ -9,10 +9,46 @@
 
 {% block content %}
 
-      <div class="empty-state">
-        <div class="ei"><i class="fa-solid fa-gear"></i></div>
-        <h2>System Settings</h2>
-        <p>This page is ready and waiting &mdash; nothing has been built here yet.</p>
+      <div style="margin-bottom:18px;">
+        <h2 style="margin:0;font-size:16px;font-weight:800;color:var(--gray-900);">System Settings</h2>
+        <p style="margin:3px 0 0;font-size:12.5px;color:var(--gray-500);">Configure system-wide settings</p>
       </div>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Email Provider (for OTP &amp; system emails)</h2>
+        </div>
+        <div class="panel-body">
+          <p class="form-help" style="margin-top:0;">
+            This Gmail account is used to send one-time codes (for forgot password) and other system emails.
+            The App Password is encrypted before it's stored — it's never shown back to you after saving, only whether one is currently on file.
+          </p>
+
+          {% if email_settings.is_configured %}
+            <div class="badge badge-green" style="margin-bottom:16px;"><i class="fa-solid fa-circle-check"></i> Configured — currently sending from {{ email_settings.email_address }}</div>
+          {% else %}
+            <div class="badge badge-amber" style="margin-bottom:16px;"><i class="fa-solid fa-triangle-exclamation"></i> Not configured yet — OTP emails will not send until this is set up</div>
+          {% endif %}
+
+          <form method="post">
+            {% csrf_token %}
+
+            <div class="form-group">
+              <label class="form-label">Gmail Address <span class="req">*</span></label>
+              <input class="form-input" type="email" name="email_address" value="{{ email_settings.email_address }}" placeholder="e.g. tungalgu.webapps@gmail.com" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Gmail App Password {% if not email_settings.app_password_encrypted %}<span class="req">*</span>{% endif %}</label>
+              <input class="form-input" type="password" name="app_password" autocomplete="new-password" placeholder="{% if email_settings.app_password_encrypted %}•••••••••••••••• (saved — leave blank to keep it){% else %}16-character App Password from Google{% endif %}">
+              <span class="form-help">Not your regular Gmail password — this must be a Google App Password. <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">Generate one here</a> if you don't have it yet.</span>
+            </div>
+
+            <div class="modal-actions" style="justify-content:flex-start;border-top:none;padding-top:4px;">
+              <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Email Provider</button>
+            </div>
+          </form>
+        </div>
+      </section>
 
 {% endblock %}

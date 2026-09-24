@@ -6,6 +6,11 @@ from .models import CitizenProfile
 from office_dashboard.models import OfficeRepresentative, Announcement, NewsUpdate, Event, Photo
 from admin_dashboard.models import SuperAdmin, EmergencyContact
 from django.utils import timezone
+from django.http import JsonResponse
+from .models import CitizenProfile, EmailOTP
+from .otp_utils import send_signup_otp
+from django.http import JsonResponse
+from .otp_utils import send_signup_otp, send_password_reset_otp
 
 # Create your views here.
 def home(request):
@@ -109,8 +114,24 @@ def signup(request):
         messages.success(request, "Account created successfully. Please log in.")
         return redirect("login")
 
-    return render(request, "account/signup.html")
+    prefill = request.session.pop("google_prefill", None) or {}
+    return render(request, "account/signup.html", {"prefill": prefill})
 
+def send_signup_otp_ajax(request):
+    if request.method != "POST" or request.headers.get('X-Requested-With') != 'XMLHttpRequest':
+        return JsonResponse({"success": False, "error": "Invalid request."}, status=400)
+
+    email = request.POST.get("email", "").strip().lower()
+    if not email:
+        return JsonResponse({"success": False, "error": "Please enter an email address first."}, status=400)
+
+    if User.objects.filter(email=email).exists():
+        return JsonResponse({"success": False, "error": "An account with this email already exists."}, status=400)
+
+    success, error = send_signup_otp(email)
+    if success:
+        return JsonResponse({"success": True})
+    return JsonResponse({"success": False, "error": error or "Could not send the code. Please try again."}, status=500)
 
 def login(request):
     next_url = request.POST.get("next") or request.GET.get("next") or "home"
@@ -138,4 +159,68 @@ def logout(request):
     messages.success(request, "You have been logged out.")
     return redirect("home")
 
+def google_login_start(request):
+    request.session['google_intent'] = 'login'
+    return redirect('google_login')
 
+
+def google_signup_start(request):
+    request.session['google_intent'] = 'signup'
+    return redirect('google_login')
+
+def forgot_password(request):
+    if request.method == "POST":
+        identifier = request.POST.get("identifier", "").strip()
+        otp_code = request.POST.get("otp_code", "").strip()
+        new_password = request.POST.get("new_password", "")
+        confirm_password = request.POST.get("confirm_password", "")
+
+        user = (User.objects.filter(email__iexact=identifier).first()
+                or User.objects.filter(username__iexact=identifier).first())
+
+        if not user:
+            messages.error(request, "No account found with that email or username.")
+            return render(request, "account/forgot_password.html", {"identifier": identifier})
+
+        if not otp_code:
+            messages.error(request, "Please enter the verification code sent to your email.")
+            return render(request, "account/forgot_password.html", {"identifier": identifier})
+
+        if not EmailOTP.verify(user.email, otp_code):
+            messages.error(request, "That verification code is incorrect or has expired. Please request a new one.")
+            return render(request, "account/forgot_password.html", {"identifier": identifier})
+
+        if not new_password or not confirm_password:
+            messages.error(request, "Please enter and confirm your new password.")
+            return render(request, "account/forgot_password.html", {"identifier": identifier})
+
+        if new_password != confirm_password:
+            messages.error(request, "Passwords do not match.")
+            return render(request, "account/forgot_password.html", {"identifier": identifier})
+
+        user.set_password(new_password)
+        user.save()
+
+        messages.success(request, "Your password has been reset. Please log in with your new password.")
+        return redirect("login")
+
+    return render(request, "account/forgot_password.html")
+
+
+def send_reset_otp_ajax(request):
+    if request.method != "POST" or request.headers.get('X-Requested-With') != 'XMLHttpRequest':
+        return JsonResponse({"success": False, "error": "Invalid request."}, status=400)
+
+    identifier = request.POST.get("identifier", "").strip()
+    if not identifier:
+        return JsonResponse({"success": False, "error": "Please enter your email or username first."}, status=400)
+
+    user = (User.objects.filter(email__iexact=identifier).first()
+            or User.objects.filter(username__iexact=identifier).first())
+    if not user:
+        return JsonResponse({"success": False, "error": "No account found with that email or username."}, status=400)
+
+    success, error = send_password_reset_otp(user.email)
+    if success:
+        return JsonResponse({"success": True})
+    return JsonResponse({"success": False, "error": error or "Could not send the code. Please try again."}, status=500)

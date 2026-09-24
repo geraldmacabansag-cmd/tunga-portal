@@ -15,6 +15,7 @@
           <h2 style="margin:0;font-size:16px;font-weight:800;color:var(--gray-900);">Representative accounts</h2>
           <p style="margin:3px 0 0;font-size:12.5px;color:var(--gray-500);">Staff accounts that manage content on behalf of each municipal office</p>
         </div>
+        <button type="button" class="btn btn-primary" id="open-assign-rep-modal"><i class="fa-solid fa-user-plus"></i> Assign Representative</button>
       </div>
 
       <div class="stat-grid">
@@ -101,12 +102,20 @@
                 <td>
                   <div class="action-icons">
                     <a class="ic" href="/admin/office_dashboard/officerepresentative/{{ r.rep.id }}/change/" title="View / edit"><i class="fa-regular fa-eye"></i></a>
-                    <form method="post" action="{% url 'admin_dashboard:admin_rep_toggle_active' r.rep.id %}" style="display:inline;">
-                      {% csrf_token %}
-                      <button type="submit" class="ic" style="border:none;background:none;cursor:pointer;" title="{% if r.rep.user.is_active %}Deactivate{% else %}Activate{% endif %}">
-                        <i class="fa-regular {% if r.rep.user.is_active %}fa-circle-pause{% else %}fa-circle-play{% endif %}"></i>
-                      </button>
-                    </form>
+                    <button type="button" class="ic toggle-active-btn" style="border:none;background:none;cursor:pointer;"
+                      title="{% if r.rep.user.is_active %}Deactivate{% else %}Activate{% endif %}"
+                      data-name="{{ r.rep.user.get_full_name|default:r.rep.user.username }}"
+                      data-is-active="{{ r.rep.user.is_active|yesno:'1,0' }}"
+                      data-toggle-url="{% url 'admin_dashboard:admin_rep_toggle_active' r.rep.id %}"
+                    >
+                      <i class="fa-regular {% if r.rep.user.is_active %}fa-circle-pause{% else %}fa-circle-play{% endif %}"></i>
+                    <button type="button" class="ic replace-rep-btn"
+                      title="Replace with another user"
+                      data-office="{{ r.rep.office.name }}"
+                      data-current-name="{{ r.rep.user.get_full_name|default:r.rep.user.username }}"
+                      data-replace-url="{% url 'admin_dashboard:admin_rep_replace_user' r.rep.id %}"
+                    ><i class="fa-solid fa-arrow-right-arrow-left"></i></button>
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -137,97 +146,108 @@
 
 
 <!-- Add / Edit Representative modal -->
-<div class="modal-backdrop" id="repModal">
+<div class="modal-backdrop" id="assignRepModal">
   <div class="modal-box">
     <div class="modal-head">
-      <h3 id="repModalTitle">Add Representative</h3>
-      <button class="modal-x" onclick="closeModal('repModal')"><i class="fa-solid fa-xmark"></i></button>
+      <h3>Assign Representative</h3>
+      <button type="button" class="modal-x" onclick="closeModal('assignRepModal')"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="modal-body">
-      <form onsubmit="return false;">
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Full name<span class="req">*</span></label>
-            <input class="form-input" type="text" id="repName" placeholder="Juan D. dela Cruz">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Email address<span class="req">*</span></label>
-            <input class="form-input" type="email" id="repEmail" placeholder="name@tunga.gov.ph">
-          </div>
+      <form method="post" enctype="multipart/form-data" action="{% url 'admin_dashboard:admin_assign_representative' %}">
+        {% csrf_token %}
+
+        <div class="form-group">
+          <label class="form-label">User account <span class="req">*</span></label>
+          <select class="form-input" name="user" required>
+            <option value="">Select a user</option>
+            {% for u in available_users %}
+              <option value="{{ u.id }}">{{ u.get_full_name|default:u.username }} ({{ u.username }})</option>
+            {% endfor %}
+          </select>
+          <span class="form-help">Only accounts not already assigned to an office are listed.</span>
         </div>
 
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Phone number</label>
-            <input class="form-input" type="tel" id="repPhone" placeholder="0917 000 0000">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Assigned office<span class="req">*</span></label>
-            <select class="form-input" id="repOffice">
-              <option>Office of the Municipal Mayor</option>
-              <option>Office of the Municipal Treasurer</option>
-              <option>Office of the Municipal Civil Registrar</option>
-              <option>Office of the Municipal Assessor</option>
-              <option>Office of the Municipal Health Officer</option>
-              <option>Municipal Social Welfare and Development Office</option>
-              <option>Office of the Municipal Tourism Officer</option>
-              <option>Office of the Municipal Agriculturist</option>
-              <option>Municipal Disaster Risk Reduction &amp; Management</option>
-              <option>Business Permits and Licensing Office</option>
-            </select>
-          </div>
+        <div class="form-group">
+          <label class="form-label">Office <span class="req">*</span></label>
+          <select class="form-input" name="office" required>
+            <option value="">Select an office</option>
+            {% for o in available_offices %}
+              <option value="{{ o.id }}">{{ o.name }}</option>
+            {% endfor %}
+          </select>
+          <span class="form-help">Only offices without a representative are listed — one account per office.</span>
         </div>
 
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">Position / title</label>
-            <input class="form-input" type="text" id="repPosition" placeholder="e.g. Records Officer">
+            <input class="form-input" type="text" name="position" placeholder="e.g. Records Officer">
           </div>
           <div class="form-group">
-            <label class="form-label">Access level</label>
-            <select class="form-input" id="repAccess">
-              <option>Standard Access</option>
-              <option>Full Office Access</option>
-            </select>
+            <label class="form-label">Mobile number</label>
+            <input class="form-input" type="tel" name="mobile_number" placeholder="0917 000 0000">
           </div>
         </div>
 
         <div class="form-group">
-          <label class="form-label">Account status</label>
-          <select class="form-input" id="repStatus">
-            <option>Active</option>
-            <option>Pending</option>
-            <option>Inactive</option>
-          </select>
-          <span class="form-help">Pending accounts can sign in only after accepting their email invitation.</span>
+          <label class="form-label">Photo</label>
+          <input class="form-input file-input" type="file" name="photo" accept="image/*">
         </div>
 
-        <div class="form-group">
-          <label class="form-label">Notes</label>
-          <textarea class="form-input form-textarea" id="repNotes" placeholder="Optional notes for this account, e.g. coverage schedule or handover details."></textarea>
+        <div class="modal-actions" style="padding:0;">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('assignRepModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Assign</button>
         </div>
       </form>
-    </div>
-    <div class="modal-actions" style="padding:0 20px 20px;">
-      <button class="btn btn-secondary" onclick="closeModal('repModal')">Cancel</button>
-      <button class="btn btn-primary" id="repSaveBtn" onclick="saveRep()"><i class="fa-solid fa-check"></i> Save changes</button>
     </div>
   </div>
 </div>
 
-<!-- Deactivate confirmation modal -->
+<!-- Activate / Deactivate confirmation modal -->
 <div class="modal-backdrop" id="deactivateModal">
   <div class="modal-box">
     <div class="modal-head">
-      <h3>Deactivate account</h3>
-      <button class="modal-x" onclick="closeModal('deactivateModal')"><i class="fa-solid fa-xmark"></i></button>
+      <h3 id="deactivateTitle">Deactivate account</h3>
+      <button type="button" class="modal-x" onclick="closeModal('deactivateModal')"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="modal-body">
       <p class="confirm-msg" id="deactivateMsg">Are you sure you want to deactivate this representative's account? They will immediately lose access to the admin panel, and any of their unpublished drafts will remain in the office queue.</p>
-      <div class="modal-actions">
-        <button class="btn btn-secondary" onclick="closeModal('deactivateModal')">Cancel</button>
-        <button class="btn btn-danger" onclick="closeModal('deactivateModal')"><i class="fa-solid fa-user-slash"></i> Deactivate</button>
-      </div>
+      <form id="toggleActiveForm" method="post" action="">
+        {% csrf_token %}
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('deactivateModal')">Cancel</button>
+          <button type="submit" class="btn btn-danger" id="deactivateConfirmBtn"><i class="fa-solid fa-user-slash"></i> Deactivate</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="replaceRepModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Replace Representative</h3>
+      <button type="button" class="modal-x" onclick="closeModal('replaceRepModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <p class="confirm-msg" id="replaceRepMsg" style="margin-bottom:16px;"></p>
+      <form id="replaceRepForm" method="post" action="">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label">New user account <span class="req">*</span></label>
+          <select class="form-input" name="new_user" required>
+            <option value="">Select a user</option>
+            {% for u in available_users %}
+              <option value="{{ u.id }}">{{ u.get_full_name|default:u.username }} ({{ u.username }})</option>
+            {% endfor %}
+          </select>
+          <span class="form-help">Only accounts not already assigned to an office are listed. The office's existing content stays linked — only the account changes.</span>
+        </div>
+        <div class="modal-actions" style="padding:0;">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('replaceRepModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-arrow-right-arrow-left"></i> Replace</button>
+        </div>
+      </form>
     </div>
   </div>
 </div>
@@ -245,49 +265,47 @@
     document.body.classList.remove('modal-open');
   }
 
-  function openAddRep(){
-    document.getElementById('repModalTitle').textContent = 'Add Representative';
-    document.getElementById('repName').value = '';
-    document.getElementById('repEmail').value = '';
-    document.getElementById('repPhone').value = '';
-    document.getElementById('repOffice').selectedIndex = 0;
-    document.getElementById('repPosition').value = '';
-    document.getElementById('repAccess').selectedIndex = 0;
-    setSelectValue('repStatus', 'Pending');
-    document.getElementById('repNotes').value = '';
-    openModal('repModal');
-  }
+  function openToggleActive(btn){
+    var isActive = btn.dataset.isActive === '1';
+    var name = btn.dataset.name;
+    var title = document.getElementById('deactivateTitle');
+    var msg = document.getElementById('deactivateMsg');
+    var confirmBtn = document.getElementById('deactivateConfirmBtn');
+    var form = document.getElementById('toggleActiveForm');
 
-  function openEditRep(el){
-    document.getElementById('repModalTitle').textContent = 'Edit Representative';
-    document.getElementById('repName').value = el.dataset.name || '';
-    document.getElementById('repEmail').value = el.dataset.email || '';
-    document.getElementById('repPhone').value = el.dataset.phone || '';
-    setSelectValue('repOffice', el.dataset.office);
-    document.getElementById('repPosition').value = el.dataset.position || '';
-    setSelectValue('repAccess', el.dataset.access);
-    setSelectValue('repStatus', el.dataset.status);
-    openModal('repModal');
-  }
+    form.action = btn.dataset.toggleUrl;
 
-  function setSelectValue(id, value){
-    var select = document.getElementById(id);
-    if(!value) return;
-    for(var i = 0; i < select.options.length; i++){
-      if(select.options[i].text === value){ select.selectedIndex = i; return; }
+    if (isActive) {
+      title.textContent = 'Deactivate account';
+      msg.textContent = 'Are you sure you want to deactivate ' + name + '\'s account? They will immediately lose access to the admin panel, and any of their unpublished drafts will remain in the office queue.';
+      confirmBtn.className = 'btn btn-danger';
+      confirmBtn.innerHTML = '<i class="fa-solid fa-user-slash"></i> Deactivate';
+    } else {
+      title.textContent = 'Activate account';
+      msg.textContent = 'Are you sure you want to activate ' + name + '\'s account? They will immediately regain access to the admin panel.';
+      confirmBtn.className = 'btn btn-primary';
+      confirmBtn.innerHTML = '<i class="fa-solid fa-user-check"></i> Activate';
     }
-  }
 
-  function openDeactivate(name){
-    document.getElementById('deactivateMsg').textContent =
-      'Are you sure you want to deactivate ' + name + '\'s account? They will immediately lose access to the admin panel, and any unpublished drafts will remain in the office queue.';
     openModal('deactivateModal');
   }
 
-  function saveRep(){
-    closeModal('repModal');
-    showToast('Representative account saved.');
-  }
+  document.querySelectorAll('.toggle-active-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      openToggleActive(btn);
+    });
+  });
+
+  document.querySelectorAll('.replace-rep-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var d = btn.dataset;
+      document.getElementById('replaceRepMsg').textContent =
+        d.office + ' is currently represented by ' + d.currentName + '. Choose a new user account to take over this office — all of ' + d.office + '\'s existing content will remain linked to it.';
+      document.getElementById('replaceRepForm').action = d.replaceUrl;
+      document.getElementById('replaceRepForm').reset();
+      openModal('replaceRepModal');
+    });
+  });
 
   function showToast(msg){
     var host = document.getElementById('toastHost');
@@ -302,12 +320,22 @@
     }, 2600);
   }
 
-  document.getElementById('repModal').addEventListener('click', function(e){
-    if(e.target === this) closeModal('repModal');
+  document.getElementById('assignRepModal').addEventListener('click', function(e){
+    if(e.target === this) closeModal('assignRepModal');
   });
+
   document.getElementById('deactivateModal').addEventListener('click', function(e){
     if(e.target === this) closeModal('deactivateModal');
   });
+
+  document.getElementById('open-assign-rep-modal').addEventListener('click', function(){
+    openModal('assignRepModal');
+  });
+
+  document.getElementById('replaceRepModal').addEventListener('click', function(e){
+    if(e.target === this) closeModal('replaceRepModal');
+  });
+
 </script>
 
 {% endblock %}

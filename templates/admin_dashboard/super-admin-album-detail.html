@@ -43,8 +43,13 @@
           <td><span class="badge {% if p.status == 'published' %}badge-green{% else %}badge-gray{% endif %}">{{ p.get_status_display }}</span></td>
           <td>
             <div class="action-icons">
-              <span class="ic" data-view-target="view-photo-modal-{{ p.id }}"><i class="fa-regular fa-eye"></i></span>
-              <span class="ic" data-delete-target="delete-photo-modal-{{ p.id }}"><i class="fa-regular fa-trash-can"></i></span>
+              <span class="ic" data-view-target="view-photo-modal-{{ p.id }}" title="View"><i class="fa-regular fa-eye"></i></span>
+              <button type="button" class="ic photo-edit-btn" title="Edit"
+                data-id="{{ p.id }}"
+                data-title="{{ p.title }}"
+                data-image="{{ p.image.url }}"
+              ><i class="fa-regular fa-pen-to-square"></i></button>
+              <span class="ic" data-delete-target="delete-photo-modal-{{ p.id }}" title="Delete"><i class="fa-regular fa-trash-can"></i></span>
             </div>
           </td>
         </tr>
@@ -66,17 +71,15 @@
     <div class="modal-body">
       <img src="{{ p.image.url }}" style="width:100%;max-height:320px;object-fit:cover;border-radius:10px;margin-bottom:16px;">
       <div class="modal-view-row"><span class="k">Title</span><span class="v">{{ p.title }}</span></div>
+      <div class="modal-view-row"><span class="k">Album</span><span class="v">{{ p.album.name|default:"Uncategorized" }}</span></div>
       <div class="modal-view-row"><span class="k">Uploaded by</span><span class="v">{{ p.representative.user.get_full_name|default:p.representative.user.username }}</span></div>
       <div class="modal-view-row"><span class="k">Office</span><span class="v">{{ p.representative.office.name }}</span></div>
       <div class="modal-view-row"><span class="k">Date</span><span class="v">{{ p.created_at|date:"F j, Y, g:i A" }}</span></div>
       <div class="modal-view-row"><span class="k">Status</span><span class="v">{{ p.get_status_display }}</span></div>
 
       <div class="modal-actions">
-        <form method="post" action="{% url 'admin_dashboard:admin_photo_archive' p.id %}" style="display:inline;">
-          {% csrf_token %}
-          <button type="submit" class="btn btn-secondary"><i class="fa-solid fa-box-archive"></i> {% if p.status == 'archive' %}Restore{% else %}Archive{% endif %}</button>
-        </form>
         <button type="button" class="btn btn-secondary" onclick="closeModal('view-photo-modal-{{ p.id }}')">Close</button>
+        <a href="{% url 'admin_dashboard:approval_details' 'Gallery' p.id %}" class="btn btn-primary">Open Full Review</a>
       </div>
     </div>
   </div>
@@ -89,7 +92,7 @@
       <button type="button" class="modal-x" onclick="closeModal('delete-photo-modal-{{ p.id }}')"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="modal-body">
-      <p>Are you sure you want to permanently delete <strong>"{{ p.title }}"</strong>? This cannot be undone.</p>
+      <p>Are you sure you want to delete <strong>"{{ p.title }}"</strong>? It will be removed from the public gallery and moved to the Archive, where it can be restored later.</p>
       <form method="post" action="{% url 'admin_dashboard:admin_photo_delete' p.id %}">
         {% csrf_token %}
         <div class="modal-actions">
@@ -102,13 +105,103 @@
 </div>
 {% endfor %}
 
+<div class="modal-backdrop" id="edit-photo-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Edit Photo</h3>
+      <button type="button" class="modal-x" id="edit-photo-close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form id="editPhotoForm" method="post" enctype="multipart/form-data" data-url-template="{% url 'admin_dashboard:admin_photo_save' 0 %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label">Caption / Title <span class="req">*</span></label>
+          <input class="form-input" type="text" id="edit-photo-title" name="title" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Current Photo</label>
+          <img id="edit-photo-preview" src="" alt="" style="width:100%;max-height:200px;object-fit:cover;border-radius:10px;margin-bottom:10px;">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Replace Photo</label>
+          <input class="form-input file-input" type="file" name="image" accept="image/*">
+          <span class="form-help">Leave empty to keep the current photo.</span>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="edit-photo-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <script>
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  document.body.classList.remove('modal-open');
+}
+
 document.querySelectorAll('[data-view-target]').forEach(function (t) {
-  t.addEventListener('click', function () { document.getElementById(t.dataset.viewTarget).classList.add('open'); });
+  t.addEventListener('click', function (e) {
+    e.stopPropagation();
+    document.getElementById(t.dataset.viewTarget).classList.add('open');
+    document.body.classList.add('modal-open');
+  });
 });
 document.querySelectorAll('[data-delete-target]').forEach(function (t) {
-  t.addEventListener('click', function () { document.getElementById(t.dataset.deleteTarget).classList.add('open'); });
+  t.addEventListener('click', function (e) {
+    e.stopPropagation();
+    document.getElementById(t.dataset.deleteTarget).classList.add('open');
+    document.body.classList.add('modal-open');
+  });
 });
+document.querySelectorAll('.modal-backdrop').forEach(function (modal) {
+  modal.addEventListener('click', function (e) {
+    if (e.target === modal) closeModal(modal.id);
+  });
+});
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 'Escape') return;
+  document.querySelectorAll('.modal-backdrop.open').forEach(function (modal) {
+    closeModal(modal.id);
+  });
+});
+
+(function () {
+  var modal = document.getElementById('edit-photo-modal');
+  var form = document.getElementById('editPhotoForm');
+  if (!modal || !form) return;
+
+  function closeEditModal() {
+    modal.classList.remove('open');
+    document.body.classList.remove('modal-open');
+  }
+
+  document.querySelectorAll('.photo-edit-btn').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var d = btn.dataset;
+
+      form.action = form.dataset.urlTemplate.replace('/0/', '/' + d.id + '/');
+      document.getElementById('edit-photo-title').value = d.title || '';
+      document.getElementById('edit-photo-preview').src = d.image || '';
+
+      modal.classList.add('open');
+      document.body.classList.add('modal-open');
+    });
+  });
+
+  document.getElementById('edit-photo-close').addEventListener('click', closeEditModal);
+  document.getElementById('edit-photo-cancel').addEventListener('click', closeEditModal);
+  modal.addEventListener('click', function (e) {
+    if (e.target === modal) closeEditModal();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && modal.classList.contains('open')) closeEditModal();
+  });
+})();
 </script>
 
 {% endblock %}

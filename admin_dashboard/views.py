@@ -2,7 +2,7 @@ from functools import wraps
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import SuperAdmin, SiteContactInfo, EmergencyContact
+from .models import SuperAdmin, SiteContactInfo, EmergencyContact, EmailProviderSettings
 from django.core.paginator import Paginator
 from django.contrib.auth.models import User
 from django.db.models import Count, Sum, Q, F
@@ -15,7 +15,7 @@ from office_dashboard.views import FORM_CATEGORY_CHOICES
 from django.utils.text import slugify
 import secrets
 import json
-from django.utils.text import slugify
+from django.urls import reverse
 
 # The synthetic office created by get_or_create_lgu_rep() so the Super
 # Admin can post content through the same representative/office FK the
@@ -667,13 +667,28 @@ def admin_gallery(request):
     })
 
 @super_admin_required
-def admin_photo_save(request):
+def admin_photo_save(request, pk):
     if request.method != "POST":
         return redirect('admin_dashboard:ad_gallery')
 
     title = request.POST.get('title', '').strip()
-    office_choice = request.POST.get('office')
     image = request.FILES.get('image')
+
+    if pk:
+        photo = get_object_or_404(Photo, pk=pk)
+        if not title:
+            messages.error(request, "Title is required.")
+        else:
+            photo.title = title
+            if image:
+                photo.image = image
+            photo.save()
+            messages.success(request, f'"{title}" was saved.')
+        if photo.album_id:
+            return redirect('admin_dashboard:ad_album_detail', pk=photo.album_id)
+        return redirect('admin_dashboard:ad_gallery')
+
+    office_choice = request.POST.get('office')
     album_choice = request.POST.get('album')
     new_album_name = request.POST.get('new_album_name', '').strip()
 
@@ -711,7 +726,7 @@ def admin_album_detail(request, pk):
     album = get_object_or_404(Album.objects.select_related('representative__office'), pk=pk)
     photos = album.photos.filter(status__in=['published', 'archive']).order_by('-created_at')
 
-    tab = request.GET.get('tab', 'all')
+    tab = request.GET.get('tab', 'active')
     if tab == 'active':
         photos = photos.filter(status='published')
     elif tab == 'archived':
@@ -740,12 +755,13 @@ def admin_photo_archive_toggle(request, pk):
 @super_admin_required
 def admin_photo_delete(request, pk):
     photo = get_object_or_404(Photo, pk=pk)
-    album_id = photo.album_id
     if request.method == "POST":
         title = photo.title
-        photo.delete()
-        messages.success(request, f'"{title}" was deleted.')
-    return redirect('admin_dashboard:ad_album_detail', pk=album_id)
+        photo.status = 'archive'
+        photo.save()
+        messages.success(request, f'"{title}" was archived.')
+        return redirect('admin_dashboard:ad_archive')
+    return redirect('admin_dashboard:ad_album_detail', pk=photo.album_id)
 
 @super_admin_required
 def admin_offices(request):
@@ -807,40 +823,6 @@ def admin_offices(request):
         "current_q": q,
         "current_status": status_filter,
     })
-
-@super_admin_required
-def admin_office_create(request):
-    if request.method == "POST":
-        name = request.POST.get('name', '').strip()
-
-        if not name:
-            messages.error(request, "Office name is required.")
-        elif Office.objects.filter(name__iexact=name).exists():
-            messages.error(request, f'An office named "{name}" already exists.')
-        else:
-            base_slug = slugify(name)
-            slug = base_slug
-            counter = 2
-            while Office.objects.filter(slug=slug).exists():
-                slug = f"{base_slug}-{counter}"
-                counter += 1
-
-            Office.objects.create(
-                name=name,
-                slug=slug,
-                logo=request.FILES.get('logo'),
-                about=request.POST.get('about', '').strip(),
-                description=request.POST.get('description', '').strip(),
-                head_name=request.POST.get('head_name', '').strip(),
-                position_title=request.POST.get('position_title', '').strip(),
-                office_hours=request.POST.get('office_hours', '').strip(),
-                location=request.POST.get('location', '').strip(),
-                email=request.POST.get('email', '').strip(),
-                telephone=request.POST.get('telephone', '').strip(),
-            )
-            messages.success(request, f'"{name}" was added.')
-
-    return redirect('admin_dashboard:ad_offices')
 
 @super_admin_required
 def admin_office_edit(request, pk):
@@ -927,7 +909,51 @@ def admin_office_rep(request):
         "current_q": q,
         "current_office": office_id,
         "current_status": status_filter,
+        "available_offices": Office.objects.exclude(slug=LGU_SUPER_ADMIN_SLUG).filter(representative__isnull=True).order_by('name'),
+        "available_users": User.objects.filter(office_rep__isnull=True, is_superuser=False).order_by('username'),
     })
+
+@super_admin_required
+def admin_assign_representative(request):
+    if request.method == "POST":
+        user_id = request.POST.get('user')
+        office_id = request.POST.get('office')
+        position = request.POST.get('position', '').strip()
+        mobile_number = request.POST.get('mobile_number', '').strip()
+        photo = request.FILES.get('photo')
+
+        user = User.objects.filter(pk=user_id, office_rep__isnull=True).first() if user_id else None
+        office = Office.objects.filter(pk=office_id, representative__isnull=True).first() if office_id else None
+
+        if not user or not office:
+            messages.error(request, "Please choose a user and an office that don't already have a representative assigned.")
+        else:
+            rep = OfficeRepresentative(user=user, office=office, position=position, mobile_number=mobile_number)
+            if photo:
+                rep.photo = photo
+            rep.save()
+            label = user.get_full_name() or user.username
+            messages.success(request, f'{label} was assigned as the representative for {office.name}.')
+
+    return redirect('admin_dashboard:ad_office_rep')
+
+@super_admin_required
+def admin_rep_replace_user(request, pk):
+    rep = get_object_or_404(OfficeRepresentative, pk=pk)
+    if request.method == "POST":
+        new_user_id = request.POST.get('new_user')
+        new_user = User.objects.filter(pk=new_user_id, office_rep__isnull=True).first() if new_user_id else None
+
+        if not new_user:
+            messages.error(request, "Please choose a user who isn't already assigned to another office.")
+        else:
+            old_label = rep.user.get_full_name() or rep.user.username
+            rep.user = new_user
+            rep.save()
+            new_label = new_user.get_full_name() or new_user.username
+            messages.success(request, f'{rep.office.name} is now represented by {new_label} (replacing {old_label}). All content stays linked to this office.')
+
+    return redirect('admin_dashboard:ad_office_rep')
 
 @super_admin_required
 def admin_rep_toggle_active(request, pk):
@@ -939,19 +965,29 @@ def admin_rep_toggle_active(request, pk):
         messages.success(request, f'{label} was {"activated" if rep.user.is_active else "deactivated"}.')
     return redirect('admin_dashboard:ad_office_rep')
 
+SERVICE_STATUS_BADGE = {
+    "pending": "badge-amber",
+    "published": "badge-green",
+    "returned": "badge-red",
+    "reject": "badge-red",
+    "archive": "badge-gray",
+}
+
 @super_admin_required
 def admin_services(request):
     q = request.GET.get('q', '').strip()
 
-    services = (Service.objects
-                .filter(status='published')
-                .select_related('office')
-                .order_by('name'))
+    services = Service.objects.filter(status='published').select_related('office').order_by('name')
 
     if q:
         services = services.filter(Q(name__icontains=q) | Q(office__name__icontains=q))
 
     total_count = Service.objects.filter(status='published').count()
+    archived_count = Service.objects.filter(status='archive').count()
+
+    services = list(services)
+    for s in services:
+        s.badge_class = SERVICE_STATUS_BADGE.get(s.status, 'badge-gray')
 
     paginator = Paginator(services, 10)
     page_obj = paginator.get_page(request.GET.get('page'))
@@ -959,17 +995,21 @@ def admin_services(request):
     return render(request, "admin_dashboard/super-admin-services.html", {
         "page_obj": page_obj,
         "total_count": total_count,
+        "archived_count": archived_count,
         "current_q": q,
     })
 
-
 @super_admin_required
 def admin_service_detail(request, pk):
-    service = get_object_or_404(Service.objects.select_related('office'), pk=pk, status='published')
+    service = get_object_or_404(Service.objects.select_related('office'), pk=pk)
+    service.badge_class = SERVICE_STATUS_BADGE.get(service.status, 'badge-gray')
     return render(request, "admin_dashboard/super-admin-service-detail.html", {
         "service": service,
+        "steps": service.steps.all().order_by('order'),
+        "requirements": service.requirements.all().order_by('order'),
+        "fees": service.fees.all().order_by('order'),
+        "forms": service.forms.all().order_by('-date_uploaded'),
     })
-
 
 @super_admin_required
 def admin_service_delete(request, pk):
@@ -1039,27 +1079,6 @@ def admin_homepage(request):
     return render(request, "admin_dashboard/super-admin-homepage.html")
 
 @super_admin_required
-def admin_contact_info(request):
-    info = SiteContactInfo.get_solo()
-
-    if request.method == "POST":
-        info.phone = request.POST.get('phone', '').strip()
-        info.phone_local = request.POST.get('phone_local', '').strip()
-        info.email = request.POST.get('email', '').strip()
-        info.email_secondary = request.POST.get('email_secondary', '').strip()
-        info.address = request.POST.get('address', '').strip()
-        info.facebook_name = request.POST.get('facebook_name', '').strip()
-        info.facebook_url = request.POST.get('facebook_url', '').strip()
-        info.office_hours = request.POST.get('office_hours', '').strip()
-        info.save()
-        messages.success(request, "Contact information was updated.")
-        return redirect('admin_dashboard:ad_contact_info')
-
-    return render(request, "admin_dashboard/super-admin-contact-info.html", {
-        "info": info,
-    })
-
-@super_admin_required
 def admin_interactive_map(request):
     return render(request, "admin_dashboard/super-admin-interactive-map.html")
 
@@ -1105,7 +1124,47 @@ def admin_contact_delete(request, pk):
 
 @super_admin_required
 def admin_web_setting(request):
-    return render(request, "admin_dashboard/super-admin-website-settings.html")
+    info = SiteContactInfo.get_solo()
+
+    if request.method == "POST":
+        section = request.POST.get('section')
+
+        if section == 'appearance':
+            if request.FILES.get('logo'):
+                info.logo = request.FILES.get('logo')
+            if request.FILES.get('hero_banner'):
+                info.hero_banner = request.FILES.get('hero_banner')
+            info.save()
+            messages.success(request, "Appearance settings were updated.")
+        elif section == 'social':
+            info.social_facebook = request.POST.get('social_facebook', '').strip()
+            info.social_twitter = request.POST.get('social_twitter', '').strip()
+            info.social_instagram = request.POST.get('social_instagram', '').strip()
+            info.social_youtube = request.POST.get('social_youtube', '').strip()
+            info.show_facebook_footer = request.POST.get('show_facebook_footer') == 'on'
+            info.show_twitter_footer = request.POST.get('show_twitter_footer') == 'on'
+            info.show_instagram_footer = request.POST.get('show_instagram_footer') == 'on'
+            info.show_youtube_footer = request.POST.get('show_youtube_footer') == 'on'
+            info.save()
+            messages.success(request, "Social media settings were updated.")
+        else:
+            info.phone = request.POST.get('phone', '').strip()
+            info.phone_local = request.POST.get('phone_local', '').strip()
+            info.email = request.POST.get('email', '').strip()
+            info.email_secondary = request.POST.get('email_secondary', '').strip()
+            info.address = request.POST.get('address', '').strip()
+            info.facebook_name = request.POST.get('facebook_name', '').strip()
+            info.facebook_url = request.POST.get('facebook_url', '').strip()
+            info.office_hours = request.POST.get('office_hours', '').strip()
+            info.save()
+            messages.success(request, "Contact information was updated.")
+
+        return redirect(reverse('admin_dashboard:ad_web_setting') + '#' + (section or 'general'))
+
+    return render(request, "admin_dashboard/super-admin-website-settings.html", {
+        "info": info,
+    })
+
 
 @super_admin_required
 def admin_analytics(request):
@@ -1117,7 +1176,28 @@ def admin_activity_log(request):
 
 @super_admin_required
 def admin_system_setting(request):
-    return render(request, "admin_dashboard/super-admin-system-settings.html")
+    email_settings = EmailProviderSettings.get_solo()
+
+    if request.method == "POST":
+        email_address = request.POST.get('email_address', '').strip()
+        app_password = request.POST.get('app_password', '').strip()
+
+        if not email_address:
+            messages.error(request, "Gmail address is required.")
+        else:
+            email_settings.email_address = email_address
+            if app_password:
+                email_settings.set_app_password(app_password)
+            email_settings.is_configured = bool(
+                email_settings.email_address and email_settings.app_password_encrypted
+            )
+            email_settings.save()
+            messages.success(request, "Email provider settings were saved.")
+        return redirect('admin_dashboard:ad_system_settings')
+
+    return render(request, "admin_dashboard/super-admin-system-settings.html", {
+        "email_settings": email_settings,
+    })
 
 @super_admin_required
 def admin_archive(request):

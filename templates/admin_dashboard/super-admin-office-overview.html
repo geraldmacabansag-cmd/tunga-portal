@@ -39,7 +39,6 @@
       <section class="panel">
         <div class="panel-header">
           <h2>All Offices</h2>
-          <button type="button" class="btn btn-primary" onclick="document.getElementById('add-office-modal').classList.add('open')"><i class="fa-solid fa-plus"></i> Add Office</button>
         </div>
         <form method="get" class="filters-row">
           <label class="field search" style="flex:1;"><i class="fa-solid fa-magnifying-glass"></i><input type="text" name="q" value="{{ current_q }}" placeholder="Search office..." onchange="this.form.submit()"></label>
@@ -126,79 +125,6 @@
   </div>
 </div>
 {% endfor %}
-
-<div class="modal-backdrop" id="add-office-modal">
-  <div class="modal-box">
-    <div class="modal-head">
-      <h3>Add Office</h3>
-      <button type="button" class="modal-x" onclick="document.getElementById('add-office-modal').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-    <div class="modal-body">
-      <form method="post" enctype="multipart/form-data" action="{% url 'admin_dashboard:admin_office_create' %}">
-        {% csrf_token %}
-
-        <div class="form-group">
-          <label class="form-label">Office Name <span class="req">*</span></label>
-          <input class="form-input" type="text" name="name" placeholder="e.g. Office of the Municipal Engineer" required>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Logo</label>
-          <input class="form-input file-input" type="file" name="logo" accept="image/*">
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">About Office</label>
-          <textarea class="form-input form-textarea" name="about" rows="3" placeholder="Short introduction about this office"></textarea>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Office Description</label>
-          <textarea class="form-input form-textarea" name="description" rows="3" placeholder="What this office does"></textarea>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Office Head</label>
-            <input class="form-input" type="text" name="head_name" placeholder="e.g. Hon. Juan Dela Cruz">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Position Title</label>
-            <input class="form-input" type="text" name="position_title" placeholder="e.g. Municipal Engineer">
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Office Hours</label>
-          <input class="form-input" type="text" name="office_hours" placeholder="e.g. Monday - Friday, 8:00 AM - 5:00 PM">
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Location</label>
-          <input class="form-input" type="text" name="location" placeholder="e.g. 2nd Floor, Municipal Hall">
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Email</label>
-            <input class="form-input" type="email" name="email" placeholder="office@tunga.gov.ph">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Telephone</label>
-            <input class="form-input" type="text" name="telephone" placeholder="(053) 123-4567">
-          </div>
-        </div>
-
-        <p class="form-help">A representative login account for this office still needs to be created separately in Django admin.</p>
-
-        <div class="modal-actions">
-          <button type="button" class="btn btn-secondary" onclick="document.getElementById('add-office-modal').classList.remove('open')">Cancel</button>
-          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Add Office</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
 
 {% for r in rows %}
 <div class="modal-backdrop" id="edit-office-modal-{{ r.office.id }}">

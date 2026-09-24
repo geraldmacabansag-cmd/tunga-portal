@@ -8,7 +8,7 @@ Home | Digital Governance Portal
 {% block content %}
 
 <section class="hero">
-  <img src="{% static 'images/lgu_bldg.jpeg' %}" alt="Tunga Municipal Hall" class="hero__bg">
+  <img src="{% if site_contact.hero_banner %}{{ site_contact.hero_banner.url }}{% else %}{% static 'images/lgu_bldg.jpeg' %}{% endif %}" alt="Tunga Municipal Hall" class="hero__bg">
   <div class="hero__scrim"></div>
   <div class="hero__content container">
     <div class="hero__card">

@@ -27,6 +27,16 @@ class SiteContactInfo(models.Model):
     facebook_name = models.CharField(max_length=150, blank=True)
     facebook_url = models.URLField(blank=True)
     office_hours = models.CharField(max_length=150, blank=True)
+    logo = models.ImageField(upload_to="site/", blank=True, null=True)
+    hero_banner = models.ImageField(upload_to="site/", blank=True, null=True)
+    social_facebook = models.URLField(blank=True)
+    social_twitter = models.URLField(blank=True)
+    social_instagram = models.URLField(blank=True)
+    social_youtube = models.URLField(blank=True)
+    show_facebook_footer = models.BooleanField(default=True)
+    show_twitter_footer = models.BooleanField(default=True)
+    show_instagram_footer = models.BooleanField(default=True)
+    show_youtube_footer = models.BooleanField(default=True)
     last_updated = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -48,6 +58,32 @@ class SiteContactInfo(models.Model):
             'office_hours': 'Monday – Friday, 8:00 AM – 5:00 PM',
         })
         return obj
+
+class EmailProviderSettings(models.Model):
+    email_address = models.EmailField(blank=True)
+    app_password_encrypted = models.TextField(blank=True)
+    is_configured = models.BooleanField(default=False)
+    last_updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Email Provider Settings"
+        verbose_name_plural = "Email Provider Settings"
+
+    def __str__(self):
+        return "Email Provider Settings"
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    def set_app_password(self, plain_password):
+        from .crypto_utils import encrypt_value
+        self.app_password_encrypted = encrypt_value(plain_password)
+
+    def get_app_password(self):
+        from .crypto_utils import decrypt_value
+        return decrypt_value(self.app_password_encrypted)
 
 class EmergencyContact(models.Model):
 

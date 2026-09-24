@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load socialaccount %}
 
 {% block title %}
 Home | Digital Governance Portal
@@ -24,6 +25,11 @@ Home | Digital Governance Portal
         <img src="{% static 'images/tunga_leyte_logo.png' %}" alt="Municipality of Tunga seal" class="auth-card__seal">
         <h1>Create Account</h1>
         <p>Sign up to start using citizen services online.</p>
+        {% if prefill.email %}
+          <p style="font-size:12.5px;color:#1a7f37;margin-top:6px;">
+            <i class="fa-brands fa-google"></i> Details fetched from your Google account — just confirm them, verify your email, and set a password below.
+          </p>
+        {% endif %}
       </div>
 
       <form class="auth-form" method="post">
@@ -33,14 +39,14 @@ Home | Digital Governance Portal
             First Name
             <div class="input-icon">
               <i class="fa-regular fa-user"></i>
-              <input type="text" name="first_name" placeholder="Juan" required>
+              <input type="text" name="first_name" value="{{ prefill.first_name|default:'' }}" placeholder="Juan" required>
             </div>
           </label>
           <label>
             Last Name
             <div class="input-icon">
               <i class="fa-regular fa-user"></i>
-              <input type="text" name="last_name" placeholder="Dela Cruz" required>
+              <input type="text" name="last_name" value="{{ prefill.last_name|default:'' }}" placeholder="Dela Cruz" required>
             </div>
           </label>
         </div>
@@ -49,9 +55,21 @@ Home | Digital Governance Portal
           Email Address
           <div class="input-icon">
             <i class="fa-regular fa-envelope"></i>
-            <input type="email" name="email" placeholder="you@example.com" required>
+            <input type="email" name="email" id="signup-email" value="{{ prefill.email|default:'' }}" placeholder="you@example.com" required>
           </div>
         </label>
+
+        <div class="auth-form__row auth-form__row--2" style="align-items:flex-end;">
+          <label style="grid-column:1/2;">
+            Verification Code
+            <div class="input-icon">
+              <i class="fa-solid fa-shield-halved"></i>
+              <input type="text" name="otp_code" id="signup-otp" placeholder="6-digit code" maxlength="6" inputmode="numeric" required>
+            </div>
+          </label>
+          <button type="button" id="send-otp-btn" class="btn btn-outline" style="height:46px;">Send Code</button>
+        </div>
+        <p id="otp-status-msg" style="font-size:12.5px;margin:-8px 0 4px;"></p>
 
         <label>
           Mobile Number
@@ -87,14 +105,80 @@ Home | Digital Governance Portal
 
         <div class="auth-divider"><span>or sign up with</span></div>
 
-        <button type="button" class="btn btn-outline btn-block auth-social">
-          <i class="fa-brands fa-google"></i> Continue with Google
-        </button>
+          <a href="{% url 'google_signup_start' %}" class="btn btn-outline btn-block auth-social">
+            <i class="fa-brands fa-google"></i> Continue with Google
+          </a>
 
         <p class="auth-switch">Already have an account? <a href="{% url 'login' %}">Log in</a></p>
       </form>
     </div>
   </div>
 </main>
+
+<script>
+(function () {
+  var sendBtn = document.getElementById('send-otp-btn');
+  var emailInput = document.getElementById('signup-email');
+  var statusMsg = document.getElementById('otp-status-msg');
+  if (!sendBtn) return;
+
+  var cooldownTimer = null;
+
+  function startCooldown(seconds) {
+    sendBtn.disabled = true;
+    var remaining = seconds;
+    sendBtn.textContent = 'Resend in ' + remaining + 's';
+    cooldownTimer = setInterval(function () {
+      remaining -= 1;
+      if (remaining <= 0) {
+        clearInterval(cooldownTimer);
+        sendBtn.disabled = false;
+        sendBtn.textContent = 'Send Code';
+      } else {
+        sendBtn.textContent = 'Resend in ' + remaining + 's';
+      }
+    }, 1000);
+  }
+
+  sendBtn.addEventListener('click', function () {
+    var email = emailInput.value.trim();
+    if (!email) {
+      statusMsg.textContent = 'Please enter your email address first.';
+      statusMsg.style.color = '#c0392b';
+      return;
+    }
+
+    sendBtn.disabled = true;
+    statusMsg.textContent = 'Sending code…';
+    statusMsg.style.color = '#555';
+
+    var formData = new FormData();
+    formData.append('email', email);
+
+    fetch('{% url "send_signup_otp" %}', {
+      method: 'POST',
+      headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': '{{ csrf_token }}' },
+      body: formData,
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (data.success) {
+          statusMsg.textContent = 'Code sent! Check your inbox (it may take a minute).';
+          statusMsg.style.color = '#1a7f37';
+          startCooldown(60);
+        } else {
+          statusMsg.textContent = data.error || 'Could not send the code. Please try again.';
+          statusMsg.style.color = '#c0392b';
+          sendBtn.disabled = false;
+        }
+      })
+      .catch(function () {
+        statusMsg.textContent = 'Something went wrong. Please try again.';
+        statusMsg.style.color = '#c0392b';
+        sendBtn.disabled = false;
+      });
+  });
+})();
+</script>
 
 {% endblock %}

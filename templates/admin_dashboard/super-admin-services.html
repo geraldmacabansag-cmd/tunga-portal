@@ -17,12 +17,18 @@
     </div>
   </div>
 
-  <div class="stat-grid" style="grid-template-columns:260px;">
+  <div class="stat-grid" style="grid-template-columns:repeat(2,260px);">
     <div class="stat-card">
-      <div class="top"><span class="stat-icon blue"><i class="fa-solid fa-list-check"></i></span></div>
+      <div class="top"><span class="stat-icon green"><i class="fa-solid fa-circle-check"></i></span></div>
       <div class="stat-value">{{ total_count }}</div>
-      <div class="stat-label">Published services</div>
-      <div class="stat-sub">Live across all offices</div>
+      <div class="stat-label">Total services published</div>
+      <div class="stat-sub">Live on the website</div>
+    </div>
+    <div class="stat-card">
+      <div class="top"><span class="stat-icon gray"><i class="fa-solid fa-box-archive"></i></span></div>
+      <div class="stat-value">{{ archived_count }}</div>
+      <div class="stat-label">Archived</div>
+      <div class="stat-sub">Hidden from the public site</div>
     </div>
   </div>
 
@@ -39,6 +45,7 @@
             <th>Category</th>
             <th>Office</th>
             <th>Availability</th>
+            <th>Status</th>
             <th>Actions</th>
           </tr>
         </thead>
@@ -52,6 +59,7 @@
           <td><span class="tag tag-gray">{{ service.get_category_display }}</span></td>
           <td>{{ service.office.name }}</td>
           <td>{{ service.availability|default:"—" }}</td>
+          <td><span class="badge {{ service.badge_class }}">{{ service.get_status_display }}</span></td>
           <td>
             <div class="action-icons">
               <a class="ic" href="{% url 'admin_dashboard:ad_service_detail' service.pk %}"><i class="fa-regular fa-eye"></i></a>
@@ -60,7 +68,7 @@
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--gray-400);">No published services{% if current_q %} match "{{ current_q }}"{% endif %}.</td></tr>
+        <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--gray-400);">No services{% if current_q %} match "{{ current_q }}"{% endif %}.</td></tr>
         {% endfor %}
         </tbody>
       </table>
@@ -71,7 +79,7 @@
       <span>Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} services</span>
       <div class="page-nums">
         {% if page_obj.has_previous %}
-          <a class="page-btn" href="?q={{ current_q }}&page={{ page_obj.previous_page_number }}"><i class="fa-solid fa-chevron-left"></i></a>
+          <a class="page-btn" href="?q={{ current_q }}&status={{ current_status }}&page={{ page_obj.previous_page_number }}"><i class="fa-solid fa-chevron-left"></i></a>
         {% else %}
           <span class="page-btn disabled"><i class="fa-solid fa-chevron-left"></i></span>
         {% endif %}
@@ -79,11 +87,11 @@
           {% if num == page_obj.number %}
             <span class="page-btn active">{{ num }}</span>
           {% else %}
-            <a class="page-btn" href="?q={{ current_q }}&page={{ num }}">{{ num }}</a>
+            <a class="page-btn" href="?q={{ current_q }}&status={{ current_status }}&page={{ num }}">{{ num }}</a>
           {% endif %}
         {% endfor %}
         {% if page_obj.has_next %}
-          <a class="page-btn" href="?q={{ current_q }}&page={{ page_obj.next_page_number }}"><i class="fa-solid fa-chevron-right"></i></a>
+          <a class="page-btn" href="?q={{ current_q }}&status={{ current_status }}&page={{ page_obj.next_page_number }}"><i class="fa-solid fa-chevron-right"></i></a>
         {% else %}
           <span class="page-btn disabled"><i class="fa-solid fa-chevron-right"></i></span>
         {% endif %}

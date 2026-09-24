@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load socialaccount %}
 
 {% block title %}
 Home | Digital Governance Portal
@@ -50,16 +51,16 @@ Home | Digital Governance Portal
           <label class="checkbox-label">
             <input type="checkbox"> Remember me
           </label>
-          <a href="#" class="auth-link">Forgot password?</a>
+          <a href="{% url 'forgot_password' %}" class="auth-link">Forgot password?</a>
         </div>
 
         <button type="submit" class="btn btn-primary btn-block">Log In</button>
 
         <div class="auth-divider"><span>or continue with</span></div>
 
-        <button type="button" class="btn btn-outline btn-block auth-social">
-          <i class="fa-brands fa-google"></i> Continue with Google
-        </button>
+          <a href="{% url 'google_login_start' %}" class="btn btn-outline btn-block auth-social">
+            <i class="fa-brands fa-google"></i> Continue with Google
+          </a>
 
         <p class="auth-switch">Don't have an account? <a href="{% url 'signup' %}">Create one now</a></p>
       </form>
