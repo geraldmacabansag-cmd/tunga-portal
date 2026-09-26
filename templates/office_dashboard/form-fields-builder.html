@@ -1,0 +1,276 @@
+{% extends "representative_dashboard_base.html" %}
+{% load static %}
+{% block body_page %}downloadable-forms{% endblock %}
+
+{% block content %}
+
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')"><i class="fa-solid fa-bars"></i></button>
+        <div class="page-heading">
+          <h1>Make Fillable — {{ form_obj.title }}</h1>
+          <p>Click anywhere on the form to place an input field. Drag a field to reposition it.</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <a href="{% url 'office_dashboard:downloadable_form' %}" class="btn btn-secondary" style="text-decoration:none;"><i class="fa-solid fa-arrow-left"></i> Back to Forms</a>
+      </div>
+    </header>
+
+    <div class="panel-body" style="display:flex;gap:20px;align-items:flex-start;padding:20px;">
+
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+          <button type="button" class="btn btn-secondary" id="prevPageBtn"><i class="fa-solid fa-chevron-left"></i></button>
+          <span id="pageIndicator" style="font-size:13px;color:var(--gray-600);">Page 1</span>
+          <button type="button" class="btn btn-secondary" id="nextPageBtn"><i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+
+        <div style="max-width:100%;overflow-x:auto;">
+          <div id="pdf-stage" style="position:relative;display:inline-block;border:1px solid var(--gray-200);border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08);cursor:crosshair;">
+            <canvas id="pdf-canvas"></canvas>
+            <div id="field-layer" style="position:absolute;top:0;left:0;right:0;bottom:0;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:320px;flex-shrink:0;">
+        <div class="panel" style="padding:16px;">
+          <h3 style="margin:0 0 10px;font-size:14px;">Fields on this form</h3>
+          <div id="field-list" style="display:flex;flex-direction:column;gap:10px;max-height:60vh;overflow-y:auto;"></div>
+          <p id="empty-hint" style="font-size:12.5px;color:var(--gray-400);margin-top:8px;">No fields placed yet. Click on the form to add one.</p>
+
+          <button type="button" class="btn btn-primary" id="saveFieldsBtn" style="width:100%;margin-top:16px;">
+            <i class="fa-solid fa-check"></i> Save Fields
+          </button>
+          <p id="save-status" style="font-size:12.5px;margin-top:8px;"></p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+<script type="application/json" id="fields-data">{{ fields_json|safe }}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+<script>
+(function () {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js";
+
+  var PDF_URL = "{{ form_obj.file.url }}";
+  var SAVE_URL = "{% url 'office_dashboard:save_form_fields' form_obj.pk %}";
+
+  var pdfDoc = null;
+  var currentPage = 1;
+  var totalPages = 1;
+  var canvas = document.getElementById('pdf-canvas');
+  var ctx = canvas.getContext('2d');
+  var fieldLayer = document.getElementById('field-layer');
+  var stage = document.getElementById('pdf-stage');
+
+  // fields: {id (temp or real), label, field_type, required, page_number, x, y, width, height}
+  var rawFieldsData = JSON.parse(document.getElementById('fields-data').textContent);
+  var fields = rawFieldsData.map(function (f) {
+    f._key = 'existing-' + f.id;
+    return f;
+  });
+  var nextTempId = 1;
+
+  function loadPage(num) {
+    pdfDoc.getPage(num).then(function (page) {
+      var viewport = page.getViewport({ scale: 1.4 });
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      stage.style.width = viewport.width + 'px';
+      stage.style.height = viewport.height + 'px';
+
+      page.render({ canvasContext: ctx, viewport: viewport }).promise.then(function () {
+        renderFieldsForCurrentPage();
+      });
+    });
+    document.getElementById('pageIndicator').textContent = 'Page ' + num + ' of ' + totalPages;
+  }
+
+  pdfjsLib.getDocument(PDF_URL).promise.then(function (doc) {
+    pdfDoc = doc;
+    totalPages = doc.numPages;
+    loadPage(currentPage);
+  }).catch(function (err) {
+    document.getElementById('pdf-stage').innerHTML = '<p style="padding:20px;color:#c0392b;">Could not load the PDF for preview: ' + err.message + '</p>';
+  });
+
+  document.getElementById('prevPageBtn').addEventListener('click', function () {
+    if (currentPage > 1) { currentPage -= 1; loadPage(currentPage); }
+  });
+  document.getElementById('nextPageBtn').addEventListener('click', function () {
+    if (currentPage < totalPages) { currentPage += 1; loadPage(currentPage); }
+  });
+
+  function renderFieldsForCurrentPage() {
+    fieldLayer.innerHTML = '';
+    fields.filter(function (f) { return f.page_number === currentPage; }).forEach(renderFieldBox);
+  }
+
+  function renderFieldBox(f) {
+    var box = document.createElement('div');
+    box.className = 'placed-field';
+    box.dataset.key = f._key;
+    box.style.cssText = [
+      'position:absolute',
+      'left:' + (f.x * 100) + '%',
+      'top:' + (f.y * 100) + '%',
+      'width:' + (f.width * 100) + '%',
+      'height:' + (f.height * 100) + '%',
+      'background:rgba(47,91,234,0.12)',
+      'border:1.5px dashed #2f5bea',
+      'border-radius:3px',
+      'cursor:move',
+      'display:flex',
+      'align-items:center',
+      'justify-content:center',
+      'font-size:11px',
+      'color:#2f5bea',
+      'overflow:hidden',
+      'padding:2px',
+      'box-sizing:border-box',
+      'user-select:none',
+    ].join(';');
+    box.textContent = f.label || '(unlabeled)';
+
+    box.addEventListener('mousedown', function (e) {
+      e.preventDefault();
+      var stageRect = stage.getBoundingClientRect();
+      function onMove(moveEvt) {
+        var relX = (moveEvt.clientX - stageRect.left) / stageRect.width;
+        var relY = (moveEvt.clientY - stageRect.top) / stageRect.height;
+        f.x = Math.max(0, Math.min(1 - f.width, relX - f.width / 2));
+        f.y = Math.max(0, Math.min(1 - f.height, relY - f.height / 2));
+        box.style.left = (f.x * 100) + '%';
+        box.style.top = (f.y * 100) + '%';
+      }
+      function onUp() {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+
+    fieldLayer.appendChild(box);
+  }
+
+  stage.addEventListener('click', function (e) {
+    if (e.target !== canvas && e.target !== fieldLayer) return; // ignore clicks that started a drag on an existing field
+    var rect = stage.getBoundingClientRect();
+    var relX = (e.clientX - rect.left) / rect.width;
+    var relY = (e.clientY - rect.top) / rect.height;
+
+    var defaultWidth = 0.22;
+    var defaultHeight = 0.035;
+
+    var field = {
+      _key: 'new-' + (nextTempId++),
+      label: '',
+      field_type: 'text',
+      required: true,
+      page_number: currentPage,
+      x: Math.max(0, Math.min(1 - defaultWidth, relX - defaultWidth / 2)),
+      y: Math.max(0, Math.min(1 - defaultHeight, relY - defaultHeight / 2)),
+      width: defaultWidth,
+      height: defaultHeight,
+    };
+    fields.push(field);
+    renderFieldsForCurrentPage();
+    renderFieldList();
+  });
+
+  function renderFieldList() {
+    var list = document.getElementById('field-list');
+    var emptyHint = document.getElementById('empty-hint');
+    list.innerHTML = '';
+    emptyHint.style.display = fields.length ? 'none' : 'block';
+
+    fields.forEach(function (f, index) {
+      var row = document.createElement('div');
+      row.style.cssText = 'border:1px solid var(--gray-200);border-radius:8px;padding:10px;';
+      row.innerHTML =
+        '<div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">' +
+          '<input type="text" class="form-input field-label-input" placeholder="Field label (e.g. Full Name)" value="' + escapeAttr(f.label) + '" style="flex:1;font-size:12.5px;padding:6px 8px;">' +
+          '<button type="button" class="ic remove-field-btn" title="Remove" style="border:none;background:none;cursor:pointer;color:#c0392b;"><i class="fa-solid fa-trash-can"></i></button>' +
+        '</div>' +
+        '<div style="display:flex;gap:6px;align-items:center;">' +
+          '<select class="form-input field-type-select" style="font-size:12px;padding:5px 6px;">' +
+            '<option value="text"' + (f.field_type === 'text' ? ' selected' : '') + '>Short Text</option>' +
+            '<option value="date"' + (f.field_type === 'date' ? ' selected' : '') + '>Date</option>' +
+            '<option value="number"' + (f.field_type === 'number' ? ' selected' : '') + '>Number</option>' +
+            '<option value="checkbox"' + (f.field_type === 'checkbox' ? ' selected' : '') + '>Checkbox</option>' +
+          '</select>' +
+          '<label style="font-size:11.5px;display:flex;align-items:center;gap:4px;white-space:nowrap;">' +
+            '<input type="checkbox" class="field-required-checkbox"' + (f.required ? ' checked' : '') + '> Required' +
+          '</label>' +
+        '</div>' +
+        '<div style="font-size:11px;color:var(--gray-400);margin-top:4px;">Page ' + f.page_number + '</div>';
+
+      row.querySelector('.field-label-input').addEventListener('input', function (e) {
+        f.label = e.target.value;
+        var box = fieldLayer.querySelector('[data-key="' + f._key + '"]');
+        if (box) box.textContent = f.label || '(unlabeled)';
+      });
+      row.querySelector('.field-type-select').addEventListener('change', function (e) {
+        f.field_type = e.target.value;
+      });
+      row.querySelector('.field-required-checkbox').addEventListener('change', function (e) {
+        f.required = e.target.checked;
+      });
+      row.querySelector('.remove-field-btn').addEventListener('click', function () {
+        fields = fields.filter(function (x) { return x._key !== f._key; });
+        renderFieldsForCurrentPage();
+        renderFieldList();
+      });
+
+      list.appendChild(row);
+    });
+  }
+
+  function escapeAttr(str) {
+    return String(str || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  }
+
+  document.getElementById('saveFieldsBtn').addEventListener('click', function () {
+    var statusEl = document.getElementById('save-status');
+    var missingLabel = fields.some(function (f) { return !f.label.trim(); });
+    if (missingLabel) {
+      statusEl.textContent = 'Every field needs a label before saving.';
+      statusEl.style.color = '#c0392b';
+      return;
+    }
+
+    statusEl.textContent = 'Saving…';
+    statusEl.style.color = '#555';
+
+    fetch(SAVE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+      body: JSON.stringify({ fields: fields }),
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (data.success) {
+          statusEl.textContent = 'Saved!';
+          statusEl.style.color = '#1a7f37';
+        } else {
+          statusEl.textContent = data.error || 'Could not save. Please try again.';
+          statusEl.style.color = '#c0392b';
+        }
+      })
+      .catch(function () {
+        statusEl.textContent = 'Something went wrong. Please try again.';
+        statusEl.style.color = '#c0392b';
+      });
+  });
+
+  renderFieldList();
+})();
+</script>
+
+{% endblock %}

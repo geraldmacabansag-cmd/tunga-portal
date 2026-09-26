@@ -79,7 +79,7 @@
         </form>
         <div class="table-wrap">
           <table class="data-table">
-            <thead><tr><th>Service</th><th>Category</th><th>Status</th><th>Availability</th><th>Processing Time</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Services Name</th><th>Classification</th><th>Type of Transaction</th><th>Who May Avail</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
               {% for service in services %}
               <tr>
@@ -87,14 +87,14 @@
                   <span class="row-thumb" style="background:var(--blue-50,#eff6ff);color:var(--blue-600);"><i class="{{ service.icon }}"></i></span>
                   <span class="cell-primary">{{ service.name }}</span>
                 </td>
-                <td><span class="tag">{{ service.get_category_display }}</span></td>
+                <td><span class="tag">{{ service.classification|default:"—" }}</span></td>
+                <td>{{ service.transaction_type_display|default:"—" }}</td>
+                <td>{{ service.who_may_avail|default:"—" }}</td>
                 <td>
                   <span class="badge {% if service.status == 'published' %}badge-green{% elif service.status == 'pending' %}badge-amber{% elif service.status == 'returned' or service.status == 'reject' %}badge-red{% else %}badge-gray{% endif %}">
                     {{ service.get_status_display }}
                   </span>
                 </td>
-                <td>{{ service.availability|default:"—" }}</td>
-                <td>{{ service.processing_time|default:"—" }}</td>
                 <td>
                   <div class="action-icons">
                     <button type="button" class="ic view-service-btn" title="View"
@@ -106,14 +106,20 @@
                       data-availability="{{ service.availability|default:'Monday - Friday, 8:00 AM - 5:00 PM' }}"
                       data-processing="{{ service.processing_time|default:'3 - 5 Working Days' }}"
                       data-office="{{ service.office.name|default:rep.office.name }}"
+                      data-division="{{ service.division|default:service.office.name|default:rep.office.name }}"
+                      data-classification="{{ service.classification|default:'' }}"
+                      data-transaction-type="{{ service.transaction_type_display }}"
+                      data-who-may-avail="{{ service.who_may_avail|default:'' }}"
+                      data-service-scope="{{ service.get_service_scope_display|default:'' }}"
                       data-published="{% if service.published_at %}{{ service.published_at|date:'M d, Y g:i A' }}{% else %}May 10, 2026 9:30 AM{% endif %}"
                       data-admin-note="{{ service.admin_note|default:'' }}"
                       data-status="{{ service.status }}"
                       data-status-display="{{ service.get_status_display }}"
                       data-reminders="{{ service.reminders|default:'' }}"
+                      data-legal-basis="{{ service.legal_basis|default:'' }}"
+                      data-schedule-of-service="{{ service.schedule_of_service|default:'' }}"
                       data-steps="{{ service.steps_json }}"
-                      data-requirements="{{ service.requirements_json }}"
-                      data-fees="{{ service.fees_json }}">
+                      data-requirements="{{ service.requirements_json }}">
                       <i class="fa-regular fa-eye"></i>
                     </button>
                     <button type="button" class="ic" title="Delete" data-delete-target="delete-modal-{{ service.pk }}">
@@ -152,74 +158,31 @@
                 <span class="badge badge-green" id="detail-status-badge">Published</span>
               </div>
               <p style="margin:0;font-size:13px;color:var(--gray-500);max-width:620px;" id="detail-description">This service allows individuals or businesses to apply for a business permit to operate legally within the Municipality of Tunga.</p>
+              <div style="display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:10px;font-size:12.5px;color:var(--gray-600);" id="detail-meta-row">
+                <span><strong>Office/Division:</strong> <span id="detail-division">—</span></span>
+                <span><strong>Classification:</strong> <span id="detail-classification">—</span></span>
+                <span><strong>Type of Transaction:</strong> <span id="detail-transaction-type">—</span></span>
+                <span><strong>Who May Avail:</strong> <span id="detail-who-may-avail">—</span></span>
+                <span><strong>Service:</strong> <span id="detail-service-scope">—</span></span>
+              </div>
             </div>
             <div style="display:flex;gap:10px;align-items:center;flex-shrink:0;">
               <span style="font-size:11.5px;color:var(--gray-400);">Published: <span id="detail-published">May 10, 2026 9:30 AM</span></span>
-              <button class="btn btn-secondary"><i class="fa-regular fa-eye"></i> Preview</button>
+              <button type="button" class="btn btn-secondary" id="edit-service-btn"><i class="fa-regular fa-pen-to-square"></i> Edit</button>
+              <button type="button" class="btn btn-secondary" id="preview-service-btn"><i class="fa-regular fa-eye"></i> Preview</button>
               <button type="button" class="btn btn-primary" id="save-changes-btn"><i class="fa-regular fa-floppy-disk"></i> Save Changes</button>
             </div>
           </div>
 
           <div class="subtabs">
-            <span class="subtab active" data-subtab="process"><i class="fa-solid fa-diagram-project"></i> Service Process</span>
-            <span class="subtab" data-subtab="requirements"><i class="fa-regular fa-file-lines"></i> Requirements</span>
-            <span class="subtab" data-subtab="fees"><i class="fa-solid fa-sack-dollar"></i> Fees</span>
+            <span class="subtab active" data-subtab="requirements"><i class="fa-regular fa-file-lines"></i> Requirements</span>
+            <span class="subtab" data-subtab="process"><i class="fa-solid fa-diagram-project"></i> Client Steps</span>
+            <span class="subtab" data-subtab="other"><i class="fa-regular fa-file-lines"></i> Others</span>
             <span class="subtab" data-subtab="forms"><i class="fa-solid fa-file-arrow-down"></i> Downloadable Forms</span>
           </div>
         </section>
 
-        <div class="grid-3" data-subtab-panel="process">
-          <div class="stack">
-            <!-- Process steps -->
-            <section class="panel">
-              <div class="panel-header"><h2>Process Steps</h2><button type="button" class="btn btn-secondary btn-sm" id="step-modal-trigger"><i class="fa-solid fa-plus"></i> Add Step</button></div>
-              <div class="panel-body" id="steps-host">
-                <p style="color:var(--gray-400);padding:8px 0;">No process steps added yet.</p>
-              </div>
-            </section>
-
-            <!-- Important reminders -->
-            <section class="panel">
-              <div class="panel-header"><h2>Important Reminders</h2><button type="button" class="btn btn-secondary btn-sm" id="reminders-modal-trigger"><i class="fa-regular fa-pen-to-square"></i> Edit Reminders</button></div>
-              <div class="panel-body">
-                <ul class="reminder-list" id="reminders-host">
-                  <li style="color:var(--gray-400);">No reminders added yet.</li>
-                </ul>
-              </div>
-            </section>
-          </div>
-
-          <div class="stack">
-
-            <!-- Service information -->
-            <section class="panel">
-              <div class="panel-header"><h2>Service Information</h2></div>
-              <div class="panel-body">
-                <div class="info-row"><span class="k">Office</span><span class="v" id="detail-office">Mayor's Office</span></div>
-                <div class="info-row"><span class="k">Category</span><span class="v" id="detail-category">Permits</span></div>
-                <div class="info-row"><span class="k">Availability</span><span class="v" id="detail-availability">Monday - Friday, 8:00 AM - 5:00 PM</span></div>
-                <div class="info-row"><span class="k">Processing Time</span><span class="v" id="detail-processing">3 - 5 Working Days</span></div>
-              </div>
-            </section>
-
-            <!-- Status -->
-            <section class="panel">
-              <div class="panel-header"><h2>Status</h2></div>
-              <div class="panel-body">
-                <div class="info-row"><span class="k">Current Status</span><span class="v"><span class="badge badge-green" id="detail-status-badge-2">Published</span></span></div>
-                <div class="info-row"><span class="k">Visibility</span><span class="v">Public</span></div>
-                <div class="info-row"><span class="k">Date Published</span><span class="v" id="detail-date-published">May 10, 2026 9:30 AM</span></div>
-              </div>
-            </section>
-            <!-- Super Admin review note -->
-            <div class="reminder-box" id="detail-admin-note-box" style="display:none;">
-              <span class="ic"><i class="fa-regular fa-comment-dots"></i></span>
-              <div><strong>Note from Super Admin</strong><p id="detail-admin-note-text"></p></div>
-            </div>
-          </div>
-        </div>
-
-          <div class="grid-3" data-subtab-panel="requirements" style="display:none;">
+          <div class="grid-3" data-subtab-panel="requirements">
             <section class="panel" style="grid-column:1 / -1;">
               <div class="panel-header"><h2>Requirements</h2><button type="button" class="btn btn-secondary btn-sm" id="requirement-modal-trigger"><i class="fa-solid fa-plus"></i> Add Requirement</button></div>
               <div class="panel-body" id="requirements-host">
@@ -228,15 +191,50 @@
             </section>
           </div>
 
-          <div class="grid-3" data-subtab-panel="fees" style="display:none;">
+        <div class="grid-3" data-subtab-panel="process" style="display:none;">
+          <!-- Process steps -->
+          <section class="panel" style="grid-column:1 / -1;">
+            <div class="panel-header"><h2>Client Steps</h2><button type="button" class="btn btn-secondary btn-sm" id="step-modal-trigger"><i class="fa-solid fa-plus"></i> Add Step</button></div>
+            <div class="panel-body" id="steps-host">
+              <p style="color:var(--gray-400);padding:8px 0;">No client steps added yet.</p>
+            </div>
+          </section>
+
+          <!-- Important reminders -->
+          <section class="panel" style="grid-column:1 / -1;">
+            <div class="panel-header"><h2>Important Reminders</h2><button type="button" class="btn btn-secondary btn-sm" id="reminders-modal-trigger"><i class="fa-regular fa-pen-to-square"></i> Edit Reminders</button></div>
+            <div class="panel-body">
+              <ul class="reminder-list" id="reminders-host">
+                <li style="color:var(--gray-400);">No reminders added yet.</li>
+              </ul>
+            </div>
+          </section>
+
+          <!-- Super Admin review note -->
+          <div class="reminder-box" id="detail-admin-note-box" style="display:none;grid-column:1 / -1;">
+            <span class="ic"><i class="fa-regular fa-comment-dots"></i></span>
+            <div><strong>Note from Super Admin</strong><p id="detail-admin-note-text"></p></div>
+          </div>
+        </div>
+
+          <div class="grid-3" data-subtab-panel="other" style="display:none;">
             <section class="panel" style="grid-column:1 / -1;">
-              <div class="panel-header"><h2>Fees</h2><button type="button" class="btn btn-secondary btn-sm" id="fee-modal-trigger"><i class="fa-solid fa-plus"></i> Add Fee</button></div>
-              <div class="panel-body" id="fees-host">
-                <p style="color:var(--gray-400);padding:8px 0;">No fees added yet.</p>
-              </div>
-              <div class="fee-total" id="fee-total-row" style="display:none;">
-                <span class="fee-total-label">Total Estimated Fees</span>
-                <span class="fee-total-value" id="fee-total-value">₱0.00</span>
+              <div class="panel-header"><h2>Other Details</h2></div>
+              <div class="panel-body">
+                <div class="info-row">
+                  <span class="k">Legal Basis (if applicable)</span>
+                  <span class="v" style="display:flex;align-items:center;gap:8px;">
+                    <span id="detail-legal-basis" style="white-space:pre-line;">—</span>
+                    <button type="button" class="ic" id="legal-basis-modal-trigger" title="Edit Legal Basis"><i class="fa-regular fa-pen-to-square"></i></button>
+                  </span>
+                </div>
+                <div class="info-row">
+                  <span class="k">Schedule of Service (if applicable)</span>
+                  <span class="v" style="display:flex;align-items:center;gap:8px;">
+                    <span id="detail-schedule-of-service" style="white-space:pre-line;">—</span>
+                    <button type="button" class="ic" id="schedule-of-service-modal-trigger" title="Edit Schedule of Service"><i class="fa-regular fa-pen-to-square"></i></button>
+                  </span>
+                </div>
               </div>
             </section>
           </div>
@@ -355,7 +353,7 @@
 <div class="modal-backdrop" id="add-step-modal">
   <div class="modal-box">
     <div class="modal-head">
-      <h3 id="step-modal-title">Add Process Step</h3>
+      <h3 id="step-modal-title">Add Client Step</h3>
       <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="modal-body">
@@ -418,22 +416,56 @@
   </div>
 </div>
 
-<div class="modal-backdrop" id="add-fee-modal">
-  <div class="modal-box">
+<div class="modal-backdrop" id="preview-service-modal">
+  <div class="modal-box charter-modal">
     <div class="modal-head">
-      <h3 id="fee-modal-title">Add Fee</h3>
+      <h3>Service Preview</h3>
       <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="modal-body">
-      <form id="add-fee-form" method="post" data-url-template="{% url 'office_dashboard:save_fees' 0 %}">
+      <div id="preview-service-body"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="legal-basis-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Edit Legal Basis</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form id="legal-basis-form" method="post" data-url-template="{% url 'office_dashboard:save_legal_basis' 0 %}">
         {% csrf_token %}
-        <div id="fee-rows"></div>
-        <button type="button" class="btn btn-secondary btn-sm" id="fee-add-btn" style="margin-bottom:16px;">
-          <i class="fa-solid fa-plus"></i> Add Another Fee
-        </button>
+        <div class="form-group">
+          <label class="form-label" for="legal-basis-textarea">Legal Basis (if applicable)</label>
+          <textarea class="form-input form-textarea" id="legal-basis-textarea" name="legal_basis" rows="8" placeholder="e.g. Republic Act No. 11032, Local Ordinance No. ..."></textarea>
+        </div>
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
-          <button type="submit" class="btn btn-primary">Save Fees</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="schedule-of-service-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Edit Schedule of Service</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form id="schedule-of-service-form" method="post" data-url-template="{% url 'office_dashboard:save_schedule_of_service' 0 %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label" for="schedule-of-service-textarea">Schedule of Service (if applicable)</label>
+          <textarea class="form-input form-textarea" id="schedule-of-service-textarea" name="schedule_of_service" rows="8" placeholder="e.g. Monday - Friday, 8:00 AM - 5:00 PM"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save</button>
         </div>
       </form>
     </div>
@@ -472,6 +504,85 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="edit-service-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Edit Service</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form method="post" id="edit-service-form" action="" data-url-template="{% url 'office_dashboard:edit_service' 0 %}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="services">
+
+        <div class="form-group">
+          <label class="form-label" for="edit-svc-name">Service Name <span class="req">*</span></label>
+          <input class="form-input" type="text" id="edit-svc-name" name="name" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="edit-svc-description">Description</label>
+          <textarea class="form-input" id="edit-svc-description" name="description" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="edit-svc-division">Office or Division</label>
+          <input class="form-input" type="text" id="edit-svc-division" name="division" placeholder="{{ rep.office.name }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="edit-svc-classification">Classification</label>
+          <input class="form-input" type="text" id="edit-svc-classification" name="classification" placeholder="Simple/Complex">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Type of Transaction</label>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;">
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+              <input type="checkbox" name="transaction_type" value="G2G" id="edit-svc-txn-g2g"> G2G – Government to Government
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+              <input type="checkbox" name="transaction_type" value="G2B" id="edit-svc-txn-g2b"> G2B – Government to Business
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+              <input type="checkbox" name="transaction_type" value="G2C" id="edit-svc-txn-g2c"> G2C – Government to Citizen
+            </label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="edit-svc-who-may-avail">Who May Avail</label>
+          <input class="form-input" type="text" id="edit-svc-who-may-avail" name="who_may_avail">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Internal/External Services</label>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;">
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+              <input type="radio" name="service_scope" value="internal" id="edit-svc-scope-internal"> Internal
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+              <input type="radio" name="service_scope" value="external" id="edit-svc-scope-external"> External
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+              <input type="radio" name="service_scope" value="" id="edit-svc-scope-none"> None
+            </label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Icon</label>
+          <input type="hidden" name="icon" id="edit-svc-icon-input" value="{{ icon_choices.0.0 }}">
+          <div class="icon-picker" id="edit-svc-icon-picker">
+            {% for value, label in icon_choices %}
+            <button type="button" class="icon-picker__item" data-icon-value="{{ value }}" title="{{ label }}">
+              <i class="{{ value }}"></i>
+            </button>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <!-- add service modal form -->
 <div class="modal-backdrop" id="add-service-modal">
   <div class="modal-box">
@@ -495,47 +606,48 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="svc-category">Category</label>
-          <select class="form-input" id="svc-category" name="category">
-            {% for value, label in category_choices %}
-              <option value="{{ value }}">{{ label }}</option>
-            {% endfor %}
-          </select>
+          <label class="form-label" for="svc-division">Office or Division</label>
+          <input class="form-input" type="text" id="svc-division" name="division" value="{{ rep.office.name }}" placeholder="{{ rep.office.name }}">
         </div>
 
         <div class="form-group">
-          <label class="form-label">Availability</label>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <select class="form-input" name="availability_day_from" style="flex:1;min-width:110px;">
-              <option value="Monday" selected>Monday</option>
-              <option value="Tuesday">Tuesday</option>
-              <option value="Wednesday">Wednesday</option>
-              <option value="Thursday">Thursday</option>
-              <option value="Friday">Friday</option>
-              <option value="Saturday">Saturday</option>
-              <option value="Sunday">Sunday</option>
-            </select>
-            <span>to</span>
-            <select class="form-input" name="availability_day_to" style="flex:1;min-width:110px;">
-              <option value="Monday">Monday</option>
-              <option value="Tuesday">Tuesday</option>
-              <option value="Wednesday">Wednesday</option>
-              <option value="Thursday">Thursday</option>
-              <option value="Friday" selected>Friday</option>
-              <option value="Saturday">Saturday</option>
-              <option value="Sunday">Sunday</option>
-            </select>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap;">
-            <input class="form-input" type="time" name="availability_time_from" value="08:00" style="flex:1;min-width:110px;">
-            <span>to</span>
-            <input class="form-input" type="time" name="availability_time_to" value="17:00" style="flex:1;min-width:110px;">
+          <label class="form-label" for="svc-classification">Classification</label>
+          <input class="form-input" type="text" id="svc-classification" name="classification" placeholder="Simple/Complex">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Type of Transaction</label>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;">
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+              <input type="checkbox" name="transaction_type" value="G2G"> G2G – Government to Government
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+              <input type="checkbox" name="transaction_type" value="G2B"> G2B – Government to Business
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+              <input type="checkbox" name="transaction_type" value="G2C"> G2C – Government to Citizen
+            </label>
           </div>
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="svc-processing-time">Processing Time</label>
-          <input class="form-input" type="text" id="svc-processing-time" name="processing_time" placeholder="e.g. 3-5 business days, Same day">
+          <label class="form-label" for="svc-who-may-avail">Who May Avail</label>
+          <input class="form-input" type="text" id="svc-who-may-avail" name="who_may_avail" placeholder="e.g. Transacting public, Senior citizens">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Internal/External Services</label>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;">
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+              <input type="radio" name="service_scope" value="internal"> Internal
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+              <input type="radio" name="service_scope" value="external"> External
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+              <input type="radio" name="service_scope" value="" checked> None
+            </label>
+          </div>
         </div>
 
         <div class="form-group">
@@ -555,6 +667,11 @@
           <button type="submit" class="btn btn-primary">Add</button>
         </div>
       </form>
+
+      <p style="margin:14px 0 0;font-size:.82rem;color:var(--gray-500,#5d667f);">
+        <i class="fa-regular fa-circle-question"></i>
+        After adding, click the <strong>View</strong> button on the service to add or edit its requirements, process steps, fees, and other details.
+      </p>
     </div>
   </div>
 </div>
@@ -584,6 +701,10 @@
 
 <script>
 (function () {
+
+  // Site-wide switch set by the Super Admin from their Services page —
+  // same value for every service shown on this page.
+  var editingGloballyEnabled = true;
   var listView = document.getElementById('services-list-view');
   var detailView = document.getElementById('service-detail-view');
   var crumbSep = document.getElementById('crumb-sep');
@@ -605,20 +726,26 @@
   var requirementRowsHost = document.getElementById('requirement-rows');
   var requirementAddBtn = document.getElementById('requirement-add-btn');
 
-  var feesHost = document.getElementById('fees-host');
-  var feeTotalRow = document.getElementById('fee-total-row');
-  var feeTotalValue = document.getElementById('fee-total-value');
-  var addFeeForm = document.getElementById('add-fee-form');
-  var addFeeModal = document.getElementById('add-fee-modal');
-  var feeModalTrigger = document.getElementById('fee-modal-trigger');
-  var feeModalTitle = document.getElementById('fee-modal-title');
-  var feeRowsHost = document.getElementById('fee-rows');
-  var feeAddBtn = document.getElementById('fee-add-btn');
+  var previewModal = document.getElementById('preview-service-modal');
+  var previewBtn = document.getElementById('preview-service-btn');
+  var previewBody = document.getElementById('preview-service-body');
+
+  var legalBasisModal = document.getElementById('legal-basis-modal');
+  var legalBasisForm = document.getElementById('legal-basis-form');
+  var legalBasisTrigger = document.getElementById('legal-basis-modal-trigger');
+  var legalBasisTextarea = document.getElementById('legal-basis-textarea');
+
+  var scheduleOfServiceModal = document.getElementById('schedule-of-service-modal');
+  var scheduleOfServiceForm = document.getElementById('schedule-of-service-form');
+  var scheduleOfServiceTrigger = document.getElementById('schedule-of-service-modal-trigger');
+  var scheduleOfServiceTextarea = document.getElementById('schedule-of-service-textarea');
 
   var currentServicePk = null;
+  var currentServiceData = null;   // new
   var currentSteps = [];
   var currentRequirements = [];
-  var currentFees = [];
+  var currentLegalBasis = '';
+  var currentScheduleOfService = '';
   var currentReminders = '';
 
   var remindersModal = document.getElementById('reminders-modal');
@@ -761,18 +888,30 @@
 
       var stepsData = new FormData();
       stepsData.append('csrfmiddlewaretoken', csrf);
-      currentSteps.forEach(function (s) { stepsData.append('title[]', s.title); stepsData.append('desc[]', s.description); });
+      currentSteps.forEach(function (s) {
+        stepsData.append('step_number[]', (s.step_number === undefined || s.step_number === null) ? '' : s.step_number);
+        stepsData.append('title[]', s.title);
+        stepsData.append('agency[]', s.agency_action || '');
+        stepsData.append('fee[]', s.fee || '');
+        stepsData.append('processing_time[]', s.processing_time || '');
+        stepsData.append('person[]', s.person_responsible || '');
+      });
       requests.push(fetch(addStepForm.dataset.urlTemplate.replace('/0/', '/' + currentServicePk + '/'), { method: 'POST', body: stepsData, credentials: 'same-origin' }));
 
       var reqData = new FormData();
       reqData.append('csrfmiddlewaretoken', csrf);
-      currentRequirements.forEach(function (r) { reqData.append('title[]', r.title); reqData.append('desc[]', r.description); reqData.append('is_required[]', r.is_required ? 'required' : 'optional'); });
+      currentRequirements.forEach(function (r) { reqData.append('title[]', r.title); reqData.append('where[]', r.where_to_secure || ''); reqData.append('txn[]', r.transaction_type || ''); });
       requests.push(fetch(addRequirementForm.dataset.urlTemplate.replace('/0/', '/' + currentServicePk + '/'), { method: 'POST', body: reqData, credentials: 'same-origin' }));
 
-      var feesData = new FormData();
-      feesData.append('csrfmiddlewaretoken', csrf);
-      currentFees.forEach(function (f) { feesData.append('title[]', f.title); feesData.append('desc[]', f.description); feesData.append('amount[]', f.amount); });
-      requests.push(fetch(addFeeForm.dataset.urlTemplate.replace('/0/', '/' + currentServicePk + '/'), { method: 'POST', body: feesData, credentials: 'same-origin' }));
+      var legalBasisData = new FormData();
+      legalBasisData.append('csrfmiddlewaretoken', csrf);
+      legalBasisData.append('legal_basis', currentLegalBasis || '');
+      requests.push(fetch(legalBasisForm.dataset.urlTemplate.replace('/0/', '/' + currentServicePk + '/'), { method: 'POST', body: legalBasisData, credentials: 'same-origin' }));
+
+      var scheduleOfServiceData = new FormData();
+      scheduleOfServiceData.append('csrfmiddlewaretoken', csrf);
+      scheduleOfServiceData.append('schedule_of_service', currentScheduleOfService || '');
+      requests.push(fetch(scheduleOfServiceForm.dataset.urlTemplate.replace('/0/', '/' + currentServicePk + '/'), { method: 'POST', body: scheduleOfServiceData, credentials: 'same-origin' }));
 
       var remindersData = new FormData();
       remindersData.append('csrfmiddlewaretoken', csrf);
@@ -803,26 +942,64 @@
     });
   }
 
+  function parseLeadingNumber(text) {
+    if (!text) return null;
+    var m = String(text).match(/(\d+(?:\.\d+)?)/);
+    return m ? parseFloat(m[1]) : null;
+  }
+
+  function computeTotalProcessingTime(steps) {
+    var sum = 0, hasNumeric = false, textParts = [];
+    steps.forEach(function (s) {
+      var n = parseLeadingNumber(s.processing_time);
+      if (n !== null) { sum += n; hasNumeric = true; }
+      else if (s.processing_time) { textParts.push(s.processing_time); }
+    });
+    var parts = [];
+    if (hasNumeric) parts.push(sum % 1 === 0 ? String(sum) : sum.toFixed(2));
+    parts = parts.concat(textParts);
+    return parts.length ? parts.join(' + ') : '—';
+  }
+
   function renderSteps(stepsJson) {
     var steps = [];
     try { steps = JSON.parse(stepsJson || '[]'); } catch (e) { steps = []; }
 
     if (!steps.length) {
-      stepsHost.innerHTML = '<p style="color:var(--gray-400);padding:8px 0;">No process steps added yet.</p>';
+      stepsHost.innerHTML = '<p style="color:var(--gray-400);padding:8px 0;">No client steps added yet.</p>';
       return;
     }
 
-    stepsHost.innerHTML = steps.map(function (step, i) {
-      return '<div class="step-row">' +
-        '<span class="step-num">' + (i + 1) + '</span>' +
-        '<div style="flex:1;"><div class="step-title"></div><div class="step-desc"></div></div>' +
-        '</div>';
+    var sorted = steps.slice().sort(function (a, b) {
+      return (parseFloat(a.step_number) || 0) - (parseFloat(b.step_number) || 0);
+    });
+
+    var rows = sorted.map(function () {
+      return '<tr>' +
+        '<td></td>' + '<td></td>' + '<td></td>' + '<td></td>' + '<td></td>' + '<td></td>' +
+        '</tr>';
     }).join('');
 
-    stepsHost.querySelectorAll('.step-row').forEach(function (row, i) {
-      row.querySelector('.step-title').textContent = steps[i].title || '';
-      row.querySelector('.step-desc').textContent = steps[i].description || '';
+    stepsHost.innerHTML =
+      '<div class="table-wrap"><table class="data-table" style="table-layout:fixed;width:100%;">' +
+        '<colgroup><col style="width:10%;"><col style="width:20%;"><col style="width:22%;"><col style="width:16%;"><col style="width:14%;"><col style="width:18%;"></colgroup>' +
+        '<thead><tr><th>Client Step No.</th><th>Client Step</th><th>Agency Action</th><th>Fee to be Paid</th><th>Processing Time</th><th>Person Responsible</th></tr></thead>' +
+        '<tbody>' + rows + '</tbody>' +
+      '</table></div>' +
+      '<div style="text-align:right;margin-top:8px;font-size:13px;font-weight:700;color:var(--gray-700, #374151);">Total Processing Time: <span id="steps-total-time"></span></div>';
+
+    stepsHost.querySelectorAll('tbody tr').forEach(function (row, i) {
+      var s = sorted[i];
+      var cells = row.querySelectorAll('td');
+      cells[0].textContent = s.step_number || (i + 1);
+      cells[1].textContent = s.title || '';
+      cells[2].textContent = s.agency_action || '—';
+      cells[3].textContent = s.fee || '—';
+      cells[4].textContent = s.processing_time || '—';
+      cells[5].textContent = s.person_responsible || '—';
     });
+
+    document.getElementById('steps-total-time').textContent = computeTotalProcessingTime(sorted);
   }
 
   function updateStepButton(steps) {
@@ -840,28 +1017,46 @@
       return;
     }
 
-    requirementsHost.innerHTML = reqs.map(function () {
-      return '<div class="req-item">' +
-        '<div class="req-check"></div>' +
-        '<div class="req-body">' +
-          '<div class="req-top"><span class="req-name"></span><span class="req-tag"></span></div>' +
-          '<div class="req-desc"></div>' +
-        '</div>' +
-        '</div>';
-    }).join('');
+    var general = reqs.filter(function (r) { return !r.transaction_type; });
+    var byTxn = {};
+    reqs.forEach(function (r) {
+      if (!r.transaction_type) return;
+      (byTxn[r.transaction_type] = byTxn[r.transaction_type] || []).push(r);
+    });
+    var txnKeys = Object.keys(byTxn).sort();
 
-    requirementsHost.querySelectorAll('.req-item').forEach(function (row, i) {
-      var r = reqs[i];
-      row.querySelector('.req-name').textContent = r.title || '';
-      row.querySelector('.req-desc').textContent = r.description || '';
-      var tag = row.querySelector('.req-tag');
-      if (r.is_required === false) {
-        tag.textContent = 'Optional';
-        tag.className = 'req-tag optional';
-      } else {
-        tag.textContent = 'Required';
-        tag.className = 'req-tag required';
-      }
+    function reqTable(list) {
+      var rows = list.map(function (r) {
+        return '<tr>' +
+          '<td></td>' +
+          '<td></td>' +
+          '</tr>';
+      }).join('');
+      return '<div class="table-wrap"><table class="data-table" style="table-layout:fixed;width:100%;">' +
+        '<colgroup><col style="width:55%;"><col style="width:45%;"></colgroup>' +
+        '<thead><tr><th>Requirement</th><th>Where to Secure</th></tr></thead>' +
+        '<tbody>' + rows + '</tbody>' +
+        '</table></div>';
+    }
+
+    var html = '';
+    if (general.length) html += reqTable(general);
+    txnKeys.forEach(function (key) {
+      html += '<h3 style="font-size:14px;margin:18px 0 8px;">' + escapeHtml(key) + '</h3>' + reqTable(byTxn[key]);
+    });
+
+    requirementsHost.innerHTML = html;
+
+    var allTables = requirementsHost.querySelectorAll('table');
+    var groups = general.length ? [general].concat(txnKeys.map(function (k) { return byTxn[k]; })) : txnKeys.map(function (k) { return byTxn[k]; });
+    allTables.forEach(function (table, gi) {
+      var list = groups[gi];
+      table.querySelectorAll('tbody tr').forEach(function (row, i) {
+        var r = list[i];
+        var cells = row.querySelectorAll('td');
+        cells[0].textContent = r.title || '';
+        cells[1].textContent = r.where_to_secure || '—';
+      });
     });
   }
 
@@ -871,58 +1066,158 @@
       : '<i class="fa-solid fa-plus"></i> Add Requirement';
   }
 
-  function formatPeso(amount) {
-    var n = parseFloat(amount) || 0;
-    return '\u20b1' + n.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str == null ? '' : String(str);
+    return div.innerHTML;
   }
 
-  function renderFees(feesJson) {
-    var fees = [];
-    try { fees = JSON.parse(feesJson || '[]'); } catch (e) { fees = []; }
+  function buildPreviewRequirementsTable(reqs) {
+    if (!reqs.length) return '<p style="color:var(--gray-400);padding:8px 0;">No requirements added yet.</p>';
 
-    if (!fees.length) {
-      feesHost.innerHTML = '<p style="color:var(--gray-400);padding:8px 0;">No fees added yet.</p>';
-      feeTotalRow.style.display = 'none';
-      return;
+    var general = reqs.filter(function (r) { return !r.transaction_type; });
+    var byTxn = {};
+    reqs.forEach(function (r) {
+      if (!r.transaction_type) return;
+      (byTxn[r.transaction_type] = byTxn[r.transaction_type] || []).push(r);
+    });
+    var txnKeys = Object.keys(byTxn).sort();
+
+    var rows = '';
+    function addRows(list) {
+      list.forEach(function (r) {
+        rows += '<tr><td>' + escapeHtml(r.title) + '</td><td>' + escapeHtml(r.where_to_secure || '—') + '</td></tr>';
+      });
     }
-
-    var total = 0;
-    feesHost.innerHTML = fees.map(function (fee) {
-      total += parseFloat(fee.amount) || 0;
-      return '<div class="fee-item">' +
-        '<div><div class="fee-name"></div><div class="fee-desc"></div></div>' +
-        '<div class="fee-amount"></div>' +
-        '</div>';
-    }).join('');
-
-    feesHost.querySelectorAll('.fee-item').forEach(function (row, i) {
-      row.querySelector('.fee-name').textContent = fees[i].title || '';
-      row.querySelector('.fee-desc').textContent = fees[i].description || '';
-      row.querySelector('.fee-amount').textContent = formatPeso(fees[i].amount);
+    addRows(general);
+    txnKeys.forEach(function (key) {
+      rows += '<tr><td colspan="2" class="charter-subhead">' + escapeHtml(key) + '</td></tr>';
+      addRows(byTxn[key]);
     });
 
-    feeTotalValue.textContent = formatPeso(total);
-    feeTotalRow.style.display = '';
+    return '<table class="charter-table">' +
+      '<thead><tr><th colspan="2">Checklist of Requirements</th></tr><tr><th>Requirement</th><th>Where to Secure</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody>' +
+      '</table>';
   }
 
-  function updateFeeButton(fees) {
-    feeModalTrigger.innerHTML = fees.length
-      ? '<i class="fa-regular fa-pen-to-square"></i> Edit Fee'
-      : '<i class="fa-solid fa-plus"></i> Add Fee';
+  function buildPreviewStepsTable(steps) {
+    if (!steps.length) return '<p style="color:var(--gray-400);padding:8px 0;">No client steps added yet.</p>';
+
+    var sorted = steps.slice().sort(function (a, b) { return (parseFloat(a.step_number) || 0) - (parseFloat(b.step_number) || 0); });
+
+    var rows = sorted.map(function (s, i) {
+      return '<tr>' +
+        '<td>' + (i + 1) + '. ' + escapeHtml(s.title) + '</td>' +
+        '<td>' + escapeHtml(s.agency_action || '—') + '</td>' +
+        '<td>' + escapeHtml(s.fee || '—') + '</td>' +
+        '<td>' + escapeHtml(s.processing_time || '—') + '</td>' +
+        '<td>' + escapeHtml(s.person_responsible || '—') + '</td>' +
+        '</tr>';
+    }).join('');
+
+    return '<table class="charter-table">' +
+      '<thead><tr><th>Client Steps</th><th>Agency Actions</th><th>Fees to be Paid</th><th>Processing Time</th><th>Person Responsible</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody>' +
+      '<tfoot><tr><td colspan="3" style="text-align:right;">TOTAL</td><td>' + escapeHtml(computeTotalProcessingTime(sorted)) + '</td><td></td></tr></tfoot>' +
+      '</table>';
   }
+
+  function buildPreviewHtml() {
+    var name = document.getElementById('detail-name').textContent || '';
+    var description = document.getElementById('detail-description').textContent || '';
+    var division = document.getElementById('detail-division').textContent || '—';
+    var classification = document.getElementById('detail-classification').textContent || '—';
+    var transactionType = document.getElementById('detail-transaction-type').textContent || '—';
+    var whoMayAvail = document.getElementById('detail-who-may-avail').textContent || '—';
+
+    var html = '';
+    html += '<h2 class="charter-title">' + escapeHtml(name) + '</h2>';
+    if (description) html += '<p class="charter-desc">' + escapeHtml(description) + '</p>';
+
+    html += '<table class="charter-table charter-info-table">' +
+      '<tr><th>Office or Division:</th><td>' + escapeHtml(division) + '</td></tr>' +
+      '<tr><th>Classification:</th><td>' + escapeHtml(classification) + '</td></tr>' +
+      '<tr><th>Type of Transaction:</th><td>' + escapeHtml(transactionType) + '</td></tr>' +
+      '<tr><th>Who May Avail:</th><td>' + escapeHtml(whoMayAvail) + '</td></tr>' +
+      '</table>';
+
+    html += buildPreviewRequirementsTable(currentRequirements);
+    html += buildPreviewStepsTable(currentSteps);
+
+    if (currentScheduleOfService) {
+      html += '<h3 class="charter-subtitle">Schedule of Service</h3>' +
+        '<p class="charter-plain">' + escapeHtml(currentScheduleOfService) + '</p>';
+    }
+
+    if (currentLegalBasis) {
+      html += '<h3 class="charter-subtitle">Legal Basis</h3>' +
+        '<p class="charter-plain" style="white-space:pre-line;">' + escapeHtml(currentLegalBasis) + '</p>';
+    }
+
+    var forms = [];
+    var formsBlock = document.querySelector('[data-service-forms-for="' + currentServicePk + '"]');
+    if (formsBlock) {
+      formsBlock.querySelectorAll('tbody tr').forEach(function (row) {
+        var nameCell = row.querySelector('.cell-primary');
+        var downloadLink = row.querySelector('a[href*="/download"]');
+        if (nameCell) {
+          forms.push({
+            name: nameCell.textContent.trim(),
+            url: downloadLink ? downloadLink.getAttribute('href') : null
+          });
+        }
+      });
+    }
+    if (forms.length) {
+      html += '<h3 class="charter-subtitle">Downloadable Forms</h3>' +
+        '<ul class="charter-list">' + forms.map(function (f) {
+          return f.url
+            ? '<li><a href="' + escapeHtml(f.url) + '" target="_blank" rel="noopener"><i class="fa-solid fa-file-arrow-down"></i> ' + escapeHtml(f.name) + '</a></li>'
+            : '<li>' + escapeHtml(f.name) + '</li>';
+        }).join('') + '</ul>';
+    }
+
+    return html;
+  }
+
+  if (previewBtn) {
+    previewBtn.addEventListener('click', function () {
+      if (!currentServicePk) return;
+      previewBody.innerHTML = buildPreviewHtml();
+      previewModal.classList.add('open');
+      document.body.classList.add('modal-open');
+    });
+  }
+
+  function closePreviewModal() {
+    previewModal.classList.remove('open');
+    document.body.classList.remove('modal-open');
+  }
+
+  previewModal.querySelectorAll('.modal-x').forEach(function (btn) {
+    btn.addEventListener('click', closePreviewModal);
+  });
+  previewModal.addEventListener('click', function (e) {
+    if (e.target === previewModal) closePreviewModal();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && previewModal.classList.contains('open')) closePreviewModal();
+  });
 
   function showDetail(data) {
     currentServicePk = data.id || null;
+    currentServiceData = data;   // new
 
     document.querySelectorAll('[data-service-forms-for]').forEach(function (block) {
       block.style.display = (block.dataset.serviceFormsFor === String(currentServicePk)) ? '' : 'none';
     });
 
     document.querySelectorAll('.subtab').forEach(function (t) { t.classList.remove('active'); });
-    var processTab = document.querySelector('.subtab[data-subtab="process"]');
-    if (processTab) processTab.classList.add('active');
+    var defaultTab = document.querySelector('.subtab[data-subtab="requirements"]');
+    if (defaultTab) defaultTab.classList.add('active');
     document.querySelectorAll('[data-subtab-panel]').forEach(function (panel) {
-      panel.style.display = (panel.dataset.subtabPanel === 'process') ? '' : 'none';
+      panel.style.display = (panel.dataset.subtabPanel === 'requirements') ? '' : 'none';
     });
 
     currentReminders = data.reminders || '';
@@ -959,12 +1254,12 @@
     document.getElementById('detail-name').textContent = data.name || '';
     document.getElementById('detail-icon').className = data.icon || 'fa-solid fa-file-signature';
     document.getElementById('detail-description').textContent = data.description || 'No description provided.';
-    document.getElementById('detail-office').textContent = data.office || '';
-    document.getElementById('detail-category').textContent = data.category || '';
-    document.getElementById('detail-availability').textContent = data.availability || '';
-    document.getElementById('detail-processing').textContent = data.processing || '';
+    document.getElementById('detail-division').textContent = data.division || data.office || '—';
+    document.getElementById('detail-classification').textContent = data.classification || '—';
+    document.getElementById('detail-transaction-type').textContent = data.transactionType || '—';
+    document.getElementById('detail-who-may-avail').textContent = data.whoMayAvail || '—';
+    document.getElementById('detail-service-scope').textContent = data.serviceScope || 'None';
     document.getElementById('detail-published').textContent = data.published || '';
-    document.getElementById('detail-date-published').textContent = data.published || '';
 
     var noteBox = document.getElementById('detail-admin-note-box');
     var statusBadgeClass = {
@@ -975,7 +1270,7 @@
       archive: 'badge-gray'
     }[data.status] || 'badge-gray';
 
-    ['detail-status-badge', 'detail-status-badge-2'].forEach(function (id) {
+    ['detail-status-badge'].forEach(function (id) {
       var el = document.getElementById(id);
       if (el) {
         el.className = 'badge ' + statusBadgeClass;
@@ -1000,10 +1295,33 @@
     }
     lockedNote.style.display = isPublished ? '' : 'none';
 
-    ['save-changes-btn', 'step-modal-trigger', 'requirement-modal-trigger', 'fee-modal-trigger', 'reminders-modal-trigger'].forEach(function (id) {
+    ['save-changes-btn', 'step-modal-trigger', 'requirement-modal-trigger', 'legal-basis-modal-trigger', 'schedule-of-service-modal-trigger', 'reminders-modal-trigger'].forEach(function (id) {
       var btn = document.getElementById(id);
       if (btn) btn.disabled = isPublished;
     });
+
+    // Edit button (name/description/division/classification/type of
+    // transaction/who may avail/internal-external/icon): disabled once
+    // published, same as everything else, but can ALSO be switched off by
+    // the Super Admin independently (editEnabled), even while pending.
+    var editingDisabledByAdmin = data.editEnabled === 'false';
+    // Edit button is governed ONLY by the Super Admin's global switch now —
+    // it stays clickable even after the service is published, so the Super
+    // Admin can let an office fix a published service's basic info when needed.
+    var editServiceBtnEl = document.getElementById('edit-service-btn');
+    if (editServiceBtnEl) editServiceBtnEl.disabled = !editingGloballyEnabled;
+
+    var editLockedNote = document.getElementById('detail-edit-locked-note');
+    if (!editLockedNote) {
+      editLockedNote = document.createElement('div');
+      editLockedNote.id = 'detail-edit-locked-note';
+      editLockedNote.className = 'reminder-box';
+      editLockedNote.style.marginBottom = '14px';
+      editLockedNote.innerHTML = '<span class="ic"><i class="fa-solid fa-lock"></i></span><div><strong>Editing turned off</strong><p>The Super Admin has turned off service editing for all offices. Contact the Super Admin if changes are needed.</p></div>';
+      var subtabsEl2 = document.querySelector('.subtabs');
+      if (subtabsEl2 && subtabsEl2.parentNode) subtabsEl2.parentNode.insertBefore(editLockedNote, subtabsEl2.nextSibling);
+    }
+    editLockedNote.style.display = !editingGloballyEnabled ? '' : 'none';
 
     var noteBox = document.getElementById('detail-admin-note-box');
     var noteText = document.getElementById('detail-admin-note-text');
@@ -1024,10 +1342,10 @@
     try { currentRequirements = JSON.parse(data.requirements || '[]'); } catch (e) { currentRequirements = []; }
     updateRequirementButton(currentRequirements);
 
-    renderFees(data.fees);
-
-    try { currentFees = JSON.parse(data.fees || '[]'); } catch (e) { currentFees = []; }
-    updateFeeButton(currentFees);
+    document.getElementById('detail-legal-basis').textContent = data.legalBasis || '—';
+    document.getElementById('detail-schedule-of-service').textContent = data.scheduleOfService || '—';
+    currentLegalBasis = data.legalBasis || '';
+    currentScheduleOfService = data.scheduleOfService || '';
 
     crumbCurrent.textContent = data.name || '';
     crumbCurrent.style.display = '';
@@ -1044,6 +1362,7 @@
     listView.style.display = '';
     crumbCurrent.style.display = 'none';
     crumbSep.style.display = 'none';
+    try { history.replaceState(null, '', window.location.pathname); } catch (e) {}
   }
 
   document.querySelectorAll('.view-service-btn').forEach(function (btn) {
@@ -1151,42 +1470,116 @@
     });
   }
 
+  /* ---- for edit service modal ---- */
+
+  var editServiceModal = document.getElementById('edit-service-modal');
+  var editServiceForm = document.getElementById('edit-service-form');
+  var editServiceBtn = document.getElementById('edit-service-btn');
+  var editSvcIconPicker = document.getElementById('edit-svc-icon-picker');
+  var editSvcIconInput = document.getElementById('edit-svc-icon-input');
+
+  if (editSvcIconPicker && editSvcIconInput) {
+    editSvcIconPicker.querySelectorAll('.icon-picker__item').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        editSvcIconPicker.querySelectorAll('.icon-picker__item').forEach(function (b) { b.classList.remove('selected'); });
+        btn.classList.add('selected');
+        editSvcIconInput.value = btn.dataset.iconValue;
+      });
+    });
+  }
+
+  function closeEditServiceModal() {
+    if (!editServiceModal) return;
+    editServiceModal.classList.remove('open');
+    document.body.classList.remove('modal-open');
+  }
+
+  if (editServiceBtn) {
+    editServiceBtn.addEventListener('click', function () {
+      if (!editServiceModal || !editServiceForm || !currentServicePk) return;
+      var data = currentServiceData || {};
+
+      editServiceForm.action = editServiceForm.dataset.urlTemplate.replace('/0/', '/' + currentServicePk + '/');
+
+      document.getElementById('edit-svc-name').value = data.name || '';
+      document.getElementById('edit-svc-description').value = data.description || '';
+      document.getElementById('edit-svc-division').value = data.division || '';
+      document.getElementById('edit-svc-classification').value = data.classification || '';
+      document.getElementById('edit-svc-who-may-avail').value = data.whoMayAvail || '';
+
+      var txnCodes = (data.transactionType || '').split(',').map(function (s) { return s.trim(); });
+      ['g2g', 'g2b', 'g2c'].forEach(function (code) {
+        var box = document.getElementById('edit-svc-txn-' + code);
+        if (box) box.checked = txnCodes.some(function (t) { return t.toUpperCase().indexOf(code.toUpperCase()) === 0; });
+      });
+
+      var scope = data.serviceScope || '';
+      document.getElementById('edit-svc-scope-internal').checked = scope.toLowerCase() === 'internal';
+      document.getElementById('edit-svc-scope-external').checked = scope.toLowerCase() === 'external';
+      document.getElementById('edit-svc-scope-none').checked = scope.toLowerCase() !== 'internal' && scope.toLowerCase() !== 'external';
+
+      var iconValue = data.icon || 'fa-solid fa-file-signature';
+      editSvcIconInput.value = iconValue;
+      if (editSvcIconPicker) {
+        editSvcIconPicker.querySelectorAll('.icon-picker__item').forEach(function (btn) {
+          btn.classList.toggle('selected', btn.dataset.iconValue === iconValue);
+        });
+      }
+
+      editServiceModal.classList.add('open');
+      document.body.classList.add('modal-open');
+    });
+  }
+
+  if (editServiceModal) {
+    editServiceModal.querySelectorAll('[data-act="cancel"], .modal-x').forEach(function (btn) {
+      btn.addEventListener('click', closeEditServiceModal);
+    });
+    editServiceModal.addEventListener('click', function (e) {
+      if (e.target === editServiceModal) closeEditServiceModal();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && editServiceModal.classList.contains('open')) closeEditServiceModal();
+    });
+  }
+
   /* ---- step editor: cards with a number badge + minus-only remove ---- */
-  function createStepRow(title, desc) {
+  function createStepRow(stepNumber, title, agencyAction, fee, processingTime, person) {
     var row = document.createElement('div');
     row.className = 'step-edit-row';
     row.innerHTML =
-      '<span class="step-edit-row__num"></span>' +
       '<div class="step-edit-row__body">' +
-        '<input class="form-input" type="text" name="title[]" placeholder="e.g. Prepare the Requirements">' +
-        '<textarea class="form-input form-textarea" name="desc[]" placeholder="Describe what the applicant needs to do in this step" rows="3"></textarea>' +
+        '<input class="form-input" type="number" min="0" step="any" name="step_number[]" placeholder="Client Step Number, e.g. 1.1" style="max-width:200px;">' +
+        '<textarea class="form-input form-textarea" name="title[]" placeholder="Client Step Name, e.g. Submit Requirements" rows="2"></textarea>' +
+        '<textarea class="form-input form-textarea" name="agency[]" placeholder="Agency Action" rows="2"></textarea>' +
+        '<input class="form-input" type="text" name="fee[]" placeholder="Fees to be Paid, e.g. None or ₱50.00">' +
+        '<input class="form-input" type="text" name="processing_time[]" placeholder="Processing Time, e.g. 5 minutes, 3-5 days, Same day">' +
+        '<input class="form-input" type="text" name="person[]" placeholder="Person Responsible">' +
       '</div>' +
       '<button type="button" class="step-remove-row" title="Remove step"><i class="fa-solid fa-minus"></i></button>';
-    row.querySelector('input').value = title || '';
-    row.querySelector('textarea').value = desc || '';
+    row.querySelector('input[name="step_number[]"]').value = stepNumber || '';
+    row.querySelector('textarea[name="title[]"]').value = title || '';
+    row.querySelector('textarea[name="agency[]"]').value = agencyAction || '';
+    row.querySelector('input[name="fee[]"]').value = fee || '';
+    row.querySelector('input[name="processing_time[]"]').value = processingTime || '';
+    row.querySelector('input[name="person[]"]').value = person || '';
     return row;
-  }
-
-  function renumberStepRows() {
-    stepRowsHost.querySelectorAll('.step-edit-row').forEach(function (row, i) {
-      row.querySelector('.step-edit-row__num').textContent = i + 1;
-    });
   }
 
   function populateStepRows(steps) {
     stepRowsHost.innerHTML = '';
     if (!steps.length) {
-      stepRowsHost.appendChild(createStepRow('', ''));
+      stepRowsHost.appendChild(createStepRow('', '', '', '', '', ''));
     } else {
-      steps.forEach(function (s) { stepRowsHost.appendChild(createStepRow(s.title, s.description)); });
+      steps.forEach(function (s) {
+        stepRowsHost.appendChild(createStepRow(s.step_number, s.title, s.agency_action, s.fee, s.processing_time, s.person_responsible));
+      });
     }
-    renumberStepRows();
   }
 
   if (stepAddBtn) {
     stepAddBtn.addEventListener('click', function () {
-      stepRowsHost.appendChild(createStepRow('', ''));
-      renumberStepRows();
+      stepRowsHost.appendChild(createStepRow('', '', '', '', '', ''));
     });
   }
 
@@ -1197,16 +1590,19 @@
     if (stepRowsHost.children.length > 1) {
       row.remove();
     } else {
-      row.querySelector('input').value = '';
-      row.querySelector('textarea').value = '';
+      row.querySelector('input[name="step_number[]"]').value = '';
+      row.querySelector('textarea[name="title[]"]').value = '';
+      row.querySelector('textarea[name="agency[]"]').value = '';
+      row.querySelector('input[name="fee[]"]').value = '';
+      row.querySelector('input[name="processing_time[]"]').value = '';
+      row.querySelector('input[name="person[]"]').value = '';
     }
-    renumberStepRows();
   });
 
   if (stepModalTrigger) {
     stepModalTrigger.addEventListener('click', function () {
       populateStepRows(currentSteps);
-      stepModalTitle.textContent = currentSteps.length ? 'Edit Process Steps' : 'Add Process Step';
+      stepModalTitle.textContent = currentSteps.length ? 'Edit Client Steps' : 'Add Client Step';
       addStepModal.classList.add('open');
       document.body.classList.add('modal-open');
     });
@@ -1226,9 +1622,22 @@
 
       var newSteps = [];
       stepRowsHost.querySelectorAll('.step-edit-row').forEach(function (row) {
-        var title = row.querySelector('input[name="title[]"]').value.trim();
-        var desc = row.querySelector('textarea[name="desc[]"]').value.trim();
-        if (title) newSteps.push({ title: title, description: desc });
+        var stepNumberRaw = row.querySelector('input[name="step_number[]"]').value.trim();
+        var title = row.querySelector('textarea[name="title[]"]').value.trim();
+        var agencyAction = row.querySelector('textarea[name="agency[]"]').value.trim();
+        var fee = row.querySelector('input[name="fee[]"]').value.trim();
+        var processingTime = row.querySelector('input[name="processing_time[]"]').value.trim();
+        var person = row.querySelector('input[name="person[]"]').value.trim();
+        if (title) {
+          newSteps.push({
+            step_number: stepNumberRaw || null,
+            title: title,
+            agency_action: agencyAction,
+            fee: fee,
+            processing_time: processingTime,
+            person_responsible: person
+          });
+        }
       });
 
       currentSteps = newSteps;
@@ -1238,36 +1647,21 @@
     });
   }
 
-  /* ---- requirement editor: mirrors the step editor, plus a required/optional radio ---- */
-  function createRequirementRow(title, desc, isRequired) {
+  /* ---- requirement editor: mirrors the step editor ---- */
+  function createRequirementRow(title, where, txn) {
     var row = document.createElement('div');
     row.className = 'requirement-edit-row';
-    var uid = 'req-' + Math.random().toString(36).slice(2, 9);
     row.innerHTML =
       '<div class="requirement-edit-row__body">' +
-        '<input class="form-input" type="text" name="title[]" placeholder="e.g. Barangay Clearance">' +
-        '<textarea class="form-input form-textarea" name="desc[]" placeholder="e.g. Original copy, issued within the last 6 months" rows="2"></textarea>' +
-        '<div class="requirement-radio-group">' +
-          '<label><input type="radio" name="' + uid + '" value="required" checked> Required</label>' +
-          '<label><input type="radio" name="' + uid + '" value="optional"> Optional</label>' +
-        '</div>' +
-        '<input type="hidden" name="is_required[]" value="required">' +
+        '<input class="form-input" type="text" name="title[]" placeholder="Name of Requirement, e.g. Barangay Clearance">' +
+        '<input class="form-input" type="text" name="where[]" placeholder="Where to Secure, e.g. Barangay Hall">' +
+        '<input class="form-input" type="text" name="txn[]" placeholder="Transaction Type — if applicable" style="max-width:280px;">' +
       '</div>' +
       '<button type="button" class="requirement-remove-row" title="Remove requirement"><i class="fa-solid fa-minus"></i></button>';
 
-    row.querySelector('input[type="text"]').value = title || '';
-    row.querySelector('textarea').value = desc || '';
-
-    var hidden = row.querySelector('input[name="is_required[]"]');
-    var radios = row.querySelectorAll('input[type="radio"]');
-    var wantOptional = (isRequired === false);
-    radios.forEach(function (radio) {
-      radio.checked = wantOptional ? (radio.value === 'optional') : (radio.value === 'required');
-      radio.addEventListener('change', function () {
-        hidden.value = row.querySelector('input[type="radio"]:checked').value;
-      });
-    });
-    hidden.value = wantOptional ? 'optional' : 'required';
+    row.querySelector('input[name="title[]"]').value = title || '';
+    row.querySelector('input[name="where[]"]').value = where || '';
+    row.querySelector('input[name="txn[]"]').value = txn || '';
 
     return row;
   }
@@ -1275,17 +1669,17 @@
   function populateRequirementRows(reqs) {
     requirementRowsHost.innerHTML = '';
     if (!reqs.length) {
-      requirementRowsHost.appendChild(createRequirementRow('', '', true));
+      requirementRowsHost.appendChild(createRequirementRow('', '', ''));
     } else {
       reqs.forEach(function (r) {
-        requirementRowsHost.appendChild(createRequirementRow(r.title, r.description, r.is_required !== false));
+        requirementRowsHost.appendChild(createRequirementRow(r.title, r.where_to_secure, r.transaction_type));
       });
     }
   }
 
   if (requirementAddBtn) {
     requirementAddBtn.addEventListener('click', function () {
-      requirementRowsHost.appendChild(createRequirementRow('', '', true));
+      requirementRowsHost.appendChild(createRequirementRow('', '', ''));
     });
   }
 
@@ -1296,8 +1690,9 @@
     if (requirementRowsHost.children.length > 1) {
       row.remove();
     } else {
-      row.querySelector('input[type="text"]').value = '';
-      row.querySelector('textarea').value = '';
+      row.querySelector('input[name="title[]"]').value = '';
+      row.querySelector('input[name="where[]"]').value = '';
+      row.querySelector('input[name="txn[]"]').value = '';
     }
   });
 
@@ -1334,10 +1729,10 @@
 
       var newRequirements = [];
       requirementRowsHost.querySelectorAll('.requirement-edit-row').forEach(function (row) {
-        var title = row.querySelector('input[type="text"]').value.trim();
-        var desc = row.querySelector('textarea').value.trim();
-        var isRequired = row.querySelector('input[name="is_required[]"]').value === 'required';
-        if (title) newRequirements.push({ title: title, description: desc, is_required: isRequired });
+        var title = row.querySelector('input[name="title[]"]').value.trim();
+        var where = row.querySelector('input[name="where[]"]').value.trim();
+        var txn = row.querySelector('input[name="txn[]"]').value.trim();
+        if (title) newRequirements.push({ title: title, where_to_secure: where, transaction_type: txn });
       });
 
       currentRequirements = newRequirements;
@@ -1347,94 +1742,75 @@
     });
   }
 
-  /* ---- fee editor: mirrors the requirement editor, amount instead of required/optional ---- */
-  function createFeeRow(title, desc, amount) {
-    var row = document.createElement('div');
-    row.className = 'fee-edit-row';
-    row.innerHTML =
-      '<div class="fee-edit-row__body">' +
-        '<input class="form-input" type="text" name="title[]" placeholder="e.g. Mayor\'s Permit Fee">' +
-        '<textarea class="form-input form-textarea" name="desc[]" placeholder="What this fee covers" rows="2"></textarea>' +
-        '<input class="form-input" type="number" step="0.01" min="0" name="amount[]" placeholder="0.00">' +
-      '</div>' +
-      '<button type="button" class="fee-remove-row" title="Remove fee"><i class="fa-solid fa-minus"></i></button>';
-    row.querySelector('input[type="text"]').value = title || '';
-    row.querySelector('textarea').value = desc || '';
-    row.querySelector('input[type="number"]').value = (amount !== undefined && amount !== null) ? amount : '';
-    return row;
-  }
-
-  function populateFeeRows(fees) {
-    feeRowsHost.innerHTML = '';
-    if (!fees.length) {
-      feeRowsHost.appendChild(createFeeRow('', '', ''));
-    } else {
-      fees.forEach(function (f) { feeRowsHost.appendChild(createFeeRow(f.title, f.description, f.amount)); });
-    }
-  }
-
-  if (feeAddBtn) {
-    feeAddBtn.addEventListener('click', function () {
-      feeRowsHost.appendChild(createFeeRow('', '', ''));
-    });
-  }
-
-  feeRowsHost.addEventListener('click', function (e) {
-    var removeBtn = e.target.closest('.fee-remove-row');
-    if (!removeBtn) return;
-    var row = removeBtn.closest('.fee-edit-row');
-    if (feeRowsHost.children.length > 1) {
-      row.remove();
-    } else {
-      row.querySelector('input[type="text"]').value = '';
-      row.querySelector('textarea').value = '';
-      row.querySelector('input[type="number"]').value = '';
-    }
-  });
-
-  if (feeModalTrigger) {
-    feeModalTrigger.addEventListener('click', function () {
-      populateFeeRows(currentFees);
-      feeModalTitle.textContent = currentFees.length ? 'Edit Fees' : 'Add Fee';
-      addFeeModal.classList.add('open');
+  /* ---- Legal Basis modal: saved directly, no repeatable rows ---- */
+  if (legalBasisTrigger) {
+    legalBasisTrigger.addEventListener('click', function () {
+      legalBasisTextarea.value = currentLegalBasis || '';
+      legalBasisModal.classList.add('open');
       document.body.classList.add('modal-open');
     });
   }
 
-  function closeAddFeeModal() {
-    addFeeModal.classList.remove('open');
+  function closeLegalBasisModal() {
+    legalBasisModal.classList.remove('open');
     document.body.classList.remove('modal-open');
-    setTimeout(function () { populateFeeRows([]); }, 200);
   }
 
-  addFeeModal.querySelectorAll('[data-act="cancel"], .modal-x').forEach(function (btn) {
-    btn.addEventListener('click', closeAddFeeModal);
+  legalBasisModal.querySelectorAll('[data-act="cancel"], .modal-x').forEach(function (btn) {
+    btn.addEventListener('click', closeLegalBasisModal);
   });
-  addFeeModal.addEventListener('click', function (e) {
-    if (e.target === addFeeModal) closeAddFeeModal();
+  legalBasisModal.addEventListener('click', function (e) {
+    if (e.target === legalBasisModal) closeLegalBasisModal();
   });
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && addFeeModal.classList.contains('open')) closeAddFeeModal();
+    if (e.key === 'Escape' && legalBasisModal.classList.contains('open')) closeLegalBasisModal();
   });
 
-  /* ---- save via AJAX: closes only the modal, stays on the service ---- */
-  if (addFeeForm) {
-    addFeeForm.addEventListener('submit', function (e) {
+  if (legalBasisForm) {
+    legalBasisForm.addEventListener('submit', function (e) {
       e.preventDefault();
       e.stopImmediatePropagation();
 
-      var newFees = [];
-      feeRowsHost.querySelectorAll('.fee-edit-row').forEach(function (row) {
-        var title = row.querySelector('input[type="text"]').value.trim();
-        var desc = row.querySelector('textarea').value.trim();
-        var amount = row.querySelector('input[type="number"]').value.trim();
-        if (title) newFees.push({ title: title, description: desc, amount: amount || '0' });
-      });
+      currentLegalBasis = legalBasisTextarea.value.trim();
+      document.getElementById('detail-legal-basis').textContent = currentLegalBasis || '—';
 
-      currentFees = newFees;
-      renderFees(JSON.stringify(newFees));
-      updateFeeButton(newFees);
-      closeAddFeeModal();
+      closeLegalBasisModal();
+    });
+  }
+
+  /* ---- Schedule of Service modal: saved directly, no repeatable rows ---- */
+  if (scheduleOfServiceTrigger) {
+    scheduleOfServiceTrigger.addEventListener('click', function () {
+      scheduleOfServiceTextarea.value = currentScheduleOfService || '';
+      scheduleOfServiceModal.classList.add('open');
+      document.body.classList.add('modal-open');
+    });
+  }
+
+  function closeScheduleOfServiceModal() {
+    scheduleOfServiceModal.classList.remove('open');
+    document.body.classList.remove('modal-open');
+  }
+
+  scheduleOfServiceModal.querySelectorAll('[data-act="cancel"], .modal-x').forEach(function (btn) {
+    btn.addEventListener('click', closeScheduleOfServiceModal);
+  });
+  scheduleOfServiceModal.addEventListener('click', function (e) {
+    if (e.target === scheduleOfServiceModal) closeScheduleOfServiceModal();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && scheduleOfServiceModal.classList.contains('open')) closeScheduleOfServiceModal();
+  });
+
+  if (scheduleOfServiceForm) {
+    scheduleOfServiceForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
+      currentScheduleOfService = scheduleOfServiceTextarea.value.trim();
+      document.getElementById('detail-schedule-of-service').textContent = currentScheduleOfService || '—';
+
+      closeScheduleOfServiceModal();
     });
   }
 
@@ -1480,6 +1856,28 @@
   .step-edit-row__body { flex: 1; min-width: 0; }
   .step-edit-row__body .form-input { margin-bottom: 8px; }
   .step-edit-row__body .form-input:last-child { margin-bottom: 0; }
+
+  /* Add Client Step modal: on small screens only, widen the modal (landscape)
+     and lay the fields out two-per-row so the person can see what they're typing. */
+  @media (max-width: 768px), (max-height: 600px) and (orientation: landscape) {
+    #add-step-modal .modal-box {
+      width: 95vw;
+      max-width: 95vw;
+      max-height: 92vh;
+    }
+    #add-step-modal .step-edit-row__body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    #add-step-modal .step-edit-row__body .form-input {
+      margin-bottom: 0;
+    }
+    #add-step-modal .step-edit-row__body textarea[name="title[]"],
+    #add-step-modal .step-edit-row__body textarea[name="agency[]"] {
+      grid-column: 1 / -1;
+    }
+  }
   .step-remove-row {
     flex-shrink: 0;
     width: 30px;
@@ -1544,43 +1942,20 @@
   background:var(--red-50, #fef2f2);border-color:var(--red-100, #fee2e2);color:var(--red-600);
 }
 
-/* Fees: display list */
-.fee-item{
-  display:flex;gap:12px;align-items:center;
-  padding:13px 0;border-bottom:1px solid var(--gray-100);
-}
-.fee-item:last-child{border-bottom:none;}
-.fee-name{font-size:13.5px;font-weight:700;color:var(--gray-900);}
-.fee-desc{font-size:12px;color:var(--gray-500);margin-top:2px;line-height:1.4;}
-.fee-amount{font-size:14px;font-weight:800;color:var(--gray-900);flex-shrink:0;white-space:nowrap;margin-left:auto;}
+/* Service preview: citizen's charter style */
+.charter-modal { max-width: 780px; }
+.charter-title { text-align: center; font-size: 17px; margin: 0 0 4px; text-transform: uppercase; }
+.charter-desc { text-align: center; color: var(--gray-500); font-size: 13px; margin: 0 0 18px; }
+.charter-subtitle { font-size: 14px; margin: 22px 0 8px; }
+.charter-plain { font-size: 13px; color: var(--gray-700, #374151); margin: 0; }
+.charter-list { margin: 0; padding-left: 18px; font-size: 13px; color: var(--gray-700, #374151); }
+.charter-table { width: 100%; border-collapse: collapse; margin-bottom: 18px; font-size: 12.5px; table-layout: fixed; }
+.charter-table th, .charter-table td { border: 1px solid var(--gray-300, #d1d5db); padding: 8px 10px; text-align: left; vertical-align: top; word-wrap: break-word; }
+.charter-table thead th { background: var(--blue-100, #bfdbfe); font-weight: 800; }
+.charter-table tfoot td { background: var(--gray-50, #f9fafb); font-weight: 800; }
+.charter-table .charter-subhead { background: var(--blue-50, #eff6ff); font-weight: 700; text-align: center; }
+.charter-info-table th { background: var(--blue-100, #bfdbfe); width: 200px; }
 
-.fee-total{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:14px 22px;background:var(--gray-50);
-  border-top:1px solid var(--gray-100);
-  border-radius:0 0 16px 16px;
-}
-.fee-total-label{font-size:13px;font-weight:700;color:var(--gray-600);}
-.fee-total-value{font-size:16px;font-weight:800;color:var(--gray-900);}
-
-/* Fees: edit rows inside the modal (mirrors .requirement-edit-row) */
-.fee-edit-row{
-  display:flex;gap:12px;align-items:flex-start;
-  padding:14px;margin-bottom:12px;
-  border:1px solid var(--gray-200);border-radius:10px;
-  background:var(--gray-50, #f9fafb);
-}
-.fee-edit-row__body{flex:1;min-width:0;}
-.fee-edit-row__body .form-input{margin-bottom:8px;}
-.fee-edit-row__body .form-input:last-child{margin-bottom:0;}
-.fee-remove-row{
-  flex-shrink:0;width:30px;height:30px;border-radius:7px;
-  border:1px solid transparent;background:transparent;color:var(--gray-400);
-  display:flex;align-items:center;justify-content:center;cursor:pointer;font:inherit;
-}
-.fee-remove-row:hover{
-  background:var(--red-50, #fef2f2);border-color:var(--red-100, #fee2e2);color:var(--red-600);
-}
 </style>
 
 {% endblock %}

@@ -279,6 +279,11 @@ class Service(models.Model):
         ("fa-solid fa-gavel", "Legal Services"),
     ]
 
+    SERVICE_SCOPE_CHOICES = [
+        ("internal", "Internal"),
+        ("external", "External"),
+    ]
+
     office = models.ForeignKey(Office, on_delete=models.CASCADE, related_name="services")
 
     name = models.CharField(max_length=150)
@@ -286,13 +291,39 @@ class Service(models.Model):
     category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default="other")
     icon = models.CharField(max_length=60, choices=ICON_CHOICES, default="fa-solid fa-file-signature")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")  
+    order = models.PositiveIntegerField(
+        default=0,
+        help_text="Display order on the office's public page. Lower numbers show first.",
+    )
     admin_note = models.TextField(blank=True)
     reminders = models.TextField(blank=True)  # one reminder per line
 
     availability = models.CharField(max_length=150, blank=True)  # e.g. "Monday - Friday, 8:00 AM - 5:00 PM"
     processing_time = models.CharField(max_length=100, blank=True)  # e.g. "3-5 business days"
 
+    division = models.CharField(max_length=150, blank=True)  # office or division that handles this service
+    classification = models.CharField(max_length=50, blank=True)  # e.g. "Simple" or "Complex"
+    transaction_type = models.CharField(max_length=50, blank=True)  # comma-separated: G2G, G2B, G2C
+    who_may_avail = models.CharField(max_length=255, blank=True)
+    service_scope = models.CharField(max_length=10, choices=SERVICE_SCOPE_CHOICES, blank=True)  # "internal", "external", or blank for none
+    legal_basis = models.TextField(blank=True)  # Legal Basis (if applicable)
+    schedule_of_service = models.CharField(max_length=255, blank=True)  # Schedule of Service (if applicable)
+
     published_at = models.DateTimeField(auto_now_add=True)
+
+    TRANSACTION_TYPE_LABELS = {
+        "G2G": "G2G – Government to Government",
+        "G2B": "G2B – Government to Business",
+        "G2C": "G2C – Government to Citizen",
+    }
+
+    @property
+    def transaction_type_list(self):
+        return [t for t in self.transaction_type.split(",") if t]
+
+    @property
+    def transaction_type_display(self):
+        return ", ".join(self.TRANSACTION_TYPE_LABELS.get(t, t) for t in self.transaction_type_list)
 
     class Meta:
         ordering = ["name"]
@@ -300,12 +331,39 @@ class Service(models.Model):
     def __str__(self):
         return self.name
 
+class ServiceEditSettings(models.Model):
+    """Site-wide switch, not per-service: controls whether ANY office
+    representative can edit a service's basic info (name, description,
+    division, classification, type of transaction, who may avail,
+    internal/external, icon) across the whole site. Toggled from a single
+    switch on the Super Admin's Services page. Singleton — always use
+    get_solo() rather than querying/creating rows directly."""
+    editing_enabled = models.BooleanField(default=True)
+    last_updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Service Edit Settings"
+        verbose_name_plural = "Service Edit Settings"
+
+    def __str__(self):
+        return "Service Edit Settings"
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
 class ProcessStep(models.Model):
     service = models.ForeignKey(Service, on_delete=models.CASCADE, related_name="steps")
 
-    order = models.PositiveIntegerField(default=1)
-    title = models.CharField(max_length=150)
+    order = models.DecimalField(max_digits=6, decimal_places=2, default=1)  # Client Step Number, entered by the rep — allows 1.1, 1.2, etc.
+    title = models.TextField()  # Client Step Name
     description = models.TextField(blank=True)
+
+    agency_action = models.TextField(blank=True)
+    fee = models.CharField(max_length=150, blank=True)  # Fees to be Paid
+    processing_time = models.CharField(max_length=150, blank=True)  # free text, e.g. "5 minutes", "3-5 days", "Same day"
+    person_responsible = models.CharField(max_length=150, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -342,6 +400,71 @@ class DownloadableForm(models.Model):
     class Meta:
         ordering = ["-date_uploaded"]
 
+    @property
+    def is_fillable(self):
+        return self.fields.exists()
+
+    def __str__(self):
+        return self.title
+
+
+class FormField(models.Model):
+    """
+    One input field positioned on top of a specific page of a
+    DownloadableForm's PDF. x/y/width/height are stored as fractions
+    (0.0–1.0) of the page's width/height, not pixels — this keeps the
+    position correct no matter what size the PDF is rendered at,
+    whether that's the builder canvas, the public fill page, or the
+    final stamped output.
+    """
+
+    FIELD_TYPE_CHOICES = [
+        ("text", "Short Text"),
+        ("date", "Date"),
+        ("number", "Number"),
+        ("checkbox", "Checkbox"),
+    ]
+
+    form = models.ForeignKey(DownloadableForm, on_delete=models.CASCADE, related_name="fields")
+    label = models.CharField(max_length=150)
+    field_type = models.CharField(max_length=20, choices=FIELD_TYPE_CHOICES, default="text")
+    required = models.BooleanField(default=True)
+
+    page_number = models.PositiveIntegerField(default=1)  # 1-indexed
+    x = models.FloatField()       # left edge, as a fraction of page width
+    y = models.FloatField()       # top edge, as a fraction of page height
+    width = models.FloatField(default=0.2)
+    height = models.FloatField(default=0.03)
+
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["page_number", "order", "id"]
+
+    def __str__(self):
+        return f"{self.label} ({self.form.title}, page {self.page_number})"
+
+
+class FormSubmission(models.Model):
+    form = models.ForeignKey(DownloadableForm, on_delete=models.CASCADE, related_name="submissions")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="form_submissions")
+    submitted_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-submitted_at"]
+
+    def __str__(self):
+        return f"{self.form.title} — {self.user.get_full_name() or self.user.username}"
+
+
+class FormSubmissionValue(models.Model):
+    submission = models.ForeignKey(FormSubmission, on_delete=models.CASCADE, related_name="values")
+    field = models.ForeignKey(FormField, on_delete=models.CASCADE, related_name="submitted_values")
+    value = models.CharField(max_length=500, blank=True)
+
+    def __str__(self):
+        return f"{self.field.label}: {self.value}"
+
     def __str__(self):
         return self.title
 
@@ -351,12 +474,14 @@ class Requirement(models.Model):
     order = models.PositiveIntegerField(default=1)
     title = models.CharField(max_length=150)
     description = models.TextField(blank=True)
+    where_to_secure = models.CharField(max_length=200, blank=True)
+    transaction_type = models.CharField(max_length=100, blank=True)  # groups this requirement under a type of transaction, if applicable — free text, matched by exact text
     is_required = models.BooleanField(default=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ["order", "created_at"]
+        ordering = ["transaction_type", "order", "created_at"]
 
     def __str__(self):
         return self.title
@@ -443,8 +568,3 @@ def log_activity(rep, title, description="", category="content", icon="fa-solid 
         icon=icon,
         icon_color=icon_color,
     )
-
-
-
-
-

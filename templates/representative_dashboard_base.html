@@ -57,6 +57,8 @@
       <li class="nav-item{% if request.path == directory_url %} active{% endif %}"><a href="{{ directory_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-address-book"></i></span> Office Directory</a></li>
       {% url 'office_dashboard:location' as location_url %}
       <li class="nav-item{% if request.path == location_url %} active{% endif %}"><a href="{{ location_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-location-dot"></i></span> Office Location</a></li>
+      {% url 'office_dashboard:page_settings' as page_settings_url %}
+      <li class="nav-item{% if request.path == page_settings_url %} active{% endif %}"><a href="{{ page_settings_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-image"></i></span> Page Settings</a></li>
     </ul>
 
 

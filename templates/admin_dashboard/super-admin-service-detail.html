@@ -22,95 +22,85 @@
         </span>
       </div>
     </div>
-    <div class="panel-body">
-      <div class="field-grid">
-        <div>
-          <div class="fl-label">Office</div>
-          <div class="fl-value">{{ service.office.name }}</div>
-        </div>
-        <div>
-          <div class="fl-label">Category</div>
-          <div class="fl-value">{{ service.get_category_display }}</div>
-        </div>
-        <div>
-          <div class="fl-label">Availability</div>
-          <div class="fl-value">{{ service.availability|default:"—" }}</div>
-        </div>
-        <div>
-          <div class="fl-label">Processing Time</div>
-          <div class="fl-value">{{ service.processing_time|default:"—" }}</div>
-        </div>
-        <div class="full">
-          <div class="fl-label">Description</div>
-          <div class="fl-value {% if not service.description %}muted{% endif %}">{{ service.description|default:"No description provided."|linebreaksbr }}</div>
-        </div>
-        <div>
-          <div class="fl-label">Published</div>
-          <div class="fl-value">{{ service.published_at|date:"F j, Y, g:i A"|default:"—" }}</div>
-        </div>
-      </div>
+
+    <!-- Citizen's Charter style preview — same layout as the office rep's
+         own "Preview" button on the Services page, so the Super Admin sees
+         exactly the same view of the service. -->
+    <div class="panel-body charter-modal" style="margin:0 auto;">
+      <h2 class="charter-title">{{ service.name }}</h2>
+      {% if service.description %}<p class="charter-desc">{{ service.description }}</p>{% endif %}
+
+      <table class="charter-table charter-info-table">
+        <tr><th>Office or Division:</th><td>{{ service.division|default:service.office.name|default:"—" }}</td></tr>
+        <tr><th>Classification:</th><td>{{ service.classification|default:"—" }}</td></tr>
+        <tr><th>Type of Transaction:</th><td>{{ service.transaction_type_display|default:"—" }}</td></tr>
+        <tr><th>Who May Avail:</th><td>{{ service.who_may_avail|default:"—" }}</td></tr>
+      </table>
+
+      {% if has_requirements %}
+        <table class="charter-table">
+          <thead>
+            <tr><th colspan="2">Checklist of Requirements</th></tr>
+            <tr><th>Requirement</th><th>Where to Secure</th></tr>
+          </thead>
+          <tbody>
+            {% for req in general_requirements %}
+            <tr><td>{{ req.title }}</td><td>{{ req.where_to_secure|default:"—" }}</td></tr>
+            {% endfor %}
+            {% for txn_type, reqs in grouped_requirements %}
+            <tr><td colspan="2" class="charter-subhead">{{ txn_type }}</td></tr>
+            {% for req in reqs %}
+            <tr><td>{{ req.title }}</td><td>{{ req.where_to_secure|default:"—" }}</td></tr>
+            {% endfor %}
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p style="color:var(--gray-400);padding:8px 0;">No requirements added yet.</p>
+      {% endif %}
+
+      {% if steps %}
+        <table class="charter-table">
+          <thead><tr><th>Client Steps</th><th>Agency Actions</th><th>Fees to be Paid</th><th>Processing Time</th><th>Person Responsible</th></tr></thead>
+          <tbody>
+            {% for step in steps %}
+            <tr>
+              <td>{{ forloop.counter }}. {{ step.title }}</td>
+              <td>{{ step.agency_action|default:"—" }}</td>
+              <td>{{ step.fee|default:"—" }}</td>
+              <td>{{ step.processing_time|default:"—" }}</td>
+              <td>{{ step.person_responsible|default:"—" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr><td colspan="3" style="text-align:right;">TOTAL</td><td>{{ total_processing_time }}</td><td></td></tr>
+          </tfoot>
+        </table>
+      {% else %}
+        <p style="color:var(--gray-400);padding:8px 0;">No client steps added yet.</p>
+      {% endif %}
+
+      {% if service.schedule_of_service %}
+        <h3 class="charter-subtitle">Schedule of Service</h3>
+        <p class="charter-plain">{{ service.schedule_of_service }}</p>
+      {% endif %}
+
+      {% if service.legal_basis %}
+        <h3 class="charter-subtitle">Legal Basis</h3>
+        <p class="charter-plain" style="white-space:pre-line;">{{ service.legal_basis }}</p>
+      {% endif %}
+
+      {% if forms %}
+        <h3 class="charter-subtitle">Downloadable Forms</h3>
+        <ul class="charter-list">
+          {% for form in forms %}
+          <li><a href="{% url 'admin_dashboard:admin_download_form_file' form.pk %}" target="_blank" rel="noopener"><i class="fa-solid fa-file-arrow-down"></i> {{ form.title }}</a></li>
+          {% endfor %}
+        </ul>
+      {% endif %}
     </div>
   </section>
-
-  <section class="panel" style="margin-top:16px;">
-    <div class="panel-header"><h2>Process Steps</h2></div>
-    <div class="panel-body">
-      {% for step in steps %}
-      <div class="sub-block">
-        <div class="step-chip"><span class="step-num">{{ forloop.counter }}</span><span class="step-text"><strong>{{ step.title }}</strong>{% if step.description %} — {{ step.description }}{% endif %}</span></div>
-      </div>
-      {% empty %}
-      <p class="empty-note">No process steps have been added for this service.</p>
-      {% endfor %}
-    </div>
-  </section>
-
-  <section class="panel" style="margin-top:16px;">
-    <div class="panel-header"><h2>Requirements</h2></div>
-    <div class="panel-body">
-      {% for req in requirements %}
-      <div class="req-chip">
-        <span>{{ req.title }}{% if req.description %} — {{ req.description }}{% endif %}</span>
-        <span class="req-tag {% if req.is_required %}required{% else %}optional{% endif %}">{% if req.is_required %}Required{% else %}Optional{% endif %}</span>
-      </div>
-      {% empty %}
-      <p class="empty-note">No requirements have been added for this service.</p>
-      {% endfor %}
-    </div>
-  </section>
-
-  <section class="panel" style="margin-top:16px;">
-    <div class="panel-header"><h2>Fees</h2></div>
-    <div class="panel-body">
-      {% for fee in fees %}
-      <div class="fee-chip">
-        <span>{{ fee.title }}{% if fee.description %} — {{ fee.description }}{% endif %}</span>
-        <span class="fee-amount">₱{{ fee.amount }}</span>
-      </div>
-      {% empty %}
-      <p class="empty-note">No fees have been added for this service.</p>
-      {% endfor %}
-    </div>
-  </section>
-
-{% if forms %}
-<section class="panel" style="margin-top:16px;">
-  <div class="panel-header"><h2>Downloadable Forms</h2></div>
-  <div class="panel-body">
-    {% for form in forms %}
-    <div class="attachment" style="margin-bottom:10px;">
-      <span class="af"><i class="fa-solid fa-file-pdf"></i></span>
-      <div>
-        <div class="an">{{ form.title }}</div>
-        <div class="as">{{ form.date_uploaded|date:"M j, Y" }} · {{ form.download_count }} download{{ form.download_count|pluralize }}</div>
-      </div>
-      <span class="badge {% if form.status == 'published' %}badge-green{% elif form.status == 'pending' %}badge-amber{% else %}badge-gray{% endif %}" style="margin-left:auto;margin-right:10px;">{{ form.get_status_display }}</span>
-      <a class="dl" href="{% url 'admin_dashboard:admin_download_form_file' form.pk %}" title="Download"><i class="fa-solid fa-download"></i></a>
-    </div>
-    {% endfor %}
-  </div>
-</section>
-{% endif %}
 
   <div class="modal-backdrop" id="delete-service-modal-{{ service.pk }}">
     <div class="modal-box" style="max-width:400px;">
@@ -130,5 +120,7 @@
       </div>
     </div>
   </div>
+
+
 
 {% endblock %}

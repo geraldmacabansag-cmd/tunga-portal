@@ -70,8 +70,8 @@
                   <div class="action-icons">
                     <span class="ic" onclick="document.getElementById('view-office-modal-{{ r.office.id }}').classList.add('open')" title="View Details"><i class="fa-regular fa-eye"></i></span>
                     <span class="ic" onclick="document.getElementById('edit-office-modal-{{ r.office.id }}').classList.add('open')" title="Edit Office"><i class="fa-regular fa-pen-to-square"></i></span>
-                    <label class="toggle-switch" title="Show this office on the public website (not yet functional)">
-                      <input type="checkbox" disabled {% if r.status == 'active' %}checked{% endif %}>
+                    <label class="toggle-switch" title="{% if r.office.is_visible %}Hide{% else %}Show{% endif %} this office on the public website">
+                      <input type="checkbox" {% if r.office.is_visible %}checked{% endif %} onclick="event.preventDefault(); document.getElementById('toggle-office-modal-{{ r.office.id }}').classList.add('open');">
                       <span class="slider"></span>
                     </label>
                   </div>
@@ -100,6 +100,7 @@
 
       <div class="modal-view-row"><span class="k">Office Name</span><span class="v">{{ r.office.name }}</span></div>
       <div class="modal-view-row"><span class="k">Status</span><span class="v">{% if r.status == 'active' %}Active{% elif r.status == 'pending' %}Pending{% else %}Inactive{% endif %}</span></div>
+      <div class="modal-view-row"><span class="k">Visible on Public Site</span><span class="v">{% if r.office.is_visible %}Yes{% else %}No, hidden{% endif %}</span></div>
       <div class="modal-view-row"><span class="k">Representative</span><span class="v">{% if r.rep %}{{ r.rep.user.get_full_name|default:r.rep.user.username }}{% else %}Unassigned{% endif %}</span></div>
       <div class="modal-view-row"><span class="k">Office Head</span><span class="v">{{ r.office.head_name|default:"—" }}</span></div>
       <div class="modal-view-row"><span class="k">Position Title</span><span class="v">{{ r.office.position_title|default:"—" }}</span></div>
@@ -196,6 +197,31 @@
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" onclick="document.getElementById('edit-office-modal-{{ r.office.id }}').classList.remove('open')">Cancel</button>
           <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+{% for r in rows %}
+<div class="modal-backdrop" id="toggle-office-modal-{{ r.office.id }}">
+  <div class="modal-box" style="max-width:400px;">
+    <div class="modal-head">
+      <h3>{% if r.office.is_visible %}Hide Office{% else %}Show Office{% endif %}</h3>
+      <button type="button" class="modal-x" onclick="document.getElementById('toggle-office-modal-{{ r.office.id }}').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      {% if r.office.is_visible %}
+        <p>Are you sure you want to hide <strong>"{{ r.office.name }}"</strong> from the Offices page on the public website? Visitors will no longer see this office listed there.</p>
+      {% else %}
+        <p>Are you sure you want to show <strong>"{{ r.office.name }}"</strong> on the Offices page on the public website? Visitors will be able to see and open this office again.</p>
+      {% endif %}
+      <form method="post" action="{% url 'admin_dashboard:admin_office_toggle_visibility' r.office.id %}">
+        {% csrf_token %}
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('toggle-office-modal-{{ r.office.id }}').classList.remove('open')">Cancel</button>
+          <button type="submit" class="btn btn-primary">{% if r.office.is_visible %}Yes, Hide It{% else %}Yes, Show It{% endif %}</button>
         </div>
       </form>
     </div>

@@ -44,6 +44,12 @@
           <div class="field-grid">
 
             {% if item_type == 'Announcement' %}
+              {% if obj.image %}
+              <div class="full">
+                <div class="fl-label">Image</div>
+                <a href="{{ obj.image.url }}" target="_blank"><img class="modal-preview-img" src="{{ obj.image.url }}" alt="{{ obj.title }}"></a>
+              </div>
+              {% endif %}
               <div class="full"><div class="fl-label">Content</div><div class="fl-value muted">{{ obj.content|linebreaksbr|default:"—" }}</div></div>
               <div><div class="fl-label">Subtitle</div><div class="fl-value">{{ obj.subtitle|default:"—" }}</div></div>
               <div><div class="fl-label">Category</div><div class="fl-value">{{ obj.category|default:"—" }}</div></div>
@@ -53,9 +59,14 @@
               <div><div class="fl-label">Expiration Date</div><div class="fl-value">{{ obj.expiration_date|date:"F j, Y, g:i A"|default:"—" }}</div></div>
               <div><div class="fl-label">Last Updated</div><div class="fl-value">{{ obj.last_updated|date:"F j, Y, g:i A" }}</div></div>
               <div><div class="fl-label">Views</div><div class="fl-value">{{ obj.views }}</div></div>
-              <div class="full"><div class="fl-label">Image / Attachment</div><div class="fl-value">{% if obj.image %}<a href="{{ obj.image.url }}" target="_blank">View image</a>{% else %}No image attached{% endif %}</div></div>
 
             {% elif item_type == 'News' %}
+              {% if obj.image %}
+              <div class="full">
+                <div class="fl-label">Image</div>
+                <a href="{{ obj.image.url }}" target="_blank"><img class="modal-preview-img" src="{{ obj.image.url }}" alt="{{ obj.title }}"></a>
+              </div>
+              {% endif %}
               <div class="full"><div class="fl-label">Summary</div><div class="fl-value muted">{{ obj.summary|default:"—" }}</div></div>
               <div class="full"><div class="fl-label">Content</div><div class="fl-value muted">{{ obj.content|linebreaksbr|default:"—" }}</div></div>
               <div><div class="fl-label">Category</div><div class="fl-value">{{ obj.category|default:"—" }}</div></div>
@@ -67,6 +78,12 @@
               <div><div class="fl-label">Views</div><div class="fl-value">{{ obj.views }}</div></div>
 
             {% elif item_type == 'Event' %}
+              {% if obj.poster %}
+              <div class="full">
+                <div class="fl-label">Poster</div>
+                <a href="{{ obj.poster.url }}" target="_blank"><img class="modal-preview-img" src="{{ obj.poster.url }}" alt="{{ obj.title }}"></a>
+              </div>
+              {% endif %}
               <div class="full"><div class="fl-label">Description</div><div class="fl-value muted">{{ obj.description|linebreaksbr|default:"—" }}</div></div>
               <div><div class="fl-label">Category</div><div class="fl-value">{{ obj.category|default:"—" }}</div></div>
               <div><div class="fl-label">Location</div><div class="fl-value">{{ obj.location|default:"—" }}</div></div>
@@ -79,9 +96,11 @@
 
             {% elif item_type == 'Service' %}
               <div class="full"><div class="fl-label">Description</div><div class="fl-value muted">{{ obj.description|linebreaksbr|default:"—" }}</div></div>
-              <div><div class="fl-label">Category</div><div class="fl-value">{{ obj.get_category_display }}</div></div>
-              <div><div class="fl-label">Availability</div><div class="fl-value">{{ obj.availability|default:"—" }}</div></div>
-              <div><div class="fl-label">Processing Time</div><div class="fl-value">{{ obj.processing_time|default:"—" }}</div></div>
+              <div><div class="fl-label">Office / Division</div><div class="fl-value">{{ obj.division|default:office.name|default:"—" }}</div></div>
+              <div><div class="fl-label">Classification</div><div class="fl-value">{{ obj.classification|default:"—" }}</div></div>
+              <div><div class="fl-label">Type of Transaction</div><div class="fl-value">{{ obj.transaction_type_display|default:"—" }}</div></div>
+              <div><div class="fl-label">Who May Avail</div><div class="fl-value">{{ obj.who_may_avail|default:"—" }}</div></div>
+              <div><div class="fl-label">Internal/External</div><div class="fl-value">{{ obj.get_service_scope_display|default:"None" }}</div></div>
               <div><div class="fl-label">Icon</div><div class="fl-value"><i class="{{ obj.icon }}"></i>&nbsp; {{ obj.get_icon_display }}</div></div>
               <div class="full"><div class="fl-label">Published</div><div class="fl-value">{{ obj.published_at|date:"F j, Y, g:i A" }}</div></div>
 
@@ -92,7 +111,14 @@
               <div><div class="fl-label">Last Update</div><div class="fl-value">{{ obj.date_uploaded|date:"F j, Y, g:i A" }}</div></div>
 
             {% elif item_type == 'Gallery' %}
-              <div class="full"><div class="fl-label">Photo Attachment</div><div class="fl-value">{% if obj.image %}<a href="{{ obj.image.url }}" target="_blank">View photo</a>{% else %}No image{% endif %}</div></div>
+              {% if obj.image %}
+              <div class="full">
+                <div class="fl-label">Photo</div>
+                <a href="{{ obj.image.url }}" target="_blank"><img class="modal-preview-img" src="{{ obj.image.url }}" alt="{{ obj.title }}"></a>
+              </div>
+              {% else %}
+              <div class="full"><div class="fl-label">Photo</div><div class="fl-value">No image</div></div>
+              {% endif %}
               <div><div class="fl-label">Album</div><div class="fl-value">{{ obj.album.name|default:"—" }}</div></div>
               <div><div class="fl-label">Last Update</div><div class="fl-value">{{ obj.last_updated|date:"F j, Y, g:i A" }}</div></div>
 
@@ -104,95 +130,111 @@
 
       {% if item_type == 'Service' %}
       <section class="panel">
-        <div class="panel-header"><h2>Process, Requirements &amp; Fees</h2></div>
+        <div class="panel-header"><h2>Requirements <span class="count">{{ service_requirements|length }}</span></h2></div>
         <div class="panel-body">
+          {% if service_requirements %}
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>Requirement</th><th>Where to Secure</th><th>Type of Transaction</th></tr></thead>
+                <tbody>
+                  {% for req in service_requirements %}
+                  <tr>
+                    <td>{{ req.title }}</td>
+                    <td>{{ req.where_to_secure|default:"—" }}</td>
+                    <td>{{ req.transaction_type|default:"—" }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="empty-note">None added yet.</div>
+          {% endif %}
+        </div>
+      </section>
 
-          <div class="sub-block">
-            <div class="sub-block-title">Process Steps <span class="count">{{ obj.steps.count }}</span></div>
-            {% for step in obj.steps.all %}
-              <div class="step-chip"><span class="step-num">{{ forloop.counter }}</span><span class="step-text">{{ step.title }}</span></div>
-            {% empty %}
-              <div class="empty-note">None added yet.</div>
-            {% endfor %}
+      <section class="panel">
+        <div class="panel-header"><h2>Client Steps <span class="count">{{ service_steps|length }}</span></h2></div>
+        <div class="panel-body">
+          {% if service_steps %}
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>Step No.</th><th>Client Step</th><th>Agency Action</th><th>Fee</th><th>Processing Time</th><th>Person Responsible</th></tr></thead>
+                <tbody>
+                  {% for step in service_steps %}
+                  <tr>
+                    <td>{{ step.order }}</td>
+                    <td>{{ step.title }}</td>
+                    <td>{{ step.agency_action|default:"—" }}</td>
+                    <td>{{ step.fee|default:"—" }}</td>
+                    <td>{{ step.processing_time|default:"—" }}</td>
+                    <td>{{ step.person_responsible|default:"—" }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td colspan="4" style="text-align:right;font-weight:800;">TOTAL</td>
+                    <td style="font-weight:800;">{{ service_total_processing_time }}</td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          {% else %}
+            <div class="empty-note">None added yet.</div>
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header"><h2>Other Details</h2></div>
+        <div class="panel-body">
+          <div class="field-grid">
+            <div class="full"><div class="fl-label">Legal Basis (if applicable)</div><div class="fl-value muted">{{ obj.legal_basis|linebreaksbr|default:"—" }}</div></div>
+            <div class="full"><div class="fl-label">Schedule of Service (if applicable)</div><div class="fl-value">{{ obj.schedule_of_service|default:"—" }}</div></div>
           </div>
+        </div>
+      </section>
 
-          <div class="sub-block">
-            <div class="sub-block-title">Requirements <span class="count">{{ obj.requirements.count }}</span></div>
-            {% for req in obj.requirements.all %}
-              <div class="req-chip"><span>{{ req.title }}</span><span class="req-tag {% if req.is_required %}required{% else %}optional{% endif %}">{% if req.is_required %}Required{% else %}Optional{% endif %}</span></div>
-            {% empty %}
-              <div class="empty-note">None added yet.</div>
-            {% endfor %}
-          </div>
+      <section class="panel">
+        <div class="panel-header"><h2>Important Reminders</h2></div>
+        <div class="panel-body">
+          {% if service_reminder_lines %}
+            <ul class="reminder-list">
+              {% for line in service_reminder_lines %}<li>{{ line }}</li>{% endfor %}
+            </ul>
+          {% else %}
+            <div class="empty-note">None added yet.</div>
+          {% endif %}
+        </div>
+      </section>
 
-          <div class="sub-block">
-            <div class="sub-block-title">Fees <span class="count">{{ obj.fees.count }}</span></div>
-            {% for fee in obj.fees.all %}
-              <div class="fee-chip"><span>{{ fee.title }}</span><span class="fee-amount">&#8369;{{ fee.amount }}</span></div>
-            {% empty %}
-              <div class="empty-note">None added yet.</div>
-            {% endfor %}
-          </div>
-
-          <div class="sub-block">
-            <div class="sub-block-title">Downloadable Forms</div>
-            <div class="empty-note">Managed separately under the office's Downloadable Forms — not tied to a specific service.</div>
-          </div>
-
+      <section class="panel">
+        <div class="panel-header"><h2>Downloadable Forms <span class="count">{{ service_forms|length }}</span></h2></div>
+        <div class="panel-body">
+          {% if service_forms %}
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>Form</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody>
+                  {% for form in service_forms %}
+                  <tr>
+                    <td>{{ form.title }}</td>
+                    <td><span class="badge {% if form.status == 'published' %}badge-green{% else %}badge-amber{% endif %}">{{ form.get_status_display }}</span></td>
+                    <td><a class="ic" href="{% url 'office_dashboard:download_form' form.pk %}" title="Download"><i class="fa-solid fa-download"></i></a></td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <div class="empty-note">None uploaded for this service yet.</div>
+          {% endif %}
         </div>
       </section>
       {% endif %}
     </div>
-
-    <section class="preview-card">
-      {% if item_type == 'Announcement' %}
-        {% if obj.image %}<a href="{{ obj.image.url }}" target="_blank"><img src="{{ obj.image.url }}" alt="{{ obj.title }}"></a>{% endif %}
-        <div class="pc-body">
-          <h3>{{ obj.title }}</h3>
-          <div class="byline">by {{ office.name|default:"—" }} &middot; {{ obj.created_at|date:"F j, Y g:i A" }}</div>
-          <p>{{ obj.content|linebreaksbr }}</p>
-        </div>
-      {% elif item_type == 'News' %}
-        {% if obj.image %}<a href="{{ obj.image.url }}" target="_blank"><img src="{{ obj.image.url }}" alt="{{ obj.title }}"></a>{% endif %}
-        <div class="pc-body">
-          <h3>{{ obj.title }}</h3>
-          <div class="byline">by {{ obj.author|default:office.name }} &middot; {{ obj.created_at|date:"F j, Y g:i A" }}</div>
-          <p>{{ obj.summary }}</p>
-          <p>{{ obj.content|linebreaksbr }}</p>
-        </div>
-      {% elif item_type == 'Event' %}
-        {% if obj.poster %}<a href="{{ obj.poster.url }}" target="_blank"><img src="{{ obj.poster.url }}" alt="{{ obj.title }}"></a>{% endif %}
-        <div class="pc-body">
-          <h3>{{ obj.title }}</h3>
-          <div class="byline">{{ obj.location }} &middot; {{ obj.event_date|date:"F j, Y" }}{% if obj.start_time %} {{ obj.start_time|time:"g:i A" }}{% endif %}</div>
-          <p>{{ obj.description|linebreaksbr }}</p>
-        </div>
-      {% elif item_type == 'Gallery' %}
-        {% if obj.image %}<a href="{{ obj.image.url }}" target="_blank"><img src="{{ obj.image.url }}" alt="{{ obj.title }}"></a>{% endif %}
-        <div class="pc-body">
-          <h3>{{ obj.title }}</h3>
-          <div class="byline">by {{ office.name|default:"—" }} &middot; {{ obj.created_at|date:"F j, Y g:i A" }}</div>
-          {% if obj.album %}<p>Album: {{ obj.album.name }}</p>{% endif %}
-        </div>
-      {% elif item_type == 'Form' %}
-        <div class="pc-body">
-          <h3>{{ obj.title }}</h3>
-          <div class="byline">by {{ office.name|default:"—" }} &middot; {{ obj.date_uploaded|date:"F j, Y g:i A" }}</div>
-          <p>{{ obj.description|linebreaksbr }}</p>
-          <div class="attachment">
-            <span class="af"><i class="fa-solid fa-file-pdf"></i></span>
-            <div><div class="an">{{ obj.file.name|slice:"18:" }}</div></div>
-            <a class="dl" href="{{ obj.file.url }}"><i class="fa-solid fa-download"></i></a>
-          </div>
-        </div>
-      {% elif item_type == 'Service' %}
-        <div class="pc-body">
-          <h3>{{ obj.name }}</h3>
-          <div class="byline">{{ office.name|default:"—" }} &middot; {{ obj.get_category_display }}</div>
-          <p>{{ obj.description|linebreaksbr }}</p>
-        </div>
-      {% endif %}
-    </section>
 
     <form method="post">
       {% csrf_token %}

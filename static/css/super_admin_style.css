@@ -1104,14 +1104,33 @@ table.data-table {
   opacity: .6;
 }
 
-/* ---------- Approval detail page ---------- */
+/* ---------- Approval detail page ----------
+   2 columns: a wide main column (Overview, Content Details, and — for a
+   Service — its Requirements/Client Steps/Other Details/Reminders/Forms
+   panels, which can run long) and a narrower sidebar holding Review Actions
+   + Add Note. The form is now ONE grid item (not display:contents) so it
+   never has to match row-heights with the very tall main column — it just
+   stacks its two panels top-to-bottom with flexbox, right where the old
+   preview square used to be. min-width:0 + table-layout:fixed keep a long
+   table or unbroken word in the main column from forcing the whole grid
+   wider than the page (the classic CSS Grid "blowout" bug). */
 .approval-grid{
   display:grid;
-  grid-template-columns:1.1fr 1.5fr 1.1fr 1.1fr;
+  grid-template-columns:1.6fr 1fr;
   gap:18px;
   align-items:start;
 }
-.approval-grid > form{display:contents;}
+.approval-grid > *{min-width:0;}
+.approval-grid > div:first-child{grid-column:1;}
+.approval-grid > form{
+  grid-column:2;
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+  position:sticky;
+  top:20px;
+}
+.approval-grid .data-table{table-layout:fixed;}
 
 .detail-label{font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;}
 .detail-value{font-size:14px;color:var(--gray-900);font-weight:600;margin-bottom:16px;}
@@ -1244,6 +1263,8 @@ textarea.note-input{
   .sidebar.open{left:0;}
   .stat-grid{grid-template-columns:1fr;}
   .approval-grid{grid-template-columns:1fr;}
+  .approval-grid > div:first-child,
+  .approval-grid > form{grid-column:1;position:static;}
   .topbar{padding:14px 16px;}
   .content{padding:16px;}
   .searchbox{display:none;}
@@ -1697,3 +1718,20 @@ input[type="date"].form-input::-webkit-calendar-picker-indicator:hover {
     width: 100%;
   }
 }
+
+/* ---------- Citizen's Charter style service preview ----------
+   Same look as the office rep's own Preview button on the Services page
+   (see .charter-* in office_rep_style.css) — kept in sync so the Super
+   Admin's read-only service view matches it exactly. */
+.charter-modal { max-width: 780px; }
+.charter-title { text-align: center; font-size: 17px; margin: 0 0 4px; text-transform: uppercase; }
+.charter-desc { text-align: center; color: var(--gray-500); font-size: 13px; margin: 0 0 18px; }
+.charter-subtitle { font-size: 14px; margin: 22px 0 8px; }
+.charter-plain { font-size: 13px; color: var(--gray-700, #374151); margin: 0; }
+.charter-list { margin: 0; padding-left: 18px; font-size: 13px; color: var(--gray-700, #374151); }
+.charter-table { width: 100%; border-collapse: collapse; margin-bottom: 18px; font-size: 12.5px; table-layout: fixed; }
+.charter-table th, .charter-table td { border: 1px solid var(--gray-300, #d1d5db); padding: 8px 10px; text-align: left; vertical-align: top; word-wrap: break-word; }
+.charter-table thead th { background: var(--blue-100, #bfdbfe); font-weight: 800; white-space: normal; }
+.charter-table tfoot td { background: var(--gray-50, #f9fafb); font-weight: 800; }
+.charter-table .charter-subhead { background: var(--blue-50, #eff6ff); font-weight: 700; text-align: center; }
+.charter-info-table th { background: var(--blue-100, #bfdbfe); width: 200px; }

@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block title %}
-Home | Digital Governance Portal
+Mayor's Office | Digital Governance Portal
 {% endblock %}
 
 {% block content %}
@@ -21,37 +21,24 @@ Home | Digital Governance Portal
   <div class="container">
     <div class="panel services-offered-panel">
       <h2 class="section-title services-offered-title">Services Offered</h2>
-      <div class="services-offered-grid">
-        <div class="service-offered">
-          <i class="fa-solid fa-hand-holding-heart"></i>
-          <strong>Public Assistance</strong>
-          <p>Provides assistance to individuals and groups in need.</p>
-        </div>
-        <div class="service-offered">
-          <i class="fa-regular fa-file-lines"></i>
-          <strong>Endorsement</strong>
-          <p>Endorses documents and requests for other offices and agencies.</p>
-        </div>
-        <div class="service-offered">
-          <i class="fa-regular fa-comments"></i>
-          <strong>Complaints and Inquiries</strong>
-          <p>Receives and endorses complaints and inquiries for appropriate action.</p>
-        </div>
-        <div class="service-offered">
-          <i class="fa-regular fa-hand"></i>
-          <strong>Special Requests</strong>
-          <p>Handles special requests for support and intervention.</p>
-        </div>
-        <div class="service-offered">
-          <i class="fa-solid fa-bullhorn"></i>
-          <strong>Proclamations</strong>
-          <p>Issues proclamations for events and important occasions.</p>
-        </div>
-        <div class="service-offered">
-          <i class="fa-regular fa-calendar"></i>
-          <strong>Appointments</strong>
-          <p>Sets schedules of the Mayor for meetings, visits, and events.</p>
-        </div>
+      <p class="services-offered-sub">ssSelect a service to see who may avail, the requirements, the steps, fees and processing time.</p>
+
+      <div class="svc-grid">
+        <a href="#svc-1" class="svc-card" data-svc="svc-1" data-title="Mayor’s Clearance (for Local Employment, Travel Abroad, Marriage Contract, etc.)">
+          <span class="svc-icon"><i class="fa-regular fa-heart"></i></span>
+          <h3>Mayor’s Clearance (for Local Employment, Travel Abroad, Marriage Contract, etc.)</h3>
+          <p>For: Transacting public</p>
+        </a>
+        <a href="#svc-2" class="svc-card" data-svc="svc-2" data-title="Public Customer Assistance such as Medical, Burial and Job Recommendation">
+          <span class="svc-icon"><i class="fa-solid fa-plus"></i></span>
+          <h3>Public Customer Assistance such as Medical, Burial and Job Recommendation</h3>
+          <p>For: All clientele</p>
+        </a>
+        <a href="#svc-3" class="svc-card" data-svc="svc-3" data-title="Special Permit (Disco, Alumni, Motorcade, etc.)">
+          <span class="svc-icon"><i class="fa-solid fa-award"></i></span>
+          <h3>Special Permit (Disco, Alumni, Motorcade, etc.)</h3>
+          <p>For: Transacting Public</p>
+        </a>
       </div>
     </div>
   </div>
@@ -123,6 +110,16 @@ Home | Digital Governance Portal
           <div><a href="#">Special Permit Request Form</a><span>PDF &middot; 193 KB</span></div>
           <a href="#" class="btn btn-outline forms-list__dl"><i class="fa-solid fa-download"></i> Download</a>
         </li>
+        <li>
+          <i class="fa-regular fa-file-pdf"></i>
+          <div><a href="#">Customer Feedback Form</a><span>PDF</span></div>
+          <a href="#" class="btn btn-outline forms-list__dl"><i class="fa-solid fa-download"></i> Download</a>
+        </li>
+        <li>
+          <i class="fa-regular fa-file-pdf"></i>
+          <div><a href="#">Complaint Form</a><span>PDF</span></div>
+          <a href="#" class="btn btn-outline forms-list__dl"><i class="fa-solid fa-download"></i> Download</a>
+        </li>
       </ul>
     </div>
 
@@ -177,7 +174,7 @@ Home | Digital Governance Portal
   <div class="container">
     <div class="panel about-office-panel">
       <h2 class="section-title">About the Office</h2>
-      <p>The Mayor's Office is committed to providing responsive leadership, strengthening good governance, and working hand-in-hand with the community for the continuous progress and development of Tunga.</p>
+      <p>The Office of the Municipal Mayor serves the public and other offices through the 3 services listed above, as set out in the Citizen’s Charter of the Municipality of Tunga (2025, 1st Edition).</p>
       <div class="about-office-meta">
         <div><i class="fa-regular fa-clock"></i><div><strong>Office Hours</strong><span>Monday &ndash; Friday<br>8:00 AM &ndash; 5:00 PM</span></div></div>
         <div><i class="fa-solid fa-location-dot"></i><div><strong>Location</strong><span>2nd Floor, Municipal Hall<br>Tunga, Leyte</span></div></div>
@@ -193,5 +190,86 @@ Home | Digital Governance Portal
     </div>
   </div>
 </section>
+
+<!-- Service detail modal (data transferred from mayor.html) -->
+<dialog id="svcDialog" aria-labelledby="dlgTitle" class="svc-dialog">
+  <div class="svc-dlg">
+    <div class="svc-dlg-head">
+      <div><small>Office of the Municipal Mayor</small><h2 id="dlgTitle"></h2></div>
+      <button type="button" class="svc-dlg-close" id="dlgClose" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="svc-dlg-body" id="dlgBody"></div>
+  </div>
+</dialog>
+
+<template id="tpl-svc-1"><div class="svc-meta"><span class="svc-chip">Simple</span><span class="svc-chip">G2C – Government to Transacting Public</span><span class="svc-chip">Who may avail: Transacting public</span><span class="svc-chip svc-chip--gold">Total processing time: 5 minutes</span></div><h4>Checklist of requirements</h4><div class="svc-table-wrap"><table><tr><th>Requirement</th><th>Where to secure</th></tr><tr><td>1.Community Tax Certificate</td><td>Municipal Treasurer’s Office</td></tr><tr><td>Official Receipt</td><td>Municipal Treasurer’s Office</td></tr></table></div><h4>Steps</h4><div class="svc-table-wrap"><table><tr><th>Client steps</th><th>Agency actions</th><th>Fees to be paid</th><th>Processing time</th><th>Person responsible</th></tr><tr><td><div>1. Pay Mayor’s Clearance Fee at the Municipal Treasurer’s Office</div></td><td><div>c/o Municipal Treasurer’s Office staff</div></td><td>—</td><td>—</td><td><div>c/o Municipal Treasurer’s Office</div></td></tr><tr><td><div>2. Submit Official Receipt from the Municipal Treasurer’s Office to Mayor’s Office</div></td><td><div>3.1 Lent to login his/her name and other entries in logbook</div><div>3.2 Acknowledge receipt</div><div>3.3 Prepare requested clearance</div><div>3.4 Verifies the contents of clearance and forward it to Municipal Mayor / Authorized official for signature</div></td><td><div>None</div></td><td><div>3 minutes</div></td><td><div>Mayor’s Office staff</div></td></tr><tr><td><div>3. Wait for action</div></td><td><div>4.1 Affixes his/her signature</div></td><td><div>None</div></td><td><div>1 minute</div></td><td><div>Municipal Mayor</div></td></tr><tr><td><div>4. Receive the document</div></td><td><div>5.1 Releases the document/s</div></td><td>—</td><td><div>1 minute</div></td><td><div>Mayor’s Office staff</div></td></tr></table></div><div class="svc-total" style="text-align:left">Total processing time: 5 minutes</div></template>
+<template id="tpl-svc-2"><div class="svc-meta"><span class="svc-chip">Simple</span><span class="svc-chip">G2C – Government to Transacting Public</span><span class="svc-chip">Who may avail: All clientele</span><span class="svc-chip svc-chip--gold">Total processing time: 13 minutes</span></div><h4>Checklist of requirements</h4><div class="svc-table-wrap"><table><tr><th>Requirement</th><th>Where to secure</th></tr><tr><td>For Medical Assistance</td><td>—</td></tr><tr><td>Certificate of Indigency</td><td>Respective Barangay</td></tr><tr><td>Valid ID of Client</td><td>Client</td></tr><tr><td>Prescription or Receipt of Medicines</td><td>Client</td></tr><tr><td>For Burial Assistance</td><td>—</td></tr><tr><td>Certificate of Indigency</td><td>Respective Barangay</td></tr><tr><td>Valid ID of Client and Deceased</td><td>Client</td></tr><tr><td>Funeral Contract</td><td>Funeral Parlor where the deceased was embalmed.</td></tr><tr><td>Registered Death Certificate</td><td>Municipal Civil Registrar</td></tr></table></div><h4>Steps</h4><div class="svc-table-wrap"><table><tr><th>Client steps</th><th>Agency actions</th><th>Fees to be paid</th><th>Processing time</th><th>Person responsible</th></tr><tr><td><div>1. Submit necessary requirements to avail the service</div></td><td><div>1.1 Receives and review requirements submitted.</div><div>1.2 Preparation for the document / letter for the request</div><div>1.3 Approval by the Municipal Mayor</div><div>1.4 Releasing of document or request to the MSWDO for processing</div></td><td>—</td><td><div>5 minutes</div><div>3 minutes</div><div>3 minutes</div><div>2 minutes</div></td><td><div>Mayor’s Office staff</div><div>Mayor’s Office staff</div><div>Municipal Mayor</div><div>Mayor’s Office staff</div></td></tr></table></div><div class="svc-total" style="text-align:left">Total processing time: 13 minutes</div></template>
+<template id="tpl-svc-3"><div class="svc-meta"><span class="svc-chip">Simple</span><span class="svc-chip">G2C – Government to Transacting Public</span><span class="svc-chip">Who may avail: Transacting Public</span><span class="svc-chip svc-chip--gold">Total processing time: 9 minutes</span></div><h4>Checklist of requirements</h4><div class="svc-table-wrap"><table><tr><th>Requirement</th><th>Where to secure</th></tr><tr><td>1. Letter request</td><td>Client</td></tr><tr><td>2. Official Receipt</td><td>Municipal Treasurer’s Office</td></tr></table></div><h4>Steps</h4><div class="svc-table-wrap"><table><tr><th>Client steps</th><th>Agency actions</th><th>Fees to be paid</th><th>Processing time</th><th>Person responsible</th></tr><tr><td><div>1. Submit letter request to Mayor’s Office / Mayor’s Office staff</div></td><td><div>1.1 Accept the letter request</div><div>1.2 Let the client to log-in his/her name and other entries in the logbook</div></td><td><div>None</div></td><td><div>1 minute</div></td><td><div>Mayor’s Office staff</div></td></tr><tr><td><div>2. Wait for action</div></td><td><div>2.1 Forward letter request to the Municipal Mayor for approval</div><div>2.2 Approval of the letter request</div><div>2.3 When approved, advice client to proceed to Municipal Treasurer’s Office for the fee of the Special Permit</div></td><td><div>None</div></td><td><div>2 minutes</div></td><td><div>Mayor’s Office staff</div><div>c/o Municipal Treasurer’s Office staff</div></td></tr><tr><td><div>3. Proceed to the Municipal Treasurer’s Office for the fee of the special permit</div></td><td><div>3.1 c/o Municipal Treasurer’s Office staff</div></td><td>—</td><td>—</td><td><div>c/o Municipal Treasurer’s Office staff</div></td></tr><tr><td><div>4. Present the Official Receipt to the Municipal Mayor’s Staff</div></td><td><div>4.1 Acknowledge receipt</div><div>4.2 Prepare the special permit and record the document</div></td><td><div>None</div></td><td><div>2 minutes</div></td><td><div>Mayor’s Office staff</div></td></tr><tr><td><div>5. Wait for action</div></td><td><div>5.1 Verifies contents and forward to the Municipal Mayor / Authorized Official for signature</div><div>5.2 Affixes his/her signature</div></td><td><div>None</div></td><td><div>2 minutes</div></td><td><div>Mayor’s Office staff</div><div>Municipal Mayor</div></td></tr><tr><td><div>Notify the General Services Office</div></td><td><div>Provide the necessary service requested by the client</div></td><td><div>None</div></td><td><div>2 minutes</div></td><td><div>General Services Office</div></td></tr></table></div><div class="svc-total" style="text-align:left">Total processing time: 9 minutes</div></template>
+
+<style>
+/* Service cards + detail modal (added to support the richer service content) */
+.services-offered-title { text-align: center; position: relative; padding-bottom: 14px; }
+.services-offered-title::after { content: ""; display: block; width: 48px; height: 3px; background: #e5b524; margin: 12px auto 0; border-radius: 2px; }
+.services-offered-sub { color: #5d667f; font-size: .92rem; margin: 4px 0 0; text-align: center; }
+.svc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 28px; margin-top: 28px; }
+.svc-card { display: flex; flex-direction: column; align-items: center; text-align: center; text-decoration: none; color: inherit; padding: 16px; border-radius: 12px; border: 1px solid transparent; transition: border-color .15s, box-shadow .15s, transform .15s; }
+.svc-card:hover { border-color: #e3e7f1; box-shadow: 0 6px 16px rgba(10,31,107,.08); transform: translateY(-3px); }
+.svc-card .svc-icon { width: 52px; height: 52px; border-radius: 50%; background: #e9edfb; display: flex; align-items: center; justify-content: center; margin-bottom: 14px; transition: background .15s; }
+.svc-card:hover .svc-icon { background: #dbe2f8; }
+.svc-card i { font-size: 1.3rem; color: #0a1f6b; }
+.svc-card h3 { font-size: .95rem; font-weight: 700; color: #0a1f6b; margin: 0 0 6px; line-height: 1.35; }
+.svc-card p { font-size: .85rem; color: #8a92ab; margin: 0; }
+
+.svc-dialog { border: none; border-radius: 14px; padding: 0; max-width: 640px; width: 92%; max-height: 82vh; }
+.svc-dialog::backdrop { background: rgba(11,20,50,.55); }
+.svc-dlg { display: flex; flex-direction: column; max-height: 82vh; }
+.svc-dlg-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 18px 20px; border-bottom: 1px solid #e3e7f1; }
+.svc-dlg-head small { color: #5d667f; font-size: .75rem; text-transform: uppercase; letter-spacing: .03em; }
+.svc-dlg-head h2 { font-size: 1.05rem; margin: 4px 0 0; }
+.svc-dlg-close { background: none; border: none; cursor: pointer; font-size: 1.1rem; color: #5d667f; }
+.svc-dlg-body { padding: 18px 20px; overflow-y: auto; }
+.svc-dlg-body h4 { font-size: .88rem; margin: 16px 0 8px; }
+.svc-dlg-body h4:first-child { margin-top: 0; }
+.svc-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
+.svc-chip { background: #eef1fa; color: #16307f; font-size: .74rem; padding: 4px 10px; border-radius: 20px; }
+.svc-chip--gold { background: #fbeec4; color: #7a5a06; }
+.svc-table-wrap { overflow-x: auto; border: 1px solid #e3e7f1; border-radius: 8px; margin-bottom: 4px; }
+.svc-table-wrap table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+.svc-table-wrap th, .svc-table-wrap td { padding: 8px 10px; border-bottom: 1px solid #e3e7f1; text-align: left; vertical-align: top; }
+.svc-table-wrap tr:last-child td { border-bottom: none; }
+.svc-total { font-weight: 600; font-size: .85rem; margin-top: 10px; color: #0a1f6b; }
+.svc-bul { padding-left: 18px; margin: 0; list-style: disc; font-size: .85rem; }
+</style>
+
+<script>
+(function () {
+  var dlg = document.getElementById('svcDialog');
+  var title = document.getElementById('dlgTitle');
+  var body = document.getElementById('dlgBody');
+  function openSvc(id, push) {
+    var t = document.getElementById('tpl-' + id);
+    var card = document.querySelector('[data-svc="' + id + '"]');
+    if (!t || !card) return;
+    title.textContent = card.getAttribute('data-title');
+    body.innerHTML = '';
+    body.appendChild(t.content.cloneNode(true));
+    body.scrollTop = 0;
+    if (!dlg.open) dlg.showModal();
+    document.body.classList.add('lock');
+    if (push) { try { history.replaceState(null, '', '#' + id); } catch (e) {} }
+  }
+  document.querySelectorAll('[data-svc]').forEach(function (b) {
+    b.addEventListener('click', function (e) { e.preventDefault(); openSvc(b.getAttribute('data-svc'), true); });
+  });
+  function closeDlg() { if (dlg.open) dlg.close(); }
+  document.getElementById('dlgClose').addEventListener('click', closeDlg);
+  dlg.addEventListener('click', function (e) { if (e.target === dlg) closeDlg(); });
+  dlg.addEventListener('close', function () {
+    document.body.classList.remove('lock');
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+  });
+  if (location.hash.indexOf('#svc-') === 0) openSvc(location.hash.slice(1), false);
+})();
+</script>
 
 {% endblock %}

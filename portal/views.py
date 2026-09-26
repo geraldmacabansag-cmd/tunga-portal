@@ -11,6 +11,7 @@ from .models import CitizenProfile, EmailOTP
 from .otp_utils import send_signup_otp
 from django.http import JsonResponse
 from .otp_utils import send_signup_otp, send_password_reset_otp
+from offices.models import Office
 
 # Create your views here.
 def home(request):
@@ -69,8 +70,47 @@ def announcement(request):
         "news_items": news_items,
     })
 
+OFFICE_CARD_STYLE = {
+    "office-of-the-mayor": ("fa-solid fa-user-tie", "navy", "icons/mayors_office.jpg"),
+    "sangguniang-bayan-sb": ("fa-solid fa-gavel", "purple", "icons/sangguniangbayan.png"),
+    "municipal-treasurer's-office": ("fa-solid fa-coins", "red", "icons/mun._treasurers_office.jpg"),
+    "municipal-assessor's-office": ("fa-regular fa-clipboard", "purple", "icons/mun._assessors_office.jpg"),
+    "municipal-accounting-office": ("fa-solid fa-calculator", "navy", "icons/oma.png"),
+    "municipal-budget-office": ("fa-solid fa-chart-pie", "green2", "icons/budgetoffice.png"),
+    "municipal-planning-and-development-coordinator": ("fa-solid fa-map", "green", "icons/MPDC.jpg"),
+    "municipal-civil-registrar's-office": ("fa-solid fa-file-signature", "navy", "icons/omcr.jpg"),
+    "municipal-health-office": ("fa-solid fa-house-medical", "green", "icons/mun._health_office.jpg"),
+    "municipal-social-welfare-and-development-office-mswdo": ("fa-solid fa-hand-holding-heart", "red", "icons/mun._social_welfare_dev._office.jpg"),
+    "municipal-engineering-office": ("fa-solid fa-hard-hat", "navy", "icons/mun._engineering_office.jpg"),
+    "municipal-agriculture-office": ("fa-solid fa-seedling", "orange", "icons/mun._agri._office.jpg"),
+    "business-permits-and-licensing-office-bplo": ("fa-solid fa-briefcase", "gold", "icons/bplo.png"),
+    "human-resource-management-office-hrmo": ("fa-solid fa-users", "purple", "icons/humanresource.png"),
+    "municipal-disaster-risk-reduction-management": ("fa-solid fa-triangle-exclamation", "navy", "icons/MDRRMO.jpg"),
+    "municipal-environment-and-natural-resources-office": ("fa-regular fa-building", "green2", "icons/mun._environment_office.jpg"),
+    "local-youth-development-office": ("fa-solid fa-people-group", "gold", "icons/lydo.png"),
+    "municipal-tourism-office": ("fa-solid fa-compass", "gold", "icons/mto.png"),
+    "office-of-the-bac-and-the-bac-secretariat": ("fa-solid fa-file-contract", "purple", "icons/oBAC.png"),
+    "office-of-the-general-services": ("fa-solid fa-briefcase", "navy", "icons/officeofthegeneralservices.png"),
+}
+OFFICE_CARD_DEFAULT = ("fa-solid fa-landmark", "navy", None)
+
+
 def offices(request):
-    return render(request, "offices/offices.html")
+    office_list = (
+        Office.objects
+        .exclude(slug="lgu-super-admin")
+        .filter(is_visible=True)
+        .order_by("name")
+    )
+    for office in office_list:
+        icon, color, icon_image = OFFICE_CARD_STYLE.get(office.slug, OFFICE_CARD_DEFAULT)
+        office.card_icon = icon
+        office.card_color = color
+        office.card_image = icon_image
+
+    return render(request, "offices/offices.html", {
+        "office_list": office_list,
+    })
 
 def about(request):
     return render(request, "portal/about.html")

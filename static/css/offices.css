@@ -71,6 +71,12 @@
   margin-bottom: 16px;
 }
 
+.office-card__icon--img {
+  object-fit: cover;
+  background: #fff;
+  border: 1px solid var(--border-light);
+}
+
 .office-card h3 {
   font-size: 1.05rem;
   color: var(--text-dark);

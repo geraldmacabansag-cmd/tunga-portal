@@ -7,7 +7,7 @@ from django.core.paginator import Paginator
 from django.contrib.auth.models import User
 from django.db.models import Count, Sum, Q, F
 from django.utils import timezone
-from office_dashboard.models import Announcement, NewsUpdate, Event, DownloadableForm, Photo, Album, Service, OfficeRepresentative, Notification
+from office_dashboard.models import Announcement, NewsUpdate, Event, DownloadableForm, Photo, Album, Service, OfficeRepresentative, Notification, ServiceEditSettings
 from offices.models import Office
 from django.http import Http404, FileResponse
 from datetime import timedelta
@@ -15,7 +15,39 @@ from office_dashboard.views import FORM_CATEGORY_CHOICES
 from django.utils.text import slugify
 import secrets
 import json
+import re
 from django.urls import reverse
+
+
+def _parse_leading_number(text):
+    """Pulls a leading numeric value off a free-text processing-time string
+    (e.g. "5 minutes" -> 5.0), mirroring the JS parseLeadingNumber() used on
+    the office rep's own Client Steps table, so the two totals agree."""
+    if not text:
+        return None
+    match = re.match(r"\s*(\d+(?:\.\d+)?)", text)
+    return float(match.group(1)) if match else None
+
+
+def _compute_total_processing_time(steps):
+    """Mirrors computeTotalProcessingTime() in office-rep-service-details.html:
+    sums any steps whose processing time starts with a number, and appends
+    the free-text ones (e.g. "Same day") as-is."""
+    total = 0
+    has_numeric = False
+    text_parts = []
+    for step in steps:
+        n = _parse_leading_number(step.processing_time)
+        if n is not None:
+            total += n
+            has_numeric = True
+        elif step.processing_time:
+            text_parts.append(step.processing_time)
+    parts = []
+    if has_numeric:
+        parts.append(str(int(total)) if total == int(total) else f"{total:.2f}")
+    parts.extend(text_parts)
+    return " + ".join(parts) if parts else "—"
 
 # The synthetic office created by get_or_create_lgu_rep() so the Super
 # Admin can post content through the same representative/office FK the
@@ -227,6 +259,18 @@ def admin_approval_details(request, item_type, pk):
 
     date_submitted = getattr(obj, 'created_at', None) or getattr(obj, 'date_uploaded', None) or getattr(obj, 'published_at', None)
 
+    extra_context = {}
+    if model is Service:
+        steps = list(obj.steps.all())
+        reminder_lines = [line.strip() for line in (obj.reminders or '').splitlines() if line.strip()]
+        extra_context = {
+            "service_steps": steps,
+            "service_total_processing_time": _compute_total_processing_time(steps),
+            "service_requirements": obj.requirements.all(),
+            "service_forms": obj.forms.all(),
+            "service_reminder_lines": reminder_lines,
+        }
+
     return render(request, "admin_dashboard/super-admin-approval-details.html", {
         "obj": obj,
         "obj_label": obj_label,
@@ -235,6 +279,7 @@ def admin_approval_details(request, item_type, pk):
         "submitted_by_name": submitted_by_name,
         "date_submitted": date_submitted,
         "tag_class": TYPE_META.get(item_type, {}).get('tag_class', 'tag-gray'),
+        **extra_context,
     })
 
 ANNOUNCEMENT_STATUS_BADGE = {
@@ -891,6 +936,18 @@ def admin_office_edit(request, pk):
     return redirect('admin_dashboard:ad_offices')
 
 @super_admin_required
+def admin_office_toggle_visibility(request, pk):
+    office = get_object_or_404(Office.objects.exclude(slug=LGU_SUPER_ADMIN_SLUG), pk=pk)
+    if request.method == "POST":
+        office.is_visible = not office.is_visible
+        office.save(update_fields=["is_visible"])
+        if office.is_visible:
+            messages.success(request, f'"{office.name}" is now shown on the public Offices page.')
+        else:
+            messages.success(request, f'"{office.name}" is now hidden from the public Offices page.')
+    return redirect('admin_dashboard:ad_offices')
+
+@super_admin_required
 def admin_office_rep(request):
     reps = list(OfficeRepresentative.objects.exclude(office__slug=LGU_SUPER_ADMIN_SLUG).select_related('user', 'office'))
 
@@ -1045,17 +1102,40 @@ def admin_services(request):
         "total_count": total_count,
         "archived_count": archived_count,
         "current_q": q,
+        "editing_enabled": ServiceEditSettings.get_solo().editing_enabled,
     })
+
+def _group_requirements_for_charter(requirements):
+    """Mirrors buildPreviewRequirementsTable() in office-rep-service-details.html:
+    requirements with no type of transaction come first as a plain list, then
+    the rest are grouped under their type of transaction (alphabetically),
+    so the Super Admin sees the exact same Citizen's Charter grouping the
+    office rep sees in their own Preview."""
+    general = [r for r in requirements if not r.transaction_type]
+    grouped = {}
+    for r in requirements:
+        if r.transaction_type:
+            grouped.setdefault(r.transaction_type, []).append(r)
+    grouped_list = [(key, grouped[key]) for key in sorted(grouped.keys())]
+    return general, grouped_list
+
 
 @super_admin_required
 def admin_service_detail(request, pk):
     service = get_object_or_404(Service.objects.select_related('office'), pk=pk)
     service.badge_class = SERVICE_STATUS_BADGE.get(service.status, 'badge-gray')
+
+    steps = list(service.steps.all())
+    requirements = list(service.requirements.all())
+    general_requirements, grouped_requirements = _group_requirements_for_charter(requirements)
+
     return render(request, "admin_dashboard/super-admin-service-detail.html", {
         "service": service,
-        "steps": service.steps.all().order_by('order'),
-        "requirements": service.requirements.all().order_by('order'),
-        "fees": service.fees.all().order_by('order'),
+        "steps": steps,
+        "total_processing_time": _compute_total_processing_time(steps),
+        "general_requirements": general_requirements,
+        "grouped_requirements": grouped_requirements,
+        "has_requirements": bool(requirements),
         "forms": service.forms.all().order_by('-date_uploaded'),
     })
 
@@ -1066,6 +1146,21 @@ def admin_service_delete(request, pk):
         name = service.name
         service.delete()
         messages.success(request, f'"{name}" was deleted.')
+    return redirect('admin_dashboard:ad_services')
+
+@super_admin_required
+def admin_toggle_service_editing(request):
+    """Single site-wide switch (not per-service): turns the office
+    representatives' ability to edit a service's basic info on/off for
+    every office at once."""
+    settings_obj = ServiceEditSettings.get_solo()
+    if request.method == "POST":
+        settings_obj.editing_enabled = not settings_obj.editing_enabled
+        settings_obj.save(update_fields=["editing_enabled"])
+        if settings_obj.editing_enabled:
+            messages.success(request, "Service editing was turned back on for all offices.")
+        else:
+            messages.success(request, "Service editing was turned off for all offices. Representatives can no longer edit a service's basic info until you turn it back on.")
     return redirect('admin_dashboard:ad_services')
 
 @super_admin_required

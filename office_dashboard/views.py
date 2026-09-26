@@ -1,9 +1,10 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
-from .models import OfficeRepresentative, Announcement, NewsUpdate, Event, Photo, Album, Service, ProcessStep, Requirement, Fee, DownloadableForm, Notification
+from .models import OfficeRepresentative, Announcement, NewsUpdate, Event, Photo, Album, Service, ProcessStep, Requirement, DownloadableForm, Notification, FormField, ServiceEditSettings
 
 import json
+from decimal import Decimal, InvalidOperation
 from functools import wraps
 from django.contrib import messages
 from django.core.paginator import Paginator
@@ -496,16 +497,23 @@ def services(request, rep):
     services_qs = list(services_qs)
     for service in services_qs:
         service.steps_json = json.dumps([
-            {"title": step.title, "description": step.description}
+            {
+                "step_number": str(step.order),
+                "title": step.title,
+                "agency_action": step.agency_action,
+                "fee": step.fee,
+                "processing_time": step.processing_time,
+                "person_responsible": step.person_responsible,
+            }
             for step in service.steps.all()
         ])
         service.requirements_json = json.dumps([
-            {"title": r.title, "description": r.description, "is_required": r.is_required}
+            {
+                "title": r.title,
+                "where_to_secure": r.where_to_secure,
+                "transaction_type": r.transaction_type,
+            }
             for r in service.requirements.all()
-        ])
-        service.fees_json = json.dumps([
-            {"title": f.title, "description": f.description, "amount": str(f.amount)}
-            for f in service.fees.all()
         ])
 
     return render(request, "office_dashboard/office-rep-service-details.html", {
@@ -520,6 +528,7 @@ def services(request, rep):
         "current_q": q,
         "current_status": status,
         "category_choices_forms": FORM_CATEGORY_CHOICES,
+        "editing_globally_enabled": ServiceEditSettings.get_solo().editing_enabled,
     })
 
 @office_rep_required
@@ -544,28 +553,47 @@ def save_process_steps(request, rep, service_pk):
 
 
     if request.method == "POST":
+        step_numbers = request.POST.getlist('step_number[]')
         titles = request.POST.getlist('title[]')
-        descriptions = request.POST.getlist('desc[]')
+        agency_actions = request.POST.getlist('agency[]')
+        fees = request.POST.getlist('fee[]')
+        processing_times = request.POST.getlist('processing_time[]')
+        persons = request.POST.getlist('person[]')
 
         service.steps.all().delete()
 
-        order = 1
-        for title, desc in zip(titles, descriptions):
+        fallback_order = 1
+        created_any = False
+        for i, title in enumerate(titles):
             title = title.strip()
             if not title:
                 continue
+            step_number_raw = step_numbers[i].strip() if i < len(step_numbers) else ""
+            try:
+                order = Decimal(step_number_raw) if step_number_raw else Decimal(fallback_order)
+            except InvalidOperation:
+                order = Decimal(fallback_order)
+            agency_action = agency_actions[i].strip() if i < len(agency_actions) else ""
+            fee = fees[i].strip() if i < len(fees) else ""
+            processing_time = processing_times[i].strip() if i < len(processing_times) else ""
+            person = persons[i].strip() if i < len(persons) else ""
+
             ProcessStep.objects.create(
                 service=service,
                 order=order,
                 title=title,
-                description=desc.strip(),
+                agency_action=agency_action,
+                fee=fee,
+                processing_time=processing_time,
+                person_responsible=person,
             )
-            order += 1
+            fallback_order += 1
+            created_any = True
 
-        if order == 1:
-            messages.error(request, "Add at least one step with a title.")
+        if not created_any:
+            messages.error(request, "Add at least one step with a name.")
         else:
-            messages.success(request, "Process steps updated.")
+            messages.success(request, "Client steps updated.")
 
     return redirect(f"{reverse('office_dashboard:services')}?service={service.pk}")
 
@@ -594,11 +622,10 @@ def save_requirements(request, rep, service_pk):
         if service.status == 'published':
             return HttpResponse("This service is already published and can no longer be edited.", status=403)
 
-
     if request.method == "POST":
         titles = request.POST.getlist('title[]')
-        descriptions = request.POST.getlist('desc[]')
-        required_flags = request.POST.getlist('is_required[]')
+        wheres = request.POST.getlist('where[]')
+        txns = request.POST.getlist('txn[]')
 
         service.requirements.all().delete()
 
@@ -607,14 +634,14 @@ def save_requirements(request, rep, service_pk):
             title = title.strip()
             if not title:
                 continue
-            desc = descriptions[i].strip() if i < len(descriptions) else ""
-            is_required = (required_flags[i] if i < len(required_flags) else "required") == "required"
+            where = wheres[i].strip() if i < len(wheres) else ""
+            transaction_type = txns[i].strip() if i < len(txns) else ""
             Requirement.objects.create(
                 service=service,
                 order=order,
                 title=title,
-                description=desc,
-                is_required=is_required,
+                where_to_secure=where,
+                transaction_type=transaction_type,
             )
             order += 1
 
@@ -626,7 +653,7 @@ def save_requirements(request, rep, service_pk):
     return redirect(f"{reverse('office_dashboard:services')}?service={service.pk}")
 
 @office_rep_required
-def save_fees(request, rep, service_pk):
+def save_legal_basis(request, rep, service_pk):
     service = get_object_or_404(Service, pk=service_pk, office=rep.office)
 
     if request.method == "POST":
@@ -635,37 +662,25 @@ def save_fees(request, rep, service_pk):
 
 
     if request.method == "POST":
-        titles = request.POST.getlist('title[]')
-        descriptions = request.POST.getlist('desc[]')
-        amounts = request.POST.getlist('amount[]')
+        service.legal_basis = request.POST.get('legal_basis', '').strip()
+        service.save()
 
-        service.fees.all().delete()
+    return redirect('office_dashboard:services')
 
-        order = 1
-        for i, title in enumerate(titles):
-            title = title.strip()
-            if not title:
-                continue
-            desc = descriptions[i].strip() if i < len(descriptions) else ""
-            try:
-                amount = float(amounts[i]) if i < len(amounts) and amounts[i].strip() else 0
-            except ValueError:
-                amount = 0
-            Fee.objects.create(
-                service=service,
-                order=order,
-                title=title,
-                description=desc,
-                amount=amount,
-            )
-            order += 1
+@office_rep_required
+def save_schedule_of_service(request, rep, service_pk):
+    service = get_object_or_404(Service, pk=service_pk, office=rep.office)
 
-        if order == 1:
-            messages.error(request, "Add at least one fee with a name.")
-        else:
-            messages.success(request, "Fees updated.")
+    if request.method == "POST":
+        if service.status == 'published':
+            return HttpResponse("This service is already published and can no longer be edited.", status=403)
 
-    return redirect(f"{reverse('office_dashboard:services')}?service={service.pk}")
+
+    if request.method == "POST":
+        service.schedule_of_service = request.POST.get('schedule_of_service', '').strip()
+        service.save()
+
+    return redirect('office_dashboard:services')
 
 FORM_CATEGORY_CHOICES = ["Permits", "Clearance", "Health", "Assistance"]
 
@@ -746,6 +761,57 @@ def download_form(request, rep, pk):
         return FileResponse(form.file.open('rb'), as_attachment=True, filename=filename)
     except FileNotFoundError:
         raise Http404("File not found.")
+
+
+@office_rep_required
+def form_fields_builder(request, rep, pk):
+    form = get_object_or_404(DownloadableForm, pk=pk, office=rep.office)
+    fields = list(form.fields.all().values(
+        'id', 'label', 'field_type', 'required', 'page_number', 'x', 'y', 'width', 'height', 'order'
+    ))
+    return render(request, "office_dashboard/form-fields-builder.html", {
+        "rep": rep,
+        "form_obj": form,
+        "fields_json": json.dumps(fields),
+    })
+
+
+@office_rep_required
+def save_form_fields(request, rep, pk):
+    form = get_object_or_404(DownloadableForm, pk=pk, office=rep.office)
+
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "Invalid request."}, status=400)
+
+    try:
+        payload = json.loads(request.body)
+        incoming_fields = payload.get('fields', [])
+    except (json.JSONDecodeError, AttributeError):
+        return JsonResponse({"success": False, "error": "Invalid data."}, status=400)
+
+    # Simplest correct approach: replace the whole field set each save,
+    # rather than trying to diff individual adds/edits/deletes.
+    form.fields.all().delete()
+
+    for i, f in enumerate(incoming_fields):
+        label = (f.get('label') or '').strip()
+        if not label:
+            continue
+        FormField.objects.create(
+            form=form,
+            label=label,
+            field_type=f.get('field_type', 'text'),
+            required=bool(f.get('required', True)),
+            page_number=int(f.get('page_number', 1)),
+            x=float(f.get('x', 0)),
+            y=float(f.get('y', 0)),
+            width=float(f.get('width', 0.2)),
+            height=float(f.get('height', 0.03)),
+            order=i,
+        )
+
+    messages.success(request, f'"{form.title}" is now fillable — fields were saved.' if incoming_fields else f'All fields were removed from "{form.title}".')
+    return JsonResponse({"success": True})
 
 @office_rep_required
 def edit_form(request, rep, pk):
@@ -968,6 +1034,44 @@ def delete_album(request, rep, pk):
 
     return redirect('office_dashboard:gallery')
 
+# These are the only six fields this view is allowed to touch — the URL's
+# <str:field> segment is checked against this dict before anything is
+# written, so a representative can never edit an arbitrary Office column
+# through this endpoint. Each one gets its own small modal/textarea on the
+# Office Profile page rather than sharing the big Office Information form.
+OFFICE_CHARTER_FIELDS = {
+    "service-pledge": ("service_pledge", "Service Pledge"),
+    "mandate": ("mandate", "Mandate"),
+    "vision": ("vision", "Vision"),
+    "mission": ("mission", "Mission"),
+    "goal": ("goal", "Goal"),
+    "objective": ("objective", "Objective"),
+}
+
+
+@office_rep_required
+def edit_office_charter_field(request, rep, field):
+    meta = OFFICE_CHARTER_FIELDS.get(field)
+    if not meta:
+        raise Http404("Unknown office profile field.")
+    attr, label = meta
+    office = rep.office
+
+    if request.method == "POST":
+        setattr(office, attr, request.POST.get('value', '').strip())
+        office.save(update_fields=[attr])
+        messages.success(request, f"{label} updated.")
+        log_activity(
+            rep,
+            f"{label} updated",
+            f"Updated the office's {label.lower()}",
+            "account",
+            "fa-solid fa-building",
+            "var(--blue-600)",
+        )
+
+    return redirect('office_dashboard:profile')
+
 @office_rep_required
 def office_profile(request, rep):
     office = rep.office
@@ -1006,26 +1110,16 @@ def add_service(request, rep):
     if request.method == "POST":
         name = request.POST.get('name', '').strip()
         description = request.POST.get('description', '').strip()
-        category = request.POST.get('category', 'other')
         icon = request.POST.get('icon') or 'fa-solid fa-file-signature'
-        processing_time = request.POST.get('processing_time', '').strip()
 
-        day_from = request.POST.get('availability_day_from', '').strip()
-        day_to = request.POST.get('availability_day_to', '').strip()
-        time_from = request.POST.get('availability_time_from', '')
-        time_to = request.POST.get('availability_time_to', '')
-
-        availability_parts = []
-        if day_from and day_to:
-            availability_parts.append(f"{day_from} - {day_to}" if day_from != day_to else day_from)
-        if time_from and time_to:
-            def to_12h(t):
-                try:
-                    return datetime.strptime(t, '%H:%M').strftime('%I:%M %p').lstrip('0')
-                except ValueError:
-                    return t
-            availability_parts.append(f"{to_12h(time_from)} - {to_12h(time_to)}")
-        availability = ", ".join(availability_parts)
+        division = request.POST.get('division', '').strip() or rep.office.name
+        classification = request.POST.get('classification', '').strip()
+        transaction_types = request.POST.getlist('transaction_type')
+        transaction_type = ",".join(transaction_types)
+        who_may_avail = request.POST.get('who_may_avail', '').strip()
+        service_scope = request.POST.get('service_scope', '').strip()
+        if service_scope not in ('internal', 'external'):
+            service_scope = ''
 
         if not name:
             messages.error(request, "Service name is required.")
@@ -1034,10 +1128,12 @@ def add_service(request, rep):
                 office=rep.office,
                 name=name,
                 description=description,
-                category=category,
                 icon=icon,
-                availability=availability,
-                processing_time=processing_time,
+                division=division,
+                classification=classification,
+                transaction_type=transaction_type,
+                who_may_avail=who_may_avail,
+                service_scope=service_scope,
             )
             messages.success(request, f'"{name}" was added to your services.')
 
@@ -1058,12 +1154,164 @@ def delete_service(request, rep, pk):
     return redirect('office_dashboard:services')
 
 @office_rep_required
+def edit_service(request, rep, pk):
+    service = get_object_or_404(Service, pk=pk, office=rep.office)
+
+    if request.method == "POST":
+        if not ServiceEditSettings.get_solo().editing_enabled:
+            messages.error(request, "The Super Admin has turned off editing of services for all offices.")
+            return redirect(f"{reverse('office_dashboard:services')}?service={service.pk}")
+
+        name = request.POST.get('name', '').strip()
+        description = request.POST.get('description', '').strip()
+        icon = request.POST.get('icon') or service.icon
+
+        division = request.POST.get('division', '').strip() or rep.office.name
+        classification = request.POST.get('classification', '').strip()
+        transaction_types = request.POST.getlist('transaction_type')
+        transaction_type = ",".join(transaction_types)
+        who_may_avail = request.POST.get('who_may_avail', '').strip()
+        service_scope = request.POST.get('service_scope', '').strip()
+        if service_scope not in ('internal', 'external'):
+            service_scope = ''
+
+        if not name:
+            messages.error(request, "Service name is required.")
+        else:
+            service.name = name
+            service.description = description
+            service.icon = icon
+            service.division = division
+            service.classification = classification
+            service.transaction_type = transaction_type
+            service.who_may_avail = who_may_avail
+            service.service_scope = service_scope
+            service.save()
+            messages.success(request, f'"{name}" was updated.')
+
+    return redirect(f"{reverse('office_dashboard:services')}?service={service.pk}")
+
+@office_rep_required
 def office_directory(request, rep):
     return render(request, "office_dashboard/office-directory.html", {"rep": rep})
 
 @office_rep_required
 def office_location(request, rep):
     return render(request, "office_dashboard/office-location.html", {"rep": rep})
+
+@office_rep_required
+def office_page_settings(request, rep):
+    """Lets the office representative replace the banner image shown at the
+    top of their office's public page (offices/office_detail.html's
+    .page-hero section), toggle public visibility, and reorder how their
+    services are listed on that same page."""
+    office = rep.office
+ 
+    if request.method == "POST":
+        if request.POST.get('action') == 'reset':
+            if office.hero_image:
+                office.hero_image.delete(save=False)
+            office.hero_image = None
+            office.save(update_fields=['hero_image'])
+            messages.success(request, "Page hero image reset to the default.")
+        elif request.FILES.get('hero_image'):
+            if office.hero_image:
+                office.hero_image.delete(save=False)
+            office.hero_image = request.FILES['hero_image']
+            office.save(update_fields=['hero_image'])
+            messages.success(request, "Page hero image updated.")
+            log_activity(
+                rep,
+                "Page hero image updated",
+                "Changed the banner image on the office's public page",
+                "account",
+                "fa-solid fa-image",
+                "var(--blue-600)",
+            )
+        else:
+            messages.error(request, "Please choose an image to upload.")
+        return redirect('office_dashboard:page_settings')
+ 
+    services = list(
+        Service.objects.filter(office=office).order_by('order', 'name', 'id')
+    )
+ 
+    return render(request, "office_dashboard/office-settings.html", {
+        "rep": rep,
+        "office": office,
+        "services": services,
+    })
+ 
+ 
+# 3) ADD this new view right below it — the AJAX endpoint the "Save Order"
+#    button in the Service Order panel calls. It only ever touches
+#    services that belong to the requesting rep's own office (the
+#    len(services) != len(service_ids) check below rejects any service id
+#    that isn't theirs, the same whitelist pattern used elsewhere in this
+#    file for OFFICE_CHARTER_FIELDS):
+ 
+@office_rep_required
+def office_reorder_services(request, rep):
+    """AJAX endpoint used by the Page Settings -> Service Order panel.
+    Expects a JSON body: {"order": [3, 7, 1, ...]} — a list of Service
+    primary keys in the order they should appear on the office's public
+    page. Saves each service's new `order` value."""
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "POST required"}, status=405)
+ 
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+        service_ids = [int(pk) for pk in payload.get("order", [])]
+    except (ValueError, TypeError, json.JSONDecodeError):
+        return JsonResponse({"ok": False, "error": "Invalid payload"}, status=400)
+ 
+    services = {
+        s.pk: s for s in Service.objects.filter(office=rep.office, pk__in=service_ids)
+    }
+ 
+    if len(services) != len(service_ids):
+        return JsonResponse(
+            {"ok": False, "error": "One or more services do not belong to your office"},
+            status=403,
+        )
+ 
+    for position, pk in enumerate(service_ids):
+        service = services[pk]
+        if service.order != position:
+            service.order = position
+            service.save(update_fields=["order"])
+ 
+    log_activity(
+        rep,
+        "Service order updated",
+        "Rearranged the order services appear in on the office's public page",
+        "account",
+        "fa-solid fa-arrow-down-short-wide",
+        "var(--blue-600)",
+    )
+    return JsonResponse({"ok": True})
+
+@office_rep_required
+def office_toggle_visibility(request, rep):
+    """Lets the office representative show/hide their own office page on
+    the public website (Page Settings → Visibility panel)."""
+    office = rep.office
+    if request.method == "POST":
+        office.is_visible = not office.is_visible
+        office.save(update_fields=['is_visible'])
+        if office.is_visible:
+            messages.success(request, "Your office page is now visible to residents on the public website.")
+        else:
+            messages.success(request, "Your office page is now hidden from the public website.")
+        log_activity(
+            rep,
+            "Office visibility changed",
+            f"Office page {'shown on' if office.is_visible else 'hidden from'} the public website",
+            "account",
+            "fa-regular fa-eye",
+            "var(--blue-600)",
+        )
+    return redirect('office_dashboard:page_settings')
 
 @office_rep_required
 def my_account(request, rep):

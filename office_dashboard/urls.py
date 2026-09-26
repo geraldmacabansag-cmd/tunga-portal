@@ -21,15 +21,19 @@ urlpatterns = [
     path('office-services/<int:service_pk>/steps/save', views.save_process_steps, name='save_process_steps'),
     path('office-services/<int:pk>/delete', views.delete_service, name='delete_service'),
     path('office-services/<int:service_pk>/requirements/save', views.save_requirements, name='save_requirements'),
-    path('office-services/<int:service_pk>/fees/save', views.save_fees, name='save_fees'),
+    path('office-services/<int:service_pk>/legal-basis/save', views.save_legal_basis, name='save_legal_basis'),
+    path('office-services/<int:service_pk>/schedule-of-service/save', views.save_schedule_of_service, name='save_schedule_of_service'),
     path('office-services/<int:service_pk>/reminders/save', views.save_reminders, name='save_reminders'),
     path('office-services/<int:service_pk>/forms/<int:pk>/delete', views.delete_service_form, name='delete_service_form'),
+    path('office-services/<int:pk>/edit', views.edit_service, name='edit_service'),
     
     path('office-downloadable-forms', views.downloadable_forms, name='downloadable_form'),
     path('office-downloadable-forms/upload', views.upload_form, name='upload_form'),
     path('office-downloadable-forms/<int:pk>/edit', views.edit_form, name='edit_form'),
     path('office-downloadable-forms/<int:pk>/delete', views.delete_form, name='delete_form'),
     path('office-downloadable-forms/<int:pk>/download', views.download_form, name='download_form'),
+    path('office-downloadable-forms/<int:pk>/fields', views.form_fields_builder, name='form_fields_builder'),
+    path('office-downloadable-forms/<int:pk>/fields/save', views.save_form_fields, name='save_form_fields'),
     
     path('office-gallery', views.gallery, name='gallery'),
     path('office-gallery/<int:pk>/delete', views.delete_photo, name='delete_photo'),
@@ -39,9 +43,15 @@ urlpatterns = [
 
     path('office-profile', views.office_profile, name='profile'),
     path('office-profile/services/add', views.add_service, name='add_service'),
+    path('office-profile/charter/<str:field>/edit', views.edit_office_charter_field, name='edit_office_charter_field'),
+
+    path('office-profile/toggle-visibility', views.office_toggle_visibility, name='toggle_visibility'),
 
     path('office-directory', views.office_directory, name='directory'),
     path('office-location', views.office_location, name='location'),
+    path('office-page-settings', views.office_page_settings, name='page_settings'),
+    path('office-page-settings/reorder-services', views.office_reorder_services, name='reorder_services'),
+
     path('office-account', views.my_account, name='account'),
     path('office-change-password', views.change_pass, name='change_pass'),
     path('office-notifications', views.notification, name='notification'),

@@ -1,0 +1,253 @@
+{% extends "representative_dashboard_base.html" %}
+{% load static %}
+{% block body_page %}page-settings{% endblock %}
+
+{% block content %}
+
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')"><i class="fa-solid fa-bars"></i></button>
+        <div class="page-heading">
+          <h1>Page Settings</h1>
+          <p>Manage the banner image and service order shown on your office's public page</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-button" id="notifBellBtn" type="button" aria-haspopup="true" aria-expanded="false"><i class="fa-regular fa-bell"></i>{% if rep.unread_notifications_count > 0 %}<span class="dot">{{ rep.unread_notifications_count }}</span>{% endif %}</button>
+        <div class="user-chip">
+          <img src="{% if rep.photo %}{{ rep.photo.url }}{% else %}{% static 'images/icon/profile_logo.jpeg' %}{% endif %}" alt="">
+          <div class="who"><div class="name">{{ rep.user.get_full_name|default:rep.user.username }}</div><div class="role">{{ rep.position|default:"Office Representative" }}</div></div>
+          <i class="fa-solid fa-chevron-down chev"></i>
+        </div>
+      </div>
+    </header>
+
+    <nav class="breadcrumbs">
+      <span>Dashboard</span><span class="sep">›</span><span class="current">Page Settings</span>
+    </nav>
+
+    <main class="content">
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Page Hero Image</h2>
+        </div>
+        <div class="panel-body">
+          <p style="color:var(--gray-500,#5d667f);font-size:.88rem;margin:0 0 16px;">
+            This is the large banner photo shown behind your office's name at the top of its page on the public website.
+            {% if not office.hero_image %}Right now the default Municipal Hall photo is being used.{% endif %}
+          </p>
+
+          <div class="hero-preview">
+            {% if office.hero_image %}
+              <img id="hero-preview-img" src="{{ office.hero_image.url }}" alt="Current page hero image">
+            {% else %}
+              <img id="hero-preview-img" src="{% static 'images/lgu_bldg.jpeg' %}" alt="Default page hero image">
+            {% endif %}
+            <span class="hero-preview__badge" id="hero-preview-badge">{% if office.hero_image %}Custom Image{% else %}Default Image{% endif %}</span>
+          </div>
+
+          <form method="post" enctype="multipart/form-data" style="margin-top:20px;">
+            {% csrf_token %}
+            <div class="form-group">
+              <label class="form-label" for="hero-image-input">Upload New Image</label>
+              <input class="form-input file-input" type="file" id="hero-image-input" name="hero_image" accept="image/*">
+              <div class="form-hint">Recommended: a wide landscape photo, at least 1600×500px, JPG or PNG.</div>
+            </div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:6px;">
+              {% if office.hero_image %}
+              <button type="submit" name="action" value="reset" class="btn btn-secondary"><i class="fa-solid fa-arrow-rotate-left"></i> Reset to Default</button>
+              {% endif %}
+              <button type="submit" class="btn btn-primary"><i class="fa-regular fa-floppy-disk"></i> Save Image</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Visibility</h2>
+        </div>
+        <div class="panel-body">
+          <div class="toggle-row">
+            <div><strong>Show on public website</strong><span class="d">Office page is visible to residents</span></div>
+            <label class="toggle-switch" title="{% if office.is_visible %}Hide this office from the public website{% else %}Show this office on the public website{% endif %}">
+              <input type="checkbox" {% if office.is_visible %}checked{% endif %} onclick="event.preventDefault(); document.getElementById('toggle-office-visibility-modal').classList.add('open'); document.body.classList.add('modal-open');">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Service Order</h2>
+        </div>
+        <div class="panel-body">
+          <p style="color:var(--gray-500,#5d667f);font-size:.88rem;margin:0 0 16px;">
+            Drag to reorder how your services appear on your office's public page. This list includes every service you've added, so a draft or pending one already has a position once it gets published.
+          </p>
+
+          {% if services %}
+          <ul class="service-order-list" id="service-order-list">
+            {% for s in services %}
+            <li class="service-order-item" draggable="true" data-service-id="{{ s.pk }}">
+              <i class="fa-solid fa-grip-vertical service-order-item__grip"></i>
+              <span class="service-order-item__name">{{ s.name }}</span>
+              <span class="service-order-item__status">{{ s.get_status_display }}</span>
+            </li>
+            {% endfor %}
+          </ul>
+          <div style="display:flex;justify-content:flex-end;margin-top:16px;">
+            <button type="button" id="save-order-btn" class="btn btn-primary"><i class="fa-regular fa-floppy-disk"></i> Save Order</button>
+          </div>
+          <p id="save-order-msg" style="font-size:.85rem;margin-top:8px;display:none;"></p>
+          {% else %}
+          <p style="color:var(--gray-500,#5d667f);font-size:.88rem;">You haven't added any services yet.</p>
+          {% endif %}
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="toggle-office-visibility-modal">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-head">
+      <h3>{% if office.is_visible %}Hide Office Page{% else %}Show Office Page{% endif %}</h3>
+      <button type="button" class="modal-x" onclick="document.getElementById('toggle-office-visibility-modal').classList.remove('open'); document.body.classList.remove('modal-open');"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      {% if office.is_visible %}
+        <p>Are you sure you want to hide <strong>{{ office.name }}</strong> from the public website? Residents will no longer be able to find or open your office's page, including its services, announcements, and downloadable forms.</p>
+      {% else %}
+        <p>Are you sure you want to show <strong>{{ office.name }}</strong> on the public website? Residents will be able to find and open your office's page again.</p>
+      {% endif %}
+      <form method="post" action="{% url 'office_dashboard:toggle_visibility' %}">
+        {% csrf_token %}
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('toggle-office-visibility-modal').classList.remove('open'); document.body.classList.remove('modal-open');">Cancel</button>
+          <button type="submit" class="btn btn-primary">{% if office.is_visible %}Yes, Hide It{% else %}Yes, Show It{% endif %}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+.hero-preview { position: relative; border-radius: 10px; overflow: hidden; border: 1px solid var(--gray-200,#e3e7f1); }
+.hero-preview img { width: 100%; height: 220px; object-fit: cover; display: block; }
+.hero-preview__badge {
+  position: absolute; top: 12px; right: 12px;
+  background: rgba(10,31,107,.82); color: #fff;
+  font-size: .74rem; font-weight: 700;
+  padding: 4px 12px; border-radius: 20px;
+}
+
+.service-order-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.service-order-item {
+  display: flex; align-items: center; gap: 12px;
+  background: #f8f9fc; border: 1px solid var(--gray-200,#e3e7f1); border-radius: 8px;
+  padding: 10px 14px; cursor: grab; user-select: none;
+}
+.service-order-item.dragging { opacity: .5; }
+.service-order-item__grip { color: var(--gray-400,#9aa3bd); }
+.service-order-item__name { flex: 1; font-size: .92rem; font-weight: 600; color: #16307f; }
+.service-order-item__status {
+  font-size: .72rem; font-weight: 700; padding: 3px 10px; border-radius: 20px;
+  text-transform: capitalize; background: var(--gray-200,#e3e7f1); color: #5d667f;
+}
+</style>
+
+<script>
+(function () {
+  var input = document.getElementById('hero-image-input');
+  var preview = document.getElementById('hero-preview-img');
+  var badge = document.getElementById('hero-preview-badge');
+  if (input && preview) {
+    input.addEventListener('change', function () {
+      var file = input.files && input.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        preview.src = e.target.result;
+        if (badge) badge.textContent = 'New Image (not saved yet)';
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+})();
+
+(function () {
+  var list = document.getElementById('service-order-list');
+  var saveBtn = document.getElementById('save-order-btn');
+  var msg = document.getElementById('save-order-msg');
+  if (!list || !saveBtn) return;
+
+  var dragging = null;
+
+  list.addEventListener('dragstart', function (e) {
+    dragging = e.target.closest('.service-order-item');
+    if (dragging) dragging.classList.add('dragging');
+  });
+
+  list.addEventListener('dragend', function () {
+    if (dragging) dragging.classList.remove('dragging');
+    dragging = null;
+  });
+
+  list.addEventListener('dragover', function (e) {
+    e.preventDefault();
+    var target = e.target.closest('.service-order-item');
+    if (!target || target === dragging || !dragging) return;
+    var rect = target.getBoundingClientRect();
+    var before = (e.clientY - rect.top) < (rect.height / 2);
+    list.insertBefore(dragging, before ? target : target.nextSibling);
+  });
+
+  function getCsrfToken() {
+    var el = document.querySelector('input[name=csrfmiddlewaretoken]');
+    return el ? el.value : '';
+  }
+
+  saveBtn.addEventListener('click', function () {
+    var ids = Array.prototype.map.call(
+      list.querySelectorAll('.service-order-item'),
+      function (li) { return parseInt(li.getAttribute('data-service-id'), 10); }
+    );
+
+    saveBtn.disabled = true;
+    fetch("{% url 'office_dashboard:reorder_services' %}", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken()
+      },
+      body: JSON.stringify({ order: ids })
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        msg.style.display = 'block';
+        if (data.ok) {
+          msg.style.color = 'var(--green-600,#1d8a4a)';
+          msg.textContent = 'Service order saved.';
+        } else {
+          msg.style.color = 'var(--red-600,#c0392b)';
+          msg.textContent = data.error || 'Could not save order. Please try again.';
+        }
+      })
+      .catch(function () {
+        msg.style.display = 'block';
+        msg.style.color = 'var(--red-600,#c0392b)';
+        msg.textContent = 'Could not save order. Please try again.';
+      })
+      .finally(function () {
+        saveBtn.disabled = false;
+      });
+  });
+})();
+</script>
+
+{% endblock %}

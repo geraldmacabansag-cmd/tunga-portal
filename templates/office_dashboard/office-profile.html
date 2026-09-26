@@ -172,10 +172,6 @@
             <div class="panel-header"><h2>Visibility</h2></div>
             <div class="panel-body">
               <div class="toggle-row">
-                <div><strong>Show on public website</strong><span class="d">Office page is visible to residents</span></div>
-                <label class="toggle"><input type="checkbox" checked><span class="slider"></span></label>
-              </div>
-              <div class="toggle-row">
                 <div><strong>Accept online appointments</strong><span class="d">Residents can request appointment slots</span></div>
                 <label class="toggle"><input type="checkbox" checked><span class="slider"></span></label>
               </div>
@@ -184,9 +180,240 @@
         </div>
       </div>
 
+      <div class="grid-3" style="margin-top:24px;">
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Service Pledge</h2>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('charter-modal-service-pledge').classList.add('open'); document.body.classList.add('modal-open');">
+              <i class="fa-solid fa-pen-to-square"></i> Edit
+            </button>
+          </div>
+          <div class="panel-body">
+            {% if office.service_pledge %}
+              <p style="white-space:pre-line;margin:0;">{{ office.service_pledge }}</p>
+            {% else %}
+              <p style="color:var(--gray-400);margin:0;">Not yet set — if applicable to this office.</p>
+            {% endif %}
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Mandate</h2>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('charter-modal-mandate').classList.add('open'); document.body.classList.add('modal-open');">
+              <i class="fa-solid fa-pen-to-square"></i> Edit
+            </button>
+          </div>
+          <div class="panel-body">
+            {% if office.mandate %}
+              <p style="white-space:pre-line;margin:0;">{{ office.mandate }}</p>
+            {% else %}
+              <p style="color:var(--gray-400);margin:0;">Not yet set — if applicable to this office.</p>
+            {% endif %}
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Vision</h2>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('charter-modal-vision').classList.add('open'); document.body.classList.add('modal-open');">
+              <i class="fa-solid fa-pen-to-square"></i> Edit
+            </button>
+          </div>
+          <div class="panel-body">
+            {% if office.vision %}
+              <p style="white-space:pre-line;margin:0;">{{ office.vision }}</p>
+            {% else %}
+              <p style="color:var(--gray-400);margin:0;">Not yet set — if applicable to this office.</p>
+            {% endif %}
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Mission</h2>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('charter-modal-mission').classList.add('open'); document.body.classList.add('modal-open');">
+              <i class="fa-solid fa-pen-to-square"></i> Edit
+            </button>
+          </div>
+          <div class="panel-body">
+            {% if office.mission %}
+              <p style="white-space:pre-line;margin:0;">{{ office.mission }}</p>
+            {% else %}
+              <p style="color:var(--gray-400);margin:0;">Not yet set — if applicable to this office.</p>
+            {% endif %}
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Goal</h2>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('charter-modal-goal').classList.add('open'); document.body.classList.add('modal-open');">
+              <i class="fa-solid fa-pen-to-square"></i> Edit
+            </button>
+          </div>
+          <div class="panel-body">
+            {% if office.goal %}
+              <p style="white-space:pre-line;margin:0;">{{ office.goal }}</p>
+            {% else %}
+              <p style="color:var(--gray-400);margin:0;">Not yet set — if applicable to this office.</p>
+            {% endif %}
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Objective</h2>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('charter-modal-objective').classList.add('open'); document.body.classList.add('modal-open');">
+              <i class="fa-solid fa-pen-to-square"></i> Edit
+            </button>
+          </div>
+          <div class="panel-body">
+            {% if office.objective %}
+              <p style="white-space:pre-line;margin:0;">{{ office.objective }}</p>
+            {% else %}
+              <p style="color:var(--gray-400);margin:0;">Not yet set — if applicable to this office.</p>
+            {% endif %}
+          </div>
+        </section>
+      </div>
+
     </main>
   </div>
 </div>
+
+<div class="modal-backdrop" id="charter-modal-service-pledge">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Edit Service Pledge</h3>
+      <button type="button" class="modal-x" onclick="document.getElementById('charter-modal-service-pledge').classList.remove('open'); document.body.classList.remove('modal-open');"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form method="post" action="{% url 'office_dashboard:edit_office_charter_field' 'service-pledge' %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label" for="charter-textarea-service-pledge">Service Pledge</label>
+          <textarea class="form-textarea" id="charter-textarea-service-pledge" name="value" rows="6" placeholder="Leave blank if not applicable to this office">{{ office.service_pledge }}</textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('charter-modal-service-pledge').classList.remove('open'); document.body.classList.remove('modal-open');">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-regular fa-floppy-disk"></i> Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="charter-modal-mandate">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Edit Mandate</h3>
+      <button type="button" class="modal-x" onclick="document.getElementById('charter-modal-mandate').classList.remove('open'); document.body.classList.remove('modal-open');"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form method="post" action="{% url 'office_dashboard:edit_office_charter_field' 'mandate' %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label" for="charter-textarea-mandate">Mandate</label>
+          <textarea class="form-textarea" id="charter-textarea-mandate" name="value" rows="6" placeholder="Leave blank if not applicable to this office">{{ office.mandate }}</textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('charter-modal-mandate').classList.remove('open'); document.body.classList.remove('modal-open');">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-regular fa-floppy-disk"></i> Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="charter-modal-vision">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Edit Vision</h3>
+      <button type="button" class="modal-x" onclick="document.getElementById('charter-modal-vision').classList.remove('open'); document.body.classList.remove('modal-open');"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form method="post" action="{% url 'office_dashboard:edit_office_charter_field' 'vision' %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label" for="charter-textarea-vision">Vision</label>
+          <textarea class="form-textarea" id="charter-textarea-vision" name="value" rows="6" placeholder="Leave blank if not applicable to this office">{{ office.vision }}</textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('charter-modal-vision').classList.remove('open'); document.body.classList.remove('modal-open');">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-regular fa-floppy-disk"></i> Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="charter-modal-mission">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Edit Mission</h3>
+      <button type="button" class="modal-x" onclick="document.getElementById('charter-modal-mission').classList.remove('open'); document.body.classList.remove('modal-open');"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form method="post" action="{% url 'office_dashboard:edit_office_charter_field' 'mission' %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label" for="charter-textarea-mission">Mission</label>
+          <textarea class="form-textarea" id="charter-textarea-mission" name="value" rows="6" placeholder="Leave blank if not applicable to this office">{{ office.mission }}</textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('charter-modal-mission').classList.remove('open'); document.body.classList.remove('modal-open');">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-regular fa-floppy-disk"></i> Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="charter-modal-goal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Edit Goal</h3>
+      <button type="button" class="modal-x" onclick="document.getElementById('charter-modal-goal').classList.remove('open'); document.body.classList.remove('modal-open');"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form method="post" action="{% url 'office_dashboard:edit_office_charter_field' 'goal' %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label" for="charter-textarea-goal">Goal</label>
+          <textarea class="form-textarea" id="charter-textarea-goal" name="value" rows="6" placeholder="Leave blank if not applicable to this office">{{ office.goal }}</textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('charter-modal-goal').classList.remove('open'); document.body.classList.remove('modal-open');">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-regular fa-floppy-disk"></i> Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="charter-modal-objective">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Edit Objective</h3>
+      <button type="button" class="modal-x" onclick="document.getElementById('charter-modal-objective').classList.remove('open'); document.body.classList.remove('modal-open');"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form method="post" action="{% url 'office_dashboard:edit_office_charter_field' 'objective' %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label" for="charter-textarea-objective">Objective</label>
+          <textarea class="form-textarea" id="charter-textarea-objective" name="value" rows="6" placeholder="Leave blank if not applicable to this office">{{ office.objective }}</textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('charter-modal-objective').classList.remove('open'); document.body.classList.remove('modal-open');">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-regular fa-floppy-disk"></i> Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="add-service-modal">
   <div class="modal-box">
     <div class="modal-head">
@@ -196,10 +423,6 @@
     <div class="modal-body">
       <form method="post" action="{% url 'office_dashboard:add_service' %}">
         {% csrf_token %}
-
-          {% for message in messages %}
-            <div class="toast-static {{ message.tags }}">{{ message }}</div>
-          {% endfor %}
 
         <div class="form-group">
           <label class="form-label" for="svc-name">Service Name <span class="req">*</span></label>
@@ -212,48 +435,49 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="svc-category">Category</label>
-          <select class="form-input" id="svc-category" name="category">
-            {% for value, label in category_choices %}
-              <option value="{{ value }}">{{ label }}</option>
-            {% endfor %}
-          </select>
+          <label class="form-label" for="svc-division">Office or Division</label>
+          <input class="form-input" type="text" id="svc-division" name="division" value="{{ rep.office.name }}" placeholder="{{ rep.office.name }}">
         </div>
 
         <div class="form-group">
-          <label class="form-label">Availability</label>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <select class="form-input" name="availability_day_from" style="flex:1;min-width:110px;">
-              <option value="Monday" selected>Monday</option>
-              <option value="Tuesday">Tuesday</option>
-              <option value="Wednesday">Wednesday</option>
-              <option value="Thursday">Thursday</option>
-              <option value="Friday">Friday</option>
-              <option value="Saturday">Saturday</option>
-              <option value="Sunday">Sunday</option>
-            </select>
-            <span>to</span>
-            <select class="form-input" name="availability_day_to" style="flex:1;min-width:110px;">
-              <option value="Monday">Monday</option>
-              <option value="Tuesday">Tuesday</option>
-              <option value="Wednesday">Wednesday</option>
-              <option value="Thursday">Thursday</option>
-              <option value="Friday" selected>Friday</option>
-              <option value="Saturday">Saturday</option>
-              <option value="Sunday">Sunday</option>
-            </select>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap;">
-            <input class="form-input" type="time" name="availability_time_from" value="08:00" style="flex:1;min-width:110px;">
-            <span>to</span>
-            <input class="form-input" type="time" name="availability_time_to" value="17:00" style="flex:1;min-width:110px;">
+          <label class="form-label" for="svc-classification">Classification</label>
+          <input class="form-input" type="text" id="svc-classification" name="classification" placeholder="Simple/Complex">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Type of Transaction</label>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;">
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+              <input type="checkbox" name="transaction_type" value="G2G"> G2G – Government to Government
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+              <input type="checkbox" name="transaction_type" value="G2B"> G2B – Government to Business
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+              <input type="checkbox" name="transaction_type" value="G2C"> G2C – Government to Citizen
+            </label>
           </div>
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="svc-processing-time">Processing Time</label>
-          <input class="form-input" type="text" id="svc-processing-time" name="processing_time" placeholder="e.g. 3-5 business days, Same day">
+          <label class="form-label" for="svc-who-may-avail">Who May Avail</label>
+          <input class="form-input" type="text" id="svc-who-may-avail" name="who_may_avail" placeholder="e.g. Transacting public, Senior citizens">
         </div>
+
+        <div class="form-group">
+          <label class="form-label">Internal/External Services</label>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;">
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+              <input type="radio" name="service_scope" value="internal"> Internal
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+              <input type="radio" name="service_scope" value="external"> External
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+              <input type="radio" name="service_scope" value="" checked> None
+            </label>
+          </div>
+        </div>        
 
         <div class="form-group">
           <label class="form-label">Icon</label>
@@ -272,6 +496,11 @@
           <button type="submit" class="btn btn-primary">Add</button>
         </div>
       </form>
+
+      <p style="margin:14px 0 0;font-size:.82rem;color:var(--gray-500,#5d667f);">
+        <i class="fa-regular fa-circle-question"></i>
+        After adding, click the <strong>View</strong> button on the service to add or edit its requirements, process steps, fees, and other details.
+      </p>
     </div>
   </div>
 </div>

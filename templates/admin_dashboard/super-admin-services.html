@@ -15,7 +15,21 @@
       <h2 style="margin:0;font-size:16px;font-weight:800;color:var(--gray-900);">Services</h2>
       <p style="margin:3px 0 0;font-size:12.5px;color:var(--gray-500);">Published services currently listed on the public website</p>
     </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:12.5px;font-weight:700;color:var(--gray-700);text-align:right;white-space:nowrap;">Allow Service Editing<br><span style="font-weight:500;color:var(--gray-400);font-size:11px;">Applies to all offices</span></span>
+      <label class="toggle-switch" title="{% if editing_enabled %}Turn off editing for every office representative{% else %}Turn editing back on for every office representative{% endif %}">
+        <input type="checkbox" {% if editing_enabled %}checked{% endif %} onclick="event.preventDefault(); document.getElementById('toggle-service-editing-modal').classList.add('open'); document.body.classList.add('modal-open');">
+        <span class="slider"></span>
+      </label>
+    </div>
   </div>
+
+  {% if not editing_enabled %}
+  <div class="reminder-box" style="margin-bottom:18px;">
+    <span class="ic"><i class="fa-solid fa-lock"></i></span>
+    <div><strong>Service editing is turned off</strong><p>No office representative can currently edit a service's basic info (name, description, division, classification, type of transaction, who may avail, internal/external, icon). Requirements, Client Steps, and Other Details are unaffected.</p></div>
+  </div>
+  {% endif %}
 
   <div class="stat-grid" style="grid-template-columns:repeat(2,260px);">
     <div class="stat-card">
@@ -120,5 +134,28 @@
     </div>
   </div>
   {% endfor %}
+
+  <div class="modal-backdrop" id="toggle-service-editing-modal">
+    <div class="modal-box" style="max-width:420px;">
+      <div class="modal-head">
+        <h3>{% if editing_enabled %}Turn Off Service Editing{% else %}Turn On Service Editing{% endif %}</h3>
+        <button type="button" class="modal-x" onclick="document.getElementById('toggle-service-editing-modal').classList.remove('open'); document.body.classList.remove('modal-open');"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        {% if editing_enabled %}
+          <p>Are you sure you want to turn off service editing for <strong>all offices</strong>? No office representative will be able to edit a service's name, description, division, classification, type of transaction, who may avail, internal/external, or icon until you turn it back on.</p>
+        {% else %}
+          <p>Are you sure you want to turn service editing back on for <strong>all offices</strong>? Every office representative will be able to edit their services' basic info again.</p>
+        {% endif %}
+        <form method="post" action="{% url 'admin_dashboard:admin_toggle_service_editing' %}">
+          {% csrf_token %}
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" onclick="document.getElementById('toggle-service-editing-modal').classList.remove('open'); document.body.classList.remove('modal-open');">Cancel</button>
+            <button type="submit" class="btn btn-primary">{% if editing_enabled %}Yes, Turn Off{% else %}Yes, Turn On{% endif %}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 
 {% endblock %}

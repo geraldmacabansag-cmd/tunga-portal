@@ -34,6 +34,7 @@ urlpatterns = [
 
     path('Admin-Offices/', views.admin_offices, name='ad_offices'),
     path('Admin-Offices/<int:pk>/edit/', views.admin_office_edit, name='admin_office_edit'),
+    path('Admin-Offices/<int:pk>/toggle-visibility/', views.admin_office_toggle_visibility, name='admin_office_toggle_visibility'),
     
     path('Admin-Office-Representative/', views.admin_office_rep, name='ad_office_rep'),
     path('Admin-Office-Representative/<int:pk>/toggle-active/', views.admin_rep_toggle_active, name='admin_rep_toggle_active'),
@@ -43,6 +44,7 @@ urlpatterns = [
     path('Admin-Services/', views.admin_services, name='ad_services'),
     path('Admin-Services/<int:pk>/', views.admin_service_detail, name='ad_service_detail'),
     path('Admin-Services/<int:pk>/delete/', views.admin_service_delete, name='ad_service_delete'),
+    path('Admin-Services/toggle-editing/', views.admin_toggle_service_editing, name='admin_toggle_service_editing'),
 
     path('Admin-Users/', views.admin_users, name='ad_users'),
     path('Admin-Users/<int:pk>/toggle-active/', views.admin_user_toggle_active, name='admin_user_toggle_active'),

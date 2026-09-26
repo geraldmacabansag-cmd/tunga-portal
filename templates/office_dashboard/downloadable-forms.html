@@ -61,6 +61,7 @@
                 <td>
                   <div class="action-icons">
                     <a class="ic" href="{% url 'office_dashboard:download_form' form.pk %}" title="Download"><i class="fa-solid fa-download"></i></a>
+                    <a class="ic" href="{% url 'office_dashboard:form_fields_builder' form.pk %}" title="Make Fillable / Edit Fields"><i class="fa-solid fa-pen-ruler"></i></a>
                     {% if form.service %}
                       <span class="ic" style="opacity:.35;cursor:not-allowed;" title="Uploaded from {{ form.service.name }} — manage it from that service's page instead"><i class="fa-regular fa-pen-to-square"></i></span>
                       <span class="ic" style="opacity:.35;cursor:not-allowed;" title="Uploaded from {{ form.service.name }} — manage it from that service's page instead"><i class="fa-regular fa-trash-can"></i></span>
