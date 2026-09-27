@@ -11,6 +11,7 @@ from office_dashboard.models import Announcement, NewsUpdate, Event, Downloadabl
 from offices.models import Office
 from django.http import Http404, FileResponse
 from datetime import timedelta
+import io
 from office_dashboard.views import FORM_CATEGORY_CHOICES
 from django.utils.text import slugify
 import secrets
@@ -780,6 +781,29 @@ def admin_download_form_file(request, pk):
         return FileResponse(form.file.open('rb'), as_attachment=True, filename=filename)
     except FileNotFoundError:
         raise Http404("File not found.")
+
+
+@super_admin_required
+def admin_view_form_file(request, pk):
+    """Streams a form's PDF through our own server (for the 'View Details'
+    modal and the approval-details Attachment link) instead of linking
+    straight to the storage backend's public URL. Cloudinary blocks
+    unsigned/direct access to PDF and ZIP files by default and returns a
+    401 — opening the file through Django's storage API here uses
+    authenticated access instead, so it works regardless of that setting.
+    No download_count bump here since this is just viewing, not downloading."""
+    form = get_object_or_404(DownloadableForm, pk=pk)
+
+    try:
+        form.file.open('rb')
+        data = form.file.read()
+    except FileNotFoundError:
+        raise Http404("File not found.")
+    finally:
+        form.file.close()
+
+    return FileResponse(io.BytesIO(data), content_type="application/pdf")
+
 
 @super_admin_required
 def admin_gallery(request):

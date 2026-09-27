@@ -42,7 +42,7 @@
 <script>
 (function () {
   function boot() {
-    var PDF_URL = "{{ form_obj.file.url }}";
+    var PDF_URL = "{% url 'offices:view_pdf' form_obj.pk %}";
     var fieldsData = JSON.parse(document.getElementById('fillFieldsData').textContent);
     var canvas = document.getElementById('fillPdfCanvas');
     var ctx = canvas.getContext('2d');

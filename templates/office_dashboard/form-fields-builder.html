@@ -57,7 +57,7 @@
 (function () {
   pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js";
 
-  var PDF_URL = "{{ form_obj.file.url }}";
+  var PDF_URL = "{% url 'office_dashboard:preview_form_pdf' form_obj.pk %}";
   var SAVE_URL = "{% url 'office_dashboard:save_form_fields' form_obj.pk %}";
 
   var pdfDoc = null;

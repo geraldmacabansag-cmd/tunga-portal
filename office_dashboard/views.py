@@ -4,6 +4,7 @@ from django.urls import reverse
 from .models import OfficeRepresentative, Announcement, NewsUpdate, Event, Photo, Album, Service, ProcessStep, Requirement, DownloadableForm, Notification, FormField, ServiceEditSettings
 
 import json
+import io
 from decimal import Decimal, InvalidOperation
 from functools import wraps
 from django.contrib import messages
@@ -761,6 +762,29 @@ def download_form(request, rep, pk):
         return FileResponse(form.file.open('rb'), as_attachment=True, filename=filename)
     except FileNotFoundError:
         raise Http404("File not found.")
+
+
+@office_rep_required
+def preview_form_pdf(request, rep, pk):
+    """Streams the form's PDF through our own server for the field-placement
+    builder's pdf.js preview, instead of pointing straight at the storage
+    backend's public URL. Cloudinary (and some other storage backends) block
+    unsigned/direct access to PDF files by default, which pdf.js sees as an
+    HTTP 401 when it tries to fetch the file itself — opening it through
+    Django's storage API here uses authenticated access instead, sidestepping
+    that restriction. No download_count bump here since this is just a
+    preview, not an actual download."""
+    form = get_object_or_404(DownloadableForm, pk=pk, office=rep.office)
+
+    try:
+        form.file.open('rb')
+        data = form.file.read()
+    except FileNotFoundError:
+        raise Http404("File not found.")
+    finally:
+        form.file.close()
+
+    return FileResponse(io.BytesIO(data), content_type="application/pdf")
 
 
 @office_rep_required

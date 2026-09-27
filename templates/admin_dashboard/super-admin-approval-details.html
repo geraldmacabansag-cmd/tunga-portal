@@ -106,7 +106,7 @@
 
             {% elif item_type == 'Form' %}
               <div class="full"><div class="fl-label">Description</div><div class="fl-value muted">{{ obj.description|linebreaksbr|default:"—" }}</div></div>
-              <div class="full"><div class="fl-label">Attachment</div><div class="fl-value"><a href="{{ obj.file.url }}" target="_blank">{{ obj.file.name|slice:"18:" }}</a></div></div>
+              <div class="full"><div class="fl-label">Attachment</div><div class="fl-value"><a href="{% url 'admin_dashboard:admin_view_form_file' obj.pk %}" target="_blank">{{ obj.file.name|slice:"18:" }}</a></div></div>
               <div><div class="fl-label">Category</div><div class="fl-value">{{ obj.category|default:"—" }}</div></div>
               <div><div class="fl-label">Last Update</div><div class="fl-value">{{ obj.date_uploaded|date:"F j, Y, g:i A" }}</div></div>
 

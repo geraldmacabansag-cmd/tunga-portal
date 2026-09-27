@@ -32,6 +32,7 @@ urlpatterns = [
     path('office-downloadable-forms/<int:pk>/edit', views.edit_form, name='edit_form'),
     path('office-downloadable-forms/<int:pk>/delete', views.delete_form, name='delete_form'),
     path('office-downloadable-forms/<int:pk>/download', views.download_form, name='download_form'),
+    path('office-downloadable-forms/<int:pk>/preview-pdf', views.preview_form_pdf, name='preview_form_pdf'),
     path('office-downloadable-forms/<int:pk>/fields', views.form_fields_builder, name='form_fields_builder'),
     path('office-downloadable-forms/<int:pk>/fields/save', views.save_form_fields, name='save_form_fields'),
     

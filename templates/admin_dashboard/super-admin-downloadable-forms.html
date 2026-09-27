@@ -98,7 +98,7 @@
                     data-date-uploaded="{{ f.date_uploaded|date:'F j, Y g:i A' }}"
                     data-downloads="{{ f.download_count }}"
                     data-status="{{ f.get_status_display }}"
-                    data-file-url="{{ f.file.url }}"
+                    data-file-url="{% url 'admin_dashboard:admin_view_form_file' f.pk %}"
                     data-file-name="{{ f.file.name }}"
                   ><i class="fa-regular fa-eye"></i></button>
                   <button type="button" class="ic form-edit-btn" title="Edit"

@@ -74,7 +74,7 @@
         {% for f in forms %}
         <li>
           <i class="fa-regular fa-file-pdf"></i>
-          <div class="forms-list__title"><a href="{{ f.file.url }}" target="_blank" rel="noopener">{{ f.title }}</a><span>PDF</span></div>
+          <div class="forms-list__title"><a href="{% url 'offices:view_pdf' f.pk %}" target="_blank" rel="noopener">{{ f.title }}</a><span>PDF</span></div>
           <div class="forms-list__actions">
             {% if f.is_fillable %}
               {% if user.is_authenticated %}
@@ -83,7 +83,7 @@
                 <a href="{% url 'login' %}?next={% url 'offices:fill_form' f.pk %}" class="btn btn-primary forms-list__dl" title="Fill Out Online"><i class="fa-solid fa-pen"></i><span class="btn-label">Fill Out Online</span></a>
               {% endif %}
             {% endif %}
-            <a href="{{ f.file.url }}" download class="btn btn-outline forms-list__dl" title="Download"><i class="fa-solid fa-download"></i><span class="btn-label">Download</span></a>
+            <a href="{% url 'offices:view_pdf' f.pk %}?download=1" class="btn btn-outline forms-list__dl" title="Download"><i class="fa-solid fa-download"></i><span class="btn-label">Download</span></a>
           </div>
         </li>
         {% empty %}
@@ -349,7 +349,7 @@
     <h3 class="charter-subtitle">Downloadable Forms</h3>
     <ul class="charter-list">
       {% for form in s.charter_forms %}
-      <li><a href="{{ form.file.url }}" target="_blank" rel="noopener"><i class="fa-solid fa-file-arrow-down"></i> {{ form.title }}</a></li>
+      <li><a href="{% url 'offices:view_pdf' form.pk %}" target="_blank" rel="noopener"><i class="fa-solid fa-file-arrow-down"></i> {{ form.title }}</a></li>
       {% endfor %}
     </ul>
   {% endif %}

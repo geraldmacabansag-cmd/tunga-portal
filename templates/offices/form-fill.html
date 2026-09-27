@@ -41,7 +41,7 @@ Fill Out {{ form_obj.title }} | Digital Governance Portal
             We've filled in a couple of fields from your account where they matched — please check everything before downloading.
           </p>
         </div>
-        <a href="{{ form_obj.file.url }}" target="_blank" rel="noopener" class="btn btn-outline" style="white-space:nowrap;">
+        <a href="{% url 'offices:view_pdf' form_obj.pk %}" target="_blank" rel="noopener" class="btn btn-outline" style="white-space:nowrap;">
           <i class="fa-regular fa-file-pdf"></i> Open Original PDF
         </a>
       </div>
@@ -83,7 +83,7 @@ Fill Out {{ form_obj.title }} | Digital Governance Portal
 (function () {
   pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js";
 
-  var PDF_URL = "{{ form_obj.file.url }}";
+  var PDF_URL = "{% url 'offices:view_pdf' form_obj.pk %}";
   var fieldsData = JSON.parse(document.getElementById('fillFieldsData').textContent);
   var canvas = document.getElementById('fillPdfCanvas');
   var ctx = canvas.getContext('2d');

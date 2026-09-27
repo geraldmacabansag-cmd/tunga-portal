@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import FileResponse, JsonResponse
+from django.http import FileResponse, JsonResponse, Http404
 from .models import Office
 from office_dashboard.models import (
     Announcement, DownloadableForm, Photo, Service,
@@ -14,6 +14,36 @@ import json
 @login_required
 def mayor(request):
     return render(request, 'offices/mayorsoffice.html')
+
+
+def serve_form_pdf(request, pk):
+    """Streams a published form's original PDF through our own server instead
+    of linking straight to the storage backend's public URL. Some storage
+    providers (Cloudinary in particular) block unsigned/direct access to
+    PDF and ZIP files by default and return a 401 — opening the file through
+    Django's storage API (as this does) uses authenticated access instead,
+    so it works regardless of that setting. Used for the "View/Open Original
+    PDF" links, the plain Download button, and as the source pdf.js loads
+    for the online fill-out popup."""
+    form_obj = get_object_or_404(DownloadableForm, pk=pk, status="published")
+
+    try:
+        form_obj.file.open("rb")
+        data = form_obj.file.read()
+    except FileNotFoundError:
+        raise Http404("File not found.")
+    finally:
+        form_obj.file.close()
+
+    filename = form_obj.file.name.rsplit("/", 1)[-1]
+    as_attachment = request.GET.get("download") == "1"
+
+    return FileResponse(
+        io.BytesIO(data),
+        as_attachment=as_attachment,
+        filename=filename,
+        content_type="application/pdf",
+    )
 
 
 def _parse_leading_number(text):
