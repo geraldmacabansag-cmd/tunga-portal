@@ -779,10 +779,19 @@ def preview_form_pdf(request, rep, pk):
     try:
         form.file.open('rb')
         data = form.file.read()
-    except FileNotFoundError:
-        raise Http404("File not found.")
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return HttpResponse(
+            "Could not load the PDF from storage: %s: %s" % (type(e).__name__, e),
+            status=500,
+            content_type="text/plain",
+        )
     finally:
-        form.file.close()
+        try:
+            form.file.close()
+        except Exception:
+            pass
 
     return FileResponse(io.BytesIO(data), content_type="application/pdf")
 

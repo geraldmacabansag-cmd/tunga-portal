@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import FileResponse, JsonResponse, Http404
+from django.http import FileResponse, JsonResponse, Http404, HttpResponse
 from .models import Office
 from office_dashboard.models import (
     Announcement, DownloadableForm, Photo, Service,
@@ -30,10 +30,19 @@ def serve_form_pdf(request, pk):
     try:
         form_obj.file.open("rb")
         data = form_obj.file.read()
-    except FileNotFoundError:
-        raise Http404("File not found.")
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return HttpResponse(
+            "Could not load the PDF from storage: %s: %s" % (type(e).__name__, e),
+            status=500,
+            content_type="text/plain",
+        )
     finally:
-        form_obj.file.close()
+        try:
+            form_obj.file.close()
+        except Exception:
+            pass
 
     filename = form_obj.file.name.rsplit("/", 1)[-1]
     as_attachment = request.GET.get("download") == "1"

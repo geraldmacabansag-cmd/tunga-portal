@@ -9,7 +9,7 @@ from django.db.models import Count, Sum, Q, F
 from django.utils import timezone
 from office_dashboard.models import Announcement, NewsUpdate, Event, DownloadableForm, Photo, Album, Service, OfficeRepresentative, Notification, ServiceEditSettings
 from offices.models import Office
-from django.http import Http404, FileResponse
+from django.http import Http404, FileResponse, HttpResponse
 from datetime import timedelta
 import io
 from office_dashboard.views import FORM_CATEGORY_CHOICES
@@ -797,10 +797,19 @@ def admin_view_form_file(request, pk):
     try:
         form.file.open('rb')
         data = form.file.read()
-    except FileNotFoundError:
-        raise Http404("File not found.")
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return HttpResponse(
+            "Could not load the PDF from storage: %s: %s" % (type(e).__name__, e),
+            status=500,
+            content_type="text/plain",
+        )
     finally:
-        form.file.close()
+        try:
+            form.file.close()
+        except Exception:
+            pass
 
     return FileResponse(io.BytesIO(data), content_type="application/pdf")
 
