@@ -80,7 +80,86 @@ def super_admin_required(view_func):
 
 @super_admin_required
 def dashboard(request):
-    return render(request, "admin_dashboard/super-admin-dashboard.html")
+    today = timezone.localdate()
+    week_start = today - timedelta(days=today.weekday())
+    month_start = today.replace(day=1)
+ 
+    offices = Office.objects.exclude(slug=LGU_SUPER_ADMIN_SLUG)
+ 
+    # ---- Pending approvals (same statuses as the Approval Center) ----
+    pending_announcements = Announcement.objects.filter(status__in=["pending", "returned"])
+    pending_news = NewsUpdate.objects.filter(status__in=["pending", "returned"])
+    pending_events = Event.objects.filter(status__in=["pending", "returned"])
+    pending_forms = DownloadableForm.objects.filter(status__in=["pending", "returned"])
+    pending_photos = Photo.objects.filter(status__in=["pending", "returned"])
+    pending_services = Service.objects.filter(status__in=["pending", "returned"])
+ 
+    pending_total = (
+        pending_announcements.count()
+        + pending_news.count()
+        + pending_events.count()
+        + pending_forms.count()
+        + pending_photos.count()
+        + pending_services.count()
+    )
+    pending_today = (
+        pending_announcements.filter(created_at__date=today).count()
+        + pending_news.filter(created_at__date=today).count()
+        + pending_events.filter(created_at__date=today).count()
+        + pending_forms.filter(date_uploaded__date=today).count()
+        + pending_photos.filter(created_at__date=today).count()
+        + pending_services.filter(published_at__date=today).count()
+    )
+ 
+    # ---- Registered residents (ordinary citizen accounts only) ----
+    resident_qs = User.objects.filter(is_staff=False, is_superuser=False, office_rep__isnull=True)
+    residents_total = resident_qs.count()
+    residents_new_this_month = resident_qs.filter(date_joined__date__gte=month_start).count()
+ 
+    # ---- Published announcements ----
+    published_announcements = Announcement.objects.filter(status="published")
+    announcements_total = published_announcements.count()
+    announcements_this_week = published_announcements.filter(created_at__date__gte=week_start).count()
+ 
+    # ---- Active (published) services ----
+    published_services = Service.objects.filter(status="published")
+    services_total = published_services.count()
+    services_office_count = published_services.values("office_id").distinct().count()
+ 
+    # ---- Office activity table ----
+    office_rows = []
+    for office in offices:
+        services_count = Service.objects.filter(office=office).count()
+        office_pending_count = (
+            Announcement.objects.filter(status__in=["pending", "returned"], representative__office=office).count()
+            + NewsUpdate.objects.filter(status__in=["pending", "returned"], representative__office=office).count()
+            + Event.objects.filter(status__in=["pending", "returned"], representative__office=office).count()
+            + DownloadableForm.objects.filter(status__in=["pending", "returned"], office=office).count()
+            + Photo.objects.filter(status__in=["pending", "returned"], representative__office=office).count()
+            + Service.objects.filter(status__in=["pending", "returned"], office=office).count()
+        )
+        office_rows.append({
+            "office": office,
+            "services_count": services_count,
+            "pending_count": office_pending_count,
+        })
+ 
+    # Busiest offices first: whoever needs the most attention, then whoever
+    # has the most services listed.
+    office_rows.sort(key=lambda r: (-r["pending_count"], -r["services_count"]))
+    office_rows = office_rows[:5]
+ 
+    return render(request, "admin_dashboard/super-admin-dashboard.html", {
+        "pending_total": pending_total,
+        "pending_today": pending_today,
+        "residents_total": residents_total,
+        "residents_new_this_month": residents_new_this_month,
+        "announcements_total": announcements_total,
+        "announcements_this_week": announcements_this_week,
+        "services_total": services_total,
+        "services_office_count": services_office_count,
+        "office_rows": office_rows,
+    })
 
 TYPE_META = {
     "Announcement": {"tag_class": "tag-blue", "icon": "fa-solid fa-bullhorn", "thumb_class": "tag-blue"},

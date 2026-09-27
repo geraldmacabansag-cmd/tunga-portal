@@ -12,7 +12,7 @@
     <h2>Magandang araw, {{ request.user.get_full_name|default:request.user.username }}.</h2>
     <p>Here's what's happening across Tunga's municipal offices today.</p>
   </div>
-  <span class="date-chip"><i class="fa-regular fa-calendar"></i> Friday, September 11, 2026</span>
+  <span class="date-chip"><i class="fa-regular fa-calendar"></i> {% now "l, F j, Y" %}</span>
 </div>
 
 <div class="stat-grid">
@@ -20,36 +20,36 @@
     <div class="top">
       <span class="stat-icon blue"><i class="fa-solid fa-square-check"></i></span>
     </div>
-    <div class="stat-value">18</div>
+    <div class="stat-value">{{ pending_total }}</div>
     <div class="stat-label">Pending approvals</div>
-    <div class="stat-sub">3 submitted today</div>
+    <div class="stat-sub">{{ pending_today }} submitted today</div>
   </div>
 
   <div class="stat-card">
     <div class="top">
       <span class="stat-icon green"><i class="fa-solid fa-users"></i></span>
     </div>
-    <div class="stat-value">1,284</div>
-    <div class="stat-label">Registered residents online</div>
-    <div class="stat-sub">Up 4.2% this month</div>
+    <div class="stat-value">{{ residents_total }}</div>
+    <div class="stat-label">Registered residents</div>
+    <div class="stat-sub">{{ residents_new_this_month }} new this month</div>
   </div>
 
   <div class="stat-card">
     <div class="top">
       <span class="stat-icon amber"><i class="fa-solid fa-bullhorn"></i></span>
     </div>
-    <div class="stat-value">42</div>
+    <div class="stat-value">{{ announcements_total }}</div>
     <div class="stat-label">Published announcements</div>
-    <div class="stat-sub">6 posted this week</div>
+    <div class="stat-sub">{{ announcements_this_week }} posted this week</div>
   </div>
 
   <div class="stat-card">
     <div class="top">
       <span class="stat-icon gray"><i class="fa-solid fa-building"></i></span>
     </div>
-    <div class="stat-value">57</div>
+    <div class="stat-value">{{ services_total }}</div>
     <div class="stat-label">Active services listed</div>
-    <div class="stat-sub">Across 9 offices</div>
+    <div class="stat-sub">Across {{ services_office_count }} office{{ services_office_count|pluralize }}</div>
   </div>
 </div>
 
@@ -127,36 +127,24 @@
             </tr>
           </thead>
           <tbody>
+            {% for row in office_rows %}
             <tr>
-              <td><p class="cell-primary">Office of the Municipal Treasurer</p></td>
-              <td>11</td>
-              <td>2</td>
-              <td><span class="badge badge-green">Up to date</span></td>
+              <td><p class="cell-primary">{{ row.office.name }}</p></td>
+              <td>{{ row.services_count }}</td>
+              <td>{{ row.pending_count }}</td>
+              <td>
+                {% if row.pending_count > 0 %}
+                <span class="badge badge-amber">Needs review</span>
+                {% else %}
+                <span class="badge badge-green">Up to date</span>
+                {% endif %}
+              </td>
             </tr>
+            {% empty %}
             <tr>
-              <td><p class="cell-primary">Office of the Municipal Civil Registrar</p></td>
-              <td>9</td>
-              <td>5</td>
-              <td><span class="badge badge-amber">Needs review</span></td>
+              <td colspan="4" style="text-align:center;color:var(--gray-400);padding:20px 0;">No offices yet.</td>
             </tr>
-            <tr>
-              <td><p class="cell-primary">Office of the Municipal Health Officer</p></td>
-              <td>8</td>
-              <td>1</td>
-              <td><span class="badge badge-green">Up to date</span></td>
-            </tr>
-            <tr>
-              <td><p class="cell-primary">Office of the Municipal Social Welfare and Development</p></td>
-              <td>7</td>
-              <td>3</td>
-              <td><span class="badge badge-amber">Needs review</span></td>
-            </tr>
-            <tr>
-              <td><p class="cell-primary">Office of the Municipal Assessor</p></td>
-              <td>6</td>
-              <td>0</td>
-              <td><span class="badge badge-green">Up to date</span></td>
-            </tr>
+            {% endfor %}
           </tbody>
         </table>
       </div>

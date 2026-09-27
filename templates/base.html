@@ -26,7 +26,7 @@
 
   <header class="top-bar">
   <div class="container">
-    <span class="top-bar__tag">Announcement</span>
+    <span class="top-bar__tag"><i class="fa-solid fa-bullhorn top-bar__tag-icon"></i><span class="top-bar__tag-text">Announcement</span></span>
     <span class="top-bar__msg-wrap">
       {% for a in ticker_announcements %}
         <span class="top-bar__msg{% if forloop.first %} top-bar__msg--active{% endif %}">{{ a.title }} — {{ a.subtitle|default:a.content|truncatewords:20 }}</span>
