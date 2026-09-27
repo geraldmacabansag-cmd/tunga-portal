@@ -23,6 +23,24 @@ class Office(models.Model):
     goal = models.TextField(blank=True)
     objective = models.TextField(blank=True)
 
+    facebook_url = models.URLField(
+        blank=True,
+        help_text="Link to this office's official Facebook page, shown as an icon on its public page.",
+    )
+
+    twitter_url = models.URLField(
+        blank=True,
+        help_text="Link to this office's official X (Twitter) page, shown as an icon on its public page.",
+    )
+    instagram_url = models.URLField(
+        blank=True,
+        help_text="Link to this office's official Instagram page, shown as an icon on its public page.",
+    )
+    youtube_url = models.URLField(
+        blank=True,
+        help_text="Link to this office's official YouTube channel, shown as an icon on its public page.",
+    )
+
     hero_image = models.ImageField(
         upload_to="office_hero/",
         blank=True,

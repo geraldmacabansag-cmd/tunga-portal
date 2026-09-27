@@ -1199,37 +1199,58 @@ def office_directory(request, rep):
 def office_location(request, rep):
     return render(request, "office_dashboard/office-location.html", {"rep": rep})
 
+SOCIAL_LINK_FIELDS = ["facebook_url", "twitter_url", "instagram_url", "youtube_url"]
+ 
+ 
 @office_rep_required
 def office_page_settings(request, rep):
-    """Lets the office representative replace the banner image shown at the
-    top of their office's public page (offices/office_detail.html's
-    .page-hero section), toggle public visibility, and reorder how their
-    services are listed on that same page."""
+    """Lets the office representative manage everything shown on their
+    office's public page from one place: the banner image, social media
+    links, visibility, and (via the separate office_reorder_services
+    endpoint) the order their services are listed in."""
     office = rep.office
  
     if request.method == "POST":
-        if request.POST.get('action') == 'reset':
-            if office.hero_image:
-                office.hero_image.delete(save=False)
-            office.hero_image = None
-            office.save(update_fields=['hero_image'])
-            messages.success(request, "Page hero image reset to the default.")
-        elif request.FILES.get('hero_image'):
-            if office.hero_image:
-                office.hero_image.delete(save=False)
-            office.hero_image = request.FILES['hero_image']
-            office.save(update_fields=['hero_image'])
-            messages.success(request, "Page hero image updated.")
+        form_name = request.POST.get('form_name')
+ 
+        if form_name == 'hero_image':
+            if request.POST.get('action') == 'reset':
+                if office.hero_image:
+                    office.hero_image.delete(save=False)
+                office.hero_image = None
+                office.save(update_fields=['hero_image'])
+                messages.success(request, "Page hero image reset to the default.")
+            elif request.FILES.get('hero_image'):
+                if office.hero_image:
+                    office.hero_image.delete(save=False)
+                office.hero_image = request.FILES['hero_image']
+                office.save(update_fields=['hero_image'])
+                messages.success(request, "Page hero image updated.")
+                log_activity(
+                    rep,
+                    "Page hero image updated",
+                    "Changed the banner image on the office's public page",
+                    "account",
+                    "fa-solid fa-image",
+                    "var(--blue-600)",
+                )
+            else:
+                messages.error(request, "Please choose an image to upload.")
+ 
+        elif form_name == 'social_media':
+            for field in SOCIAL_LINK_FIELDS:
+                setattr(office, field, request.POST.get(field, '').strip())
+            office.save(update_fields=SOCIAL_LINK_FIELDS)
+            messages.success(request, "Social media links updated.")
             log_activity(
                 rep,
-                "Page hero image updated",
-                "Changed the banner image on the office's public page",
+                "Social media links updated",
+                "Updated the office's social media links shown on its public page",
                 "account",
-                "fa-solid fa-image",
+                "fa-solid fa-share-nodes",
                 "var(--blue-600)",
             )
-        else:
-            messages.error(request, "Please choose an image to upload.")
+ 
         return redirect('office_dashboard:page_settings')
  
     services = list(
@@ -1241,7 +1262,6 @@ def office_page_settings(request, rep):
         "office": office,
         "services": services,
     })
- 
  
 # 3) ADD this new view right below it — the AJAX endpoint the "Save Order"
 #    button in the Service Order panel calls. It only ever touches

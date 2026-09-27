@@ -138,6 +138,30 @@
         <div><i class="fa-solid fa-location-dot"></i><div><strong>Location</strong><span>{{ office.location|default:"Municipal Hall, Tunga, Leyte" }}</span></div></div>
         <div><i class="fa-regular fa-envelope"></i><div><strong>Email</strong><span>{{ office.email|default:"—" }}</span></div></div>
         <div><i class="fa-solid fa-phone"></i><div><strong>Telephone</strong><span>{{ office.telephone|default:"—" }}</span></div></div>
+          {% if office.facebook_url or office.twitter_url or office.instagram_url or office.youtube_url %}
+          <div class="about-office-socials">
+            {% if office.facebook_url %}
+            <a href="{{ office.facebook_url }}" target="_blank" rel="noopener noreferrer" class="about-office-socials__icon about-office-socials__icon--facebook" title="Facebook">
+              <i class="fa-brands fa-facebook"></i>
+            </a>
+            {% endif %}
+            {% if office.twitter_url %}
+            <a href="{{ office.twitter_url }}" target="_blank" rel="noopener noreferrer" class="about-office-socials__icon about-office-socials__icon--twitter" title="X (Twitter)">
+              <i class="fa-brands fa-x-twitter"></i>
+            </a>
+            {% endif %}
+            {% if office.instagram_url %}
+            <a href="{{ office.instagram_url }}" target="_blank" rel="noopener noreferrer" class="about-office-socials__icon about-office-socials__icon--instagram" title="Instagram">
+              <i class="fa-brands fa-instagram"></i>
+            </a>
+            {% endif %}
+            {% if office.youtube_url %}
+            <a href="{{ office.youtube_url }}" target="_blank" rel="noopener noreferrer" class="about-office-socials__icon about-office-socials__icon--youtube" title="YouTube">
+              <i class="fa-brands fa-youtube"></i>
+            </a>
+            {% endif %}
+          </div>
+          {% endif %}
       </div>
 
       {% if office.service_pledge or office.mandate or office.vision or office.mission or office.goal or office.objective %}
@@ -363,6 +387,21 @@
 .charter-table tfoot td { background: var(--gray-50, #f9fafb); font-weight: 800; }
 .charter-table .charter-subhead { background: var(--blue-50, #eff6ff); font-weight: 700; text-align: center; }
 .charter-info-table th { background: var(--blue-100, #bfdbfe); width: 200px; }
+
+.about-office-meta__item--facebook i { color: #1877f2; }
+.about-office-meta__item--facebook:hover { text-decoration: underline; }
+
+    .about-office-socials { display: flex; gap: 12px; margin-top: 10px; }
+    .about-office-socials__icon {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 34px; height: 34px; border-radius: 50%;
+      background: #f4f6fb; font-size: 1rem; transition: transform .15s ease;
+    }
+    .about-office-socials__icon:hover { transform: translateY(-2px); }
+    .about-office-socials__icon--facebook  i { color: #1877f2; }
+    .about-office-socials__icon--twitter   i { color: #000; }
+    .about-office-socials__icon--instagram i { color: #e1306c; }
+    .about-office-socials__icon--youtube   i { color: #ff0000; }
 </style>
 
 <script>

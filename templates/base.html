@@ -102,7 +102,7 @@
         <div class="brand__tagline">Abtik na serbisyo, masulong na bungto.</div>
       </div>
     </a>
-    <div class="main-nav">
+    <div class="main-nav" id="mainNav">
       <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">Home</a>
       <a href="{% url 'announcement' %}" class="{% if request.resolver_match.url_name == 'announcement' %}active{% endif %}">Announcements</a>
       <a href="{% url 'offices' %}" class="{% if request.resolver_match.url_name == 'offices' %}active{% endif %}">Offices <i class="fa-solid fa-chevron-down" style="font-size:.65rem"></i></a>
@@ -115,6 +115,9 @@
         <i class="fa-solid fa-magnifying-glass"></i>
       </button>
     </div>
+    <button type="button" class="nav-toggle" id="navToggle" aria-label="Toggle navigation menu" aria-controls="mainNav" aria-expanded="false">
+      <i class="fa-solid fa-bars"></i>
+    </button>
 
   </div>
 </nav>
@@ -302,6 +305,37 @@
       current = (current + 1) % messages.length;
       messages[current].classList.add('top-bar__msg--active');
     }, 2000);
+  })();
+
+  /* -------------------------------------------------------------- */
+  /* Mobile nav toggle (hamburger <-> full-width dropdown menu)      */
+  /* -------------------------------------------------------------- */
+  (function () {
+    var navToggle = document.getElementById('navToggle');
+    var mainNav = document.getElementById('mainNav');
+    if (!navToggle || !mainNav) return;
+
+    var navIcon = navToggle.querySelector('i');
+
+    function closeNav() {
+      mainNav.classList.remove('open');
+      navToggle.setAttribute('aria-expanded', 'false');
+      if (navIcon) navIcon.className = 'fa-solid fa-bars';
+    }
+
+    navToggle.addEventListener('click', function () {
+      var isOpen = mainNav.classList.toggle('open');
+      navToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      if (navIcon) navIcon.className = isOpen ? 'fa-solid fa-xmark' : 'fa-solid fa-bars';
+    });
+
+    mainNav.querySelectorAll('a').forEach(function (link) {
+      link.addEventListener('click', closeNav);
+    });
+
+    window.addEventListener('resize', function () {
+      if (window.innerWidth > 900) closeNav();
+    });
   })();
 </script>
 

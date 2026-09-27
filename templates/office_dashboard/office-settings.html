@@ -50,6 +50,7 @@
 
           <form method="post" enctype="multipart/form-data" style="margin-top:20px;">
             {% csrf_token %}
+            <input type="hidden" name="form_name" value="hero_image">
             <div class="form-group">
               <label class="form-label" for="hero-image-input">Upload New Image</label>
               <input class="form-input file-input" type="file" id="hero-image-input" name="hero_image" accept="image/*">
@@ -77,6 +78,54 @@
               <span class="slider"></span>
             </label>
           </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Social Media</h2>
+        </div>
+        <div class="panel-body">
+          <p style="color:var(--gray-500,#5d667f);font-size:.88rem;margin:0 0 16px;">
+            Link your office's official social media pages here. An icon for each one you fill in will appear on your office's public page and link out to it. Leave any of these blank to hide that icon.
+          </p>
+          <form method="post" style="margin-top:0;">
+            {% csrf_token %}
+            <input type="hidden" name="form_name" value="social_media">
+
+            <div class="form-group">
+              <label class="form-label" for="facebook-url-input"><i class="fa-brands fa-facebook" style="color:#1877f2;"></i> Facebook Page URL</label>
+              <input class="form-input" type="url" id="facebook-url-input" name="facebook_url"
+                     placeholder="https://www.facebook.com/YourOfficePage"
+                     value="{{ office.facebook_url|default:'' }}">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="twitter-url-input"><i class="fa-brands fa-x-twitter" style="color:#000;"></i> X (Twitter) Page URL</label>
+              <input class="form-input" type="url" id="twitter-url-input" name="twitter_url"
+                     placeholder="https://x.com/YourOfficePage"
+                     value="{{ office.twitter_url|default:'' }}">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="instagram-url-input"><i class="fa-brands fa-instagram" style="color:#e1306c;"></i> Instagram Page URL</label>
+              <input class="form-input" type="url" id="instagram-url-input" name="instagram_url"
+                     placeholder="https://www.instagram.com/YourOfficePage"
+                     value="{{ office.instagram_url|default:'' }}">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="youtube-url-input"><i class="fa-brands fa-youtube" style="color:#ff0000;"></i> YouTube Channel URL</label>
+              <input class="form-input" type="url" id="youtube-url-input" name="youtube_url"
+                     placeholder="https://www.youtube.com/@YourOfficeChannel"
+                     value="{{ office.youtube_url|default:'' }}">
+              <div class="form-hint">Leave any field blank and save to remove that icon from your public page.</div>
+            </div>
+
+            <div style="display:flex;justify-content:flex-end;margin-top:6px;">
+              <button type="submit" class="btn btn-primary"><i class="fa-regular fa-floppy-disk"></i> Save Links</button>
+            </div>
+          </form>
         </div>
       </section>
 

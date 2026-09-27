@@ -40,8 +40,10 @@ Home | Digital Governance Portal
       {% for c in emergency_contacts %}
       <div class="emergency__card emergency__card--{{ c.color }}">
         <i class="fa-solid {{ c.icon }}"></i>
-        <h3>{{ c.name }}</h3>
-        <p>{{ c.carrier_label }}: {{ c.phone_number }}{% if c.extra_detail %}<br>{{ c.extra_detail }}{% endif %}</p>
+        <div class="emergency__info">
+          <h3>{{ c.name }}</h3>
+          <p>{{ c.carrier_label }}: {{ c.phone_number }}{% if c.extra_detail %}<br>{{ c.extra_detail }}{% endif %}</p>
+        </div>
         <a href="tel:{{ c.phone_number|cut:' ' }}" class="btn emergency__btn emergency__btn--{{ c.color }}">CALL</a>
       </div>
       {% endfor %}
