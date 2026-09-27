@@ -67,6 +67,10 @@
   var ctx = canvas.getContext('2d');
   var fieldLayer = document.getElementById('field-layer');
   var stage = document.getElementById('pdf-stage');
+  // Set right after a drag/resize ends, so the synthetic "click" the browser
+  // fires on mouseup (which can land on the stage/canvas if the box moved
+  // out from under the cursor) doesn't get mistaken for "create a new field".
+  var suppressNextStageClick = false;
 
   // fields: {id (temp or real), label, field_type, required, page_number, x, y, width, height}
   var rawFieldsData = JSON.parse(document.getElementById('fields-data').textContent);
@@ -138,6 +142,7 @@
     box.textContent = f.label || '(unlabeled)';
 
     box.addEventListener('mousedown', function (e) {
+      if (e.target !== box) return; // let the resize handle's own listener handle itself
       e.preventDefault();
       var stageRect = stage.getBoundingClientRect();
       function onMove(moveEvt) {
@@ -148,18 +153,58 @@
         box.style.left = (f.x * 100) + '%';
         box.style.top = (f.y * 100) + '%';
       }
+      var moved = false;
+      function onMoveTrack(moveEvt) { moved = true; onMove(moveEvt); }
       function onUp() {
-        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mousemove', onMoveTrack);
         document.removeEventListener('mouseup', onUp);
+        if (moved) suppressNextStageClick = true;
       }
-      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mousemove', onMoveTrack);
       document.addEventListener('mouseup', onUp);
     });
+
+    var MIN_WIDTH = 0.02;
+    var MIN_HEIGHT = 0.015;
+
+    var resizeHandle = document.createElement('div');
+    resizeHandle.className = 'resize-handle';
+    resizeHandle.style.cssText = [
+      'position:absolute', 'right:-4px', 'bottom:-4px',
+      'width:11px', 'height:11px', 'border-radius:50%',
+      'background:#2f5bea', 'border:2px solid #fff',
+      'box-shadow:0 0 2px rgba(0,0,0,.4)',
+      'cursor:nwse-resize',
+    ].join(';');
+    resizeHandle.addEventListener('mousedown', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var stageRect = stage.getBoundingClientRect();
+      function onMove(moveEvt) {
+        var relX = (moveEvt.clientX - stageRect.left) / stageRect.width;
+        var relY = (moveEvt.clientY - stageRect.top) / stageRect.height;
+        f.width = Math.max(MIN_WIDTH, Math.min(1 - f.x, relX - f.x));
+        f.height = Math.max(MIN_HEIGHT, Math.min(1 - f.y, relY - f.y));
+        box.style.width = (f.width * 100) + '%';
+        box.style.height = (f.height * 100) + '%';
+      }
+      var resized = false;
+      function onMoveTrack(moveEvt) { resized = true; onMove(moveEvt); }
+      function onUp() {
+        document.removeEventListener('mousemove', onMoveTrack);
+        document.removeEventListener('mouseup', onUp);
+        if (resized) suppressNextStageClick = true;
+      }
+      document.addEventListener('mousemove', onMoveTrack);
+      document.addEventListener('mouseup', onUp);
+    });
+    box.appendChild(resizeHandle);
 
     fieldLayer.appendChild(box);
   }
 
   stage.addEventListener('click', function (e) {
+    if (suppressNextStageClick) { suppressNextStageClick = false; return; }
     if (e.target !== canvas && e.target !== fieldLayer) return; // ignore clicks that started a drag on an existing field
     var rect = stage.getBoundingClientRect();
     var relX = (e.clientX - rect.left) / rect.width;

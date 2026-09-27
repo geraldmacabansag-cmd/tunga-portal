@@ -2,7 +2,7 @@ from functools import wraps
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import SuperAdmin, SiteContactInfo, EmergencyContact, EmailProviderSettings
+from .models import SuperAdmin, SiteContactInfo, EmergencyContact, EmailProviderSettings, QuickLink
 from django.core.paginator import Paginator
 from django.contrib.auth.models import User
 from django.db.models import Count, Sum, Q, F
@@ -1298,7 +1298,71 @@ def admin_roles(request):
 
 @super_admin_required
 def admin_homepage(request):
-    return render(request, "admin_dashboard/super-admin-homepage.html")
+    quick_links = QuickLink.objects.all()
+    today = timezone.localdate()
+ 
+    return render(request, "admin_dashboard/super-admin-homepage.html", {
+        "quick_links": quick_links,
+        "quick_links_active_count": quick_links.filter(is_active=True).count(),
+        "quick_links_total_count": quick_links.count(),
+        "emergency_contacts_count": EmergencyContact.objects.count(),
+        "home_announcements_count": Announcement.objects.filter(status="published").count(),
+        "upcoming_events_count": Event.objects.filter(status="published", event_date__gte=today).count(),
+        "published_news_count": NewsUpdate.objects.filter(status="published").count(),
+        "gallery_photos_count": Photo.objects.filter(status="published").count(),
+    })
+ 
+ 
+@super_admin_required
+def admin_quicklink_save(request, pk):
+    link = get_object_or_404(QuickLink, pk=pk) if pk else QuickLink()
+ 
+    if request.method == "POST":
+        label = request.POST.get('label', '').strip()
+        url = request.POST.get('url', '').strip()
+ 
+        if not label or not url:
+            messages.error(request, "Please fill in both the label and the link URL.")
+        else:
+            is_create = link.pk is None
+            link.label = label
+            link.icon = request.POST.get('icon', 'fa-file-lines')
+            link.url = url
+            link.open_in_new_tab = request.POST.get('open_in_new_tab') == 'on'
+            link.is_active = request.POST.get('is_active') == 'on'
+            if is_create:
+                link.order = QuickLink.objects.count()
+            link.save()
+            messages.success(request, f'"{label}" was saved.')
+ 
+    return redirect('admin_dashboard:ad_homepage')
+ 
+ 
+@super_admin_required
+def admin_quicklink_delete(request, pk):
+    link = get_object_or_404(QuickLink, pk=pk)
+    if request.method == "POST":
+        label = link.label
+        link.delete()
+        messages.success(request, f'"{label}" was removed.')
+    return redirect('admin_dashboard:ad_homepage')
+ 
+ 
+@super_admin_required
+def admin_quicklink_move(request, pk, direction):
+    """direction: 'up' or 'down' — swaps this link's position with its
+    neighbor in the Quick Links list."""
+    if request.method == "POST":
+        links = list(QuickLink.objects.order_by('order', 'id'))
+        index = next((i for i, l in enumerate(links) if l.pk == pk), None)
+        if index is not None:
+            target = index - 1 if direction == 'up' else index + 1
+            if 0 <= target < len(links):
+                links[index].order, links[target].order = links[target].order, links[index].order
+                links[index].save(update_fields=['order'])
+                links[target].save(update_fields=['order'])
+    return redirect('admin_dashboard:ad_homepage')
+ 
 
 @super_admin_required
 def admin_interactive_map(request):

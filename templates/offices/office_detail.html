@@ -74,8 +74,17 @@
         {% for f in forms %}
         <li>
           <i class="fa-regular fa-file-pdf"></i>
-          <div><a href="{{ f.file.url }}" target="_blank" rel="noopener">{{ f.title }}</a><span>PDF</span></div>
-          <a href="{{ f.file.url }}" download class="btn btn-outline forms-list__dl"><i class="fa-solid fa-download"></i> Download</a>
+          <div class="forms-list__title"><a href="{{ f.file.url }}" target="_blank" rel="noopener">{{ f.title }}</a><span>PDF</span></div>
+          <div class="forms-list__actions">
+            {% if f.is_fillable %}
+              {% if user.is_authenticated %}
+                <button type="button" class="btn btn-primary forms-list__dl js-fill-online" data-fill-url="{% url 'offices:fill_form' f.pk %}" data-fill-title="{{ f.title }}" title="Fill Out Online"><i class="fa-solid fa-pen"></i><span class="btn-label">Fill Out Online</span></button>
+              {% else %}
+                <a href="{% url 'login' %}?next={% url 'offices:fill_form' f.pk %}" class="btn btn-primary forms-list__dl" title="Fill Out Online"><i class="fa-solid fa-pen"></i><span class="btn-label">Fill Out Online</span></a>
+              {% endif %}
+            {% endif %}
+            <a href="{{ f.file.url }}" download class="btn btn-outline forms-list__dl" title="Download"><i class="fa-solid fa-download"></i><span class="btn-label">Download</span></a>
+          </div>
         </li>
         {% empty %}
         <li><div><span>No downloadable forms from this office yet.</span></div></li>
@@ -254,6 +263,23 @@
   </div>
 </dialog>
 
+<!-- "Fill Out Online" popup: fetches the form-fill fragment for the clicked
+     form via AJAX and injects it here, so the citizen never leaves this
+     page. The injected <form>'s submit is intercepted the same way, POSTed
+     in the background, and the resulting filled PDF is downloaded straight
+     from the response — no page navigation either way. -->
+<dialog id="fillDialog" aria-labelledby="fillDlgTitle" class="svc-dialog charter-modal">
+  <div class="svc-dlg">
+    <div class="svc-dlg-head">
+      <div><small>{{ office.name }}</small><h2 id="fillDlgTitle">Fill Out Form</h2></div>
+      <button type="button" class="svc-dlg-close" id="fillDlgClose" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="svc-dlg-body" id="fillDlgBody">
+      <p style="text-align:center;color:#8a92ab;padding:30px 0;">Loading form…</p>
+    </div>
+  </div>
+</dialog>
+
 {% for s in services %}
 <template id="tpl-svc-{{ s.id }}">
   {% if s.description %}<p class="charter-desc">{{ s.description }}</p>{% endif %}
@@ -348,6 +374,28 @@
   position: fixed; top: 50%; left: 50%; margin: 0; transform: translate(-50%, -50%);
 }
 .svc-dialog::backdrop { background: rgba(11,20,50,.55); }
+#fillDialog.svc-dialog { max-width: 960px; }
+
+/* Downloadable Forms panel: keep the action buttons inside the panel at
+   any width, wrapping onto their own row rather than overflowing, and
+   collapsing to icon-only buttons on small screens. */
+.forms-list li { flex-wrap: wrap; row-gap: 10px; }
+.forms-list li .forms-list__title { flex: 1 1 160px; min-width: 0; }
+.forms-list li .forms-list__actions {
+  display: flex;
+  gap: 8px;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  margin-left: auto;
+  min-width: 0;
+}
+.forms-list__dl { white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+
+@media (max-width: 480px) {
+  .forms-list__dl .btn-label { display: none; }
+  .forms-list__dl { padding: 8px 10px; }
+}
 .svc-dlg { display: flex; flex-direction: column; max-height: 82vh; }
 .svc-dlg-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 18px 20px; border-bottom: 1px solid #e3e7f1; }
 .svc-dlg-head small { color: #5d667f; font-size: .75rem; text-transform: uppercase; letter-spacing: .03em; }
@@ -432,6 +480,61 @@
     try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
   });
   if (location.hash.indexOf('#svc-') === 0) openSvc(location.hash.slice(1), false);
+})();
+
+// "Fill Out Online" popup: fetches the PDF-overlay fill fragment for the
+// clicked form via AJAX and injects it into fillDialog. Injected <script>
+// tags don't auto-run when set via innerHTML, so we explicitly recreate
+// them to execute (standard workaround).
+(function () {
+  var dlg = document.getElementById('fillDialog');
+  var body = document.getElementById('fillDlgBody');
+  var closeBtn = document.getElementById('fillDlgClose');
+
+  function runScripts(container) {
+    container.querySelectorAll('script').forEach(function (old) {
+      var fresh = document.createElement('script');
+      for (var i = 0; i < old.attributes.length; i++) {
+        fresh.setAttribute(old.attributes[i].name, old.attributes[i].value);
+      }
+      fresh.textContent = old.textContent;
+      old.parentNode.replaceChild(fresh, old);
+    });
+  }
+
+  function openFill(url, title) {
+    body.innerHTML = '<p style="text-align:center;color:#8a92ab;padding:30px 0;">Loading form…</p>';
+    document.getElementById('fillDlgTitle').textContent = title || 'Fill Out Form';
+    if (!dlg.open) dlg.showModal();
+    document.body.classList.add('lock');
+
+    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then(function (res) {
+        if (!res.ok) throw new Error('Could not load this form right now.');
+        return res.text();
+      })
+      .then(function (html) {
+        body.innerHTML = html;
+        runScripts(body);
+      })
+      .catch(function (err) {
+        body.innerHTML = '<p style="text-align:center;color:#c0392b;padding:30px 0;">' + (err.message || 'Could not load this form right now.') + '</p>';
+      });
+  }
+
+  document.querySelectorAll('.js-fill-online').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      openFill(btn.getAttribute('data-fill-url'), btn.getAttribute('data-fill-title'));
+    });
+  });
+
+  function closeFillDlg() { if (dlg.open) dlg.close(); }
+  closeBtn.addEventListener('click', closeFillDlg);
+  dlg.addEventListener('click', function (e) { if (e.target === dlg) closeFillDlg(); });
+  dlg.addEventListener('close', function () {
+    document.body.classList.remove('lock');
+    body.innerHTML = '<p style="text-align:center;color:#8a92ab;padding:30px 0;">Loading form…</p>';
+  });
 })();
 </script>
 

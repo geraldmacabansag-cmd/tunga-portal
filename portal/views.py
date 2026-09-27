@@ -4,7 +4,7 @@ from django.contrib.auth import authenticate, login as auth_login, logout as aut
 from django.contrib.auth.models import User
 from .models import CitizenProfile
 from office_dashboard.models import OfficeRepresentative, Announcement, NewsUpdate, Event, Photo
-from admin_dashboard.models import SuperAdmin, EmergencyContact
+from admin_dashboard.models import SuperAdmin, EmergencyContact, QuickLink
 from django.utils import timezone
 from django.http import JsonResponse
 from .models import CitizenProfile, EmailOTP
@@ -46,6 +46,7 @@ def home(request):
         "upcoming_event": upcoming_event,
         "latest_news": latest_news,
         "gallery_photos": gallery_photos,
+        "quick_links": QuickLink.objects.filter(is_active=True),
     })
 
 def announcement(request):

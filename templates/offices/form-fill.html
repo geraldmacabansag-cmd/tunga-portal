@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+Fill Out {{ form_obj.title }} | Digital Governance Portal
+{% endblock %}
+
+{% block content %}
+
+<section class="page-hero">
+  <img src="{% static 'images/lgu_bldg.jpeg' %}" alt="Tunga Municipal Hall" class="page-hero__bg">
+  <div class="page-hero__scrim"></div>
+  <div class="page-hero__inner">
+    <div class="breadcrumb">
+      <a href="{% url 'home' %}">Home</a> <i class="fa-solid fa-chevron-right" style="font-size:.65rem"></i>
+      <a href="{% url 'offices:office_detail' office.slug %}">{{ office.name }}</a> <i class="fa-solid fa-chevron-right" style="font-size:.65rem"></i>
+      <span class="current">{{ form_obj.title }}</span>
+    </div>
+    <h1>{{ form_obj.title }}</h1>
+    <p>Type your answers directly on the form below, then download your completed copy.</p>
+  </div>
+</section>
+
+<section class="form-fill-wrap" style="padding:40px 0 60px;">
+  <div class="container" style="max-width:900px;">
+
+    <div id="fillOnlineMsgs">
+    {% for message in messages %}
+      <div class="form-fill-alert form-fill-alert--{{ message.tags }}" style="padding:12px 16px;border-radius:8px;margin-bottom:18px;background:#fdecea;color:#a12a20;border:1px solid #f5c6c1;">
+        {{ message }}
+      </div>
+    {% endfor %}
+    </div>
+
+    <div class="panel" style="padding:28px 30px;">
+
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px;flex-wrap:wrap;">
+        <div>
+          <h2 class="section-title" style="margin:0 0 6px;padding:0;">Your Information</h2>
+          <p style="margin:0;font-size:13.5px;color:#6b7280;max-width:480px;">
+            We've filled in a couple of fields from your account where they matched — please check everything before downloading.
+          </p>
+        </div>
+        <a href="{{ form_obj.file.url }}" target="_blank" rel="noopener" class="btn btn-outline" style="white-space:nowrap;">
+          <i class="fa-regular fa-file-pdf"></i> Open Original PDF
+        </a>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;" id="fillPagerBar">
+        <button type="button" class="btn btn-secondary" id="fillPrevPageBtn"><i class="fa-solid fa-chevron-left"></i></button>
+        <span id="fillPageIndicator" style="font-size:13px;color:#4b5563;">Page 1</span>
+        <button type="button" class="btn btn-secondary" id="fillNextPageBtn"><i class="fa-solid fa-chevron-right"></i></button>
+      </div>
+
+      <form method="post" action="{% url 'offices:submit_form' form_obj.pk %}" id="fillOnlineForm" data-form-pk="{{ form_obj.pk }}">
+        {% csrf_token %}
+
+        <div style="max-width:100%;overflow-x:auto;">
+          <div id="fillPdfStage" style="position:relative;display:inline-block;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+            <canvas id="fillPdfCanvas"></canvas>
+            <div id="fillFieldLayer" style="position:absolute;top:0;left:0;right:0;bottom:0;"></div>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:12px;border-top:1px solid #e5e7eb;padding-top:18px;margin-top:20px;">
+          <a href="{% url 'offices:office_detail' office.slug %}" class="btn btn-secondary">Cancel</a>
+          <button type="submit" class="btn btn-primary" id="fillOnlineSubmitBtn"><i class="fa-solid fa-download"></i> Save &amp; Download Filled Form</button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+</section>
+
+<style>
+  .fill-online-input:hover { border-color: rgba(47,91,234,.35) !important; }
+  .fill-online-input:focus { border-color: rgba(47,91,234,.75) !important; background: rgba(255,255,255,.9) !important; }
+</style>
+
+<script type="application/json" id="fillFieldsData">{{ fields_json|safe }}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+<script>
+(function () {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js";
+
+  var PDF_URL = "{{ form_obj.file.url }}";
+  var fieldsData = JSON.parse(document.getElementById('fillFieldsData').textContent);
+  var canvas = document.getElementById('fillPdfCanvas');
+  var ctx = canvas.getContext('2d');
+  var stage = document.getElementById('fillPdfStage');
+  var fieldLayer = document.getElementById('fillFieldLayer');
+  var pagerBar = document.getElementById('fillPagerBar');
+  var pageIndicator = document.getElementById('fillPageIndicator');
+  var form = document.getElementById('fillOnlineForm');
+  var msgs = document.getElementById('fillOnlineMsgs');
+
+  var pdfDoc = null;
+  var currentPage = 1;
+  var totalPages = 1;
+
+  function showError(text) {
+    msgs.innerHTML = '<div style="padding:12px 16px;border-radius:8px;margin-bottom:18px;background:#fdecea;color:#a12a20;border:1px solid #f5c6c1;">' + text + '</div>';
+    msgs.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  function clearError() { msgs.innerHTML = ''; }
+
+  function buildInputs() {
+    fieldsData.forEach(function (f) {
+      var box = document.createElement('div');
+      box.className = 'fill-field-box';
+      box.dataset.page = f.page_number;
+      box.style.cssText = [
+        'position:absolute',
+        'left:' + (f.x * 100) + '%',
+        'top:' + (f.y * 100) + '%',
+        'width:' + (f.width * 100) + '%',
+        'height:' + (f.height * 100) + '%',
+        'box-sizing:border-box',
+      ].join(';');
+
+      var input;
+      if (f.field_type === 'checkbox') {
+        input = document.createElement('input');
+        input.type = 'checkbox';
+        input.name = 'field_' + f.id;
+        if (f.initial_value) input.checked = true;
+        input.style.cssText = 'width:100%;height:100%;margin:0;cursor:pointer;';
+      } else {
+        input = document.createElement('input');
+        input.type = (f.field_type === 'date') ? 'date' : (f.field_type === 'number' ? 'number' : 'text');
+        input.name = 'field_' + f.id;
+        input.value = f.initial_value || '';
+        input.title = f.label || '';
+        input.className = 'fill-online-input';
+        input.style.cssText = [
+          'width:100%', 'height:100%', 'box-sizing:border-box',
+          'border:1px solid transparent', 'background:transparent',
+          'border-radius:3px', 'font-size:13px', 'padding:1px 3px', 'color:#111827',
+          'outline:none',
+        ].join(';');
+      }
+      input.dataset.fieldId = f.id;
+      box.appendChild(input);
+      fieldLayer.appendChild(box);
+    });
+    syncVisibility();
+  }
+
+  function syncVisibility() {
+    fieldLayer.querySelectorAll('.fill-field-box').forEach(function (box) {
+      box.style.display = (parseInt(box.dataset.page, 10) === currentPage) ? 'block' : 'none';
+    });
+  }
+
+  function loadPage(num) {
+    pdfDoc.getPage(num).then(function (page) {
+      var viewport = page.getViewport({ scale: 1.4 });
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      stage.style.width = viewport.width + 'px';
+      stage.style.height = viewport.height + 'px';
+
+      page.render({ canvasContext: ctx, viewport: viewport }).promise.then(function () {
+        syncVisibility();
+      });
+    });
+    pageIndicator.textContent = 'Page ' + num + ' of ' + totalPages;
+  }
+
+  pdfjsLib.getDocument(PDF_URL).promise.then(function (doc) {
+    pdfDoc = doc;
+    totalPages = doc.numPages;
+    pagerBar.style.display = totalPages > 1 ? 'flex' : 'none';
+    buildInputs();
+    loadPage(currentPage);
+  }).catch(function (err) {
+    stage.innerHTML = '<p style="padding:20px;color:#c0392b;">Could not load the PDF for preview: ' + err.message + '</p>';
+  });
+
+  document.getElementById('fillPrevPageBtn').addEventListener('click', function () {
+    if (currentPage > 1) { currentPage -= 1; loadPage(currentPage); }
+  });
+  document.getElementById('fillNextPageBtn').addEventListener('click', function () {
+    if (currentPage < totalPages) { currentPage += 1; loadPage(currentPage); }
+  });
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    clearError();
+
+    var missing = fieldsData.filter(function (f) {
+      if (!f.required || f.field_type === 'checkbox') return false;
+      var el = form.querySelector('[data-field-id="' + f.id + '"]');
+      return !el || !el.value.trim();
+    });
+    if (missing.length) {
+      currentPage = missing[0].page_number;
+      loadPage(currentPage);
+      showError('Please fill in: ' + missing.map(function (f) { return f.label; }).join(', '));
+      return;
+    }
+
+    var submitBtn = document.getElementById('fillOnlineSubmitBtn');
+    var originalLabel = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = 'Generating…';
+
+    fetch(form.action, {
+      method: 'POST',
+      body: new FormData(form),
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    }).then(function (res) {
+      var contentType = res.headers.get('Content-Type') || '';
+      if (contentType.indexOf('application/pdf') !== -1) {
+        return res.blob().then(function (blob) {
+          var disposition = res.headers.get('Content-Disposition') || '';
+          var match = disposition.match(/filename="?([^"]+)"?/);
+          var filename = match ? match[1] : 'filled-form.pdf';
+          var url = window.URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          window.URL.revokeObjectURL(url);
+        });
+      }
+      return res.json().then(function (data) {
+        throw new Error(data.error || 'Something went wrong. Please try again.');
+      });
+    }).catch(function (err) {
+      showError(err.message || 'Something went wrong. Please try again.');
+    }).finally(function () {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalLabel;
+    });
+  });
+})();
+</script>
+
+{% endblock %}

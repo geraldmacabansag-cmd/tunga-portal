@@ -51,6 +51,13 @@ urlpatterns = [
 
     path('Admin-Roles-Permision/', views.admin_roles, name='ad_roles'),
     path('Admin-Homepage/', views.admin_homepage, name='ad_homepage'),
+    path('Admin-Homepage/quick-link/<int:pk>/save/', views.admin_quicklink_save, name='admin_quicklink_save'),
+    path('Admin-Homepage/quick-link/create/save/', lambda request: views.admin_quicklink_save(request, pk=0), name='admin_quicklink_create'),
+    path('Admin-Homepage/quick-link/<int:pk>/delete/', views.admin_quicklink_delete, name='admin_quicklink_delete'),
+    path('Admin-Homepage/quick-link/<int:pk>/move-up/', lambda request, pk: views.admin_quicklink_move(request, pk, 'up'), name='admin_quicklink_move_up'),
+    path('Admin-Homepage/quick-link/<int:pk>/move-down/', lambda request, pk: views.admin_quicklink_move(request, pk, 'down'), name='admin_quicklink_move_down'),
+ 
+
     path('Admin-Interactive-Map/', views.admin_interactive_map, name='ad_map'),
 
     path('Admin-Emergency-Contact/', views.admin_emergency_contact, name='ad_emergency_contact'),

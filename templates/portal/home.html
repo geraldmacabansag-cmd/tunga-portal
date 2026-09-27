@@ -25,11 +25,11 @@ Home | Digital Governance Portal
 
 <section class="services-strip" id="services">
   <div class="container services-strip__row">
-    <a href="#" class="service-link"><i class="fa-solid fa-file-lines"></i> Business Permits</a>
-    <a href="#" class="service-link"><i class="fa-solid fa-camera"></i> Tourism and Culture</a>
-    <a href="#" class="service-link"><i class="fa-solid fa-hand-holding-heart"></i> Financial Assistance</a>
-    <a href="#" class="service-link"><i class="fa-solid fa-briefcase"></i> Job Opportunities</a>
-    <a href="#" class="service-link"><i class="fa-solid fa-id-card"></i> Cedula</a>
+    {% for link in quick_links %}
+    <a href="{{ link.url }}" class="service-link" {% if link.open_in_new_tab %}target="_blank" rel="noopener"{% endif %}><i class="fa-solid {{ link.icon }}"></i> {{ link.label }}</a>
+    {% empty %}
+    <a href="{% url 'offices' %}" class="service-link"><i class="fa-solid fa-building"></i> Browse Offices</a>
+    {% endfor %}
   </div>
 </section>
 

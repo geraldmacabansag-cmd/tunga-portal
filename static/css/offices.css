@@ -144,5 +144,67 @@
 @media (max-width: 600px) {
   .offices-grid {
     grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .office-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-top: 1px solid var(--border-light);
+    border-left: 4px solid var(--navy);
+  }
+
+  .office-card--green   { border-top-color: var(--border-light); border-left-color: var(--green-badge); }
+  .office-card--orange  { border-top-color: var(--border-light); border-left-color: #e07a25; }
+  .office-card--green2  { border-top-color: var(--border-light); border-left-color: #1e9c8f; }
+  .office-card--red     { border-top-color: var(--border-light); border-left-color: var(--red-badge); }
+  .office-card--purple  { border-top-color: var(--border-light); border-left-color: #7a4fc7; }
+  .office-card--gold    { border-top-color: var(--border-light); border-left-color: var(--gold-dark); }
+
+  .office-card__icon {
+    width: 42px;
+    height: 42px;
+    font-size: 1.05rem;
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+
+  .office-card__body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .office-card h3 {
+    font-size: 0.92rem;
+    margin-bottom: 2px;
+    line-height: 1.25;
+  }
+
+  .office-card p {
+    font-size: 0.78rem;
+    margin-bottom: 0;
+    min-height: 0;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+  }
+
+  .office-card__link {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+  }
+
+  .office-card__link-text {
+    display: none;
+  }
+
+  .office-card__link i {
+    font-size: 0.85rem;
+    color: var(--navy);
   }
 }

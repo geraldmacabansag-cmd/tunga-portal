@@ -133,4 +133,36 @@ class EmergencyContact(models.Model):
     def __str__(self):
         return self.name
 
-    
+class QuickLink(models.Model):
+    """A shortcut tile shown in the "services strip" near the top of the
+    public homepage (e.g. Business Permits, Cedula). Managed from the
+    Super Admin's Homepage page."""
+ 
+    ICON_CHOICES = [
+        ("fa-file-lines", "Document / Permit"),
+        ("fa-camera", "Tourism / Culture"),
+        ("fa-hand-holding-heart", "Financial Assistance"),
+        ("fa-briefcase", "Jobs / Employment"),
+        ("fa-id-card", "ID / Cedula"),
+        ("fa-phone-volume", "Phone / Hotline"),
+        ("fa-map-location-dot", "Map / Location"),
+        ("fa-building", "Office / Government"),
+    ]
+ 
+    label = models.CharField(max_length=100)
+    icon = models.CharField(max_length=50, choices=ICON_CHOICES, default="fa-file-lines")
+    url = models.CharField(
+        max_length=255,
+        help_text="A path on this site (e.g. /offices/) or a full https:// link.",
+    )
+    open_in_new_tab = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+ 
+    class Meta:
+        ordering = ["order", "id"]
+ 
+    def __str__(self):
+        return self.label
+     

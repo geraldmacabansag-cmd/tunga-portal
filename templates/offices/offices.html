@@ -33,15 +33,17 @@ Home | Digital Governance Portal
   <div class="container offices-grid">
 
     {% for office in office_list %}
-    <a href="{% url 'office_detail' office.slug %}" class="office-card office-card--{{ office.card_color }}">
+    <a href="{% url 'offices:office_detail' office.slug %}" class="office-card office-card--{{ office.card_color }}">
       {% if office.card_image %}
         <img src="{% static office.card_image %}" alt="{{ office.name }}" class="office-card__icon office-card__icon--img">
       {% else %}
         <i class="{{ office.card_icon }} office-card__icon"></i>
       {% endif %}
-      <h3>{{ office.name }}</h3>
-      <p>{{ office.about|default:"Serves the residents of the Municipality of Tunga."|truncatechars:140 }}</p>
-      <span class="office-card__link">View Office <i class="fa-solid fa-arrow-right"></i></span>
+      <div class="office-card__body">
+        <h3>{{ office.name }}</h3>
+        <p>{{ office.about|default:"Serves the residents of the Municipality of Tunga."|truncatechars:140 }}</p>
+      </div>
+      <span class="office-card__link"><span class="office-card__link-text">View Office</span> <i class="fa-solid fa-arrow-right"></i></span>
     </a>
     {% empty %}
     <p style="grid-column:1/-1;text-align:center;color:var(--gray-400,#8a92ab);padding:24px 0;">No offices to show right now.</p>
