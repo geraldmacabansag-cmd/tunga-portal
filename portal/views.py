@@ -1,3 +1,5 @@
+import calendar as cal_module
+from datetime import date
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
@@ -6,6 +8,7 @@ from .models import CitizenProfile
 from office_dashboard.models import OfficeRepresentative, Announcement, NewsUpdate, Event, Photo
 from admin_dashboard.models import SuperAdmin, EmergencyContact, QuickLink
 from django.utils import timezone
+from django.utils.text import slugify
 from django.http import JsonResponse
 from .models import CitizenProfile, EmailOTP
 from .otp_utils import send_signup_otp
@@ -66,9 +69,216 @@ def announcement(request):
     for n in news_items:
         n.display_date = n.date_published or n.created_at.date()
 
+    # Full list for the "Announcements" tab — every published announcement,
+    # newest first, with the extra display fields the card layout needs.
+    all_announcements = list(
+        Announcement.objects.filter(status='published')
+        .select_related('representative__office')
+        .order_by('-date_posted', '-created_at')
+    )
+
+    new_cutoff = timezone.now() - timezone.timedelta(days=3)
+
+    # Preferred display order for categories that do have published posts
+    # (matches the "Category" dropdown in the office-rep / super-admin
+    # announcement forms). Anything not in this list (e.g. "General" for a
+    # blank category, or an older/legacy category value) is appended
+    # afterwards, alphabetically.
+    CATEGORY_ORDER = [
+        "Community Engagement",
+        "Public Notice",
+        "Office Advisory",
+        "Government Service",
+        "Emergency",
+    ]
+
+    category_counts = {}
+
+    for a in all_announcements:
+        a.display_date = a.date_posted or a.created_at.date()
+        a.is_new = a.created_at >= new_cutoff
+        a.category_label = a.category or "General"
+        a.category_slug = slugify(a.category_label) or "general"
+        category_counts[a.category_label] = category_counts.get(a.category_label, 0) + 1
+
+    # Only categories that actually have at least one published announcement
+    # show up as filter pills / in the sidebar — no empty categories.
+    known_names = [name for name in CATEGORY_ORDER if name in category_counts]
+    extra_names = sorted(name for name in category_counts if name not in CATEGORY_ORDER)
+    ordered_names = known_names + extra_names
+
+    announcement_categories = [
+        {"name": name, "slug": slugify(name) or "general", "count": category_counts[name]}
+        for name in ordered_names
+    ]
+
+    # Full list for the "News" tab — every published news post, newest
+    # first. The featured row (1 big + 2 small cards) takes the 3 newest;
+    # everything else goes in the "Latest News" grid below it. Pagination,
+    # the sidebar (Search/Most Read/Topics/Share box) stay hardcoded for now.
+    all_news = list(
+        NewsUpdate.objects.filter(status='published')
+        .select_related('representative__office')
+        .order_by('-date_published', '-created_at')
+    )
+
+    # Badge colors are only defined (in announcements.css) for these known
+    # slugs — anything else (a category typed differently, or left blank)
+    # falls back to a plain gray "general" badge rather than an unstyled one.
+    KNOWN_NEWS_CATEGORY_SLUGS = {
+        "governance", "technology", "sports",
+        "environment", "education", "infrastructure",
+    }
+
+    for n in all_news:
+        n.display_date = n.date_published or n.created_at.date()
+        n.category_label = n.category or "General"
+        slug = slugify(n.category_label) or "general"
+        n.category_slug = slug if slug in KNOWN_NEWS_CATEGORY_SLUGS else "general"
+
+    featured_news = all_news[:3]
+    news_main_story = featured_news[0] if len(featured_news) > 0 else None
+    news_side_stories = featured_news[1:3]
+    news_grid_items = all_news[3:]
+
+    # For the "Events" tab — the Super Admin can mark a specific event as
+    # "Featured" (Event.is_featured) so it becomes the big "Featured Event"
+    # hero regardless of where it falls in the date order. If none is marked
+    # featured, the soonest upcoming published event is used instead, same as
+    # before. The next several upcoming events fill the "Upcoming Events"
+    # grid, and recently-finished ones show under "Past Events". The
+    # calendar widget and "Up Next" list in the sidebar stay hardcoded for
+    # now, same as the rest of this page's still-unconfigured panels.
+    today = timezone.localdate()
+
+    # event_date is optional on the model, and neither the office-rep nor the
+    # Super Admin "Add Event" form requires it — so a published event with no
+    # date set would otherwise vanish here entirely: a plain event_date__gte
+    # / __lt=today filter excludes NULLs in SQL, matching neither "upcoming"
+    # nor "past". Undated published events are treated as upcoming (with a
+    # "Date to be announced" fallback in the template) so they're never
+    # silently invisible on the public page.
+    dated_upcoming = list(
+        Event.objects.filter(status='published', event_date__gte=today)
+        .select_related('representative__office')
+        .order_by('event_date', 'start_time')
+    )
+    undated_upcoming = list(
+        Event.objects.filter(status='published', event_date__isnull=True)
+        .select_related('representative__office')
+        .order_by('-created_at')
+    )
+    upcoming_qs = dated_upcoming + undated_upcoming
+
+    past_qs = list(
+        Event.objects.filter(status='published', event_date__lt=today)
+        .select_related('representative__office')
+        .order_by('-event_date', '-start_time')[:3]
+    )
+
+    for e in upcoming_qs + past_qs:
+        e.category_label = e.category or "General"
+
+    # Prefer an event the Super Admin explicitly marked as featured. Among
+    # dated events that's already in soonest-first order, but a
+    # featured-and-undated event could otherwise get pushed behind featured
+    # dated ones (undated events are appended after dated ones in
+    # upcoming_qs) — so pick the soonest-dated featured event first, and only
+    # fall back to an undated featured one if that's all there is.
+    featured_dated = [e for e in dated_upcoming if e.is_featured]
+    featured_undated = [e for e in undated_upcoming if e.is_featured]
+    featured_candidates = featured_dated + featured_undated
+
+    if featured_candidates:
+        featured_event = featured_candidates[0]
+    elif upcoming_qs:
+        featured_event = upcoming_qs[0]
+    else:
+        featured_event = None
+
+    upcoming_events = [e for e in upcoming_qs if e != featured_event][:6]
+    past_events = past_qs
+
+    # ---- Events tab sidebar: the small month calendar --------------------
+    # ?events_month=YYYY-MM lets the "‹ ›" arrows browse other months with a
+    # normal page reload (no JS/AJAX needed). Falls back to the current
+    # month, and to the current month again if the param is malformed.
+    events_month_param = request.GET.get('events_month', '').strip()
+    try:
+        cal_year, cal_month = [int(part) for part in events_month_param.split('-')]
+        if not (1 <= cal_month <= 12):
+            raise ValueError
+    except (ValueError, TypeError):
+        cal_year, cal_month = today.year, today.month
+
+    month_events = list(
+        Event.objects.filter(status='published', event_date__year=cal_year, event_date__month=cal_month)
+        .select_related('representative__office')
+        .order_by('event_date', 'start_time')
+    )
+    for e in month_events:
+        e.category_label = e.category or "General"
+
+    events_by_day = {}
+    for e in month_events:
+        events_by_day.setdefault(e.event_date.day, []).append(e)
+
+    featured_day = featured_event.event_date.day if (
+        featured_event and featured_event.event_date
+        and featured_event.event_date.year == cal_year and featured_event.event_date.month == cal_month
+    ) else None
+
+    calendar_weeks = []
+    for week in cal_module.Calendar(firstweekday=6).monthdayscalendar(cal_year, cal_month):
+        week_cells = []
+        for day in week:
+            if day == 0:
+                week_cells.append(None)
+                continue
+            day_events = events_by_day.get(day, [])
+            cell_date = date(cal_year, cal_month, day)
+            week_cells.append({
+                "day": day,
+                "date_obj": cell_date,
+                "events": day_events,
+                "is_today": cell_date == today,
+                "is_featured": day == featured_day,
+            })
+        calendar_weeks.append(week_cells)
+
+    # Templates for the Announcement/News/Event detail dialogs are rendered
+    # once per event on the page; featured_event/upcoming_events/past_events
+    # already render one each, so only render extra ones here for a
+    # calendar event that isn't already shown as a card above (e.g. a past
+    # event no longer in the "Past Events" top-3, or one further out than
+    # the "Upcoming Events" top-6).
+    already_rendered_ids = {e.id for e in upcoming_events + past_events}
+    if featured_event:
+        already_rendered_ids.add(featured_event.id)
+    calendar_only_events = [e for e in month_events if e.id not in already_rendered_ids]
+
+    prev_year, prev_month = (cal_year - 1, 12) if cal_month == 1 else (cal_year, cal_month - 1)
+    next_year, next_month = (cal_year + 1, 1) if cal_month == 12 else (cal_year, cal_month + 1)
+
     return render(request, "portal/announcements.html", {
         "announcements": announcements,
         "news_items": news_items,
+        "all_announcements": all_announcements,
+        "announcement_categories": announcement_categories,
+        "news_main_story": news_main_story,
+        "news_side_stories": news_side_stories,
+        "news_grid_items": news_grid_items,
+        "featured_event": featured_event,
+        "upcoming_events": upcoming_events,
+        "past_events": past_events,
+        "calendar_weeks": calendar_weeks,
+        "calendar_month_label": date(cal_year, cal_month, 1).strftime("%B %Y"),
+        "calendar_prev_param": f"{prev_year:04d}-{prev_month:02d}",
+        "calendar_next_param": f"{next_year:04d}-{next_month:02d}",
+        "calendar_only_events": calendar_only_events,
+        # Same source as the homepage's "Emergency Contact Information"
+        # section, so both pages always show the same hotlines.
+        "emergency_contacts": EmergencyContact.objects.all(),
     })
 
 OFFICE_CARD_STYLE = {

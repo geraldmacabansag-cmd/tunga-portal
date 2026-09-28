@@ -183,11 +183,10 @@
             <input class="form-input" type="text" name="author" id="newsAuthor" placeholder="e.g. Juan Dela Cruz">
           </div>
 
+          <!-- Date Published is no longer entered here — publishing this
+               form sets it automatically to today's date (only on first
+               creation; editing later doesn't change it). -->
           <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Date published</label>
-              <input class="form-input" type="date" name="date_published" id="newsDate">
-            </div>
             <div class="form-group">
               <label class="form-label">Source</label>
               <input class="form-input" type="text" name="source" id="newsSource" placeholder="e.g. Municipal Information Office">
@@ -315,7 +314,6 @@
       document.getElementById('newsCategory').value = d.category || '';
       document.getElementById('newsSummary').value = d.summary || '';
       document.getElementById('newsContent').value = d.content || '';
-      document.getElementById('newsDate').value = d.date || '';
       document.getElementById('newsSource').value = d.source || '';
       document.getElementById('newsTags').value = d.tags || '';
       if (d.representative) document.getElementById('newsRepresentative').value = d.representative;

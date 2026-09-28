@@ -150,7 +150,7 @@
         </div>
         <div class="form-group">
           <label class="form-label" for="ev-date">Event Date</label>
-          <input class="form-input" type="date" id="ev-date" name="event_date">
+          <input class="form-input" type="date" id="ev-date" name="event_date" required>
         </div>
         <div class="form-group">
           <label class="form-label" for="ev-start">Start Time</label>
@@ -255,7 +255,7 @@
         </div>
         <div class="form-group">
           <label class="form-label" for="ev-date-{{ e.id }}">Event Date</label>
-          <input class="form-input" type="date" id="ev-date-{{ e.id }}" name="event_date" value="{{ e.event_date|date:'Y-m-d' }}">
+          <input class="form-input" type="date" id="ev-date-{{ e.id }}" name="event_date" value="{{ e.event_date|date:'Y-m-d' }}" required>
         </div>
         <div class="form-group">
           <label class="form-label" for="ev-start-{{ e.id }}">Start Time</label>

@@ -21,11 +21,11 @@ Home | Digital Governance Portal
   <div class="container">
     <div class="panel filter-bar">
       <div class="filter-tabs">
-        <a href="#" class="filter-tab active"><i class="fa-regular fa-file-lines"></i> All Updates</a>
-        <a href="#" class="filter-tab"><i class="fa-solid fa-bullhorn"></i> Announcements</a>
-        <a href="#" class="filter-tab"><i class="fa-regular fa-newspaper"></i> News</a>
-        <a href="#" class="filter-tab"><i class="fa-regular fa-calendar"></i> Events</a>
-        <a href="#" class="filter-tab"><i class="fa-regular fa-building"></i> From Our Offices</a>
+        <a href="#" class="filter-tab active" data-tab="all"><i class="fa-regular fa-file-lines"></i> All Updates</a>
+        <a href="#" class="filter-tab" data-tab="announcements"><i class="fa-solid fa-bullhorn"></i> Announcements</a>
+        <a href="#" class="filter-tab" data-tab="news"><i class="fa-regular fa-newspaper"></i> News</a>
+        <a href="#" class="filter-tab" data-tab="events"><i class="fa-regular fa-calendar"></i> Events</a>
+        <a href="#" class="filter-tab" data-tab="offices"><i class="fa-regular fa-building"></i> From Our Offices</a>
       </div>
       <div class="filter-actions">
         <div class="search-input">
@@ -39,84 +39,761 @@ Home | Digital Governance Portal
 </section>
 
 <section class="announcements-body">
-  <div class="container announcements-grid">
+  <div class="container">
 
-    <div class="announcements-main">
-      <div class="panel list-panel">
-        <div class="section-title--row">
-          <h2 class="section-title" style="margin:0;padding:0;">Latest Announcements</h2>
-          <a href="#" class="view-all">View All</a>
-        </div>
-        <ul class="update-list">
-          {% for a in announcements %}
-          <li class="update-item">
-            <div class="update-item__date">{{ a.display_date|date:"M"|upper }}<strong>{{ a.display_date|date:"d" }}</strong>{{ a.display_date|date:"Y" }}</div>
-            <div class="update-item__body">
-              {% if forloop.first %}<span class="badge-new">NEW</span>{% endif %}
-              <a href="#" class="update-item__title">{{ a.title }}</a>
-              <p>{{ a.content|truncatewords:28 }}</p>
-              <div class="update-item__meta"><i class="fa-regular fa-user"></i> {{ a.representative.office.name|default:"—" }} &nbsp; <i class="fa-regular fa-clock"></i> {{ a.created_at|naturaltime }}</div>
-            </div>
-            {% if a.image %}<img src="{{ a.image.url }}" alt="{{ a.title }}">{% endif %}
-          </li>
-          {% empty %}
-          <li class="update-item"><div class="update-item__body"><p>No announcements published yet.</p></div></li>
-          {% endfor %}
-        </ul>
-      </div>
+    <!-- ===================== TAB: All Updates (existing) ===================== -->
+    <div class="tab-panel active" data-tab-panel="all">
+      <div class="announcements-grid">
 
-      <div class="panel list-panel">
-        <div class="section-title--row">
-          <h2 class="section-title" style="margin:0;padding:0;">News and Updates</h2>
-          <a href="#" class="view-all">View All</a>
-        </div>
-        <ul class="update-list">
-          {% for n in news_items %}
-          <li class="update-item">
-            <div class="update-item__date">{{ n.display_date|date:"M"|upper }}<strong>{{ n.display_date|date:"d" }}</strong>{{ n.display_date|date:"Y" }}</div>
-            <div class="update-item__body">
-              <a href="#" class="update-item__title">{{ n.title }}</a>
-              <p>{{ n.summary|default:n.content|truncatewords:28 }}</p>
-              <div class="update-item__meta"><i class="fa-regular fa-building"></i> {{ n.representative.office.name|default:"—" }} &nbsp; <i class="fa-regular fa-clock"></i> {{ n.created_at|naturaltime }}</div>
+        <div class="announcements-main">
+          <div class="panel list-panel">
+            <div class="section-title--row">
+              <h2 class="section-title" style="margin:0;padding:0;">Latest Announcements</h2>
+              <a href="#" class="view-all">View All</a>
             </div>
-            {% if n.image %}<img src="{{ n.image.url }}" alt="{{ n.title }}">{% endif %}
-          </li>
-          {% empty %}
-          <li class="update-item"><div class="update-item__body"><p>No news posted yet.</p></div></li>
-          {% endfor %}
-        </ul>
+            <ul class="update-list">
+              {% for a in announcements %}
+              <li class="update-item">
+                <div class="update-item__date">{{ a.display_date|date:"M"|upper }}<strong>{{ a.display_date|date:"d" }}</strong>{{ a.display_date|date:"Y" }}</div>
+                <div class="update-item__body">
+                  {% if forloop.first %}<span class="badge-new">NEW</span>{% endif %}
+                  <a href="#" class="update-item__title">{{ a.title }}</a>
+                  <p>{{ a.content|truncatewords:28 }}</p>
+                  <div class="update-item__meta"><i class="fa-regular fa-user"></i> {{ a.representative.office.name|default:"—" }} &nbsp; <i class="fa-regular fa-clock"></i> {{ a.created_at|naturaltime }}</div>
+                </div>
+                {% if a.image %}<img src="{{ a.image.url }}" alt="{{ a.title }}">{% endif %}
+              </li>
+              {% empty %}
+              <li class="update-item"><div class="update-item__body"><p>No announcements published yet.</p></div></li>
+              {% endfor %}
+            </ul>
+          </div>
+
+          <div class="panel list-panel">
+            <div class="section-title--row">
+              <h2 class="section-title" style="margin:0;padding:0;">News and Updates</h2>
+              <a href="#" class="view-all">View All</a>
+            </div>
+            <ul class="update-list">
+              {% for n in news_items %}
+              <li class="update-item">
+                <div class="update-item__date">{{ n.display_date|date:"M"|upper }}<strong>{{ n.display_date|date:"d" }}</strong>{{ n.display_date|date:"Y" }}</div>
+                <div class="update-item__body">
+                  <a href="#" class="update-item__title">{{ n.title }}</a>
+                  <p>{{ n.summary|default:n.content|truncatewords:28 }}</p>
+                  <div class="update-item__meta"><i class="fa-regular fa-building"></i> {{ n.representative.office.name|default:"—" }} &nbsp; <i class="fa-regular fa-clock"></i> {{ n.created_at|naturaltime }}</div>
+                </div>
+                {% if n.image %}<img src="{{ n.image.url }}" alt="{{ n.title }}">{% endif %}
+              </li>
+              {% empty %}
+              <li class="update-item"><div class="update-item__body"><p>No news posted yet.</p></div></li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+
+        <aside class="announcements-side">
+          <div class="panel offices-panel">
+            <div class="offices-panel__head">
+              <span>From Our Offices</span>
+              <a href="{% url 'offices' %}">View All Offices</a>
+            </div>
+            <ul class="offices-feed">
+              <li><i class="fa-solid fa-user-tie office-icon office-icon--navy"></i><div><a href="{% url 'offices:mayor' %}">Mayor's Office</a><p>Latest: Mayor's Listening Session <span>2 hours ago</span></p></div></li>
+              <li><i class="fa-solid fa-house-medical office-icon office-icon--green"></i><div><a href="#">Municipal Health Office</a><p>Latest: Health Caravan Serves 350 Residents <span>3 days ago</span></p></div></li>
+              <li><i class="fa-solid fa-seedling office-icon office-icon--orange"></i><div><a href="#">Municipal Agriculture Office</a><p>Latest: LGU Tunga Supports Farmers' Training Program <span>4 days ago</span></p></div></li>
+              <li><i class="fa-solid fa-leaf office-icon office-icon--green2"></i><div><a href="#">Municipal Environment Office</a><p>Latest: Tunga Conducts Community Clean-Up Drive <span>1 day ago</span></p></div></li>
+              <li><i class="fa-solid fa-drafting-compass office-icon office-icon--gray"></i><div><a href="#">Municipal Engineering Office</a><p>Latest: Road Maintenance on Poblacion&ndash;San Roque Rd. <span>2 days ago</span></p></div></li>
+              <li><i class="fa-solid fa-hand-holding-heart office-icon office-icon--red"></i><div><a href="#">Municipal Social Welfare Office</a><p>Latest: Distribution of Food Packs to 120 Families <span>3 days ago</span></p></div></li>
+              <li><i class="fa-solid fa-coins office-icon office-icon--navy2"></i><div><a href="#">Municipal Treasurer's Office</a><p>Latest: Reminder: Real Property Tax Payment <span>4 days ago</span></p></div></li>
+              <li><i class="fa-solid fa-clipboard-list office-icon office-icon--purple"></i><div><a href="#">Municipal Assessor's Office</a><p>Latest: Schedule of Real Property Assessment <span>5 days ago</span></p></div></li>
+            </ul>
+            <a href="{% url 'offices' %}" class="view-all offices-panel__viewall">View All Offices <i class="fa-solid fa-arrow-right"></i></a>
+          </div>
+
+          <div class="panel subscribe-panel">
+            <i class="fa-regular fa-envelope subscribe-panel__icon"></i>
+            <h3>Subscribe to Updates</h3>
+            <p>Get the latest announcements and updates delivered straight to your email.</p>
+            <input type="email" placeholder="Enter your email address">
+            <button class="btn btn-primary btn-block">Subscribe</button>
+          </div>
+        </aside>
+
       </div>
     </div>
 
-    <aside class="announcements-side">
-      <div class="panel offices-panel">
-        <div class="offices-panel__head">
-          <span>From Our Offices</span>
-          <a href="{% url 'offices' %}">View All Offices</a>
+    <!-- ===================== TAB: Announcements (new — hardcoded for now) ===================== -->
+    <div class="tab-panel" data-tab-panel="announcements">
+      <div class="announcements-grid">
+
+        <div class="announcements-main">
+
+          <div class="panel ann-toolbar">
+            <div class="ann-pills">
+              <button type="button" class="ann-pill active" data-category="all">All</button>
+              {% for cat in announcement_categories %}
+              <button type="button" class="ann-pill" data-category="{{ cat.slug }}">{{ cat.name }}</button>
+              {% endfor %}
+            </div>
+            <div class="ann-search">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="annSearchInput" placeholder="Search announcements...">
+            </div>
+          </div>
+
+          <div class="ann-pinned">
+            <span class="ann-pinned__icon"><i class="fa-solid fa-bell"></i></span>
+            <div class="ann-pinned__body">
+              <span class="ann-pinned__label">PINNED NOTICE</span>
+              <div class="ann-pinned__title">Municipal Hall Closed on November 1&ndash;2, 2026</div>
+              <p>All offices will be closed for All Saints' and All Souls' Day. Regular transactions resume on Tuesday, November 3, 2026. Emergency hotlines remain open 24/7.</p>
+            </div>
+          </div>
+
+          <div id="annCardList">
+            {% for a in all_announcements %}
+            <div class="panel ann-card" data-category="{{ a.category_slug }}" data-title="{{ a.title|lower }}" data-ann-title="{{ a.title }}" data-ann-office="{{ a.representative.office.name|default:'—' }}">
+              <div class="ann-card__top">
+                <div class="ann-card__date">{{ a.display_date|date:"M"|upper }}<strong>{{ a.display_date|date:"d" }}</strong>{{ a.display_date|date:"Y" }}</div>
+                <div class="ann-card__body">
+                  <div class="ann-badges">
+                    {% if a.is_new %}<span class="ann-badge ann-badge--new">NEW</span>{% endif %}
+                    <span class="ann-badge ann-badge--{{ a.category_slug }}">{{ a.category_label|upper }}</span>
+                  </div>
+                  <a href="#" class="ann-card__title js-ann-open" data-ann="{{ a.id }}">{{ a.title }}</a>
+                  <p>{{ a.content|default:a.subtitle|truncatewords:32 }}</p>
+                  <div class="ann-card__foot">
+                    <span>{{ a.representative.office.name|default:"—" }}</span>
+                    <a href="#" class="js-ann-open" data-ann="{{ a.id }}">Read more &rarr;</a>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <template id="tpl-ann-{{ a.id }}">
+              <div class="ann-dlg-badges">
+                {% if a.is_new %}<span class="ann-badge ann-badge--new">NEW</span>{% endif %}
+                <span class="ann-badge ann-badge--{{ a.category_slug }}">{{ a.category_label|upper }}</span>
+              </div>
+              {% if a.subtitle %}<p class="ann-dlg-subtitle">{{ a.subtitle }}</p>{% endif %}
+              {% if a.image %}<img src="{{ a.image.url }}" alt="{{ a.title }}" class="ann-dlg-image">{% endif %}
+              <div class="ann-dlg-content">
+                {% if a.content %}{{ a.content|linebreaks }}{% else %}<p>No further details were provided for this announcement.</p>{% endif %}
+              </div>
+              <div class="ann-dlg-footer">
+                <div><i class="fa-regular fa-building"></i> {{ a.representative.office.name|default:"—" }}</div>
+                <div><i class="fa-regular fa-calendar"></i> {{ a.display_date|date:"F d, Y" }}</div>
+                {% if a.author %}<div><i class="fa-regular fa-user"></i> {{ a.author }}</div>{% endif %}
+                {% if a.priority and a.priority != "Normal" %}<div><i class="fa-solid fa-circle-exclamation"></i> {{ a.priority }} priority</div>{% endif %}
+              </div>
+            </template>
+            {% empty %}
+            <div class="panel ann-placeholder">No published announcements yet. Check back soon.</div>
+            {% endfor %}
+          </div>
+
+          <p id="annNoResults" class="panel" style="display:none;padding:30px;text-align:center;color:var(--text-muted);">No announcements match your search.</p>
+
         </div>
-        <ul class="offices-feed">
-          <li><i class="fa-solid fa-user-tie office-icon office-icon--navy"></i><div><a href="{% url 'offices:mayor' %}">Mayor's Office</a><p>Latest: Mayor's Listening Session <span>2 hours ago</span></p></div></li>
-          <li><i class="fa-solid fa-house-medical office-icon office-icon--green"></i><div><a href="#">Municipal Health Office</a><p>Latest: Health Caravan Serves 350 Residents <span>3 days ago</span></p></div></li>
-          <li><i class="fa-solid fa-seedling office-icon office-icon--orange"></i><div><a href="#">Municipal Agriculture Office</a><p>Latest: LGU Tunga Supports Farmers' Training Program <span>4 days ago</span></p></div></li>
-          <li><i class="fa-solid fa-leaf office-icon office-icon--green2"></i><div><a href="#">Municipal Environment Office</a><p>Latest: Tunga Conducts Community Clean-Up Drive <span>1 day ago</span></p></div></li>
-          <li><i class="fa-solid fa-drafting-compass office-icon office-icon--gray"></i><div><a href="#">Municipal Engineering Office</a><p>Latest: Road Maintenance on Poblacion&ndash;San Roque Rd. <span>2 days ago</span></p></div></li>
-          <li><i class="fa-solid fa-hand-holding-heart office-icon office-icon--red"></i><div><a href="#">Municipal Social Welfare Office</a><p>Latest: Distribution of Food Packs to 120 Families <span>3 days ago</span></p></div></li>
-          <li><i class="fa-solid fa-coins office-icon office-icon--navy2"></i><div><a href="#">Municipal Treasurer's Office</a><p>Latest: Reminder: Real Property Tax Payment <span>4 days ago</span></p></div></li>
-          <li><i class="fa-solid fa-clipboard-list office-icon office-icon--purple"></i><div><a href="#">Municipal Assessor's Office</a><p>Latest: Schedule of Real Property Assessment <span>5 days ago</span></p></div></li>
-        </ul>
-        <a href="{% url 'offices' %}" class="view-all offices-panel__viewall">View All Offices <i class="fa-solid fa-arrow-right"></i></a>
+
+        <aside class="announcements-side">
+
+          <div class="panel ann-side-panel">
+            <h3>Categories</h3>
+            <div class="ann-cat-list">
+              {% for cat in announcement_categories %}
+              <div class="ann-cat-row"><span>{{ cat.name }}</span><span class="ann-cat-row__count">{{ cat.count }}</span></div>
+              {% empty %}
+              <div class="ann-cat-row"><span>No categories yet</span></div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="panel ann-side-panel">
+            <h3>Emergency Hotlines</h3>
+            {% for c in emergency_contacts %}
+            <div class="ann-hotline ann-hotline--{{ c.color }}">
+              <div>
+                <div class="ann-hotline__name">{{ c.name }}</div>
+                <div class="ann-hotline__number">{% if c.carrier_label %}{{ c.carrier_label }}: {% endif %}{{ c.phone_number }}{% if c.extra_detail %}<br>{{ c.extra_detail }}{% endif %}</div>
+              </div>
+              <a href="tel:{{ c.phone_number|cut:' ' }}" class="ann-hotline__call">CALL</a>
+            </div>
+            {% empty %}
+            <p style="font-size:0.85rem;color:var(--text-muted);margin:0;">No emergency contacts have been set up yet.</p>
+            {% endfor %}
+          </div>
+
+          <div class="panel ann-side-panel">
+            <h3>Archive</h3>
+            <div class="ann-archive-list">
+              <a href="#">September 2026 <span>6</span></a>
+              <a href="#">August 2026 <span>9</span></a>
+              <a href="#">July 2026 <span>11</span></a>
+              <a href="#">June 2026 <span>7</span></a>
+            </div>
+          </div>
+
+          <div class="panel ann-side-panel ann-assist">
+            <h3>Need Assistance?</h3>
+            <p>Have questions about an announcement? Our Public Assistance Desk is open Monday to Friday, 8:00 AM&ndash;5:00 PM.</p>
+            <a href="{% url 'contact' %}" class="btn btn-block">Contact Us</a>
+          </div>
+
+        </aside>
+
+      </div>
+    </div>
+
+    <!-- ===================== TAB: News (now wired to real published NewsUpdate data) ===================== -->
+    <div class="tab-panel" data-tab-panel="news">
+
+      <div class="news-featured-grid">
+        {% if news_main_story %}
+        <a href="#" class="news-feature-card news-feature-card--main js-news-open{% if not news_main_story.image %} news-feature-card--placeholder{% endif %}" data-news="{{ news_main_story.id }}" data-news-title="{{ news_main_story.title }}" data-news-office="{{ news_main_story.representative.office.name|default:'—' }}" {% if news_main_story.image %}style="background-image:url('{{ news_main_story.image.url }}');background-size:cover;background-position:center;"{% endif %}>
+          {% if not news_main_story.image %}<span class="news-feature-card__img"><i class="fa-regular fa-image"></i></span>{% endif %}
+          <span class="news-feature-card__badge news-feature-card__badge--top">TOP STORY</span>
+          <div class="news-feature-card__info">
+            <div class="news-feature-card__meta">Published on: {{ news_main_story.display_date|date:"F j, Y" }}</div>
+            <div class="news-feature-card__title">{{ news_main_story.title }}</div>
+            <p class="news-feature-card__excerpt">{{ news_main_story.summary|default:news_main_story.content|truncatewords:32 }}</p>
+          </div>
+        </a>
+        <template id="tpl-news-{{ news_main_story.id }}">{% include "portal/_news_detail.html" with n=news_main_story %}</template>
+        {% else %}
+        <div class="panel ann-placeholder">No news published yet. Check back soon.</div>
+        {% endif %}
+
+        {% if news_side_stories %}
+        <div class="news-featured-side">
+          {% for n in news_side_stories %}
+          <a href="#" class="news-feature-card news-feature-card--small js-news-open{% if not n.image %} news-feature-card--placeholder{% endif %}" data-news="{{ n.id }}" data-news-title="{{ n.title }}" data-news-office="{{ n.representative.office.name|default:'—' }}" {% if n.image %}style="background-image:url('{{ n.image.url }}');background-size:cover;background-position:center;"{% endif %}>
+            {% if not n.image %}<span class="news-feature-card__img"><i class="fa-regular fa-image"></i></span>{% endif %}
+            <span class="news-feature-card__badge news-feature-card__badge--{{ n.category_slug }}">{{ n.category_label|upper }}</span>
+            <div class="news-feature-card__info">
+              <div class="news-feature-card__meta">{{ n.display_date|date:"F j, Y" }}</div>
+              <div class="news-feature-card__title">{{ n.title }}</div>
+            </div>
+          </a>
+          <template id="tpl-news-{{ n.id }}">{% include "portal/_news_detail.html" %}</template>
+          {% endfor %}
+        </div>
+        {% endif %}
       </div>
 
-      <div class="panel subscribe-panel">
-        <i class="fa-regular fa-envelope subscribe-panel__icon"></i>
-        <h3>Subscribe to Updates</h3>
-        <p>Get the latest announcements and updates delivered straight to your email.</p>
-        <input type="email" placeholder="Enter your email address">
-        <button class="btn btn-primary btn-block">Subscribe</button>
+      <div class="announcements-grid">
+        <div class="announcements-main">
+
+          <div class="section-title--row" style="margin-bottom:14px;">
+            <h2 class="section-title" style="margin:0;padding:0;">Latest News</h2>
+            <a href="#" class="view-all">View Archive</a>
+          </div>
+
+          <div class="news-grid">
+            {% for n in news_grid_items %}
+            <a href="#" class="news-card js-news-open" data-news="{{ n.id }}" data-news-title="{{ n.title }}" data-news-office="{{ n.representative.office.name|default:'—' }}">
+              <span class="news-card__img{% if not n.image %} news-card__img--placeholder{% endif %}" {% if n.image %}style="background-image:url('{{ n.image.url }}');background-size:cover;background-position:center;"{% endif %}>{% if not n.image %}<i class="fa-regular fa-image"></i>{% endif %}</span>
+              <div class="news-card__body">
+                <span class="news-badge news-badge--{{ n.category_slug }}">{{ n.category_label|upper }}</span>
+                <div class="news-card__date">Published on: {{ n.display_date|date:"F j, Y" }}</div>
+                <div class="news-card__title">{{ n.title }}</div>
+                <p>{{ n.summary|default:n.content|truncatewords:24 }}</p>
+                <span class="news-card__more">Read more &rarr;</span>
+              </div>
+            </a>
+            <template id="tpl-news-{{ n.id }}">{% include "portal/_news_detail.html" %}</template>
+            {% empty %}
+            {% if news_main_story %}
+            <div class="panel ann-placeholder">No additional news yet.</div>
+            {% endif %}
+            {% endfor %}
+          </div>
+
+          <div class="news-pagination">
+            <button type="button" class="news-page-btn" disabled><i class="fa-solid fa-chevron-left"></i></button>
+            <button type="button" class="news-page-btn active">1</button>
+            <button type="button" class="news-page-btn">2</button>
+            <button type="button" class="news-page-btn">3</button>
+            <button type="button" class="news-page-btn"><i class="fa-solid fa-chevron-right"></i></button>
+          </div>
+
+        </div>
+
+        <aside class="announcements-side">
+          <div class="panel ann-side-panel">
+            <h3>Search News</h3>
+            <div class="ann-search">
+              <input type="text" placeholder="Type a keyword...">
+              <button type="button" class="news-search-btn"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </div>
+          </div>
+
+          <div class="panel ann-side-panel">
+            <h3>Most Read</h3>
+            <ol class="news-mostread">
+              <li><span class="news-mostread__num">1</span><div><a href="#">Tunga LGU Distributes Farm Inputs to 150 Local Farmers</a><span class="news-mostread__date">Sep 24, 2026</span></div></li>
+              <li><span class="news-mostread__num">2</span><div><a href="#">Municipality Conducts Community Clean-Up Drive</a><span class="news-mostread__date">Jul 9, 2026</span></div></li>
+              <li><span class="news-mostread__num">3</span><div><a href="#">EVSU-CC Students Present Municipal Website Prototype</a><span class="news-mostread__date">Aug 27, 2026</span></div></li>
+              <li><span class="news-mostread__num">4</span><div><a href="#">MDRRMO Leads Earthquake Drill in Public Schools</a><span class="news-mostread__date">Sep 5, 2026</span></div></li>
+            </ol>
+          </div>
+
+          <div class="panel ann-side-panel">
+            <h3>Topics</h3>
+            <div class="news-topics">
+              <span class="news-topic-pill">Agriculture</span>
+              <span class="news-topic-pill">Health</span>
+              <span class="news-topic-pill">Governance</span>
+              <span class="news-topic-pill">Education</span>
+              <span class="news-topic-pill">Environment</span>
+              <span class="news-topic-pill">Infrastructure</span>
+              <span class="news-topic-pill">Sports</span>
+              <span class="news-topic-pill">Tourism</span>
+              <span class="news-topic-pill">MDRRMO</span>
+            </div>
+          </div>
+
+          <div class="panel ann-side-panel ann-assist">
+            <h3>Have a Story to Share?</h3>
+            <p>Send news tips and photos from your barangay to the Public Information Office.</p>
+            <a href="{% url 'contact' %}" class="btn btn-block">Contact PIO</a>
+          </div>
+        </aside>
       </div>
-    </aside>
+    </div>
+
+    <!-- ===================== TAB: Events (now wired to real published Event data) ===================== -->
+    <div class="tab-panel" data-tab-panel="events">
+
+      {% if featured_event %}
+      <div class="panel event-hero">
+        <div class="event-hero__img" {% if featured_event.poster %}style="background-image:url('{{ featured_event.poster.url }}');background-size:cover;background-position:center;"{% endif %}>
+          {% if not featured_event.poster %}<span class="event-hero__img-icon"><i class="fa-regular fa-image"></i></span>{% endif %}
+          <span class="event-hero__flag">Featured Event</span>
+        </div>
+        <div class="event-hero__info">
+          <div class="event-hero__datebox">
+            {% if featured_event.event_date %}
+            <strong>{{ featured_event.event_date|date:"d" }}</strong>
+            <span>{{ featured_event.event_date|date:"F Y" }}<br>{{ featured_event.event_date|date:"l" }}</span>
+            {% else %}
+            <span>Date to be<br>announced</span>
+            {% endif %}
+          </div>
+          <span class="event-tag event-tag--general">{{ featured_event.category_label|upper }}</span>
+          <h3 class="event-hero__title">{{ featured_event.title }}</h3>
+          <p class="event-hero__desc">{{ featured_event.description|default:"No further details were provided for this event."|truncatewords:40 }}</p>
+          <div class="event-hero__meta">
+            {% if featured_event.start_time %}<div><i class="fa-regular fa-clock"></i> {{ featured_event.start_time|time:"g:i A" }}{% if featured_event.end_time %} &ndash; {{ featured_event.end_time|time:"g:i A" }}{% endif %}</div>{% endif %}
+            {% if featured_event.location %}<div><i class="fa-solid fa-location-dot"></i> {{ featured_event.location }}</div>{% endif %}
+            {% if featured_event.organizer %}<div><i class="fa-solid fa-user-group"></i> {{ featured_event.organizer }}</div>{% endif %}
+          </div>
+          <div class="event-hero__actions">
+            <a href="#" class="btn btn-primary js-event-open" data-event="{{ featured_event.id }}" data-event-title="{{ featured_event.title }}" data-event-office="{{ featured_event.representative.office.name|default:'—' }}">Event Details</a>
+          </div>
+        </div>
+      </div>
+      <template id="tpl-event-{{ featured_event.id }}">{% include "portal/_event_detail.html" with e=featured_event %}</template>
+      {% else %}
+      <div class="panel ann-placeholder">No upcoming events scheduled yet.</div>
+      {% endif %}
+
+      <div class="announcements-grid">
+        <div class="announcements-main">
+
+          <div class="section-title--row" style="margin-bottom:14px;">
+            <h2 class="section-title" style="margin:0;padding:0;">Upcoming Events</h2>
+            <a href="#" class="view-all">View Calendar</a>
+          </div>
+
+          <div class="events-grid">
+            {% for e in upcoming_events %}
+            <a href="#" class="event-card js-event-open" data-event="{{ e.id }}" data-event-title="{{ e.title }}" data-event-office="{{ e.representative.office.name|default:'—' }}">
+              <div class="event-card__img{% if not e.poster %} event-card__img--placeholder{% endif %}" {% if e.poster %}style="background-image:url('{{ e.poster.url }}');background-size:cover;background-position:center;"{% endif %}>
+                <span class="event-badge">{{ e.category_label|upper }}</span>
+                <div class="event-card__datebox">{% if e.event_date %}<span>{{ e.event_date|date:"M"|upper }}</span><strong>{{ e.event_date|date:"d" }}</strong>{% else %}<span>DATE</span><strong>TBA</strong>{% endif %}</div>
+              </div>
+              <div class="event-card__body">
+                <div class="event-card__title">{{ e.title }}</div>
+                {% if e.start_time %}<div class="event-card__meta"><i class="fa-regular fa-clock"></i> {{ e.start_time|time:"g:i A" }}{% if e.end_time %} &ndash; {{ e.end_time|time:"g:i A" }}{% endif %}</div>{% endif %}
+                {% if e.location %}<div class="event-card__meta"><i class="fa-solid fa-location-dot"></i> {{ e.location }}</div>{% endif %}
+                <span class="event-card__more">Learn more &rarr;</span>
+              </div>
+            </a>
+            <template id="tpl-event-{{ e.id }}">{% include "portal/_event_detail.html" %}</template>
+            {% empty %}
+            {% if featured_event %}
+            <div class="panel ann-placeholder">No other upcoming events right now.</div>
+            {% endif %}
+            {% endfor %}
+          </div>
+
+          <div class="section-title--row" style="margin-bottom:14px;">
+            <h2 class="section-title" style="margin:0;padding:0;">Past Events</h2>
+            <a href="#" class="view-all">See Photos</a>
+          </div>
+
+          {% for e in past_events %}
+          <a href="#" class="panel event-past js-event-open" data-event="{{ e.id }}" data-event-title="{{ e.title }}" data-event-office="{{ e.representative.office.name|default:'—' }}">
+            <span class="event-past__img" {% if e.poster %}style="background-image:url('{{ e.poster.url }}');background-size:cover;background-position:center;"{% endif %}>{% if not e.poster %}<i class="fa-regular fa-image"></i>{% endif %}</span>
+            <div class="event-past__body">
+              <div class="event-past__date">{{ e.event_date|date:"M j, Y" }}</div>
+              <div class="event-past__title">{{ e.title }}</div>
+              <p>{{ e.description|default:""|truncatewords:20 }}</p>
+            </div>
+            <span class="btn btn-outline event-past__btn">View</span>
+          </a>
+          <template id="tpl-event-{{ e.id }}">{% include "portal/_event_detail.html" %}</template>
+          {% empty %}
+          <div class="panel ann-placeholder">No past events yet.</div>
+          {% endfor %}
+
+        </div>
+
+        <aside class="announcements-side">
+
+          <div class="panel ann-side-panel events-cal">
+            <div class="events-cal__head">
+              <a href="?events_month={{ calendar_prev_param }}#events" class="events-cal__nav"><i class="fa-solid fa-chevron-left"></i></a>
+              <h3>{{ calendar_month_label }}</h3>
+              <a href="?events_month={{ calendar_next_param }}#events" class="events-cal__nav"><i class="fa-solid fa-chevron-right"></i></a>
+            </div>
+            <div class="events-cal__grid events-cal__grid--head">
+              <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+            </div>
+            <div class="events-cal__grid">
+              {% for week in calendar_weeks %}
+                {% for cell in week %}
+                  {% if not cell %}
+                    <span></span>
+                  {% elif cell.events|length == 0 %}
+                    <span{% if cell.is_today %} class="cal-day-today"{% endif %}>{{ cell.day }}</span>
+                  {% elif cell.events|length == 1 %}
+                    <button type="button"
+                      class="cal-day{% if cell.is_featured %} cal-day--featured{% else %} cal-day--event{% endif %}{% if cell.is_today %} cal-day-today{% endif %} js-event-open"
+                      data-event="{{ cell.events.0.id }}"
+                      data-event-title="{{ cell.events.0.title }}"
+                      data-event-office="{{ cell.events.0.representative.office.name|default:'—' }}">{{ cell.day }}</button>
+                  {% else %}
+                    <button type="button"
+                      class="cal-day{% if cell.is_featured %} cal-day--featured{% else %} cal-day--event{% endif %}{% if cell.is_today %} cal-day-today{% endif %} js-cal-day"
+                      data-date="{{ cell.date_obj|date:'Y-m-d' }}">{{ cell.day }}</button>
+                    <template class="tpl-cal-agenda" data-date="{{ cell.date_obj|date:'F j, Y' }}">
+                      {% for e in cell.events %}
+                      <a href="#" class="cal-agenda-item js-event-open" data-event="{{ e.id }}" data-event-title="{{ e.title }}" data-event-office="{{ e.representative.office.name|default:'—' }}">
+                        <span class="cal-agenda-item__time">{% if e.start_time %}{{ e.start_time|time:"g:i A" }}{% else %}All day{% endif %}</span>
+                        <span class="cal-agenda-item__title">{{ e.title }}</span>
+                      </a>
+                      {% endfor %}
+                    </template>
+                  {% endif %}
+                {% endfor %}
+              {% endfor %}
+            </div>
+            <div class="events-cal__legend">
+              <span><i class="cal-dot cal-dot--featured"></i> Featured</span>
+              <span><i class="cal-dot cal-dot--event"></i> Event</span>
+            </div>
+          </div>
+
+          {% for e in calendar_only_events %}
+          <template id="tpl-event-{{ e.id }}">{% include "portal/_event_detail.html" %}</template>
+          {% endfor %}
+
+          <div class="panel ann-side-panel">
+            <h3>Up Next</h3>
+            <ul class="events-upnext">
+              <li><span class="events-upnext__date">OCT 10</span><span>Fun Run for a Cause</span></li>
+              <li><span class="events-upnext__date">OCT 16</span><span>Gulayan sa Barangay Fair</span></li>
+              <li><span class="events-upnext__date">OCT 24</span><span>SK Youth Leadership Summit</span></li>
+              <li><span class="events-upnext__date">NOV 01</span><span>Oplan Kaluluwa</span></li>
+            </ul>
+          </div>
+
+          <div class="panel ann-side-panel ann-assist">
+            <h3>Hosting an Event?</h3>
+            <p>Barangays and local organizations may request the use of the LGU Grounds or Session Hall through the Office of the Municipal Mayor.</p>
+            <a href="{% url 'contact' %}" class="btn btn-block">Get the Request Form</a>
+          </div>
+
+        </aside>
+      </div>
+    </div>
+
+    <!-- ===================== TAB: From Our Offices (placeholder) ===================== -->
+    <div class="tab-panel" data-tab-panel="offices">
+      <div class="panel ann-placeholder">Offices tab content coming soon.</div>
+    </div>
 
   </div>
 </section>
+
+<!-- Announcement details modal: rendered server-side (one <template> per
+     announcement, right next to its card above) — the script below just
+     copies the matching template's content into this dialog and opens it,
+     no AJAX needed since all the data is already on the page. -->
+<dialog id="annDialog" aria-labelledby="annDlgTitle" class="ann-dialog">
+  <div class="ann-dlg">
+    <div class="ann-dlg-head">
+      <div><small id="annDlgOffice"></small><h2 id="annDlgTitle"></h2></div>
+      <button type="button" class="ann-dlg-close" id="annDlgClose" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="ann-dlg-body" id="annDlgBody"></div>
+  </div>
+</dialog>
+
+<!-- News details modal: same pattern as the Announcement modal above, just
+     for the "News" tab's <template id="tpl-news-ID"> partials. -->
+<dialog id="newsDialog" aria-labelledby="newsDlgTitle" class="ann-dialog">
+  <div class="ann-dlg">
+    <div class="ann-dlg-head">
+      <div><small id="newsDlgOffice"></small><h2 id="newsDlgTitle"></h2></div>
+      <button type="button" class="ann-dlg-close" id="newsDlgClose" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="ann-dlg-body" id="newsDlgBody"></div>
+  </div>
+</dialog>
+
+<!-- Event details modal: same pattern as the Announcement/News modals
+     above, just for the "Events" tab's <template id="tpl-event-ID"> partials. -->
+<dialog id="eventDialog" aria-labelledby="eventDlgTitle" class="ann-dialog">
+  <div class="ann-dlg">
+    <div class="ann-dlg-head">
+      <div><small id="eventDlgOffice"></small><h2 id="eventDlgTitle"></h2></div>
+      <button type="button" class="ann-dlg-close" id="eventDlgClose" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="ann-dlg-body" id="eventDlgBody"></div>
+  </div>
+</dialog>
+
+<script>
+(function () {
+  var tabs = document.querySelectorAll('.filter-tab');
+  var panels = document.querySelectorAll('.tab-panel');
+
+  function activateTab(target) {
+    tabs.forEach(function (t) { t.classList.toggle('active', t.getAttribute('data-tab') === target); });
+    panels.forEach(function (panel) {
+      panel.classList.toggle('active', panel.getAttribute('data-tab-panel') === target);
+    });
+  }
+
+  tabs.forEach(function (tab) {
+    tab.addEventListener('click', function (e) {
+      e.preventDefault();
+      var target = tab.getAttribute('data-tab');
+      activateTab(target);
+      // Remembered in the URL (no scroll-jump) so the Events tab's
+      // "‹ ›" calendar links, which reload the page with ?events_month=...,
+      // can land back on the Events tab instead of resetting to "All Updates".
+      history.replaceState(null, '', '#' + target);
+    });
+  });
+
+  // On load, restore whichever tab the URL points to — either from a link
+  // like ?events_month=2026-11#events, or a direct #announcements link.
+  var initialTab = (window.location.hash || '').replace('#', '');
+  if (initialTab && document.querySelector('.filter-tab[data-tab="' + initialTab + '"]')) {
+    activateTab(initialTab);
+  }
+
+  // Announcements tab: category pill filter + live search over the
+  // hardcoded cards above (data-category / data-title attributes).
+  var pills = document.querySelectorAll('.ann-pill');
+  var cards = document.querySelectorAll('.ann-card');
+  var searchInput = document.getElementById('annSearchInput');
+  var noResults = document.getElementById('annNoResults');
+  var activeCategory = 'all';
+
+  function applyAnnFilters() {
+    var query = (searchInput.value || '').trim().toLowerCase();
+    var visibleCount = 0;
+
+    cards.forEach(function (card) {
+      var matchesCategory = activeCategory === 'all' || card.getAttribute('data-category') === activeCategory;
+      var matchesSearch = !query || card.getAttribute('data-title').indexOf(query) !== -1;
+      var show = matchesCategory && matchesSearch;
+      card.classList.toggle('is-hidden', !show);
+      if (show) visibleCount += 1;
+    });
+
+    noResults.style.display = visibleCount === 0 ? 'block' : 'none';
+  }
+
+  pills.forEach(function (pill) {
+    pill.addEventListener('click', function () {
+      pills.forEach(function (p) { p.classList.remove('active'); });
+      pill.classList.add('active');
+      activeCategory = pill.getAttribute('data-category');
+      applyAnnFilters();
+    });
+  });
+
+  if (searchInput) {
+    searchInput.addEventListener('input', applyAnnFilters);
+  }
+
+  // Announcement details modal: clicking a card's title or "Read more"
+  // opens a <dialog> filled from that card's own <template id="tpl-ann-ID">
+  // (rendered server-side right next to it), so no extra request is needed.
+  var annDialog = document.getElementById('annDialog');
+  if (annDialog) {
+    var annDlgTitle = document.getElementById('annDlgTitle');
+    var annDlgOffice = document.getElementById('annDlgOffice');
+    var annDlgBody = document.getElementById('annDlgBody');
+
+    function openAnnDialog(id, card) {
+      var tpl = document.getElementById('tpl-ann-' + id);
+      if (!tpl) return;
+      annDlgTitle.textContent = card.getAttribute('data-ann-title') || '';
+      annDlgOffice.textContent = card.getAttribute('data-ann-office') || '';
+      annDlgBody.innerHTML = '';
+      annDlgBody.appendChild(tpl.content.cloneNode(true));
+      annDlgBody.scrollTop = 0;
+      if (!annDialog.open) annDialog.showModal();
+      document.body.classList.add('lock');
+    }
+
+    document.querySelectorAll('.js-ann-open').forEach(function (el) {
+      el.addEventListener('click', function (e) {
+        e.preventDefault();
+        var card = el.closest('.ann-card');
+        if (card) openAnnDialog(el.getAttribute('data-ann'), card);
+      });
+    });
+
+    function closeAnnDialog() {
+      if (annDialog.open) annDialog.close();
+    }
+
+    var annDlgClose = document.getElementById('annDlgClose');
+    if (annDlgClose) annDlgClose.addEventListener('click', closeAnnDialog);
+    annDialog.addEventListener('click', function (e) {
+      if (e.target === annDialog) closeAnnDialog();
+    });
+    annDialog.addEventListener('close', function () {
+      document.body.classList.remove('lock');
+    });
+  }
+
+  // News details modal — identical pattern to the Announcement modal above,
+  // just wired to .js-news-open cards and their tpl-news-ID templates.
+  var newsDialog = document.getElementById('newsDialog');
+  if (newsDialog) {
+    var newsDlgTitle = document.getElementById('newsDlgTitle');
+    var newsDlgOffice = document.getElementById('newsDlgOffice');
+    var newsDlgBody = document.getElementById('newsDlgBody');
+
+    function openNewsDialog(id, card) {
+      var tpl = document.getElementById('tpl-news-' + id);
+      if (!tpl) return;
+      newsDlgTitle.textContent = card.getAttribute('data-news-title') || '';
+      newsDlgOffice.textContent = card.getAttribute('data-news-office') || '';
+      newsDlgBody.innerHTML = '';
+      newsDlgBody.appendChild(tpl.content.cloneNode(true));
+      newsDlgBody.scrollTop = 0;
+      if (!newsDialog.open) newsDialog.showModal();
+      document.body.classList.add('lock');
+    }
+
+    document.querySelectorAll('.js-news-open').forEach(function (el) {
+      el.addEventListener('click', function (e) {
+        e.preventDefault();
+        openNewsDialog(el.getAttribute('data-news'), el);
+      });
+    });
+
+    function closeNewsDialog() {
+      if (newsDialog.open) newsDialog.close();
+    }
+
+    var newsDlgClose = document.getElementById('newsDlgClose');
+    if (newsDlgClose) newsDlgClose.addEventListener('click', closeNewsDialog);
+    newsDialog.addEventListener('click', function (e) {
+      if (e.target === newsDialog) closeNewsDialog();
+    });
+    newsDialog.addEventListener('close', function () {
+      document.body.classList.remove('lock');
+    });
+  }
+
+  // Event details modal — identical pattern to the Announcement/News modals
+  // above, just wired to .js-event-open cards and their tpl-event-ID templates.
+  // Uses a delegated (document-level) click listener rather than binding to
+  // each .js-event-open individually, because the sidebar calendar below
+  // clones some of these links in at runtime (the multi-event day agenda
+  // list) — a direct per-element binding done once at page load would never
+  // see those.
+  var eventDialog = document.getElementById('eventDialog');
+  if (eventDialog) {
+    var eventDlgTitle = document.getElementById('eventDlgTitle');
+    var eventDlgOffice = document.getElementById('eventDlgOffice');
+    var eventDlgBody = document.getElementById('eventDlgBody');
+
+    function openEventDialog(id, card) {
+      var tpl = document.getElementById('tpl-event-' + id);
+      if (!tpl) return;
+      eventDlgTitle.textContent = card.getAttribute('data-event-title') || '';
+      eventDlgOffice.textContent = card.getAttribute('data-event-office') || '';
+      eventDlgBody.innerHTML = '';
+      eventDlgBody.appendChild(tpl.content.cloneNode(true));
+      eventDlgBody.scrollTop = 0;
+      if (!eventDialog.open) eventDialog.showModal();
+      document.body.classList.add('lock');
+    }
+
+    document.addEventListener('click', function (e) {
+      var el = e.target.closest('.js-event-open');
+      if (!el) return;
+      e.preventDefault();
+      openEventDialog(el.getAttribute('data-event'), el);
+    });
+
+    // Calendar day with more than one event: shows a small agenda list
+    // (cloned from that day's <template class="tpl-cal-agenda">, rendered
+    // right next to its button) inside the same dialog; each row is itself
+    // a .js-event-open link, so clicking one swaps the dialog to that
+    // event's actual details via the delegated handler above.
+    document.addEventListener('click', function (e) {
+      var dayBtn = e.target.closest('.js-cal-day');
+      if (!dayBtn) return;
+      e.preventDefault();
+      var tpl = dayBtn.nextElementSibling;
+      if (!tpl || !tpl.classList.contains('tpl-cal-agenda')) return;
+      eventDlgTitle.textContent = 'Events on ' + (tpl.getAttribute('data-date') || '');
+      eventDlgOffice.textContent = '';
+      eventDlgBody.innerHTML = '';
+      eventDlgBody.appendChild(tpl.content.cloneNode(true));
+      eventDlgBody.scrollTop = 0;
+      if (!eventDialog.open) eventDialog.showModal();
+      document.body.classList.add('lock');
+    });
+
+    function closeEventDialog() {
+      if (eventDialog.open) eventDialog.close();
+    }
+
+    var eventDlgClose = document.getElementById('eventDlgClose');
+    if (eventDlgClose) eventDlgClose.addEventListener('click', closeEventDialog);
+    eventDialog.addEventListener('click', function (e) {
+      if (e.target === eventDialog) closeEventDialog();
+    });
+    eventDialog.addEventListener('close', function () {
+      document.body.classList.remove('lock');
+    });
+  }
+
+  // News tab: pagination buttons are visual-only for now (hardcoded cards),
+  // just toggles which page number looks active.
+  document.querySelectorAll('.news-page-btn').forEach(function (btn) {
+    if (btn.disabled) return;
+    btn.addEventListener('click', function () {
+      if (!/^\d+$/.test(btn.textContent.trim())) return;
+      document.querySelectorAll('.news-page-btn').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+    });
+  });
+})();
+</script>
 
 {% endblock %}

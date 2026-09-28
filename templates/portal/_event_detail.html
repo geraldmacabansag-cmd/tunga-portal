@@ -1,0 +1,19 @@
+<!-- Shared body for an Event details modal (see the "Events" tab in
+     announcements.html). Included once per published Event, inside a
+     hidden <template>, so opening the modal needs no extra request — the
+     JS just clones this markup into #eventDlgBody. -->
+<div class="ann-dlg-badges">
+  <span class="event-tag event-tag--general">{{ e.category_label|upper }}</span>
+</div>
+{% if e.poster %}<img src="{{ e.poster.url }}" alt="{{ e.title }}" class="ann-dlg-image">{% endif %}
+<div class="ann-dlg-content">
+  {% if e.description %}{{ e.description|linebreaks }}{% else %}<p>No further details were provided for this event.</p>{% endif %}
+</div>
+<div class="ann-dlg-footer">
+  <div><i class="fa-regular fa-calendar"></i> {{ e.event_date|date:"l, F j, Y"|default:"Date to be announced" }}</div>
+  {% if e.start_time %}<div><i class="fa-regular fa-clock"></i> {{ e.start_time|time:"g:i A" }}{% if e.end_time %} &ndash; {{ e.end_time|time:"g:i A" }}{% endif %}</div>{% endif %}
+  {% if e.location %}<div><i class="fa-solid fa-location-dot"></i> {{ e.location }}</div>{% endif %}
+  <div><i class="fa-regular fa-building"></i> {{ e.representative.office.name|default:"—" }}</div>
+  {% if e.organizer %}<div><i class="fa-solid fa-user-group"></i> {{ e.organizer }}</div>{% endif %}
+  {% if e.contact_person %}<div><i class="fa-regular fa-id-badge"></i> {{ e.contact_person }}{% if e.contact_info %} &middot; {{ e.contact_info }}{% endif %}</div>{% endif %}
+</div>

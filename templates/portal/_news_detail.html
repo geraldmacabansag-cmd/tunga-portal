@@ -1,0 +1,20 @@
+{% load humanize %}
+<!-- Shared body for a News details modal (see the "News" tab in
+     announcements.html). Included once per published NewsUpdate, inside a
+     hidden <template>, so opening the modal needs no extra request — the
+     JS just clones this markup into #newsDlgBody. -->
+<div class="ann-dlg-badges">
+  <span class="news-badge news-badge--{{ n.category_slug }}">{{ n.category_label|upper }}</span>
+</div>
+{% if n.summary %}<p class="ann-dlg-subtitle">{{ n.summary }}</p>{% endif %}
+{% if n.image %}<img src="{{ n.image.url }}" alt="{{ n.title }}" class="ann-dlg-image">{% endif %}
+<div class="ann-dlg-content">
+  {% if n.content %}{{ n.content|linebreaks }}{% else %}<p>No further details were provided for this story.</p>{% endif %}
+</div>
+<div class="ann-dlg-footer">
+  <div><i class="fa-regular fa-building"></i> {{ n.representative.office.name|default:"—" }}</div>
+  <div><i class="fa-regular fa-calendar"></i> {{ n.display_date|date:"F d, Y" }}</div>
+  {% if n.author %}<div><i class="fa-regular fa-user"></i> {{ n.author }}</div>{% endif %}
+  {% if n.source %}<div><i class="fa-solid fa-link"></i> {{ n.source }}</div>{% endif %}
+  {% if n.tags %}<div><i class="fa-solid fa-tags"></i> {{ n.tags }}</div>{% endif %}
+</div>

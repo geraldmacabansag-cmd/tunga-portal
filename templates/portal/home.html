@@ -105,7 +105,7 @@ Home | Digital Governance Portal
         {% if latest_news %}
         {% if latest_news.image %}<img src="{{ latest_news.image.url }}" alt="{{ latest_news.title }}">{% endif %}
         <div>
-          <p class="news-item__date">Published on: {{ latest_news.date_published|default:latest_news.created_at|date:"F j, Y, g:i A" }}</p>
+          <p class="news-item__date">Published on: {{ latest_news.date_published|default:latest_news.created_at|date:"F j, Y" }}</p>
           <a href="{% url 'announcement' %}" class="news-item__title">{{ latest_news.title }}</a>
           <p class="news-item__excerpt">{{ latest_news.summary|default:latest_news.content|truncatewords:35 }}</p>
         </div>

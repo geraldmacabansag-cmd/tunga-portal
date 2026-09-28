@@ -199,7 +199,6 @@
         <option value="Community Engagement">Community Engagement</option>
         <option value="Public Notice">Public Notice</option>
         <option value="Office Advisory">Office Advisory</option>
-        <option value="Event">Event</option>
         <option value="Government Service">Government Service</option>
         <option value="Emergency">Emergency</option>
       </select>
@@ -250,20 +249,8 @@
       >
     </div>
 
-   <!-- Date Posted -->
-    <div class="form-group">
-      <label class="form-label" for="ann-exp">
-        Date Posted
-      </label>
-
-      <input
-        class="form-input"
-        type="date"
-        id="ann-date-posted"
-        name="date_posted"
-      >
-    </div>
-
+    <!-- Date Posted is no longer entered here — it's set automatically to
+         the date the Super Admin approves and publishes this announcement. -->
 
     <!-- Expiration Date -->
     <div class="form-group">
@@ -347,7 +334,6 @@
             <option value="Community Engagement" {% if a.category == "Community Engagement" %}selected{% endif %}>Community Engagement</option>
             <option value="Public Notice" {% if a.category == "Public Notice" %}selected{% endif %}>Public Notice</option>
             <option value="Office Advisory" {% if a.category == "Office Advisory" %}selected{% endif %}>Office Advisory</option>
-            <option value="Event" {% if a.category == "Event" %}selected{% endif %}>Event</option>
             <option value="Government Service" {% if a.category == "Government Service" %}selected{% endif %}>Government Service</option>
             <option value="Emergency" {% if a.category == "Emergency" %}selected{% endif %}>Emergency</option>
           </select>
@@ -373,8 +359,9 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="ann-date-posted-{{ a.id }}">Date Posted</label>
-          <input class="form-input" type="date" id="ann-date-posted-{{ a.id }}" name="date_posted" value="{{ a.date_posted|date:'Y-m-d' }}">
+          <label class="form-label">Date Posted</label>
+          <input class="form-input" type="text" value="{{ a.date_posted|date:'F j, Y'|default:'Not yet published' }}" disabled>
+          <small class="form-help">Set automatically when this announcement is approved and published — it can't be edited here.</small>
         </div>
 
         <div class="form-group">

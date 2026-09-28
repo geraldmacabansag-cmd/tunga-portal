@@ -256,6 +256,18 @@ MODEL_MAP = {
     'Service': Service,
 }
 
+def _stamp_published_date(obj):
+    """Sets the "date published" field to today, the moment the Super Admin
+    actually approves/publishes (or re-publishes from the archive) a piece
+    of content. This is the ONLY place these fields are ever set — there is
+    no manual date input anywhere for them anymore. Announcement uses
+    date_posted, NewsUpdate uses date_published; anything else (Event, Form,
+    Gallery, Service) has no such field and is left alone."""
+    if isinstance(obj, Announcement):
+        obj.date_posted = timezone.localdate()
+    elif isinstance(obj, NewsUpdate):
+        obj.date_published = timezone.localdate()
+
 @super_admin_required
 def admin_approval_details(request, item_type, pk):
     model = MODEL_MAP.get(item_type)
@@ -303,6 +315,7 @@ def admin_approval_details(request, item_type, pk):
 
         if action == 'approve':
             obj.status = 'published'
+            _stamp_published_date(obj)
             messages.success(request, f'"{display_name}" was approved and published.')
             if notify_rep:
                 Notification.objects.create(
@@ -435,7 +448,9 @@ def admin_create_announcement(request):
                 content=request.POST.get('content', '').strip(),
                 image=request.FILES.get('image'),
                 author=request.POST.get('author', '').strip(),
-                date_posted=request.POST.get('date_posted') or None,
+                # Super Admin publishes this immediately, so "date posted" is
+                # simply today — never a manually-entered date.
+                date_posted=timezone.localdate(),
                 expiration_date=request.POST.get('expiration_date') or None,
                 priority=request.POST.get('priority', 'Normal'),
                 status='published',
@@ -471,7 +486,9 @@ def admin_edit_announcement(request, pk):
             if request.FILES.get('image'):
                 announcement.image = request.FILES.get('image')
             announcement.author = request.POST.get('author', '').strip()
-            announcement.date_posted = request.POST.get('date_posted') or None
+            # date_posted is intentionally left untouched here — it's only
+            # ever set automatically, when the announcement is approved/
+            # published (see admin_approval_details / _stamp_published_date).
             announcement.expiration_date = request.POST.get('expiration_date') or None
             announcement.priority = request.POST.get('priority', 'Normal')
             announcement.save()
@@ -554,6 +571,10 @@ def admin_news_save(request, pk):
         n = get_object_or_404(NewsUpdate, pk=pk)
     else:
         n = NewsUpdate()
+        # Super Admin publishes this immediately, so "date published" is
+        # simply today, set once at creation — never a manually-entered
+        # date, and never touched again on later edits.
+        n.date_published = timezone.localdate()
 
     n.representative = representative
     n.title = title
@@ -561,7 +582,6 @@ def admin_news_save(request, pk):
     n.summary = request.POST.get('summary', '').strip()
     n.content = request.POST.get('content', '').strip()
     n.author = request.POST.get('author', '').strip()
-    n.date_published = request.POST.get('date_published') or None
     n.source = request.POST.get('source', '').strip()
     n.tags = request.POST.get('tags', '').strip()
     n.status = 'published'
@@ -667,7 +687,8 @@ def admin_event_save(request, pk):
     e.organizer = request.POST.get('organizer', '').strip()
     e.contact_person = request.POST.get('contact_person', '').strip()
     e.contact_info = request.POST.get('contact_info', '').strip()
-    e.status = 'published'  
+    e.is_featured = request.POST.get('is_featured') == 'on'
+    e.status = 'published'
 
     poster = request.FILES.get('poster')
     if poster:
@@ -1593,6 +1614,7 @@ def admin_archive_restore(request, item_type, pk):
     if request.method == "POST":
         title = getattr(obj, 'title', None) or getattr(obj, 'name', '')
         obj.status = 'published'
+        _stamp_published_date(obj)
         obj.save()
         messages.success(request, f'"{title}" was restored and published again.')
 

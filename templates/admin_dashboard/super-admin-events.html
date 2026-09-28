@@ -57,6 +57,7 @@
                 <th>Event Date</th>
                 <th>Status</th>
                 <th>Location</th>
+                <th>Featured</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -77,6 +78,13 @@
                 <td>{{ e.event_date|date:"M j, Y"|default:"—" }}</td>
                 <td><span class="badge {{ e.badge_class }}">{{ e.get_status_display }}</span></td>
                 <td>{{ e.location|default:"—" }}</td>
+                <td>
+                  {% if e.is_featured %}
+                    <span class="badge" style="background:#fef3c7;color:#92400e;"><i class="fa-solid fa-star"></i> Featured</span>
+                  {% else %}
+                    <span style="color:var(--gray-400);">—</span>
+                  {% endif %}
+                </td>
                 <td>
                   <div class="action-icons">
                     <button type="button" class="ic view-event-btn" title="View"
@@ -110,7 +118,8 @@
                       data-contact-person="{{ e.contact_person }}"
                       data-contact-info="{{ e.contact_info }}"
                       data-status="{{ e.status }}"
-                      data-representative="{{ e.representative_id }}">
+                      data-representative="{{ e.representative_id }}"
+                      data-is-featured="{{ e.is_featured|yesno:'1,' }}">
                       <i class="fa-regular fa-pen-to-square"></i>
                     </button>
                     <button type="button" class="ic" title="Delete" data-delete-target="delete-event-modal-{{ e.pk }}"><i class="fa-regular fa-trash-can"></i></button>
@@ -118,7 +127,7 @@
                 </td>
               </tr>
               {% empty %}
-              <tr class="no-results-row"><td colspan="7">No events yet.</td></tr>
+              <tr class="no-results-row"><td colspan="8">No events yet.</td></tr>
               {% endfor %}
             </tbody>
           </table>
@@ -165,7 +174,7 @@
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">Event Date</label>
-            <input class="form-input" type="date" name="event_date" id="eventDate">
+            <input class="form-input" type="date" name="event_date" id="eventDate" required>
           </div>
           <div class="form-group">
             <label class="form-label">Start Time</label>
@@ -204,6 +213,14 @@
           <label class="form-label">Event Poster / Image</label>
           <input class="form-input file-input" type="file" name="poster" id="eventPosterFile" accept="image/*">
           <span class="form-help" id="eventPosterHelp">JPG or PNG. Leave empty to keep the current poster when editing.</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+            <input type="checkbox" name="is_featured" id="eventFeatured" style="width:16px;height:16px;">
+            <span><i class="fa-solid fa-star" style="color:#f59e0b;"></i> Feature this event on the public website</span>
+          </label>
+          <span class="form-help">Pins this as the "Featured Event" hero on the public Events tab, ahead of other upcoming events. If more than one event is marked featured, the soonest upcoming one is shown as the hero; the rest still appear in the Upcoming Events grid.</span>
         </div>
 
         <p class="form-help">This event will be published immediately and appear on the public site right away.</p>
@@ -299,6 +316,7 @@
     modalTitle.textContent = 'Add Event';
     form.action = form.dataset.urlTemplate;
     document.getElementById('eventPosterHelp').textContent = 'JPG or PNG.';
+    document.getElementById('eventFeatured').checked = false;
     openModal();
   });
 
@@ -328,6 +346,7 @@
       document.getElementById('eventOrganizer').value = d.organizer || '';
       document.getElementById('eventContactPerson').value = d.contactPerson || '';
       document.getElementById('eventContactInfo').value = d.contactInfo || '';
+      document.getElementById('eventFeatured').checked = d.isFeatured === '1';
       if (d.representative) document.getElementById('eventRepresentative').value = d.representative;
       document.getElementById('eventPosterHelp').textContent = 'Choose a new image to replace the current poster, or leave empty to keep it.';
       openModal();
@@ -430,4 +449,3 @@
 </script>
 
 {% endblock %}
-

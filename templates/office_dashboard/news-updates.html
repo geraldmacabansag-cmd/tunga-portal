@@ -186,10 +186,8 @@
           <label class="form-label" for="news-author">Author / Reporter</label>
           <input class="form-input" type="text" id="news-author" name="author" placeholder="e.g. Juan Dela Cruz">
         </div>
-        <div class="form-group">
-          <label class="form-label" for="news-date">Date Published</label>
-          <input class="form-input" type="date" id="news-date" name="date_published">
-        </div>
+        <!-- Date Published is no longer entered here — it's set automatically
+             to the date the Super Admin approves and publishes this post. -->
         <div class="form-group">
           <label class="form-label" for="news-source">Source</label>
           <input class="form-input" type="text" id="news-source" name="source" placeholder="e.g. Municipal Information Office">
@@ -290,8 +288,9 @@
           <input class="form-input" type="text" id="news-author-{{ n.id }}" name="author" value="{{ n.author }}">
         </div>
         <div class="form-group">
-          <label class="form-label" for="news-date-{{ n.id }}">Date Published</label>
-          <input class="form-input" type="date" id="news-date-{{ n.id }}" name="date_published" value="{{ n.date_published|date:'Y-m-d' }}">
+          <label class="form-label">Date Published</label>
+          <input class="form-input" type="text" value="{{ n.date_published|date:'F j, Y'|default:'Not yet published' }}" disabled>
+          <small class="form-help">Set automatically when this post is approved and published — it can't be edited here.</small>
         </div>
 
         <!-- Last Updated intentionally not here — set automatically by the server on save -->

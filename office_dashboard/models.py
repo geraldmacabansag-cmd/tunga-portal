@@ -174,6 +174,11 @@ class Event(models.Model):
 
     poster = models.ImageField(upload_to="events/", blank=True, null=True)
 
+    # When true, this event is pinned as the "Featured Event" hero on the
+    # public Events tab instead of just falling in wherever its date puts it.
+    # Only the Super Admin can set this (office reps have no control for it).
+    is_featured = models.BooleanField(default=False)
+
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     admin_note = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

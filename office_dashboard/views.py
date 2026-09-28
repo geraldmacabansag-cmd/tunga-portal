@@ -65,7 +65,9 @@ def rep_announcement(request, rep):
                 content=request.POST.get('content', ''),
                 image=request.FILES.get('image'),
                 author=request.POST.get('author', ''),
-                date_posted=request.POST.get('date_posted') or None,
+                # date_posted is intentionally left unset here — it's only
+                # ever set automatically once the Super Admin approves and
+                # publishes this announcement.
                 expiration_date=request.POST.get('expiration_date') or None,
                 priority=request.POST.get('priority', 'Normal'),
             )
@@ -136,7 +138,8 @@ def edit_announcement(request, rep, pk):
             if request.FILES.get('image'):
                 announcement.image = request.FILES.get('image')
             announcement.author = request.POST.get('author', '')
-            announcement.date_posted = request.POST.get('date_posted') or None
+            # date_posted is intentionally left untouched here — see the note
+            # in rep_announcement() above.
             announcement.expiration_date = request.POST.get('expiration_date') or None
             announcement.priority = request.POST.get('priority', 'Normal')
             announcement.save()   # last_updated is stamped automatically here
@@ -247,7 +250,9 @@ def news_update(request, rep):
                 content=request.POST.get('content', ''),
                 image=request.FILES.get('image'),
                 author=request.POST.get('author', ''),
-                date_published=request.POST.get('date_published') or None,
+                # date_published is intentionally left unset here — it's only
+                # ever set automatically once the Super Admin approves and
+                # publishes this post.
                 source=request.POST.get('source', ''),
                 tags=request.POST.get('tags', ''),
             )
@@ -317,7 +322,8 @@ def edit_news(request, rep, pk):
             if request.FILES.get('image'):
                 news.image = request.FILES.get('image')
             news.author = request.POST.get('author', '')
-            news.date_published = request.POST.get('date_published') or None
+            # date_published is intentionally left untouched here — see the
+            # note in news_update() above.
             news.source = request.POST.get('source', '')
             news.tags = request.POST.get('tags', '')
             news.save()   # last_updated is stamped automatically here
