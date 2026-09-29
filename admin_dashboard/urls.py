@@ -33,6 +33,7 @@ urlpatterns = [
     path('Admin-Gallery/photo/<int:pk>/archive/', views.admin_photo_archive_toggle, name='admin_photo_archive'),
     path('Admin-Gallery/photo/<int:pk>/delete/', views.admin_photo_delete, name='admin_photo_delete'),
     path('Admin-Gallery/photo/<int:pk>/save/', views.admin_photo_save, name='admin_photo_save'),
+    path('Admin-Gallery/album/<int:pk>/toggle-featured/', views.admin_album_toggle_featured, name='admin_album_toggle_featured'),
 
     path('Admin-Offices/', views.admin_offices, name='ad_offices'),
     path('Admin-Offices/<int:pk>/edit/', views.admin_office_edit, name='admin_office_edit'),

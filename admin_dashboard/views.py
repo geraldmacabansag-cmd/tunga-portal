@@ -977,6 +977,29 @@ def admin_album_detail(request, pk):
     })
 
 
+MAX_FEATURED_ALBUMS = 4  # matches the 4 card slots in the public Gallery's "Featured Albums" row
+
+
+@super_admin_required
+def admin_album_toggle_featured(request, pk):
+    album = get_object_or_404(Album, pk=pk)
+    if request.method == "POST":
+        if not album.is_featured and Album.objects.filter(is_featured=True).count() >= MAX_FEATURED_ALBUMS:
+            messages.error(
+                request,
+                f'Only {MAX_FEATURED_ALBUMS} albums can be featured at once. '
+                f'Unfeature one first before adding "{album.name}".'
+            )
+        else:
+            album.is_featured = not album.is_featured
+            album.save(update_fields=["is_featured"])
+            messages.success(
+                request,
+                f'"{album.name}" was {"added to" if album.is_featured else "removed from"} Featured Albums.'
+            )
+    return redirect(request.POST.get('next') or 'admin_dashboard:ad_gallery')
+
+
 @super_admin_required
 def admin_photo_archive_toggle(request, pk):
     photo = get_object_or_404(Photo, pk=pk)

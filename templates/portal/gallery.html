@@ -19,53 +19,41 @@ Photo Gallery | Digital Governance Portal
 <section class="gallery-body">
   <div class="container">
 
-    <!-- ===================== Featured Albums (placeholder — configured later) ===================== -->
+    <!-- ===================== Featured Albums — set by the Super Admin ===================== -->
+    {% if featured_albums %}
     <h2 class="section-title gallery-section-title">Featured Albums</h2>
     <div class="gallery-featured-grid">
-      <a href="#" class="gallery-featured-card" style="--card-grad: linear-gradient(135deg, #6a1b6b, #c0245e);">
-        <span class="gallery-featured-card__badge">48 photos</span>
-        <span class="gallery-featured-card__icon"><i class="fa-regular fa-image"></i></span>
+      {% for a in featured_albums %}
+      <a href="?album={{ a.id }}" class="gallery-featured-card {% if current_album == a.id|stringformat:'s' %}is-active{% endif %}"
+         {% if a.cover_photo %}style="--card-img: url('{{ a.cover_photo.image.url }}');"{% else %}style="--card-grad: linear-gradient(135deg, var(--navy), var(--navy-light));"{% endif %}>
+        <span class="gallery-featured-card__badge">{{ a.published_count }} photo{{ a.published_count|pluralize }}</span>
+        {% if not a.cover_photo %}<span class="gallery-featured-card__icon"><i class="fa-regular fa-image"></i></span>{% endif %}
         <div class="gallery-featured-card__info">
-          <h3>Founding Anniversary 2026</h3>
-          <p>July 2026</p>
+          <h3>{{ a.name }}</h3>
+          <p>{{ a.representative.office.name|default:"LGU Super Admin" }}</p>
         </div>
       </a>
-      <a href="#" class="gallery-featured-card" style="--card-grad: linear-gradient(135deg, #1c6b4f, #35b35d);">
-        <span class="gallery-featured-card__badge">36 photos</span>
-        <span class="gallery-featured-card__icon"><i class="fa-regular fa-image"></i></span>
-        <div class="gallery-featured-card__info">
-          <h3>Community Programs</h3>
-          <p>Clean-up, medical missions &amp; more</p>
-        </div>
-      </a>
-      <a href="#" class="gallery-featured-card" style="--card-grad: linear-gradient(135deg, #e08a1e, #f4b93b);">
-        <span class="gallery-featured-card__badge">24 photos</span>
-        <span class="gallery-featured-card__icon"><i class="fa-regular fa-image"></i></span>
-        <div class="gallery-featured-card__info">
-          <h3>Tourism &amp; Culture</h3>
-          <p>Places and traditions of Tunga</p>
-        </div>
-      </a>
-      <a href="#" class="gallery-featured-card" style="--card-grad: linear-gradient(135deg, #1a2a52, #3b2f6b);">
-        <span class="gallery-featured-card__badge">18 photos</span>
-        <span class="gallery-featured-card__icon"><i class="fa-regular fa-image"></i></span>
-        <div class="gallery-featured-card__info">
-          <h3>Infrastructure Projects</h3>
-          <p>Roads, buildings &amp; facilities</p>
-        </div>
-      </a>
+      {% endfor %}
     </div>
+    {% endif %}
 
     <!-- ===================== All Photos — every published photo, any office (incl. Super Admin) ===================== -->
     <div class="gallery-allphotos-head">
       <h2 class="section-title gallery-section-title">All Photos</h2>
       <div class="gallery-pills">
-        <a href="{% url 'gallery' %}" class="gallery-pill {% if not current_category %}active{% endif %}">All</a>
+        <a href="{% url 'gallery' %}" class="gallery-pill {% if not current_category and not current_album %}active{% endif %}">All</a>
         {% for value, label in category_choices %}
         <a href="?category={{ value }}" class="gallery-pill {% if current_category == value %}active{% endif %}">{{ label }}</a>
         {% endfor %}
       </div>
     </div>
+
+    {% if current_album %}
+    <p class="gallery-active-filter">
+      Showing photos from this album.
+      <a href="{% url 'gallery' %}{% if current_category %}?category={{ current_category }}{% endif %}">Clear filter</a>
+    </p>
+    {% endif %}
 
     {% if page_obj.object_list %}
     <div class="gallery-masonry">
@@ -83,17 +71,17 @@ Photo Gallery | Digital Governance Portal
     {% if page_obj.paginator.num_pages > 1 %}
     <div class="gallery-pagination">
       {% if page_obj.has_previous %}
-        <a href="?page={{ page_obj.previous_page_number }}{% if current_category %}&category={{ current_category }}{% endif %}" class="gallery-page-btn"><i class="fa-solid fa-chevron-left"></i></a>
+        <a href="?page={{ page_obj.previous_page_number }}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_album %}&album={{ current_album }}{% endif %}" class="gallery-page-btn"><i class="fa-solid fa-chevron-left"></i></a>
       {% else %}
         <span class="gallery-page-btn disabled"><i class="fa-solid fa-chevron-left"></i></span>
       {% endif %}
 
       {% for num in page_obj.paginator.page_range %}
-        <a href="?page={{ num }}{% if current_category %}&category={{ current_category }}{% endif %}" class="gallery-page-btn {% if num == page_obj.number %}active{% endif %}">{{ num }}</a>
+        <a href="?page={{ num }}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_album %}&album={{ current_album }}{% endif %}" class="gallery-page-btn {% if num == page_obj.number %}active{% endif %}">{{ num }}</a>
       {% endfor %}
 
       {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}{% if current_category %}&category={{ current_category }}{% endif %}" class="gallery-page-btn"><i class="fa-solid fa-chevron-right"></i></a>
+        <a href="?page={{ page_obj.next_page_number }}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_album %}&album={{ current_album }}{% endif %}" class="gallery-page-btn"><i class="fa-solid fa-chevron-right"></i></a>
       {% else %}
         <span class="gallery-page-btn disabled"><i class="fa-solid fa-chevron-right"></i></span>
       {% endif %}
@@ -102,7 +90,9 @@ Photo Gallery | Digital Governance Portal
 
     {% else %}
     <p class="ann-placeholder">
-      {% if current_category %}No photos in this category yet.{% else %}No photos published yet.{% endif %}
+      {% if current_album %}No published photos in this album yet.
+      {% elif current_category %}No photos in this category yet.
+      {% else %}No photos published yet.{% endif %}
     </p>
     {% endif %}
 

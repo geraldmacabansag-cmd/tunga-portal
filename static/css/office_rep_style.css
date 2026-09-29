@@ -393,6 +393,14 @@ img{max-width:100%;display:block;}
   gap:16px;
   margin-bottom:20px;
 }
+/* A few pages (Events, Gallery) only have 3 stat cards, so they used an
+   inline style="grid-template-columns:repeat(3,1fr);" to avoid a gap where
+   a 4th card would go. Inline styles beat the responsive rules below no
+   matter what, so those two pages stayed stuck at 3 columns on phones —
+   this class gets the same responsive breakpoints as .stat-grid instead. */
+.stat-grid--3{
+  grid-template-columns:repeat(3,1fr);
+}
 .stat-card{
   background:#fff;
   border:1px solid var(--gray-100);
@@ -951,7 +959,7 @@ textarea.note-input{
 
 /* ---------- Responsive ---------- */
 @media (max-width:1200px){
-  .stat-grid{grid-template-columns:repeat(2,1fr);}
+  .stat-grid,.stat-grid--3{grid-template-columns:repeat(2,1fr);}
   .grid-3,.grid-2{grid-template-columns:1fr;}
   .approval-grid{grid-template-columns:1fr 1fr;}
 }
@@ -961,11 +969,36 @@ textarea.note-input{
   .topbar{position:static;z-index:auto;}
   .menu-btn{position:fixed;top:14px;left:16px;z-index:30;transition:left .2s ease;}
   #sidebar.open ~ .main .menu-btn{left:280px;}
-  .stat-grid{grid-template-columns:1fr;}
+  /* 2 per row instead of stacking 1-per-row full width — a Dashboard or
+     Announcements page can have 4-5 stat cards, and stacking each one full
+     width turned the top of the page into a long scroll of mostly empty
+     card padding before any real content showed. 2 columns of smaller
+     cards fits the same numbers in a fraction of the vertical space. */
+  .stat-grid,.stat-grid--3{grid-template-columns:repeat(2,1fr);gap:10px;}
+  .stat-card{padding:12px 12px 10px;}
+  .stat-card .top{gap:8px;margin-bottom:8px;}
+  .stat-icon{width:30px;height:30px;font-size:13px;border-radius:8px;}
+  .stat-value{font-size:19px;}
+  .stat-label{font-size:11px;}
+  .stat-sub{font-size:10px;margin-top:2px;}
   .approval-grid{grid-template-columns:1fr;}
-  .topbar{padding:14px 16px 14px 62px;}
+  .topbar{padding:14px 16px 14px 62px;flex-wrap:nowrap;gap:8px;}
   .content{padding:16px;}
   .searchbox{display:none;}
+
+  /* The page title/subtitle on the left and the bell + account chip on the
+     right fit fine on a desktop-width row, but at phone widths the
+     wrapping subtitle and the chip's name/role text crowd each other and
+     the row overflows. Keep the title on one line (truncated if long),
+     drop the subtitle, and shrink the account chip to just the avatar. */
+  .topbar-left{gap:10px;min-width:0;flex:1 1 auto;}
+  .page-heading{min-width:0;overflow:hidden;}
+  .page-heading h1{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .page-heading p{display:none;}
+  .topbar-right{gap:8px;flex-shrink:0;}
+  .user-chip{padding:3px;gap:0;border:0;background:transparent;}
+  .user-chip .who,
+  .user-chip .chev{display:none;}
 }
 
 /* ==========================================================================

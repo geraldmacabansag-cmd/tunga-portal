@@ -6,7 +6,8 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib.auth.models import User
 from .models import CitizenProfile
-from office_dashboard.models import OfficeRepresentative, Announcement, NewsUpdate, Event, Photo
+from office_dashboard.models import OfficeRepresentative, Announcement, NewsUpdate, Event, Photo, Album
+from django.db.models import Count, Q
 from admin_dashboard.models import SuperAdmin, EmergencyContact, QuickLink
 from django.utils import timezone
 from django.utils.text import slugify
@@ -405,14 +406,33 @@ def gallery(request):
     if current_category:
         photos_qs = photos_qs.filter(category__iexact=current_category)
 
+    current_album = request.GET.get('album', '').strip()
+    if current_album:
+        photos_qs = photos_qs.filter(album_id=current_album)
+
     paginator = Paginator(photos_qs, 16)
     page_obj = paginator.get_page(request.GET.get('page'))
+
+    # "Featured Albums" — set by the Super Admin (Album.is_featured), capped
+    # at 4 to match the row's card slots. Only counts published photos, so
+    # an album emptied out by moderation doesn't show a stale photo count.
+    featured_albums = list(
+        Album.objects
+        .filter(is_featured=True)
+        .annotate(published_count=Count('photos', filter=Q(photos__status='published')))
+        .select_related('representative__office')
+        .order_by('-created_at')[:4]
+    )
+    for a in featured_albums:
+        a.cover_photo = a.photos.filter(status='published').order_by('-created_at').first()
 
     return render(request, "portal/gallery.html", {
         "page_obj": page_obj,
         "total_photos": total_photos,
         "category_choices": Photo.CATEGORY_CHOICES,
         "current_category": current_category,
+        "current_album": current_album,
+        "featured_albums": featured_albums,
     })
 
 

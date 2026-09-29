@@ -12,7 +12,7 @@
   margin-bottom: 18px;
 }
 
-/* ---------- Featured Albums (placeholder cards) ---------- */
+/* ---------- Featured Albums — set by the Super Admin ---------- */
 .gallery-featured-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -34,10 +34,32 @@
   overflow: hidden;
   box-shadow: var(--shadow-card);
   transition: transform .18s ease, box-shadow .18s ease;
+  border: 2px solid transparent;
+}
+/* When an album has a real cover photo, --card-img is set and this paints
+   it behind a dark scrim so the badge/title stay readable; when there is
+   no cover yet, --card-img is unset and the plain --card-grad shows
+   through instead. */
+.gallery-featured-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(to top, rgba(10, 20, 40, 0.75), rgba(10, 20, 40, 0.15)), var(--card-img, none);
+  background-size: cover;
+  background-position: center;
+}
+.gallery-featured-card__badge,
+.gallery-featured-card__icon,
+.gallery-featured-card__info {
+  position: relative;
+  z-index: 1;
 }
 .gallery-featured-card:hover {
   transform: translateY(-3px);
   box-shadow: 0 10px 24px rgba(10, 47, 110, 0.18);
+}
+.gallery-featured-card.is-active {
+  border-color: var(--gold, #f4c531);
 }
 
 .gallery-featured-card__badge {
@@ -108,6 +130,17 @@
   background: var(--navy);
   border-color: var(--navy);
   color: #fff;
+}
+
+.gallery-active-filter {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: -6px 0 16px;
+}
+.gallery-active-filter a {
+  color: var(--navy);
+  font-weight: 600;
+  margin-left: 6px;
 }
 
 /* ---------- Photo grid (Pinterest-style masonry via CSS columns, so

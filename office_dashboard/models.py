@@ -202,6 +202,10 @@ class Album(models.Model):
     description = models.CharField(max_length=255, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # Set by the Super Admin only, to control the "Featured Albums" row on
+    # the public Gallery page. Office reps have no UI to set this.
+    is_featured = models.BooleanField(default=False)
+
     class Meta:
         ordering = ["name"]
 

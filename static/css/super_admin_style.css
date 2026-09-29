@@ -333,6 +333,17 @@ img{max-width:100%;display:block;}
   gap:16px;
   margin-bottom:20px;
 }
+/* A few pages (Events, News & Updates, Services) only have 2 stat cards
+   and used an inline style (fixed 260px columns on Services; a 520px max
+   width on the other two) to keep them from stretching full width. Inline
+   styles beat the responsive rules below no matter what, so those pages
+   either overflowed on a phone (fixed px columns) or stayed frozen at 2
+   columns instead of stacking — this class gets the same responsive
+   breakpoints as .stat-grid instead. */
+.stat-grid--2{
+  grid-template-columns:repeat(2,1fr);
+  max-width:520px;
+}
 .stat-card{
   background:#fff;
   border:1px solid var(--gray-100);
@@ -1289,7 +1300,18 @@ textarea.note-input{
   .topbar{position:static;z-index:auto;}
   .menu-btn{position:fixed;top:14px;left:16px;z-index:30;transition:left .2s ease;}
   #sidebar.open ~ .main .menu-btn{left:280px;}
-  .stat-grid{grid-template-columns:1fr;}
+  /* 2 per row instead of stacking 1-per-row full width — a Dashboard or
+     Announcements page can have 4-5 stat cards, and stacking each one full
+     width turned the top of the page into a long scroll of mostly empty
+     card padding before any real content showed. 2 columns of smaller
+     cards fits the same numbers in a fraction of the vertical space. */
+  .stat-grid,.stat-grid--2{grid-template-columns:repeat(2,1fr);max-width:none;gap:10px;}
+  .stat-card{padding:12px 12px 10px;}
+  .stat-card .top{gap:8px;margin-bottom:8px;}
+  .stat-icon{width:30px;height:30px;font-size:13px;border-radius:8px;}
+  .stat-value{font-size:19px;}
+  .stat-label{font-size:11px;}
+  .stat-sub{font-size:10px;margin-top:2px;}
   .approval-grid{grid-template-columns:1fr;}
   .approval-grid > div:first-child,
   .approval-grid > form{grid-column:1;position:static;}
@@ -1493,6 +1515,39 @@ body.modal-open{overflow:hidden;}
   top: 10px;
   left: 10px;
   z-index: 2;
+}
+
+/* Star toggle for "Featured Albums" on the public Gallery page. Sits as a
+   sibling of the album card's link (not nested inside it, since a form/
+   button inside an <a> is invalid markup) so clicking it doesn't also
+   navigate into the album. */
+.album-feature-form {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+}
+.album-feature-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(17, 24, 39, 0.55);
+  color: rgba(255, 255, 255, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+.album-feature-btn:hover {
+  background: rgba(17, 24, 39, 0.75);
+  transform: scale(1.08);
+}
+.album-feature-btn.is-featured {
+  background: var(--amber-600, #f2a71b);
+  color: #fff;
 }
 
 .gallery-item-empty {

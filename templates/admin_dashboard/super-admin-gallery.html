@@ -13,6 +13,7 @@
   <div>
     <h2 style="margin:0;font-size:16px;font-weight:800;color:var(--gray-900);">Photo Albums</h2>
     <p style="margin:3px 0 0;font-size:12.5px;color:var(--gray-500);">Published photos uploaded from municipal events and activities, organized by album</p>
+    <p style="margin:3px 0 0;font-size:12px;color:var(--gray-400);"><i class="fa-solid fa-star" style="color:var(--amber-600);"></i> Click the star on an album to feature it on the public Gallery page (up to 4 at a time).</p>
   </div>
   <div style="display:flex;gap:10px;">
     <button type="button" class="btn btn-primary" id="open-add-photo"><i class="fa-solid fa-plus"></i> Add Photo</button>
@@ -60,18 +61,29 @@
   <div class="panel-body">
     <div class="gallery-grid">
       {% for a in albums %}
-      <a class="gallery-item" href="{% url 'admin_dashboard:ad_album_detail' a.id %}" style="display:block;">
-        {% if a.published_cover %}
-          <img src="{{ a.published_cover.image.url }}" alt="{{ a.name }}">
-        {% else %}
-          <div class="gallery-item-empty"><i class="fa-solid fa-layer-group"></i></div>
-        {% endif %}
-        <span class="badge badge-green gi-badge">{{ a.photo_count }} photo{{ a.photo_count|pluralize }}</span>
-        <div class="gi-overlay">
-          <span class="gi-title">{{ a.name }}</span>
-          <span class="gi-title" style="font-weight:500;opacity:.85;">{{ a.representative.office.name }}</span>
-        </div>
-      </a>
+      <div class="gallery-item">
+        <a href="{% url 'admin_dashboard:ad_album_detail' a.id %}" style="display:block;width:100%;height:100%;">
+          {% if a.published_cover %}
+            <img src="{{ a.published_cover.image.url }}" alt="{{ a.name }}">
+          {% else %}
+            <div class="gallery-item-empty"><i class="fa-solid fa-layer-group"></i></div>
+          {% endif %}
+          <span class="badge badge-green gi-badge">{{ a.photo_count }} photo{{ a.photo_count|pluralize }}</span>
+          <div class="gi-overlay">
+            <span class="gi-title">{{ a.name }}</span>
+            <span class="gi-title" style="font-weight:500;opacity:.85;">{{ a.representative.office.name }}</span>
+          </div>
+        </a>
+        <form method="post" action="{% url 'admin_dashboard:admin_album_toggle_featured' a.id %}" class="album-feature-form">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{% url 'admin_dashboard:ad_gallery' %}">
+          <button
+            type="submit"
+            class="album-feature-btn {% if a.is_featured %}is-featured{% endif %}"
+            title="{% if a.is_featured %}Remove from Featured Albums{% else %}Add to Featured Albums{% endif %}"
+          ><i class="fa-solid fa-star"></i></button>
+        </form>
+      </div>
       {% empty %}
       <p style="text-align:center;color:var(--gray-400);padding:24px;grid-column:1/-1;">No published albums yet.</p>
       {% endfor %}
