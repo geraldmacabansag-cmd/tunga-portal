@@ -12,7 +12,8 @@ urlpatterns = [
     path('Admin-Announcement/create/', views.admin_create_announcement, name='admin_create_announcement'),
     path('Admin-Announcement/<int:pk>/edit/', views.admin_edit_announcement, name='admin_edit_announcement'),
     path('Admin-Announcement/<int:pk>/delete/', views.admin_delete_announcement, name='admin_delete_announcement'),
-    
+    path('Admin-Announcement/<int:pk>/toggle-pin/', views.admin_announcement_toggle_pin, name='admin_announcement_toggle_pin'),
+
     path('Admin-News-Update/', views.admin_news_update, name='ad_news_update'),
     path('Admin-News-Update/<int:pk>/save/', views.admin_news_save, name='admin_news_save'),
     path('Admin-News-Update/<int:pk>/delete/', views.admin_news_delete, name='admin_news_delete'),

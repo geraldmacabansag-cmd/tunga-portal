@@ -20,19 +20,24 @@ Home | Digital Governance Portal
 <section class="filter-bar-wrap">
   <div class="container">
     <div class="panel filter-bar">
-      <div class="filter-tabs">
-        <a href="#" class="filter-tab active" data-tab="all"><i class="fa-regular fa-file-lines"></i> All Updates</a>
-        <a href="#" class="filter-tab" data-tab="announcements"><i class="fa-solid fa-bullhorn"></i> Announcements</a>
-        <a href="#" class="filter-tab" data-tab="news"><i class="fa-regular fa-newspaper"></i> News</a>
-        <a href="#" class="filter-tab" data-tab="events"><i class="fa-regular fa-calendar"></i> Events</a>
-        <a href="#" class="filter-tab" data-tab="offices"><i class="fa-regular fa-building"></i> From Our Offices</a>
+      <div class="filter-tabs-wrap">
+        <div class="filter-tabs">
+          <a href="#" class="filter-tab active" data-tab="all"><i class="fa-regular fa-file-lines"></i> All Updates</a>
+          <a href="#" class="filter-tab" data-tab="announcements"><i class="fa-solid fa-bullhorn"></i> Announcements</a>
+          <a href="#" class="filter-tab" data-tab="news"><i class="fa-regular fa-newspaper"></i> News</a>
+          <a href="#" class="filter-tab" data-tab="events"><i class="fa-regular fa-calendar"></i> Events</a>
+          <a href="#" class="filter-tab" data-tab="offices"><i class="fa-regular fa-building"></i> From Our Offices</a>
+        </div>
       </div>
       <div class="filter-actions">
         <div class="search-input">
           <i class="fa-solid fa-magnifying-glass"></i>
-          <input type="text" placeholder="Search announcements, news...">
+          <input type="text" id="topSearchInput" placeholder="Search announcements, news...">
         </div>
-        <button class="btn btn-outline filter-btn"><i class="fa-solid fa-filter"></i> Filter <i class="fa-solid fa-chevron-down" style="font-size:.7rem"></i></button>
+        <div class="top-filter-wrap">
+          <button type="button" class="btn btn-outline filter-btn" id="topFilterBtn"><i class="fa-solid fa-filter"></i> <span id="topFilterLabel">Filter</span> <i class="fa-solid fa-chevron-down" style="font-size:.7rem"></i></button>
+          <div class="top-filter-menu" id="topFilterMenu"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -53,7 +58,7 @@ Home | Digital Governance Portal
             </div>
             <ul class="update-list">
               {% for a in announcements %}
-              <li class="update-item">
+              <li class="update-item" data-search-text="{{ a.title|lower }}">
                 <div class="update-item__date">{{ a.display_date|date:"M"|upper }}<strong>{{ a.display_date|date:"d" }}</strong>{{ a.display_date|date:"Y" }}</div>
                 <div class="update-item__body">
                   {% if forloop.first %}<span class="badge-new">NEW</span>{% endif %}
@@ -76,7 +81,7 @@ Home | Digital Governance Portal
             </div>
             <ul class="update-list">
               {% for n in news_items %}
-              <li class="update-item">
+              <li class="update-item" data-search-text="{{ n.title|lower }}">
                 <div class="update-item__date">{{ n.display_date|date:"M"|upper }}<strong>{{ n.display_date|date:"d" }}</strong>{{ n.display_date|date:"Y" }}</div>
                 <div class="update-item__body">
                   <a href="#" class="update-item__title">{{ n.title }}</a>
@@ -90,6 +95,8 @@ Home | Digital Governance Portal
               {% endfor %}
             </ul>
           </div>
+
+          <p class="top-no-results panel" style="display:none;padding:30px;text-align:center;color:var(--text-muted);">No updates match your search.</p>
         </div>
 
         <aside class="announcements-side">
@@ -99,14 +106,17 @@ Home | Digital Governance Portal
               <a href="{% url 'offices' %}">View All Offices</a>
             </div>
             <ul class="offices-feed">
-              <li><i class="fa-solid fa-user-tie office-icon office-icon--navy"></i><div><a href="{% url 'offices:mayor' %}">Mayor's Office</a><p>Latest: Mayor's Listening Session <span>2 hours ago</span></p></div></li>
-              <li><i class="fa-solid fa-house-medical office-icon office-icon--green"></i><div><a href="#">Municipal Health Office</a><p>Latest: Health Caravan Serves 350 Residents <span>3 days ago</span></p></div></li>
-              <li><i class="fa-solid fa-seedling office-icon office-icon--orange"></i><div><a href="#">Municipal Agriculture Office</a><p>Latest: LGU Tunga Supports Farmers' Training Program <span>4 days ago</span></p></div></li>
-              <li><i class="fa-solid fa-leaf office-icon office-icon--green2"></i><div><a href="#">Municipal Environment Office</a><p>Latest: Tunga Conducts Community Clean-Up Drive <span>1 day ago</span></p></div></li>
-              <li><i class="fa-solid fa-drafting-compass office-icon office-icon--gray"></i><div><a href="#">Municipal Engineering Office</a><p>Latest: Road Maintenance on Poblacion&ndash;San Roque Rd. <span>2 days ago</span></p></div></li>
-              <li><i class="fa-solid fa-hand-holding-heart office-icon office-icon--red"></i><div><a href="#">Municipal Social Welfare Office</a><p>Latest: Distribution of Food Packs to 120 Families <span>3 days ago</span></p></div></li>
-              <li><i class="fa-solid fa-coins office-icon office-icon--navy2"></i><div><a href="#">Municipal Treasurer's Office</a><p>Latest: Reminder: Real Property Tax Payment <span>4 days ago</span></p></div></li>
-              <li><i class="fa-solid fa-clipboard-list office-icon office-icon--purple"></i><div><a href="#">Municipal Assessor's Office</a><p>Latest: Schedule of Real Property Assessment <span>5 days ago</span></p></div></li>
+              {% for item in office_updates %}
+              <li>
+                <i class="{{ item.icon }} office-icon office-icon--{{ item.color }}"></i>
+                <div>
+                  <a href="{{ item.url }}">{{ item.office.name }}</a>
+                  <p>Latest: {{ item.latest_title }} <span>{{ item.latest_time|naturaltime }}</span></p>
+                </div>
+              </li>
+              {% empty %}
+              <li><div><p>No office updates published yet.</p></div></li>
+              {% endfor %}
             </ul>
             <a href="{% url 'offices' %}" class="view-all offices-panel__viewall">View All Offices <i class="fa-solid fa-arrow-right"></i></a>
           </div>
@@ -136,24 +146,22 @@ Home | Digital Governance Portal
               <button type="button" class="ann-pill" data-category="{{ cat.slug }}">{{ cat.name }}</button>
               {% endfor %}
             </div>
-            <div class="ann-search">
-              <i class="fa-solid fa-magnifying-glass"></i>
-              <input type="text" id="annSearchInput" placeholder="Search announcements...">
-            </div>
           </div>
 
+          {% if pinned_announcement %}
           <div class="ann-pinned">
             <span class="ann-pinned__icon"><i class="fa-solid fa-bell"></i></span>
             <div class="ann-pinned__body">
               <span class="ann-pinned__label">PINNED NOTICE</span>
-              <div class="ann-pinned__title">Municipal Hall Closed on November 1&ndash;2, 2026</div>
-              <p>All offices will be closed for All Saints' and All Souls' Day. Regular transactions resume on Tuesday, November 3, 2026. Emergency hotlines remain open 24/7.</p>
+              <a href="#" class="ann-pinned__title js-ann-open" data-ann="{{ pinned_announcement.id }}" data-ann-title="{{ pinned_announcement.title }}" data-ann-office="{{ pinned_announcement.representative.office.name|default:'—' }}">{{ pinned_announcement.title }}</a>
+              <p>{{ pinned_announcement.content|default:pinned_announcement.subtitle|truncatewords:40 }}</p>
             </div>
           </div>
+          {% endif %}
 
           <div id="annCardList">
             {% for a in all_announcements %}
-            <div class="panel ann-card" data-category="{{ a.category_slug }}" data-title="{{ a.title|lower }}" data-ann-title="{{ a.title }}" data-ann-office="{{ a.representative.office.name|default:'—' }}">
+            <div class="panel ann-card" data-category="{{ a.category_slug }}" data-title="{{ a.title|lower }}" data-ann-title="{{ a.title }}" data-ann-office="{{ a.representative.office.name|default:'—' }}" data-search-text="{{ a.title|lower }}" data-search-category="{{ a.category_slug }}" data-search-category-label="{{ a.category_label }}">
               <div class="ann-card__top">
                 <div class="ann-card__date">{{ a.display_date|date:"M"|upper }}<strong>{{ a.display_date|date:"d" }}</strong>{{ a.display_date|date:"Y" }}</div>
                 <div class="ann-card__body">
@@ -250,7 +258,7 @@ Home | Digital Governance Portal
 
       <div class="news-featured-grid">
         {% if news_main_story %}
-        <a href="#" class="news-feature-card news-feature-card--main js-news-open{% if not news_main_story.image %} news-feature-card--placeholder{% endif %}" data-news="{{ news_main_story.id }}" data-news-title="{{ news_main_story.title }}" data-news-office="{{ news_main_story.representative.office.name|default:'—' }}" {% if news_main_story.image %}style="background-image:url('{{ news_main_story.image.url }}');background-size:cover;background-position:center;"{% endif %}>
+        <a href="#" class="news-feature-card news-feature-card--main js-news-open{% if not news_main_story.image %} news-feature-card--placeholder{% endif %}" data-news="{{ news_main_story.id }}" data-news-title="{{ news_main_story.title }}" data-news-office="{{ news_main_story.representative.office.name|default:'—' }}" data-search-text="{{ news_main_story.title|lower }}" data-search-category="{{ news_main_story.category_slug }}" data-search-category-label="{{ news_main_story.category_label }}" {% if news_main_story.image %}style="background-image:url('{{ news_main_story.image.url }}');background-size:cover;background-position:center;"{% endif %}>
           {% if not news_main_story.image %}<span class="news-feature-card__img"><i class="fa-regular fa-image"></i></span>{% endif %}
           <span class="news-feature-card__badge news-feature-card__badge--top">TOP STORY</span>
           <div class="news-feature-card__info">
@@ -267,7 +275,7 @@ Home | Digital Governance Portal
         {% if news_side_stories %}
         <div class="news-featured-side">
           {% for n in news_side_stories %}
-          <a href="#" class="news-feature-card news-feature-card--small js-news-open{% if not n.image %} news-feature-card--placeholder{% endif %}" data-news="{{ n.id }}" data-news-title="{{ n.title }}" data-news-office="{{ n.representative.office.name|default:'—' }}" {% if n.image %}style="background-image:url('{{ n.image.url }}');background-size:cover;background-position:center;"{% endif %}>
+          <a href="#" class="news-feature-card news-feature-card--small js-news-open{% if not n.image %} news-feature-card--placeholder{% endif %}" data-news="{{ n.id }}" data-news-title="{{ n.title }}" data-news-office="{{ n.representative.office.name|default:'—' }}" data-search-text="{{ n.title|lower }}" data-search-category="{{ n.category_slug }}" data-search-category-label="{{ n.category_label }}" {% if n.image %}style="background-image:url('{{ n.image.url }}');background-size:cover;background-position:center;"{% endif %}>
             {% if not n.image %}<span class="news-feature-card__img"><i class="fa-regular fa-image"></i></span>{% endif %}
             <span class="news-feature-card__badge news-feature-card__badge--{{ n.category_slug }}">{{ n.category_label|upper }}</span>
             <div class="news-feature-card__info">
@@ -291,7 +299,7 @@ Home | Digital Governance Portal
 
           <div class="news-grid">
             {% for n in news_grid_items %}
-            <a href="#" class="news-card js-news-open" data-news="{{ n.id }}" data-news-title="{{ n.title }}" data-news-office="{{ n.representative.office.name|default:'—' }}">
+            <a href="#" class="news-card js-news-open" data-news="{{ n.id }}" data-news-title="{{ n.title }}" data-news-office="{{ n.representative.office.name|default:'—' }}" data-search-text="{{ n.title|lower }}" data-search-category="{{ n.category_slug }}" data-search-category-label="{{ n.category_label }}">
               <span class="news-card__img{% if not n.image %} news-card__img--placeholder{% endif %}" {% if n.image %}style="background-image:url('{{ n.image.url }}');background-size:cover;background-position:center;"{% endif %}>{% if not n.image %}<i class="fa-regular fa-image"></i>{% endif %}</span>
               <div class="news-card__body">
                 <span class="news-badge news-badge--{{ n.category_slug }}">{{ n.category_label|upper }}</span>
@@ -308,6 +316,8 @@ Home | Digital Governance Portal
             {% endif %}
             {% endfor %}
           </div>
+
+          <p class="top-no-results panel" style="display:none;padding:30px;text-align:center;color:var(--text-muted);">No news matches your search.</p>
 
           <div class="news-pagination">
             <button type="button" class="news-page-btn" disabled><i class="fa-solid fa-chevron-left"></i></button>
@@ -366,7 +376,7 @@ Home | Digital Governance Portal
     <div class="tab-panel" data-tab-panel="events">
 
       {% if featured_event %}
-      <div class="panel event-hero">
+      <div class="panel event-hero" data-search-text="{{ featured_event.title|lower }}" data-search-category="{{ featured_event.category_label|lower }}" data-search-category-label="{{ featured_event.category_label }}">
         <div class="event-hero__img" {% if featured_event.poster %}style="background-image:url('{{ featured_event.poster.url }}');background-size:cover;background-position:center;"{% endif %}>
           {% if not featured_event.poster %}<span class="event-hero__img-icon"><i class="fa-regular fa-image"></i></span>{% endif %}
           <span class="event-hero__flag">Featured Event</span>
@@ -408,7 +418,7 @@ Home | Digital Governance Portal
 
           <div class="events-grid">
             {% for e in upcoming_events %}
-            <a href="#" class="event-card js-event-open" data-event="{{ e.id }}" data-event-title="{{ e.title }}" data-event-office="{{ e.representative.office.name|default:'—' }}">
+            <a href="#" class="event-card js-event-open" data-event="{{ e.id }}" data-event-title="{{ e.title }}" data-event-office="{{ e.representative.office.name|default:'—' }}" data-search-text="{{ e.title|lower }}" data-search-category="{{ e.category_label|lower }}" data-search-category-label="{{ e.category_label }}">
               <div class="event-card__img{% if not e.poster %} event-card__img--placeholder{% endif %}" {% if e.poster %}style="background-image:url('{{ e.poster.url }}');background-size:cover;background-position:center;"{% endif %}>
                 <span class="event-badge">{{ e.category_label|upper }}</span>
                 <div class="event-card__datebox">{% if e.event_date %}<span>{{ e.event_date|date:"M"|upper }}</span><strong>{{ e.event_date|date:"d" }}</strong>{% else %}<span>DATE</span><strong>TBA</strong>{% endif %}</div>
@@ -434,7 +444,7 @@ Home | Digital Governance Portal
           </div>
 
           {% for e in past_events %}
-          <a href="#" class="panel event-past js-event-open" data-event="{{ e.id }}" data-event-title="{{ e.title }}" data-event-office="{{ e.representative.office.name|default:'—' }}">
+          <a href="#" class="panel event-past js-event-open" data-event="{{ e.id }}" data-event-title="{{ e.title }}" data-event-office="{{ e.representative.office.name|default:'—' }}" data-search-text="{{ e.title|lower }}" data-search-category="{{ e.category_label|lower }}" data-search-category-label="{{ e.category_label }}">
             <span class="event-past__img" {% if e.poster %}style="background-image:url('{{ e.poster.url }}');background-size:cover;background-position:center;"{% endif %}>{% if not e.poster %}<i class="fa-regular fa-image"></i>{% endif %}</span>
             <div class="event-past__body">
               <div class="event-past__date">{{ e.event_date|date:"M j, Y" }}</div>
@@ -447,6 +457,8 @@ Home | Digital Governance Portal
           {% empty %}
           <div class="panel ann-placeholder">No past events yet.</div>
           {% endfor %}
+
+          <p class="top-no-results panel" style="display:none;padding:30px;text-align:center;color:var(--text-muted);">No events match your search.</p>
 
         </div>
 
@@ -520,9 +532,37 @@ Home | Digital Governance Portal
       </div>
     </div>
 
-    <!-- ===================== TAB: From Our Offices (placeholder) ===================== -->
+    <!-- ===================== TAB: From Our Offices ===================== -->
     <div class="tab-panel" data-tab-panel="offices">
-      <div class="panel ann-placeholder">Offices tab content coming soon.</div>
+      <div class="panel offices-tab-panel">
+        <div class="section-title--row">
+          <h2 class="section-title" style="margin:0;padding:0;">Browse by Office</h2>
+          <a href="{% url 'offices' %}" class="view-all">View All Offices</a>
+        </div>
+        <p class="offices-tab-sub">See the latest announcement from each municipal office, all in one place.</p>
+
+        <div class="offices-tab-grid">
+          {% for item in office_directory %}
+          <a href="{{ item.url }}" class="office-tab-card" data-search-text="{{ item.office.name|lower }}">
+            <span class="office-icon office-tab-card__icon office-icon--{{ item.color }}"><i class="{{ item.icon }}"></i></span>
+            <div class="office-tab-card__body">
+              <h3>{{ item.office.name }}</h3>
+              {% if item.latest %}
+                <p class="office-tab-card__latest">{{ item.latest.title }}</p>
+                <span class="office-tab-card__meta">{{ item.latest_display_date|date:"M j, Y" }} &middot; {{ item.count }} announcement{{ item.count|pluralize }}</span>
+              {% else %}
+                <p class="office-tab-card__latest office-tab-card__latest--empty">No announcements published yet</p>
+              {% endif %}
+            </div>
+            <i class="fa-solid fa-chevron-right office-tab-card__arrow"></i>
+          </a>
+          {% empty %}
+          <p class="ann-placeholder">No offices to show yet.</p>
+          {% endfor %}
+        </div>
+
+        <p class="top-no-results panel" style="display:none;padding:30px;text-align:center;color:var(--text-muted);">No offices match your search.</p>
+      </div>
     </div>
 
   </div>
@@ -576,6 +616,11 @@ Home | Digital Governance Portal
     panels.forEach(function (panel) {
       panel.classList.toggle('active', panel.getAttribute('data-tab-panel') === target);
     });
+    // Defined further down (top search bar / Filter dropdown section) —
+    // hoisted, so it's safe to call here regardless of source order. Keeps
+    // that tab's search box, category dropdown and filtered results in
+    // sync whenever the active tab changes.
+    if (typeof onTabActivated === 'function') onTabActivated(target);
   }
 
   tabs.forEach(function (tab) {
@@ -590,23 +635,18 @@ Home | Digital Governance Portal
     });
   });
 
-  // On load, restore whichever tab the URL points to — either from a link
-  // like ?events_month=2026-11#events, or a direct #announcements link.
-  var initialTab = (window.location.hash || '').replace('#', '');
-  if (initialTab && document.querySelector('.filter-tab[data-tab="' + initialTab + '"]')) {
-    activateTab(initialTab);
-  }
-
-  // Announcements tab: category pill filter + live search over the
-  // hardcoded cards above (data-category / data-title attributes).
+  // Announcements tab: category pill filter + live search. The tab's own
+  // search box was removed — searching this tab is now done through the
+  // shared top search bar above the tabs (see topSearchInput below), which
+  // feeds its query into annSearchQuery.
   var pills = document.querySelectorAll('.ann-pill');
   var cards = document.querySelectorAll('.ann-card');
-  var searchInput = document.getElementById('annSearchInput');
   var noResults = document.getElementById('annNoResults');
   var activeCategory = 'all';
+  var annSearchQuery = '';
 
   function applyAnnFilters() {
-    var query = (searchInput.value || '').trim().toLowerCase();
+    var query = annSearchQuery;
     var visibleCount = 0;
 
     cards.forEach(function (card) {
@@ -628,10 +668,6 @@ Home | Digital Governance Portal
       applyAnnFilters();
     });
   });
-
-  if (searchInput) {
-    searchInput.addEventListener('input', applyAnnFilters);
-  }
 
   // Announcement details modal: clicking a card's title or "Read more"
   // opens a <dialog> filled from that card's own <template id="tpl-ann-ID">
@@ -657,8 +693,8 @@ Home | Digital Governance Portal
     document.querySelectorAll('.js-ann-open').forEach(function (el) {
       el.addEventListener('click', function (e) {
         e.preventDefault();
-        var card = el.closest('.ann-card');
-        if (card) openAnnDialog(el.getAttribute('data-ann'), card);
+        var card = el.closest('.ann-card') || el;
+        openAnnDialog(el.getAttribute('data-ann'), card);
       });
     });
 
@@ -793,6 +829,168 @@ Home | Digital Governance Portal
       btn.classList.add('active');
     });
   });
+
+  // ---- Top search bar + "Filter" dropdown (works across all four tabs) --
+  // The Announcements tab already has its own dedicated search box + category
+  // pills (ann-toolbar, above) — this top bar mirrors/drives those (by value
+  // sync + simulated clicks) whenever that tab is active, so there's only
+  // ever one real filter state, never two fighting each other. For the
+  // other tabs (All Updates, News, Events), which have no per-tab controls
+  // of their own, this top bar is the actual filter, matching against the
+  // data-search-text / data-search-category attributes rendered on each
+  // tab's real cards.
+  var topSearchInput = document.getElementById('topSearchInput');
+  var topFilterBtn = document.getElementById('topFilterBtn');
+  var topFilterMenu = document.getElementById('topFilterMenu');
+  var topFilterLabel = document.getElementById('topFilterLabel');
+  var activeTopCategory = 'all';
+
+  function getActiveTabName() {
+    var el = document.querySelector('.filter-tab.active');
+    return el ? el.getAttribute('data-tab') : 'all';
+  }
+
+  function applyGenericFilters(tabName, query, category) {
+    var panel = document.querySelector('.tab-panel[data-tab-panel="' + tabName + '"]');
+    if (!panel) return;
+    var items = panel.querySelectorAll('[data-search-text]');
+    var visibleCount = 0;
+    items.forEach(function (el) {
+      var matchesCategory = category === 'all' || el.getAttribute('data-search-category') === category;
+      var matchesQuery = !query || el.getAttribute('data-search-text').indexOf(query) !== -1;
+      var show = matchesCategory && matchesQuery;
+      el.classList.toggle('is-hidden', !show);
+      if (show) visibleCount += 1;
+    });
+    var noResults = panel.querySelector('.top-no-results');
+    if (noResults) noResults.style.display = (items.length && visibleCount === 0) ? 'block' : 'none';
+  }
+
+  function closeTopFilterMenu() {
+    if (topFilterMenu) topFilterMenu.classList.remove('open');
+  }
+
+  // Rebuilds the dropdown's options from whatever data-search-category
+  // values are actually present on the active tab's cards, so it's always
+  // accurate with no separate per-tab category list to keep in sync. If a
+  // tab has none (the "All Updates" preview cards don't carry a category),
+  // the Filter button hides itself for that tab.
+  function rebuildTopFilterMenu(tabName) {
+    if (!topFilterMenu || !topFilterBtn) return;
+    topFilterMenu.innerHTML = '';
+
+    var allBtn = document.createElement('button');
+    allBtn.type = 'button';
+    allBtn.className = 'top-filter-opt active';
+    allBtn.textContent = 'All Categories';
+    allBtn.setAttribute('data-value', 'all');
+    topFilterMenu.appendChild(allBtn);
+
+    var panel = document.querySelector('.tab-panel[data-tab-panel="' + tabName + '"]');
+    var seen = {};
+    if (panel) {
+      panel.querySelectorAll('[data-search-category]').forEach(function (el) {
+        var val = el.getAttribute('data-search-category');
+        if (!val || seen[val]) return;
+        seen[val] = true;
+        var label = el.getAttribute('data-search-category-label') || val;
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'top-filter-opt';
+        btn.textContent = label;
+        btn.setAttribute('data-value', val);
+        topFilterMenu.appendChild(btn);
+      });
+    }
+
+    // Hide the Filter button entirely on a tab with no filterable categories
+    // (e.g. "All Updates") — there'd be nothing to filter by besides "All".
+    topFilterBtn.style.display = Object.keys(seen).length ? '' : 'none';
+    if (topFilterLabel) topFilterLabel.textContent = 'Filter';
+  }
+
+  function selectTopCategory(value, label) {
+    activeTopCategory = value;
+    if (topFilterLabel) topFilterLabel.textContent = value === 'all' ? 'Filter' : label;
+    if (topFilterMenu) {
+      topFilterMenu.querySelectorAll('.top-filter-opt').forEach(function (b) {
+        b.classList.toggle('active', b.getAttribute('data-value') === value);
+      });
+    }
+
+    var tab = getActiveTabName();
+    if (tab === 'announcements') {
+      // Reuse the Announcements tab's own pill click handler rather than
+      // reaching into its closure — clicking the matching pill keeps that
+      // tab's search box, pills and filtered cards all correctly in sync.
+      var pill = document.querySelector('.ann-pill[data-category="' + value + '"]');
+      if (pill) pill.click();
+    } else {
+      var query = topSearchInput ? (topSearchInput.value || '').trim().toLowerCase() : '';
+      applyGenericFilters(tab, query, activeTopCategory);
+    }
+    closeTopFilterMenu();
+  }
+
+  if (topFilterBtn && topFilterMenu) {
+    topFilterBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      topFilterMenu.classList.toggle('open');
+    });
+    topFilterMenu.addEventListener('click', function (e) {
+      var opt = e.target.closest('.top-filter-opt');
+      if (!opt) return;
+      selectTopCategory(opt.getAttribute('data-value'), opt.textContent);
+    });
+    document.addEventListener('click', function (e) {
+      if (topFilterMenu.classList.contains('open') && !topFilterMenu.contains(e.target) && e.target !== topFilterBtn && !topFilterBtn.contains(e.target)) {
+        closeTopFilterMenu();
+      }
+    });
+  }
+
+  if (topSearchInput) {
+    topSearchInput.addEventListener('input', function () {
+      var tab = getActiveTabName();
+      var query = (topSearchInput.value || '').trim().toLowerCase();
+      if (tab === 'announcements') {
+        annSearchQuery = query;
+        applyAnnFilters();
+      } else {
+        applyGenericFilters(tab, query, activeTopCategory);
+      }
+    });
+  }
+
+  // Called by activateTab() (defined near the top of this script) every
+  // time the active tab changes: resets the category filter, rebuilds the
+  // dropdown for the newly-active tab, and re-applies the current search
+  // text to it (the Announcements tab has no search box of its own anymore,
+  // so its query comes straight from the shared top search bar).
+  function onTabActivated(target) {
+    activeTopCategory = 'all';
+    rebuildTopFilterMenu(target);
+    var query = topSearchInput ? (topSearchInput.value || '').trim().toLowerCase() : '';
+    if (target === 'announcements') {
+      annSearchQuery = query;
+      var allPill = document.querySelector('.ann-pill[data-category="all"]');
+      if (allPill) allPill.click();
+      else applyAnnFilters();
+    } else {
+      applyGenericFilters(target, query, activeTopCategory);
+    }
+  }
+
+  rebuildTopFilterMenu(getActiveTabName());
+
+  // On load, restore whichever tab the URL points to — either from a link
+  // like ?events_month=2026-11#events, or a direct #announcements link.
+  // Done last (after every section above has finished wiring up) so
+  // activateTab()'s call into onTabActivated() has everything it needs.
+  var initialTab = (window.location.hash || '').replace('#', '');
+  if (initialTab && document.querySelector('.filter-tab[data-tab="' + initialTab + '"]')) {
+    activateTab(initialTab);
+  }
 })();
 </script>
 

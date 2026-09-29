@@ -84,6 +84,19 @@ img{max-width:100%;display:block;}
   height:100vh;
   overflow-y:auto;
 }
+/* Desktop: sidebar is open by default; the burger button collapses it. */
+@media (min-width:861px){
+  .sidebar{
+    transition:width .2s ease, padding .2s ease, opacity .15s ease;
+  }
+  .sidebar.collapsed{
+    width:0;
+    padding-left:0;
+    padding-right:0;
+    opacity:0;
+    overflow:hidden;
+  }
+}
 .sidebar-brand{
   display:flex;
   align-items:center;
@@ -758,6 +771,18 @@ table.data-table {
   color: var(--red-700);
 }
 
+/* Pin / unpin */
+
+.action-icons .ic.pin-ann-btn:hover {
+  color: var(--amber-600);
+}
+
+.action-icons .ic.pin-ann-btn.is-pinned {
+  color: var(--amber-700);
+  background: var(--amber-50, #fef3c7);
+  border-color: var(--amber-600);
+}
+
 /* =========================================================
    PAGINATION
 ========================================================= */
@@ -1259,15 +1284,68 @@ textarea.note-input{
   .approval-grid{grid-template-columns:1fr 1fr;}
 }
 @media (max-width:860px){
-  .sidebar{position:fixed;left:-280px;z-index:20;transition:left .2s ease;}
+  .sidebar{position:fixed;top:0;left:-280px;z-index:20;transition:left .2s ease;}
   .sidebar.open{left:0;}
+  .topbar{position:static;z-index:auto;}
+  .menu-btn{position:fixed;top:14px;left:16px;z-index:30;transition:left .2s ease;}
+  #sidebar.open ~ .main .menu-btn{left:280px;}
   .stat-grid{grid-template-columns:1fr;}
   .approval-grid{grid-template-columns:1fr;}
   .approval-grid > div:first-child,
   .approval-grid > form{grid-column:1;position:static;}
-  .topbar{padding:14px 16px;}
+  .topbar{padding:14px 16px 14px 62px;flex-wrap:nowrap;gap:8px;}
   .content{padding:16px;}
   .searchbox{display:none;}
+
+  /* The topbar's page title/subtitle + search field + bell + user chip all
+     fit comfortably on a desktop-width row, but at phone widths they don't:
+     the fixed-width search box and the heading's wrapping subtitle both
+     fight the same narrow row for space and end up visually overlapping.
+     Trim it down to what actually fits: a single-line, truncated title and
+     just the avatar (no name/role text) for the user chip. The search field
+     collapses to an icon button; tapping it swaps the title out for the
+     search input in that same row (see .topbar.search-active below), rather
+     than dropping the search feature entirely. */
+  .topbar-left{gap:10px;min-width:0;flex:1 1 auto;}
+  .page-heading{min-width:0;overflow:hidden;}
+  .page-heading h1{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .page-heading p{display:none;}
+  .field.search{display:none !important;}
+  .mobile-search-btn{display:flex !important;}
+  .topbar-right{gap:8px;flex-shrink:0;}
+  .user-chip{padding:3px;gap:0;border:0;background:transparent;}
+  .user-chip .who,
+  .user-chip .chev{display:none;}
+
+  /* Search-active state: title makes way for the search field, which takes
+     over the row (still alongside the menu button and the other topbar
+     icons — nothing drops to a second row). */
+  .topbar.search-active .topbar-left .page-heading{display:none;}
+  .topbar.search-active .topbar-left{flex:0 0 auto;}
+  .topbar.search-active .field.search{
+    display:flex !important;
+    flex:1;
+    width:auto;
+    min-width:0;
+  }
+  .topbar.search-active .topbar-right{flex:1;min-width:0;}
+  .topbar.search-active .icon-button,
+  .topbar.search-active .user-chip{display:none;}
+}
+
+/* Deliberately its own class, not .icon-button: wireTopbar() looks up the
+   notification bell with a plain ".icon-button" selector, and having two
+   elements share that class made this button (which sits earlier in the
+   header markup) hijack the bell's click handler instead. Same look as
+   .icon-button, kept as a separate class so the two never collide. */
+.mobile-search-btn{
+  display:none;
+  width:38px;height:38px;border-radius:10px;
+  border:1px solid var(--gray-200);
+  background:#fff;color:var(--gray-600);
+  align-items:center;justify-content:center;
+  font-size:15px;
+  flex-shrink:0;
 }
 
 /* ==========================================================================

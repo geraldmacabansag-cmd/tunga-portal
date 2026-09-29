@@ -9,6 +9,22 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body data-page="{% block body_page %}dashboard{% endblock %}" data-logout-url="{% url 'logout' %}">
+<script>
+  // Restore the sidebar's collapsed/expanded state before it paints, so
+  // navigating between pages doesn't flash it open and then snap shut.
+  // Only applies on desktop widths — on mobile the sidebar is off-canvas
+  // and always starts closed regardless of this flag.
+  (function () {
+    try {
+      if (window.innerWidth >= 861 && localStorage.getItem('adminSidebarCollapsed') === '1') {
+        document.documentElement.classList.add('admin-sidebar-preload-collapsed');
+      }
+    } catch (e) {}
+  })();
+</script>
+<style>
+  .admin-sidebar-preload-collapsed #sidebar{width:0;padding-left:0;padding-right:0;opacity:0;overflow:hidden;}
+</style>
 <div class="app-shell">
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
@@ -92,6 +108,19 @@
       <a href="{% url 'logout' %}" class="sidebar-logout" style="color:inherit;text-decoration:none;"><i class="fa-solid fa-arrow-right-from-bracket"></i> Log Out</a>
     </div>
   </aside>
+  <script>
+    // Restore the sidebar's scroll position as early as possible (right as
+    // this element finishes parsing, before the rest of the page loads) so
+    // clicking a link further down the list — e.g. "System Settings" — does
+    // not visibly snap the sidebar back to the top on the next page.
+    (function () {
+      try {
+        var sidebar = document.getElementById('sidebar');
+        var saved = sessionStorage.getItem('adminSidebarScrollTop');
+        if (sidebar && saved !== null) sidebar.scrollTop = parseInt(saved, 10) || 0;
+      } catch (e) {}
+    })();
+  </script>
 
   <div class="main">
     <header class="topbar">
@@ -103,7 +132,8 @@
         </div>
       </div>
       <div class="topbar-right">
-        <label class="field search" style="display:flex;align-items:center;gap:8px;width:220px;border-radius:999px;padding:9px 16px;color:var(--gray-400);"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search anything..." style="border:0;outline:0;flex:1;font:inherit;background:transparent;color:var(--gray-800);"></label>
+        <button type="button" class="mobile-search-btn" id="mobileSearchBtn" aria-label="Search"><i class="fa-solid fa-magnifying-glass"></i></button>
+        <label class="field search" id="topbarSearchField" style="display:flex;align-items:center;gap:8px;width:220px;border-radius:999px;padding:9px 16px;color:var(--gray-400);"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search anything..." style="border:0;outline:0;flex:1;font:inherit;background:transparent;color:var(--gray-800);"></label>
         <button class="icon-button"><i class="fa-regular fa-bell"></i><span class="dot">5</span></button>
         <div class="user-chip">
           <img src="{% static 'images/icon/profile_logo.jpeg' %}" alt="">

@@ -11,21 +11,30 @@
   Type your answers directly on the form below. We've filled in a couple of fields from your account where they matched — please check everything before downloading.
 </p>
 
-<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;" id="fillPagerBar">
-  <button type="button" class="btn btn-secondary" id="fillPrevPageBtn"><i class="fa-solid fa-chevron-left"></i></button>
-  <span id="fillPageIndicator" style="font-size:13px;color:var(--gray-600,#4b5563);">Page 1</span>
-  <button type="button" class="btn btn-secondary" id="fillNextPageBtn"><i class="fa-solid fa-chevron-right"></i></button>
+<div class="fill-toolbar" id="fillPagerBar">
+  <div class="fill-toolbar__group" id="fillPagerGroup">
+    <button type="button" class="btn btn-secondary" id="fillPrevPageBtn" title="Previous page"><i class="fa-solid fa-chevron-left"></i></button>
+    <span id="fillPageIndicator" class="fill-toolbar__indicator">Page 1</span>
+    <button type="button" class="btn btn-secondary" id="fillNextPageBtn" title="Next page"><i class="fa-solid fa-chevron-right"></i></button>
+  </div>
+  <div class="fill-toolbar__group">
+    <button type="button" class="btn btn-secondary" id="fillZoomOutBtn" title="Zoom out"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+    <span id="fillZoomIndicator" class="fill-toolbar__indicator">100%</span>
+    <button type="button" class="btn btn-secondary" id="fillZoomInBtn" title="Zoom in"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+    <button type="button" class="btn btn-secondary" id="fillZoomResetBtn" title="Fit to screen"><i class="fa-solid fa-expand"></i></button>
+  </div>
 </div>
 
 <form method="post" action="{% url 'offices:submit_form' form_obj.pk %}" id="fillOnlineForm" data-form-pk="{{ form_obj.pk }}">
   {% csrf_token %}
 
-  <div style="max-width:100%;overflow-x:auto;">
-    <div id="fillPdfStage" style="position:relative;display:inline-block;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
+  <div id="fillPdfViewport">
+    <div id="fillPdfStage">
       <canvas id="fillPdfCanvas"></canvas>
-      <div id="fillFieldLayer" style="position:absolute;top:0;left:0;right:0;bottom:0;"></div>
+      <div id="fillFieldLayer"></div>
     </div>
   </div>
+  <p class="fill-zoom-hint">Pinch, scroll, or use the zoom buttons above to get a closer look at any part of the form.</p>
 
   <div style="display:flex;justify-content:flex-end;gap:12px;border-top:1px solid #e5e7eb;padding-top:18px;margin-top:20px;">
     <button type="button" class="btn btn-secondary" id="fillOnlineCancelBtn">Cancel</button>
@@ -36,6 +45,49 @@
 <style>
   .fill-online-input:hover { border-color: rgba(47,91,234,.35) !important; }
   .fill-online-input:focus { border-color: rgba(47,91,234,.75) !important; background: rgba(255,255,255,.9) !important; }
+
+  .fill-toolbar {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 10px; margin-bottom: 12px;
+  }
+  .fill-toolbar__group { display: flex; align-items: center; gap: 8px; }
+  .fill-toolbar .btn-secondary { padding: 6px 11px; }
+  .fill-toolbar__indicator {
+    font-size: 13px; color: var(--gray-600,#4b5563); min-width: 46px; text-align: center;
+  }
+
+  /* The PDF stage itself is sized in pixels by JS (it has to be, for the
+     field overlay's percentage positions to line up), so this wrapper is
+     what actually keeps it inside a small screen: it fits the page to the
+     available width on load, and scrolls (both directions) once the person
+     zooms in past that, instead of ever forcing the whole dialog to stretch
+     wider than the viewport. */
+  #fillPdfViewport {
+    max-width: 100%;
+    max-height: 46vh;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y pinch-zoom;
+    background: #eef0f5;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+  }
+  #fillPdfStage {
+    position: relative;
+    display: inline-block;
+    background: #fff;
+    overflow: hidden;
+  }
+  #fillPdfCanvas { display: block; }
+  #fillFieldLayer { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
+
+  .fill-zoom-hint {
+    margin: 8px 0 0; font-size: 11.5px; color: var(--gray-400,#9ca3af); text-align: center;
+  }
+
+  @media (min-width: 701px) {
+    #fillPdfViewport { max-height: 58vh; }
+  }
 </style>
 
 <script type="application/json" id="fillFieldsData">{{ fields_json|safe }}</script>
@@ -47,15 +99,58 @@
     var canvas = document.getElementById('fillPdfCanvas');
     var ctx = canvas.getContext('2d');
     var stage = document.getElementById('fillPdfStage');
+    var viewport = document.getElementById('fillPdfViewport');
     var fieldLayer = document.getElementById('fillFieldLayer');
-    var pagerBar = document.getElementById('fillPagerBar');
+    var pagerGroup = document.getElementById('fillPagerGroup');
     var pageIndicator = document.getElementById('fillPageIndicator');
+    var zoomIndicator = document.getElementById('fillZoomIndicator');
     var form = document.getElementById('fillOnlineForm');
     var msgs = document.getElementById('fillOnlineMsgs');
 
     var pdfDoc = null;
     var currentPage = 1;
     var totalPages = 1;
+
+    // zoomLevel is a multiplier on top of "fit to the viewport's width" (1 =
+    // fit exactly), so the form always opens sized to the screen it's on —
+    // phone or desktop — instead of a fixed scale that's too small to read
+    // on a phone or too large to fit without scrolling sideways.
+    var zoomLevel = 1;
+    var MIN_ZOOM = 0.5;
+    var MAX_ZOOM = 4;
+
+    // The scale the field boxes' font-size/padding/border-radius were tuned
+    // to look right at (the old fixed render scale). Anything rendered at a
+    // different scale — a phone's smaller "fit" scale, or the person zoomed
+    // in/out — scales those pixel values by the same ratio, so each input
+    // stays sized to its printed slot on the form instead of overflowing a
+    // shrunk box (which looked like the field had "moved").
+    var BASE_SCALE = 1.4;
+
+    function computeFitScale(naturalWidth) {
+      var available = Math.max(viewport.clientWidth - 4, 100);
+      var scale = available / naturalWidth;
+      return Math.max(0.3, Math.min(scale, 1.6));
+    }
+
+    function applyFieldScale(effectiveScale) {
+      var ratio = effectiveScale / BASE_SCALE;
+      // No "readable minimum" font-size here on purpose: at a small enough
+      // zoom-out, the field's own box (a fraction of the shrunk page) gets
+      // shorter than a fixed minimum font could ever fit inside, and a font
+      // that doesn't fit its box is exactly what caused the text to spill
+      // outside its line instead of sitting on it. Scaling all the way down
+      // with nothing but a tiny floor (just enough to keep the CSS value
+      // valid) keeps the text proportional to its box at every zoom level —
+      // it gets small to match, which is what "zoomed out" is supposed to
+      // look like; zooming back in is what makes it readable again.
+      fieldLayer.querySelectorAll('.fill-online-input').forEach(function (el) {
+        el.style.fontSize = Math.max(1, 13 * ratio).toFixed(2) + 'px';
+        el.style.padding = Math.max(0, 0.6 * ratio).toFixed(2) + 'px ' + Math.max(0, 2.2 * ratio).toFixed(2) + 'px';
+        el.style.borderRadius = Math.max(0, 3 * ratio).toFixed(2) + 'px';
+        el.style.lineHeight = 'normal';
+      });
+    }
 
     function showError(text) {
       msgs.innerHTML = '<div style="padding:12px 16px;border-radius:8px;margin-bottom:14px;background:#fdecea;color:#a12a20;border:1px solid #f5c6c1;">' + text + '</div>';
@@ -83,7 +178,7 @@
           input.type = 'checkbox';
           input.name = 'field_' + f.id;
           if (f.initial_value) input.checked = true;
-          input.style.cssText = 'width:100%;height:100%;margin:0;cursor:pointer;';
+          input.style.cssText = 'display:block;width:100%;height:100%;margin:0;cursor:pointer;';
         } else {
           input = document.createElement('input');
           input.type = (f.field_type === 'date') ? 'date' : (f.field_type === 'number' ? 'number' : 'text');
@@ -92,6 +187,18 @@
           input.title = f.label || '';
           input.className = 'fill-online-input';
           input.style.cssText = [
+            // display:block is the fix, not decoration: an <input> is an
+            // inline-level element by default, so without this it sits on
+            // its surrounding text's baseline — which (via the box's
+            // inherited line-height) left a few pixels of invisible gap
+            // above it and pushed it that same amount below its own
+            // .fill-field-box. Barely visible at full desktop size, but a
+            // 2-3px sink is a huge share of a field that's only 10-15px
+            // tall once the page is shrunk for a phone or zoomed out, so
+            // the input's text ended up overlapping the printed line below
+            // its assigned slot instead of sitting on it — looking exactly
+            // like the field had "moved," at any zoom level, including 100%.
+            'display:block',
             'width:100%', 'height:100%', 'box-sizing:border-box',
             'border:1px solid transparent', 'background:transparent',
             'border-radius:3px', 'font-size:13px', 'padding:1px 3px', 'color:#111827',
@@ -111,19 +218,56 @@
       });
     }
 
-    function loadPage(num) {
-      pdfDoc.getPage(num).then(function (page) {
-        var viewport = page.getViewport({ scale: 1.4 });
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-        stage.style.width = viewport.width + 'px';
-        stage.style.height = viewport.height + 'px';
+    function updateZoomIndicator() {
+      zoomIndicator.textContent = Math.round(zoomLevel * 100) + '%';
+    }
 
-        page.render({ canvasContext: ctx, viewport: viewport }).promise.then(function () {
+    // preserveViewport keeps whatever point of the form is currently centered
+    // in view still centered after the re-render — otherwise, since the PDF
+    // stage's pixel size changes on every zoom step, the scroll position from
+    // before the zoom would point at a completely different part of the
+    // (now differently-sized) page, which looked like the fields had jumped
+    // to a new spot even though their position on the form never changed.
+    function loadPage(num, preserveViewport) {
+      var prevWidth = stage.offsetWidth;
+      var prevHeight = stage.offsetHeight;
+      var anchorX = 0.5, anchorY = 0;
+      if (preserveViewport && prevWidth > 0 && prevHeight > 0) {
+        anchorX = (viewport.scrollLeft + viewport.clientWidth / 2) / prevWidth;
+        anchorY = (viewport.scrollTop + viewport.clientHeight / 2) / prevHeight;
+      }
+
+      pdfDoc.getPage(num).then(function (page) {
+        var naturalViewport = page.getViewport({ scale: 1 });
+        var fitScale = computeFitScale(naturalViewport.width);
+        var effectiveScale = fitScale * zoomLevel;
+        var pageViewport = page.getViewport({ scale: effectiveScale });
+
+        canvas.width = pageViewport.width;
+        canvas.height = pageViewport.height;
+        stage.style.width = pageViewport.width + 'px';
+        stage.style.height = pageViewport.height + 'px';
+
+        page.render({ canvasContext: ctx, viewport: pageViewport }).promise.then(function () {
           syncVisibility();
+          updateZoomIndicator();
+          applyFieldScale(effectiveScale);
+
+          if (preserveViewport) {
+            viewport.scrollLeft = Math.max(0, anchorX * pageViewport.width - viewport.clientWidth / 2);
+            viewport.scrollTop = Math.max(0, anchorY * pageViewport.height - viewport.clientHeight / 2);
+          } else {
+            viewport.scrollLeft = 0;
+            viewport.scrollTop = 0;
+          }
         });
       });
       pageIndicator.textContent = 'Page ' + num + ' of ' + totalPages;
+    }
+
+    function setZoom(next) {
+      zoomLevel = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, next));
+      loadPage(currentPage, true);
     }
 
     if (typeof pdfjsLib === 'undefined') {
@@ -140,7 +284,11 @@
       pdfjsLib.getDocument(PDF_URL).promise.then(function (doc) {
         pdfDoc = doc;
         totalPages = doc.numPages;
-        pagerBar.style.display = totalPages > 1 ? 'flex' : 'none';
+        // Only the prev/next page group hides itself on a single-page form —
+        // the zoom controls next to it are useful regardless of page count,
+        // and used to get hidden along with it since they shared the same
+        // wrapper element.
+        pagerGroup.style.display = totalPages > 1 ? 'flex' : 'none';
         buildInputs();
         loadPage(currentPage);
       }).catch(function (err) {
@@ -153,6 +301,26 @@
     });
     document.getElementById('fillNextPageBtn').addEventListener('click', function () {
       if (currentPage < totalPages) { currentPage += 1; loadPage(currentPage); }
+    });
+
+    document.getElementById('fillZoomInBtn').addEventListener('click', function () {
+      setZoom(zoomLevel * 1.25);
+    });
+    document.getElementById('fillZoomOutBtn').addEventListener('click', function () {
+      setZoom(zoomLevel / 1.25);
+    });
+    document.getElementById('fillZoomResetBtn').addEventListener('click', function () {
+      setZoom(1);
+    });
+
+    // If the dialog/window is resized (e.g. a phone rotated), re-fit the
+    // current zoom level to the new available width instead of leaving the
+    // page sized for the screen it was opened on.
+    var resizeTimer = null;
+    window.addEventListener('resize', function () {
+      if (!pdfDoc) return;
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function () { loadPage(currentPage, true); }, 150);
     });
 
     document.getElementById('fillOnlineCancelBtn').addEventListener('click', function () {

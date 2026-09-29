@@ -508,6 +508,20 @@ def admin_delete_announcement(request, pk):
 
     return redirect('admin_dashboard:ad_announcement')
 
+@super_admin_required
+def admin_announcement_toggle_pin(request, pk):
+    announcement = get_object_or_404(Announcement, pk=pk)
+
+    if request.method == "POST":
+        announcement.is_pinned = not announcement.is_pinned
+        announcement.save()
+        messages.success(
+            request,
+            f'"{announcement.title}" was {"pinned as the notice" if announcement.is_pinned else "unpinned"}.'
+        )
+
+    return redirect('admin_dashboard:ad_announcement')
+
 NEWS_STATUS_BADGE = {
     "pending": "badge-amber",
     "published": "badge-green",

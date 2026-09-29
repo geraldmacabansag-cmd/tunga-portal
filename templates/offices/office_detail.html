@@ -376,6 +376,15 @@
 .svc-dialog::backdrop { background: rgba(11,20,50,.55); }
 #fillDialog.svc-dialog { max-width: 960px; }
 
+/* On phones, give the "Fill Out Online" dialog nearly the whole screen so
+   the PDF preview inside it (which needs every pixel it can get) isn't
+   squeezed into a small floating card. */
+@media (max-width: 700px) {
+  #fillDialog.svc-dialog { width: 97%; max-width: 97vw; max-height: 94vh; }
+  #fillDialog .svc-dlg { max-height: 94vh; }
+  #fillDialog .svc-dlg-body { padding: 12px 12px; }
+}
+
 /* Downloadable Forms panel: keep the action buttons inside the panel at
    any width, wrapping onto their own row rather than overflowing, and
    collapsing to icon-only buttons on small screens. */
@@ -392,9 +401,10 @@
 }
 .forms-list__dl { white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
 
-@media (max-width: 480px) {
+@media (max-width: 600px) {
+  .forms-list li .forms-list__title { flex-basis: 130px; }
   .forms-list__dl .btn-label { display: none; }
-  .forms-list__dl { padding: 8px 10px; }
+  .forms-list__dl { padding: 8px 10px; gap: 0; }
 }
 .svc-dlg { display: flex; flex-direction: column; max-height: 82vh; }
 .svc-dlg-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 18px 20px; border-bottom: 1px solid #e3e7f1; }

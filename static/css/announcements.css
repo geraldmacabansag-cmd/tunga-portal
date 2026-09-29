@@ -227,6 +227,7 @@
 .office-icon--red { color: var(--red-badge); }
 .office-icon--navy2 { color: var(--blue-accent); }
 .office-icon--purple { color: #7a4fc7; }
+.office-icon--gold { color: var(--gold-dark); }
 
 .offices-feed a {
   font-weight: 600;
@@ -257,6 +258,90 @@
   padding: 14px;
   border-top: 1px solid var(--border-light);
 }
+
+/* ==========================================================================
+   "FROM OUR OFFICES" TAB — full office directory (as opposed to the "All
+   Updates" tab's sidebar teaser above, which only lists the 8 most
+   recently-active offices). One card per visible office, each linking
+   straight to that office's page.
+   ========================================================================== */
+.offices-tab-panel { padding: 24px 26px; }
+
+.offices-tab-sub {
+  font-size: 0.86rem;
+  color: var(--text-muted);
+  margin: 4px 0 20px;
+}
+
+.offices-tab-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 16px;
+}
+
+.office-tab-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  background: #fff;
+  text-decoration: none;
+  transition: border-color .15s, box-shadow .15s, transform .15s;
+}
+
+.office-tab-card:hover {
+  border-color: var(--navy);
+  box-shadow: 0 6px 16px rgba(10, 31, 107, .08);
+  transform: translateY(-2px);
+}
+
+.office-tab-card__icon {
+  width: 42px;
+  height: 42px;
+  font-size: 1.05rem;
+  flex-shrink: 0;
+}
+
+.office-tab-card__body { flex: 1; min-width: 0; }
+
+.office-tab-card__body h3 {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--navy);
+  margin: 0 0 4px;
+  line-height: 1.3;
+}
+
+.office-tab-card__latest {
+  font-size: 0.82rem;
+  color: var(--text-body);
+  margin: 0 0 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.office-tab-card__latest--empty {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.office-tab-card__meta {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.office-tab-card__arrow {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  margin-top: 4px;
+}
+
+.office-tab-card.is-hidden { display: none; }
 
 .subscribe-panel {
   margin-top: 22px;
@@ -505,6 +590,55 @@
 .ann-card__foot a:hover { text-decoration: underline; }
 
 .ann-card.is-hidden { display: none; }
+
+/* Generic rule for the top search bar / Filter dropdown: covers every kind
+   of card across all four tabs (update-item, ann-card, news-feature-card,
+   news-card, event-hero, event-card, event-past) since they all carry
+   data-search-text once real content is rendered. */
+[data-search-text].is-hidden { display: none !important; }
+
+/* Top search bar's "Filter" dropdown */
+.top-filter-wrap { position: relative; }
+
+.top-filter-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 200px;
+  max-height: 260px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgba(15, 30, 60, 0.14);
+  padding: 6px;
+  z-index: 20;
+}
+
+.top-filter-menu.open { display: block; }
+
+.top-filter-opt {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 9px 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: var(--text-body);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.top-filter-opt:hover { background: var(--bg-light); }
+
+.top-filter-opt.active {
+  background: var(--navy);
+  color: #fff;
+  font-weight: 600;
+}
 
 /* Sidebar */
 .ann-side-panel { padding: 22px; margin-bottom: 22px; }
@@ -1519,6 +1653,14 @@ body.lock { overflow: hidden; }
   .filter-bar {
     flex-direction: column;
     align-items: stretch;
+    /* Still carried flex-wrap: wrap from the desktop rule above. Combined
+       with flex-direction: column, a *wrapping* column container sizes its
+       single line to fit its content instead of stretching it to the full
+       width — so .filter-tabs/.filter-actions never actually got narrower
+       than all 5 tabs laid out in one unbroken row, no matter what width
+       or overflow rules were set on them directly. That's what was pushing
+       the whole tab bar (and the page) wider than the screen. */
+    flex-wrap: nowrap;
   }
   .update-item img {
     display: none;
@@ -1541,4 +1683,285 @@ body.lock { overflow: hidden; }
   .event-past {
     flex-wrap: wrap;
   }
+}
+
+@media (max-width: 600px) {
+  /* Tab bar: 5 tabs plus icons don't fit a phone width without wrapping
+     into a messy second line. Turned into a single-line, swipeable strip
+     instead — same pattern used for the homepage's Quick Links row. */
+  .filter-bar {
+    padding: 12px 16px;
+    gap: 12px;
+  }
+
+  /* Right-edge fade on the tab strip itself (not the whole bar, which also
+     stacks the search box below it) so it reads as "swipe for more" rather
+     than looking like the last tab is simply cut off. */
+  .filter-tabs-wrap {
+    /* This is now the direct flex item of the column-mode .filter-bar (see
+       the 900px rule above), so it's the one that needs min-width: 0 to
+       actually shrink to the phone's width instead of refusing to go
+       narrower than its content's full unwrapped size. */
+    min-width: 0;
+    position: relative;
+  }
+
+  .filter-tabs-wrap::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 24px;
+    background: linear-gradient(to right, rgba(255, 255, 255, 0), #fff);
+    pointer-events: none;
+  }
+
+  .filter-tabs {
+    /* Without this, a flex item's default min-width is "auto" — the width
+       of its content laid out on one line — so the browser refused to
+       shrink this below the full unwrapped width of all 5 tabs (~470px+)
+       even with overflow-x set below, and that forced the whole page to
+       scroll horizontally instead of just this row. min-width: 0 lets it
+       actually shrink to the phone's width, so overflow-x becomes a
+       same-row swipe instead of a page-wide scroll. */
+    min-width: 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 18px;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+
+  .filter-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .filter-tab {
+    flex-shrink: 0;
+    white-space: nowrap;
+    font-size: 0.82rem;
+    padding-bottom: 10px;
+  }
+
+  .filter-actions {
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  .search-input {
+    min-width: 0;
+    flex: 1 1 100%;
+    padding: 9px 12px;
+  }
+
+  .top-filter-wrap {
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+
+  .filter-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 9px 14px;
+    font-size: 0.85rem;
+  }
+
+  .top-filter-menu {
+    left: 0;
+    right: 0;
+    min-width: 0;
+  }
+
+  /* "Latest Announcements" / "News and Updates" panels (All Updates tab):
+     full desktop padding and a wide date column made each entry take up
+     a lot of vertical space on a phone. */
+  .announcements-body {
+    padding: 22px 0 6px;
+  }
+
+  .list-panel {
+    padding: 16px;
+  }
+
+  .list-panel + .list-panel {
+    margin-top: 16px;
+  }
+
+  .update-list li + li {
+    margin-top: 14px;
+    padding-top: 14px;
+  }
+
+  .update-item {
+    gap: 10px;
+  }
+
+  .update-item__date {
+    width: 40px;
+    font-size: 0.6rem;
+  }
+
+  .update-item__date strong {
+    font-size: 1.1rem;
+  }
+
+  .update-item__title {
+    font-size: 0.9rem;
+  }
+
+  .update-item__body p {
+    font-size: 0.82rem;
+    margin: 4px 0;
+  }
+}
+
+/* ==========================================================================
+   ANNOUNCEMENTS TAB — mobile sizing for the toolbar, pinned notice, cards
+   and the Categories / Emergency Hotlines / Archive / Need Assistance
+   sidebar panels. Desktop padding/gaps/font-sizes on these were sized for a
+   wide column and made the tab feel oversized and cramped on a phone.
+   ========================================================================== */
+@media (max-width: 600px) {
+  .ann-toolbar {
+    padding: 14px 16px;
+    margin-bottom: 14px;
+  }
+
+  /* Category pills: same horizontal-scroll-strip treatment as the tab bar
+     and homepage Quick Links, instead of wrapping into several rows. */
+  .ann-pills {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 8px;
+    margin-bottom: 0;
+    scrollbar-width: none;
+  }
+
+  .ann-pills::-webkit-scrollbar { display: none; }
+
+  .ann-pill {
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding: 7px 14px;
+    font-size: 0.8rem;
+  }
+
+  .ann-pinned {
+    padding: 14px 16px;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .ann-pinned__icon {
+    width: 30px;
+    height: 30px;
+    font-size: 0.8rem;
+  }
+
+  .ann-pinned__label {
+    font-size: 0.64rem;
+  }
+
+  .ann-pinned__title {
+    font-size: 0.92rem;
+    margin-bottom: 4px;
+  }
+
+  .ann-pinned__body p {
+    font-size: 0.8rem;
+  }
+
+  .ann-card {
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+
+  .ann-card__top {
+    gap: 12px;
+  }
+
+  .ann-card__date {
+    width: 44px;
+    font-size: 0.6rem;
+  }
+
+  .ann-card__date strong {
+    font-size: 1.2rem;
+  }
+
+  .ann-badge {
+    padding: 2px 8px;
+    font-size: 0.62rem;
+  }
+
+  .ann-card__title {
+    font-size: 0.92rem;
+    margin-bottom: 4px;
+  }
+
+  .ann-card__body p {
+    font-size: 0.82rem;
+    margin-bottom: 8px;
+  }
+
+  .ann-card__foot {
+    font-size: 0.74rem;
+  }
+
+  .ann-side-panel {
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .ann-side-panel h3 {
+    font-size: 0.92rem;
+    margin-bottom: 10px;
+  }
+
+  .ann-cat-row {
+    padding: 8px 0;
+    font-size: 0.82rem;
+  }
+
+  .ann-hotline {
+    padding: 10px 12px;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .ann-hotline__name { font-size: 0.82rem; }
+  .ann-hotline__number { font-size: 0.76rem; }
+
+  .ann-hotline__call {
+    font-size: 0.7rem;
+    padding: 7px 12px;
+  }
+
+  .ann-archive-list a {
+    padding: 8px 0;
+    font-size: 0.82rem;
+  }
+
+  .ann-assist {
+    padding: 18px 16px;
+  }
+
+  .ann-assist p {
+    font-size: 0.8rem;
+    margin-bottom: 12px;
+  }
+
+  /* "From Our Offices" tab: one column instead of a squeezed multi-column
+     grid, with tighter card padding so each office's slot doesn't take up
+     the whole screen. */
+  .offices-tab-panel { padding: 16px; }
+  .offices-tab-sub { margin-bottom: 14px; }
+  .offices-tab-grid { grid-template-columns: 1fr; gap: 10px; }
+  .office-tab-card { padding: 12px; gap: 10px; }
+  .office-tab-card__icon { width: 36px; height: 36px; font-size: 0.92rem; }
+  .office-tab-card__body h3 { font-size: 0.88rem; }
+  .office-tab-card__latest { font-size: 0.78rem; }
 }

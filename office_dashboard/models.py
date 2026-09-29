@@ -97,6 +97,10 @@ class Announcement(models.Model):
 
     admin_note = models.TextField(blank=True)
 
+    # Set only by a Super Admin; shows this announcement in the "Pinned
+    # Notice" box on the public Announcements tab, regardless of its date.
+    is_pinned = models.BooleanField(default=False)
+
     views = models.PositiveIntegerField(
         default=0
     )

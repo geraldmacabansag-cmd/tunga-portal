@@ -77,11 +77,16 @@
 
 .services-strip__row {
   display: flex;
-  justify-content: space-between;
+  /* Centered as a group instead of stretched edge-to-edge with
+     space-between, so it looks right no matter how many Quick Links the
+     Super Admin has added — 2 of them won't end up pinned to opposite
+     corners, and a newly-added one is centered immediately, with no other
+     change needed on this page. */
+  justify-content: center;
   align-items: center;
   padding: 20px 24px;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 16px 32px;
   border-bottom: 1px solid var(--border-light);
 }
 
@@ -494,10 +499,116 @@
     font-size: 0.78rem;
   }
 
+  /* The "Latest Announcements" / "Upcoming Events" / "News" panels and the
+     Photo Gallery strip used their full desktop padding and image sizes
+     here too, so on a phone they ran tall and pushed everything else far
+     down the page. Tightened up so each panel stays compact. */
+  .home-feed {
+    padding: 26px 0 4px;
+  }
+
+  .feed-panel {
+    padding: 16px;
+  }
+
+  .feed-item {
+    gap: 10px;
+  }
+
+  .feed-item__date {
+    width: 38px;
+    font-size: 0.6rem;
+  }
+
+  .feed-item__date strong {
+    font-size: 1.05rem;
+  }
+
+  .feed-item__body p {
+    font-size: 0.8rem;
+  }
+
+  .event-highlight__date {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .event-highlight__daterange {
+    width: 54px;
+    font-size: 0.6rem;
+  }
+
+  .event-highlight__img {
+    max-height: 150px;
+    object-fit: cover;
+  }
+
+  .news-item img {
+    height: 150px;
+    object-fit: cover;
+  }
+
+  .news-item__title {
+    font-size: 0.95rem;
+  }
+
+  .gallery-section {
+    padding: 26px 0 14px;
+  }
+
   .gallery-strip__track {
     grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
   }
+
+  .gallery-strip__track img {
+    height: 90px;
+  }
+
+  .gallery-nav {
+    width: 32px;
+    height: 32px;
+  }
+
+  /* On a phone, centering (or even wrapping) a long row of Quick Links gets
+     messy fast — a ragged last row, links squeezed or breaking mid-word.
+     Instead it becomes one single-line, horizontally-scrollable strip that
+     stays tidy no matter how many links the Super Admin adds: swipe to see
+     the rest, with a little edge fade as a hint that there's more. */
+  .services-strip {
+    position: relative;
+  }
+
   .services-strip__row {
+    flex-wrap: nowrap;
     justify-content: flex-start;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+    padding: 14px 20px;
+    gap: 22px;
+    scrollbar-width: none;
+  }
+
+  .services-strip__row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .services-strip::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 28px;
+    background: linear-gradient(to right, rgba(255, 255, 255, 0), #fff);
+    pointer-events: none;
+  }
+
+  .service-link {
+    flex-shrink: 0;
+    white-space: nowrap;
+    scroll-snap-align: start;
+    font-size: 0.85rem;
   }
 }

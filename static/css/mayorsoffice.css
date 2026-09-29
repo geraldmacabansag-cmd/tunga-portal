@@ -349,4 +349,37 @@
   .gallery-quad {
     grid-template-columns: 1fr;
   }
+
+  /* Downloadable Forms panel (and its neighbors in the same grid) were
+     sized for a half-width desktop column — full desktop padding plus a
+     wide icon/title/button row made each entry feel cramped once the panel
+     went full-width on a phone. */
+  .announce-panel,
+  .forms-panel,
+  .gallery-panel,
+  .map-panel {
+    padding: 16px;
+  }
+
+  .forms-list li {
+    padding: 10px 0;
+    gap: 10px;
+  }
+
+  .forms-list i.fa-file-pdf {
+    font-size: 1.1rem;
+  }
+
+  .forms-list a {
+    font-size: 0.85rem;
+  }
+
+  .forms-list > li > div span {
+    font-size: 0.7rem;
+  }
+
+  .forms-list__dl {
+    padding: 7px 10px;
+    font-size: 0.75rem;
+  }
 }

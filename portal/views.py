@@ -1,6 +1,7 @@
 import calendar as cal_module
 from datetime import date
 from django.shortcuts import render, redirect
+from django.urls import reverse
 from django.contrib import messages
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib.auth.models import User
@@ -111,6 +112,12 @@ def announcement(request):
         {"name": name, "slug": slugify(name) or "general", "count": category_counts[name]}
         for name in ordered_names
     ]
+
+    # "Pinned Notice" box at the top of the Announcements tab — the Super
+    # Admin can pin one announcement (Announcement.is_pinned) to keep it
+    # showing there regardless of date. If more than one is pinned, the most
+    # recently posted one wins; all_announcements is already newest-first.
+    pinned_announcement = next((a for a in all_announcements if a.is_pinned), None)
 
     # Full list for the "News" tab — every published news post, newest
     # first. The featured row (1 big + 2 small cards) takes the 3 newest;
@@ -260,11 +267,82 @@ def announcement(request):
     prev_year, prev_month = (cal_year - 1, 12) if cal_month == 1 else (cal_year, cal_month - 1)
     next_year, next_month = (cal_year + 1, 1) if cal_month == 12 else (cal_year, cal_month + 1)
 
+    # ---- "From Our Offices" sidebar panel (All Updates tab) --------------
+    # One row per office that has at least one published announcement, each
+    # showing that office's single most recent one — picked by walking every
+    # published announcement newest-first and keeping the first (i.e.
+    # latest) one seen per office, so the offices with the freshest activity
+    # naturally float to the top.
+    office_updates = []
+    seen_office_ids = set()
+    recent_office_anns = (
+        Announcement.objects.filter(status='published')
+        .filter(representative__office__isnull=False, representative__office__is_visible=True)
+        .exclude(representative__office__slug='lgu-super-admin')
+        .select_related('representative__office')
+        .order_by('-date_posted', '-created_at')
+    )
+    for a in recent_office_anns:
+        office = a.representative.office
+        if office.id in seen_office_ids:
+            continue
+        seen_office_ids.add(office.id)
+        icon, color, _ = OFFICE_CARD_STYLE.get(office.slug, OFFICE_CARD_DEFAULT)
+        office_url = reverse('offices:mayor') if office.slug == 'office-of-the-mayor' else reverse('offices:office_detail', args=[office.slug])
+        office_updates.append({
+            "office": office,
+            "url": office_url,
+            "icon": icon,
+            "color": color,
+            "latest_title": a.title,
+            "latest_time": a.created_at,
+        })
+        if len(office_updates) >= 8:
+            break
+
+    # ---- "From Our Offices" TAB (full directory) --------------------------
+    # Only offices the Super Admin has actually "activated" should appear
+    # here. In the Super Admin > Offices dashboard, an office's status is
+    # 'active' only when it has an assigned representative AND that rep's
+    # account is active (rep is None -> 'pending', rep.user.is_active is
+    # False -> 'inactive') — this is a different flag from is_visible
+    # (which only controls whether the office is shown/hidden on the public
+    # Offices page), so both checks are applied: still hidden if unpublished
+    # from the Offices page, and now also hidden until it's been activated.
+    office_directory = []
+    active_offices = (
+        Office.objects.exclude(slug='lgu-super-admin')
+        .filter(is_visible=True, representative__isnull=False, representative__user__is_active=True)
+        .select_related('representative__user')
+        .order_by('name')
+    )
+    for office in active_offices:
+        icon, color, _ = OFFICE_CARD_STYLE.get(office.slug, OFFICE_CARD_DEFAULT)
+        office_url = reverse('offices:mayor') if office.slug == 'office-of-the-mayor' else reverse('offices:office_detail', args=[office.slug])
+        office_anns = Announcement.objects.filter(status='published', representative__office=office)
+        latest = office_anns.order_by('-date_posted', '-created_at').first()
+        office_directory.append({
+            "office": office,
+            "url": office_url,
+            "icon": icon,
+            "color": color,
+            "latest": latest,
+            "latest_display_date": (latest.date_posted or latest.created_at.date()) if latest else None,
+            "count": office_anns.count(),
+        })
+
+    office_directory.sort(key=lambda item: (
+        0 if item["latest"] else 1,
+        -item["latest"].created_at.timestamp() if item["latest"] else 0,
+        item["office"].name,
+    ))
+
     return render(request, "portal/announcements.html", {
         "announcements": announcements,
         "news_items": news_items,
         "all_announcements": all_announcements,
         "announcement_categories": announcement_categories,
+        "pinned_announcement": pinned_announcement,
         "news_main_story": news_main_story,
         "news_side_stories": news_side_stories,
         "news_grid_items": news_grid_items,
@@ -276,6 +354,8 @@ def announcement(request):
         "calendar_prev_param": f"{prev_year:04d}-{prev_month:02d}",
         "calendar_next_param": f"{next_year:04d}-{next_month:02d}",
         "calendar_only_events": calendar_only_events,
+        "office_updates": office_updates,
+        "office_directory": office_directory,
         # Same source as the homepage's "Emergency Contact Information"
         # section, so both pages always show the same hotlines.
         "emergency_contacts": EmergencyContact.objects.all(),

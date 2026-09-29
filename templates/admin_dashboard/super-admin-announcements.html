@@ -69,7 +69,7 @@
               <div class="row-icon-name">
                 {% if a.image %}<img class="list-thumb" src="{{ a.image.url }}" alt="">{% else %}<span class="row-thumb" style="background:var(--blue-50);color:var(--blue-600);"><i class="fa-solid fa-bullhorn"></i></span>{% endif %}
                 <div>
-                  <p class="cell-primary">{{ a.title }}</p>
+                  <p class="cell-primary">{{ a.title }}{% if a.is_pinned %} <span class="badge" style="background:#fef3c7;color:#92400e;"><i class="fa-solid fa-thumbtack"></i> Pinned</span>{% endif %}</p>
                   <p class="cell-sub">{{ a.subtitle|default:a.content|truncatewords:14 }}</p>
                 </div>
               </div>
@@ -115,6 +115,12 @@
                     data-title="{{ a.title }}"
                     data-delete-url="{% url 'admin_dashboard:admin_delete_announcement' a.pk %}"
                   ><i class="fa-regular fa-trash-can"></i></button>
+                  <form method="post" action="{% url 'admin_dashboard:admin_announcement_toggle_pin' a.pk %}" style="display:contents;">
+                    {% csrf_token %}
+                    <button type="submit" class="ic pin-ann-btn{% if a.is_pinned %} is-pinned{% endif %}" title="{% if a.is_pinned %}Unpin{% else %}Pin as notice{% endif %}">
+                      <i class="fa-solid fa-thumbtack"></i>
+                    </button>
+                  </form>
               </div>
             </td>
           </tr>

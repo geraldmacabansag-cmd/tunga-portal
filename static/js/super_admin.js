@@ -726,6 +726,107 @@
   }
 
   /* ------------------------------------------------------------------ */
+  /* Sidebar burger toggle                                                */
+  /* ------------------------------------------------------------------ */
+  // The burger button already has its own inline
+  // onclick="...classList.toggle('open')" for the mobile off-canvas sidebar
+  // (see super-admin-base.html); that keeps working unchanged. This adds a
+  // second, independent behavior: on desktop widths, the same button also
+  // collapses/expands the sidebar. The sidebar starts open by default on
+  // desktop and closed by default on mobile — both are just the normal CSS
+  // defaults (no .collapsed / .open class present on first load), so no JS
+  // is needed to set the initial state.
+  var SIDEBAR_COLLAPSE_KEY = 'adminSidebarCollapsed';
+
+  function wireSidebarCollapse() {
+    var sidebar = document.getElementById('sidebar');
+    if (!sidebar) return;
+
+    // Hand off from the inline pre-paint style (see super-admin-base.html)
+    // to the real .collapsed class, now that app.js has taken over.
+    if (window.innerWidth >= 861) {
+      try {
+        if (localStorage.getItem(SIDEBAR_COLLAPSE_KEY) === '1') {
+          sidebar.classList.add('collapsed');
+        }
+      } catch (e) {}
+    }
+    document.documentElement.classList.remove('admin-sidebar-preload-collapsed');
+
+    document.addEventListener('click', function (e) {
+      if (!e.target.closest('.menu-btn')) return;
+      if (window.innerWidth < 861) return;
+      sidebar.classList.toggle('collapsed');
+      try {
+        localStorage.setItem(SIDEBAR_COLLAPSE_KEY, sidebar.classList.contains('collapsed') ? '1' : '0');
+      } catch (e) {}
+    });
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Sidebar scroll-position persistence                                  */
+  /* ------------------------------------------------------------------ */
+  // Every nav link is a normal <a href> that does a full page load, so the
+  // browser always starts the new page with the sidebar scrolled to the
+  // top — clicking something further down the list (e.g. "System Settings")
+  // then looks like the sidebar "jumps" back up. #sidebar is both the nav
+  // list and its own scroll container (overflow-y:auto), so its scrollTop
+  // is saved on every scroll and restored as early as possible on the next
+  // page (see the inline restore script right before </aside> in
+  // super-admin-base.html, which runs before this file even loads, to keep
+  // the restore from flashing visibly).
+  var SIDEBAR_SCROLL_KEY = 'adminSidebarScrollTop';
+
+  function wireSidebarScrollPersist() {
+    var sidebar = document.getElementById('sidebar');
+    if (!sidebar) return;
+    sidebar.addEventListener('scroll', function () {
+      try { sessionStorage.setItem(SIDEBAR_SCROLL_KEY, sidebar.scrollTop); } catch (e) {}
+    });
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Mobile topbar search toggle                                          */
+  /* ------------------------------------------------------------------ */
+  // At phone widths the search field collapses to a plain icon button (see
+  // super_admin_style.css); tapping it swaps the page title out for the
+  // real search input in that same row instead of hiding search entirely,
+  // by toggling a `search-active` class on .topbar. Tapping again (or the
+  // icon acting as a close button while active) reverts it.
+  function wireMobileSearchToggle() {
+    var btn = document.getElementById('mobileSearchBtn');
+    var topbar = btn && btn.closest('.topbar');
+    var field = document.getElementById('topbarSearchField');
+    if (!btn || !topbar || !field) return;
+
+    var icon = btn.querySelector('i');
+
+    function setActive(active) {
+      topbar.classList.toggle('search-active', active);
+      if (icon) {
+        icon.classList.toggle('fa-magnifying-glass', !active);
+        icon.classList.toggle('fa-xmark', active);
+      }
+      if (active) {
+        var input = field.querySelector('input');
+        if (input) input.focus();
+      }
+    }
+
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      setActive(!topbar.classList.contains('search-active'));
+    });
+
+    // Tapping anywhere else closes it again, same as a dropdown.
+    document.addEventListener('click', function (e) {
+      if (!topbar.classList.contains('search-active')) return;
+      if (e.target.closest('#topbarSearchField') || e.target.closest('#mobileSearchBtn')) return;
+      setActive(false);
+    });
+  }
+
+  /* ------------------------------------------------------------------ */
   /* Dashboard quick "create" shortcuts (bottom of dashboard panels)      */
   /* ------------------------------------------------------------------ */
   function wireDashboardQuickCreateLinks() {
@@ -1379,6 +1480,9 @@
   document.addEventListener('DOMContentLoaded', function () {
     wireTopbar();
     wireSidebarLogout();
+    wireSidebarCollapse();
+    wireSidebarScrollPersist();
+    wireMobileSearchToggle();
     wireServicesDeleteModals();
       
     var serverMessages = document.getElementById('server-messages');
