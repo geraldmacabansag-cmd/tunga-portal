@@ -48,6 +48,7 @@
                 data-id="{{ p.id }}"
                 data-title="{{ p.title }}"
                 data-image="{{ p.image.url }}"
+                data-category="{{ p.category }}"
               ><i class="fa-regular fa-pen-to-square"></i></button>
               <span class="ic" data-delete-target="delete-photo-modal-{{ p.id }}" title="Delete"><i class="fa-regular fa-trash-can"></i></span>
             </div>
@@ -71,6 +72,7 @@
     <div class="modal-body">
       <img src="{{ p.image.url }}" style="width:100%;max-height:320px;object-fit:cover;border-radius:10px;margin-bottom:16px;">
       <div class="modal-view-row"><span class="k">Title</span><span class="v">{{ p.title }}</span></div>
+      <div class="modal-view-row"><span class="k">Category</span><span class="v">{{ p.category|default:"—" }}</span></div>
       <div class="modal-view-row"><span class="k">Album</span><span class="v">{{ p.album.name|default:"Uncategorized" }}</span></div>
       <div class="modal-view-row"><span class="k">Uploaded by</span><span class="v">{{ p.representative.user.get_full_name|default:p.representative.user.username }}</span></div>
       <div class="modal-view-row"><span class="k">Office</span><span class="v">{{ p.representative.office.name }}</span></div>
@@ -117,6 +119,15 @@
         <div class="form-group">
           <label class="form-label">Caption / Title <span class="req">*</span></label>
           <input class="form-input" type="text" id="edit-photo-title" name="title" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select class="form-input" id="edit-photo-category" name="category">
+            <option value="">— None —</option>
+            {% for value, label in photo_category_choices %}
+              <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+          </select>
         </div>
         <div class="form-group">
           <label class="form-label">Current Photo</label>
@@ -186,6 +197,7 @@ document.addEventListener('keydown', function (e) {
 
       form.action = form.dataset.urlTemplate.replace('/0/', '/' + d.id + '/');
       document.getElementById('edit-photo-title').value = d.title || '';
+      document.getElementById('edit-photo-category').value = d.category || '';
       document.getElementById('edit-photo-preview').src = d.image || '';
 
       modal.classList.add('open');

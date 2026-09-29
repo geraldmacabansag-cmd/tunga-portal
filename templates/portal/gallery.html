@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+Photo Gallery | Digital Governance Portal
+{% endblock %}
+
+{% block content %}
+
+<section class="page-hero">
+  <img src="{% static 'images/lgu_bldg.jpeg' %}" alt="Tunga Municipal Hall" class="page-hero__bg">
+  <div class="page-hero__scrim"></div>
+  <div class="page-hero__inner">
+    <h1>Photo Gallery</h1>
+    <p>Photos from municipal events, projects and everyday life across Tunga's offices.</p>
+  </div>
+</section>
+
+<section class="gallery-body">
+  <div class="container">
+
+    <!-- ===================== Featured Albums (placeholder — configured later) ===================== -->
+    <h2 class="section-title gallery-section-title">Featured Albums</h2>
+    <div class="gallery-featured-grid">
+      <a href="#" class="gallery-featured-card" style="--card-grad: linear-gradient(135deg, #6a1b6b, #c0245e);">
+        <span class="gallery-featured-card__badge">48 photos</span>
+        <span class="gallery-featured-card__icon"><i class="fa-regular fa-image"></i></span>
+        <div class="gallery-featured-card__info">
+          <h3>Founding Anniversary 2026</h3>
+          <p>July 2026</p>
+        </div>
+      </a>
+      <a href="#" class="gallery-featured-card" style="--card-grad: linear-gradient(135deg, #1c6b4f, #35b35d);">
+        <span class="gallery-featured-card__badge">36 photos</span>
+        <span class="gallery-featured-card__icon"><i class="fa-regular fa-image"></i></span>
+        <div class="gallery-featured-card__info">
+          <h3>Community Programs</h3>
+          <p>Clean-up, medical missions &amp; more</p>
+        </div>
+      </a>
+      <a href="#" class="gallery-featured-card" style="--card-grad: linear-gradient(135deg, #e08a1e, #f4b93b);">
+        <span class="gallery-featured-card__badge">24 photos</span>
+        <span class="gallery-featured-card__icon"><i class="fa-regular fa-image"></i></span>
+        <div class="gallery-featured-card__info">
+          <h3>Tourism &amp; Culture</h3>
+          <p>Places and traditions of Tunga</p>
+        </div>
+      </a>
+      <a href="#" class="gallery-featured-card" style="--card-grad: linear-gradient(135deg, #1a2a52, #3b2f6b);">
+        <span class="gallery-featured-card__badge">18 photos</span>
+        <span class="gallery-featured-card__icon"><i class="fa-regular fa-image"></i></span>
+        <div class="gallery-featured-card__info">
+          <h3>Infrastructure Projects</h3>
+          <p>Roads, buildings &amp; facilities</p>
+        </div>
+      </a>
+    </div>
+
+    <!-- ===================== All Photos — every published photo, any office (incl. Super Admin) ===================== -->
+    <div class="gallery-allphotos-head">
+      <h2 class="section-title gallery-section-title">All Photos</h2>
+      <div class="gallery-pills">
+        <a href="{% url 'gallery' %}" class="gallery-pill {% if not current_category %}active{% endif %}">All</a>
+        {% for value, label in category_choices %}
+        <a href="?category={{ value }}" class="gallery-pill {% if current_category == value %}active{% endif %}">{{ label }}</a>
+        {% endfor %}
+      </div>
+    </div>
+
+    {% if page_obj.object_list %}
+    <div class="gallery-masonry">
+      {% for p in page_obj %}
+      <a href="{{ p.image.url }}" target="_blank" rel="noopener" class="gallery-item">
+        <img src="{{ p.image.url }}" alt="{{ p.title }}" loading="lazy">
+        <div class="gallery-item__overlay">
+          <span class="gallery-item__title">{{ p.title }}</span>
+          <span class="gallery-item__meta">{{ p.representative.office.name|default:"LGU Super Admin" }}</span>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+    <div class="gallery-pagination">
+      {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if current_category %}&category={{ current_category }}{% endif %}" class="gallery-page-btn"><i class="fa-solid fa-chevron-left"></i></a>
+      {% else %}
+        <span class="gallery-page-btn disabled"><i class="fa-solid fa-chevron-left"></i></span>
+      {% endif %}
+
+      {% for num in page_obj.paginator.page_range %}
+        <a href="?page={{ num }}{% if current_category %}&category={{ current_category }}{% endif %}" class="gallery-page-btn {% if num == page_obj.number %}active{% endif %}">{{ num }}</a>
+      {% endfor %}
+
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if current_category %}&category={{ current_category }}{% endif %}" class="gallery-page-btn"><i class="fa-solid fa-chevron-right"></i></a>
+      {% else %}
+        <span class="gallery-page-btn disabled"><i class="fa-solid fa-chevron-right"></i></span>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <p class="ann-placeholder">
+      {% if current_category %}No photos in this category yet.{% else %}No photos published yet.{% endif %}
+    </p>
+    {% endif %}
+
+  </div>
+</section>
+
+{% endblock %}

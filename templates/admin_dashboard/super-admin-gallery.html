@@ -125,6 +125,17 @@
           <input class="form-input" type="text" name="new_album_name" id="photo-new-album-name" placeholder="e.g. Barangay Fiesta 2026">
         </div>
 
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select class="form-input" name="category">
+            <option value="">— None —</option>
+            {% for value, label in photo_category_choices %}
+              <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+          <span class="form-help">Shown as a filter on the public Gallery page.</span>
+        </div>
+
         <p class="form-help">This photo will be published immediately and appear on the public gallery right away.</p>
 
         <div class="modal-actions">

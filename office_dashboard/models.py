@@ -224,6 +224,19 @@ class Photo(models.Model):
         ("archive", "Archived"),
     ]
 
+    # Used to power the category filter pills on the public Gallery page.
+    # Left as a plain freeform field (like Announcement.category /
+    # Event.category elsewhere in this file) rather than DB-enforced
+    # choices, so new categories can be introduced later without a
+    # migration; CATEGORY_CHOICES is just what the upload forms offer.
+    CATEGORY_CHOICES = [
+        ("Events", "Events"),
+        ("Community", "Community"),
+        ("Tourism", "Tourism"),
+        ("Governance", "Governance"),
+        ("Infrastructure", "Infrastructure"),
+    ]
+
     representative = models.ForeignKey(
         OfficeRepresentative,
         on_delete=models.CASCADE,
@@ -239,6 +252,7 @@ class Photo(models.Model):
 
     title = models.CharField(max_length=255)
     image = models.ImageField(upload_to="gallery/")
+    category = models.CharField(max_length=100, blank=True)
 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     admin_note = models.TextField(blank=True)

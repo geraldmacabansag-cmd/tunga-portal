@@ -209,6 +209,16 @@
           <input class="form-input" type="text" id="gal-title" name="title" placeholder="e.g. Barangay Assembly 2026" required>
         </div>
         <div class="form-group">
+          <label class="form-label" for="gal-category">Category</label>
+          <select class="form-input" id="gal-category" name="category">
+            <option value="">— None —</option>
+            {% for value, label in photo_category_choices %}
+              <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+          <span class="form-help">Shown as a filter on the public Gallery page.</span>
+        </div>
+        <div class="form-group">
           <label class="form-label" for="gal-album">Album</label>
           <select class="form-input" id="gal-album" name="album">
             {% for album in all_albums_for_upload %}

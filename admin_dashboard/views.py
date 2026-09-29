@@ -894,6 +894,7 @@ def admin_gallery(request):
         "current_sort": sort,
         "albums_by_office": albums_by_office,
         "offices_with_reps": Office.objects.exclude(slug=LGU_SUPER_ADMIN_SLUG).filter(representative__isnull=False).order_by('name'),
+        "photo_category_choices": Photo.CATEGORY_CHOICES,
     })
 
 @super_admin_required
@@ -903,6 +904,7 @@ def admin_photo_save(request, pk):
 
     title = request.POST.get('title', '').strip()
     image = request.FILES.get('image')
+    category = request.POST.get('category', '').strip()
 
     if pk:
         photo = get_object_or_404(Photo, pk=pk)
@@ -910,6 +912,7 @@ def admin_photo_save(request, pk):
             messages.error(request, "Title is required.")
         else:
             photo.title = title
+            photo.category = category
             if image:
                 photo.image = image
             photo.save()
@@ -945,6 +948,7 @@ def admin_photo_save(request, pk):
             album=album,
             title=title,
             image=image,
+            category=category,
             status='published',
         )
         messages.success(request, f'"{title}" was published.')
@@ -969,6 +973,7 @@ def admin_album_detail(request, pk):
         "all_count": album.photos.filter(status__in=['published', 'archive']).count(),
         "active_count": album.photos.filter(status='published').count(),
         "archived_count": album.photos.filter(status='archive').count(),
+        "photo_category_choices": Photo.CATEGORY_CHOICES,
     })
 
 

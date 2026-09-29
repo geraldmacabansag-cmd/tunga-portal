@@ -893,6 +893,7 @@ def gallery(request, rep):
         is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
         title = request.POST.get('title', '').strip()
         image = request.FILES.get('image')
+        category = request.POST.get('category', '').strip()
         album_id = request.POST.get('album') or None
         new_album_name = request.POST.get('new_album_name', '').strip()
 
@@ -918,6 +919,7 @@ def gallery(request, rep):
                 representative=rep,
                 title=title,
                 image=image,
+                category=category,
                 album=album,
                 # status not set -> defaults to "pending"
             )
@@ -1014,6 +1016,7 @@ def gallery(request, rep):
         "announcements_cover": announcements_cover,
         "news_cover": news_cover,
         "events_cover": events_cover,
+        "photo_category_choices": Photo.CATEGORY_CHOICES,
     })
 
 @office_rep_required
