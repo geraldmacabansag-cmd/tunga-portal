@@ -259,6 +259,14 @@
   margin-top: 4px;
 }
 
+.feed-item__thumb {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
 /* Upcoming event highlight */
 .event-highlight {
   border: 1px solid var(--border-light);
@@ -348,19 +356,30 @@
   gap: 14px;
 }
 
+/* A horizontally-scrolling row (not a static grid) so the prev/next arrows
+   have something to actually scroll — 5 tiles visible at a time on
+   desktop, with the rest reachable via the arrows or a swipe. */
 .gallery-strip__track {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  display: flex;
   gap: 14px;
   flex: 1;
-  overflow: hidden;
+  min-width: 0;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.gallery-strip__track::-webkit-scrollbar {
+  display: none;
 }
 
 .gallery-strip__track img {
-  width: 100%;
+  flex: 0 0 calc((100% - 4 * 14px) / 5);
   height: 130px;
   object-fit: cover;
   border-radius: var(--radius-md);
+  scroll-snap-align: start;
 }
 
 .gallery-nav {
@@ -399,8 +418,8 @@
   .feed-panel:last-child {
     grid-column: auto;
   }
-  .gallery-strip__track {
-    grid-template-columns: repeat(3, 1fr);
+  .gallery-strip__track img {
+    flex-basis: calc((100% - 2 * 14px) / 3);
   }
   .news-item {
     flex-direction: column;
@@ -557,11 +576,11 @@
   }
 
   .gallery-strip__track {
-    grid-template-columns: repeat(2, 1fr);
     gap: 10px;
   }
 
   .gallery-strip__track img {
+    flex-basis: calc((100% - 10px) / 2);
     height: 90px;
   }
 
@@ -570,45 +589,17 @@
     height: 32px;
   }
 
-  /* On a phone, centering (or even wrapping) a long row of Quick Links gets
-     messy fast — a ragged last row, links squeezed or breaking mid-word.
-     Instead it becomes one single-line, horizontally-scrollable strip that
-     stays tidy no matter how many links the Super Admin adds: swipe to see
-     the rest, with a little edge fade as a hint that there's more. */
-  .services-strip {
-    position: relative;
-  }
-
+  /* Quick Links stay centered as a wrapping group on phones too — same
+     rule as desktop, just tighter padding/gap — so the row (and any newly
+     added link) is always centered instead of pinned to the left edge. */
   .services-strip__row {
-    flex-wrap: nowrap;
-    justify-content: flex-start;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scroll-snap-type: x proximity;
+    justify-content: center;
     padding: 14px 20px;
-    gap: 22px;
-    scrollbar-width: none;
-  }
-
-  .services-strip__row::-webkit-scrollbar {
-    display: none;
-  }
-
-  .services-strip::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    width: 28px;
-    background: linear-gradient(to right, rgba(255, 255, 255, 0), #fff);
-    pointer-events: none;
+    gap: 14px 22px;
   }
 
   .service-link {
-    flex-shrink: 0;
     white-space: nowrap;
-    scroll-snap-align: start;
     font-size: 0.85rem;
   }
 }

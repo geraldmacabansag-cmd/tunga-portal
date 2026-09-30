@@ -980,6 +980,9 @@
 }
 
 .news-page-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-width: 34px;
   height: 34px;
   padding: 0 8px;
@@ -990,11 +993,13 @@
   font-weight: 600;
   color: var(--navy);
   cursor: pointer;
+  text-decoration: none;
 }
 
-.news-page-btn:hover:not(:disabled) { border-color: var(--navy); }
+.news-page-btn:hover:not(:disabled):not(.disabled) { border-color: var(--navy); }
 .news-page-btn.active { background: var(--navy); border-color: var(--navy); color: #fff; }
-.news-page-btn:disabled { color: var(--text-muted); cursor: not-allowed; opacity: .6; }
+.news-page-btn:disabled,
+.news-page-btn.disabled { color: var(--text-muted); cursor: not-allowed; opacity: .6; pointer-events: none; }
 
 .news-search-btn {
   flex-shrink: 0;
@@ -1387,14 +1392,30 @@
 }
 
 .cal-day {
+  /* A fixed-size circle centered on the number, not an oval that shrinks
+     to fit the digit — without this, "border-radius:50%" on a button with
+     no horizontal padding drew a shape too thin to see any fill color in. */
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  padding: 0;
   border-radius: 50%;
   font-weight: 700;
   color: #fff !important;
   cursor: pointer;
 }
 
-.cal-day--featured { background: var(--red-badge); }
-.cal-day--event { background: var(--navy); }
+/* Both rules repeat the "button" element selector so they're at least as
+   specific as ".events-cal__grid button" above — otherwise that rule's
+   "background: transparent" silently wins over these and the Featured/
+   Event colors never show up on the calendar at all. */
+button.cal-day--featured,
+.events-cal__grid button.cal-day--featured { background: var(--red-badge); }
+button.cal-day--event,
+.events-cal__grid button.cal-day--event { background: var(--navy); }
 
 .cal-day-today {
   box-shadow: 0 0 0 2px var(--gold-dark);

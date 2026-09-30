@@ -70,6 +70,16 @@
   font-size: 0.9rem;
 }
 
+/* History, Officials and Barangays are all jump targets for the "About Us"
+   navbar dropdown (#history / #officials / #barangays) — scroll-margin-top
+   keeps the sticky site header from covering the top of whichever section
+   is scrolled to. */
+#history,
+#officials,
+#barangays {
+  scroll-margin-top: 100px;
+}
+
 /* History */
 .history-wrap {
   padding-bottom: 6px;

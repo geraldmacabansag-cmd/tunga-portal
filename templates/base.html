@@ -107,8 +107,34 @@
       <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">Home</a>
       <a href="{% url 'announcement' %}" class="{% if request.resolver_match.url_name == 'announcement' %}active{% endif %}">Announcements</a>
       <a href="{% url 'gallery' %}" class="{% if request.resolver_match.url_name == 'gallery' %}active{% endif %}">Gallery</a>
-      <a href="{% url 'offices' %}" class="{% if request.resolver_match.url_name == 'offices' %}active{% endif %}">Offices <i class="fa-solid fa-chevron-down" style="font-size:.65rem"></i></a>
-      <a href="{% url 'about' %}" class="{% if request.resolver_match.url_name == 'about' %}active{% endif %}">About Us</a>
+
+      <div class="nav-dropdown">
+        <button type="button" class="nav-dropdown__trigger {% if request.resolver_match.app_name == 'offices' %}active{% endif %}" aria-haspopup="true" aria-expanded="false">
+          Offices <i class="fa-solid fa-chevron-down nav-dropdown__chevron"></i>
+        </button>
+        <div class="nav-dropdown__menu nav-dropdown__menu--scroll">
+          <a href="{% url 'offices' %}" class="nav-dropdown__item nav-dropdown__item--all"><i class="fa-solid fa-building"></i> All Offices</a>
+          {% if nav_offices %}
+          <div class="nav-dropdown__divider"></div>
+          {% for o in nav_offices %}
+          <a href="{{ o.nav_url }}" class="nav-dropdown__item">{{ o.name }}</a>
+          {% endfor %}
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="nav-dropdown">
+        <button type="button" class="nav-dropdown__trigger {% if request.resolver_match.url_name == 'about' %}active{% endif %}" aria-haspopup="true" aria-expanded="false">
+          About Us <i class="fa-solid fa-chevron-down nav-dropdown__chevron"></i>
+        </button>
+        <div class="nav-dropdown__menu">
+          <a href="{% url 'about' %}" class="nav-dropdown__item">About Us</a>
+          <a href="{% url 'about' %}#history" class="nav-dropdown__item">History</a>
+          <a href="{% url 'about' %}#officials" class="nav-dropdown__item">Municipal Officials</a>
+          <a href="{% url 'about' %}#barangays" class="nav-dropdown__item">Barangays</a>
+        </div>
+      </div>
+
       <a href="{% url 'contact' %}" class="{% if request.resolver_match.url_name == 'contact' %}active{% endif %}">Contact Us</a>
     </div>
     <div class="nav-search-wrap">
@@ -231,6 +257,21 @@
     }
 
     /* -------------------------------------------------------------- */
+    /* Home page "Photo Gallery" strip — prev/next arrows scroll the   */
+    /* track by one viewport-width's worth of tiles at a time.         */
+    /* -------------------------------------------------------------- */
+    var galleryTrack = document.querySelector('.gallery-strip__track');
+    var galleryPrev = document.querySelector('.gallery-nav--prev');
+    var galleryNext = document.querySelector('.gallery-nav--next');
+    if (galleryTrack && (galleryPrev || galleryNext)) {
+      function scrollGallery(direction) {
+        galleryTrack.scrollBy({ left: direction * galleryTrack.clientWidth, behavior: 'smooth' });
+      }
+      if (galleryPrev) galleryPrev.addEventListener('click', function () { scrollGallery(-1); });
+      if (galleryNext) galleryNext.addEventListener('click', function () { scrollGallery(1); });
+    }
+
+    /* -------------------------------------------------------------- */
     /* Toast popups for Django messages (login, signup, logout, etc.)  */
     /* -------------------------------------------------------------- */
     function ensureToastHost() {
@@ -308,6 +349,56 @@
       current = (current + 1) % messages.length;
       messages[current].classList.add('top-bar__msg--active');
     }, 2000);
+  })();
+
+  /* -------------------------------------------------------------- */
+  /* "Offices" / "About Us" navbar dropdowns — click to open (works the  */
+  /* same with a mouse or on touch, unlike :hover), click elsewhere or   */
+  /* Escape to close, and opening one closes any other that was open.   */
+  /* On the mobile full-width menu this same .open class is what the    */
+  /* CSS uses to expand the item list in place (see base.css).          */
+  /* -------------------------------------------------------------- */
+  (function () {
+    var dropdowns = document.querySelectorAll('.nav-dropdown');
+    if (!dropdowns.length) return;
+
+    function closeDropdown(dd) {
+      dd.classList.remove('open');
+      var trigger = dd.querySelector('.nav-dropdown__trigger');
+      if (trigger) trigger.setAttribute('aria-expanded', 'false');
+    }
+
+    function closeAllDropdowns(except) {
+      dropdowns.forEach(function (dd) {
+        if (dd !== except) closeDropdown(dd);
+      });
+    }
+
+    dropdowns.forEach(function (dd) {
+      var trigger = dd.querySelector('.nav-dropdown__trigger');
+      if (!trigger) return;
+
+      trigger.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var willOpen = !dd.classList.contains('open');
+        closeAllDropdowns(dd);
+        dd.classList.toggle('open', willOpen);
+        trigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+      });
+
+      // An item was picked (a real link, e.g. a specific office, or an
+      // anchor like #history) — collapse this dropdown so it isn't left
+      // open, whether the click navigates away or (for a same-page anchor)
+      // just scrolls the current page.
+      dd.querySelectorAll('.nav-dropdown__item').forEach(function (item) {
+        item.addEventListener('click', function () { closeDropdown(dd); });
+      });
+    });
+
+    document.addEventListener('click', function () { closeAllDropdowns(); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeAllDropdowns();
+    });
   })();
 
   /* -------------------------------------------------------------- */

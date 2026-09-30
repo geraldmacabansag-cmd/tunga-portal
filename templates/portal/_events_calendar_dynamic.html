@@ -1,0 +1,53 @@
+<!-- The part of the Events tab's sidebar calendar that changes when a
+     different month is picked — month header, weekday letters and the day
+     grid, plus a <template id="tpl-event-ID"> for every event in this
+     month (so the day-cell/agenda click handlers in announcements.html can
+     always find one, even for a month that was never part of the original
+     page load).
+
+     Rendered two ways: as part of the full announcements.html page (inside
+     #events-calendar-dynamic), and — by portal/views.py's
+     events_calendar_partial() — as its own small AJAX response that the
+     Events tab's "‹ ›" arrows fetch and swap straight into that same
+     container, instead of reloading the whole page. Keeping this exact
+     markup in one shared file means the two can never drift apart. -->
+<div class="events-cal__head">
+  <a href="?events_month={{ calendar_prev_param }}#events" class="events-cal__nav" data-cal-nav="prev"><i class="fa-solid fa-chevron-left"></i></a>
+  <h3>{{ calendar_month_label }}</h3>
+  <a href="?events_month={{ calendar_next_param }}#events" class="events-cal__nav" data-cal-nav="next"><i class="fa-solid fa-chevron-right"></i></a>
+</div>
+<div class="events-cal__grid events-cal__grid--head">
+  <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+</div>
+<div class="events-cal__grid">
+  {% for week in calendar_weeks %}
+    {% for cell in week %}
+      {% if not cell %}
+        <span></span>
+      {% elif cell.events|length == 0 %}
+        <span{% if cell.is_today %} class="cal-day-today"{% endif %}>{{ cell.day }}</span>
+      {% elif cell.events|length == 1 %}
+        <button type="button"
+          class="cal-day{% if cell.is_featured %} cal-day--featured{% else %} cal-day--event{% endif %}{% if cell.is_today %} cal-day-today{% endif %} js-event-open"
+          data-event="{{ cell.events.0.id }}"
+          data-event-title="{{ cell.events.0.title }}"
+          data-event-office="{{ cell.events.0.representative.office.name|default:'—' }}">{{ cell.day }}</button>
+      {% else %}
+        <button type="button"
+          class="cal-day{% if cell.is_featured %} cal-day--featured{% else %} cal-day--event{% endif %}{% if cell.is_today %} cal-day-today{% endif %} js-cal-day"
+          data-date="{{ cell.date_obj|date:'Y-m-d' }}">{{ cell.day }}</button>
+        <template class="tpl-cal-agenda" data-date="{{ cell.date_obj|date:'F j, Y' }}">
+          {% for e in cell.events %}
+          <a href="#" class="cal-agenda-item js-event-open" data-event="{{ e.id }}" data-event-title="{{ e.title }}" data-event-office="{{ e.representative.office.name|default:'—' }}">
+            <span class="cal-agenda-item__time">{% if e.start_time %}{{ e.start_time|time:"g:i A" }}{% else %}All day{% endif %}</span>
+            <span class="cal-agenda-item__title">{{ e.title }}</span>
+          </a>
+          {% endfor %}
+        </template>
+      {% endif %}
+    {% endfor %}
+  {% endfor %}
+</div>
+{% for e in month_events %}
+<template id="tpl-event-{{ e.id }}">{% include "portal/_event_detail.html" %}</template>
+{% endfor %}

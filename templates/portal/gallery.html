@@ -58,7 +58,12 @@ Photo Gallery | Digital Governance Portal
     {% if page_obj.object_list %}
     <div class="gallery-masonry">
       {% for p in page_obj %}
-      <a href="{{ p.image.url }}" target="_blank" rel="noopener" class="gallery-item">
+      <a href="{{ p.image.url }}" target="_blank" rel="noopener" class="gallery-item js-gallery-open"
+         data-image="{{ p.image.url }}"
+         data-title="{{ p.title }}"
+         data-office="{{ p.representative.office.name|default:'LGU Super Admin' }}"
+         data-category="{{ p.category }}"
+         data-date="{{ p.created_at|date:'F j, Y' }}">
         <img src="{{ p.image.url }}" alt="{{ p.title }}" loading="lazy">
         <div class="gallery-item__overlay">
           <span class="gallery-item__title">{{ p.title }}</span>
@@ -98,5 +103,67 @@ Photo Gallery | Digital Governance Portal
 
   </div>
 </section>
+
+<!-- Lightbox: pops up whichever photo was clicked, full-size, with its
+     details anchored to the image's lower-left corner. -->
+<dialog id="galleryLightbox" class="gallery-lightbox" aria-labelledby="galleryLightboxTitle">
+  <div class="gallery-lightbox__box">
+    <button type="button" class="gallery-lightbox__close" id="galleryLightboxClose" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    <img id="galleryLightboxImg" src="" alt="">
+    <div class="gallery-lightbox__caption">
+      <span class="gallery-lightbox__title" id="galleryLightboxTitle"></span>
+      <span class="gallery-lightbox__meta" id="galleryLightboxMeta"></span>
+    </div>
+  </div>
+</dialog>
+
+<script>
+(function () {
+  var lightbox = document.getElementById('galleryLightbox');
+  var lightboxImg = document.getElementById('galleryLightboxImg');
+  var lightboxTitle = document.getElementById('galleryLightboxTitle');
+  var lightboxMeta = document.getElementById('galleryLightboxMeta');
+  var closeBtn = document.getElementById('galleryLightboxClose');
+  if (!lightbox) return;
+
+  function openLightbox(trigger) {
+    var d = trigger.dataset;
+    lightboxImg.src = d.image;
+    lightboxImg.alt = d.title || '';
+    lightboxTitle.textContent = d.title || '';
+
+    var metaParts = [];
+    if (d.office) metaParts.push(d.office);
+    if (d.category) metaParts.push(d.category);
+    if (d.date) metaParts.push(d.date);
+    lightboxMeta.textContent = metaParts.join(' • ');
+
+    lightbox.showModal();
+    document.body.classList.add('lock');
+  }
+
+  function closeLightbox() {
+    lightbox.close();
+    document.body.classList.remove('lock');
+  }
+
+  document.addEventListener('click', function (e) {
+    var trigger = e.target.closest('.js-gallery-open');
+    if (!trigger) return;
+    e.preventDefault();
+    openLightbox(trigger);
+  });
+
+  closeBtn.addEventListener('click', closeLightbox);
+  lightbox.addEventListener('click', function (e) {
+    // Clicking the dark backdrop (outside the image box) closes it, same
+    // as the site's other detail dialogs.
+    if (e.target === lightbox) closeLightbox();
+  });
+  lightbox.addEventListener('close', function () {
+    document.body.classList.remove('lock');
+  });
+})();
+</script>
 
 {% endblock %}

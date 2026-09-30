@@ -14,20 +14,20 @@
         </div>
       </div>
       <div class="topbar-right">
-        <a href="{% url 'office_dashboard:downloadable_form' %}" class="btn btn-secondary" style="text-decoration:none;"><i class="fa-solid fa-arrow-left"></i> Back to Forms</a>
+        <a href="{% url 'office_dashboard:downloadable_form' %}" class="btn btn-secondary form-builder-back-btn" style="text-decoration:none;"><i class="fa-solid fa-arrow-left"></i> <span>Back to Forms</span></a>
       </div>
     </header>
 
-    <div class="panel-body" style="display:flex;gap:20px;align-items:flex-start;padding:20px;">
+    <div class="panel-body form-builder-layout">
 
-      <div style="flex:1;min-width:0;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+      <div class="form-builder-main">
+        <div class="form-builder-pager">
           <button type="button" class="btn btn-secondary" id="prevPageBtn"><i class="fa-solid fa-chevron-left"></i></button>
           <span id="pageIndicator" style="font-size:13px;color:var(--gray-600);">Page 1</span>
           <button type="button" class="btn btn-secondary" id="nextPageBtn"><i class="fa-solid fa-chevron-right"></i></button>
         </div>
 
-        <div style="max-width:100%;overflow-x:auto;">
+        <div class="form-builder-stage-wrap">
           <div id="pdf-stage" style="position:relative;display:inline-block;border:1px solid var(--gray-200);border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08);cursor:crosshair;">
             <canvas id="pdf-canvas"></canvas>
             <div id="field-layer" style="position:absolute;top:0;left:0;right:0;bottom:0;"></div>
@@ -35,10 +35,10 @@
         </div>
       </div>
 
-      <div style="width:320px;flex-shrink:0;">
+      <div class="form-builder-side">
         <div class="panel" style="padding:16px;">
           <h3 style="margin:0 0 10px;font-size:14px;">Fields on this form</h3>
-          <div id="field-list" style="display:flex;flex-direction:column;gap:10px;max-height:60vh;overflow-y:auto;"></div>
+          <div id="field-list" class="form-builder-field-list"></div>
           <p id="empty-hint" style="font-size:12.5px;color:var(--gray-400);margin-top:8px;">No fields placed yet. Click on the form to add one.</p>
 
           <button type="button" class="btn btn-primary" id="saveFieldsBtn" style="width:100%;margin-top:16px;">

@@ -48,14 +48,21 @@ Home | Digital Governance Portal
         </ul>
       </div>
 
-      <form class="contact-form">
+      <form class="contact-form" id="contactForm">
         <h2 class="section-title">Send Us a Message</h2>
+        <select id="contactOffice" required>
+          <option value="" disabled selected>Select an office to send your message to *</option>
+          {% for o in offices_for_contact %}
+          <option value="{{ o.email }}" data-office-name="{{ o.name }}">{{ o.name }}</option>
+          {% endfor %}
+        </select>
         <div class="contact-form__row">
-          <input type="text" placeholder="Your Name *" required>
-          <input type="email" placeholder="Your Email *" required>
+          <input type="text" id="contactName" placeholder="Your Name *" required>
+          <input type="email" id="contactEmail" placeholder="Your Email *" required>
         </div>
-        <input type="text" placeholder="Subject *" required>
-        <textarea rows="5" placeholder="Message *" required></textarea>
+        <input type="text" id="contactSubject" placeholder="Subject *" required>
+        <textarea id="contactMessage" rows="5" placeholder="Message *" required></textarea>
+        <p id="contactFormStatus" class="contact-form__status"></p>
         <div class="contact-form__footer">
           <label class="recaptcha-mock">
             <input type="checkbox">
@@ -145,5 +152,58 @@ Home | Digital Governance Portal
     </div>
   </div>
 </section>
+
+<script>
+(function () {
+  var form = document.getElementById('contactForm');
+  if (!form) return;
+
+  var officeSelect = document.getElementById('contactOffice');
+  var nameInput = document.getElementById('contactName');
+  var emailInput = document.getElementById('contactEmail');
+  var subjectInput = document.getElementById('contactSubject');
+  var messageInput = document.getElementById('contactMessage');
+  var statusEl = document.getElementById('contactFormStatus');
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    // The office dropdown's value IS that office's email — set that way so
+    // there's nothing else to look up once one is picked.
+    var officeEmail = officeSelect.value;
+    var officeName = officeSelect.options[officeSelect.selectedIndex]
+      ? officeSelect.options[officeSelect.selectedIndex].getAttribute('data-office-name')
+      : '';
+
+    if (!officeEmail) {
+      statusEl.textContent = 'Please select which office to send your message to.';
+      statusEl.classList.add('is-error');
+      officeSelect.focus();
+      return;
+    }
+    if (!form.reportValidity()) return;
+
+    // Gmail's own compose window is what actually sends the email — this
+    // page only builds the link and hands off to it, the same as clicking
+    // a mailto: link but opening Gmail's web composer specifically instead
+    // of whatever mail app (if any) is set as the system default.
+    var subject = officeName ? '[' + officeName + '] ' + subjectInput.value : subjectInput.value;
+    var body =
+      'Name: ' + nameInput.value + '\n' +
+      'Email: ' + emailInput.value + '\n\n' +
+      messageInput.value;
+
+    var gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1'
+      + '&to=' + encodeURIComponent(officeEmail)
+      + '&su=' + encodeURIComponent(subject)
+      + '&body=' + encodeURIComponent(body);
+
+    window.open(gmailUrl, '_blank', 'noopener');
+
+    statusEl.textContent = 'Opening Gmail in a new tab — send it from there to complete your message to ' + (officeName || 'the office') + '.';
+    statusEl.classList.remove('is-error');
+  });
+})();
+</script>
 
 {% endblock %}

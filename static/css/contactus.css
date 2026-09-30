@@ -66,6 +66,7 @@
 
 /* Form */
 .contact-form input,
+.contact-form select,
 .contact-form textarea {
   width: 100%;
   border: 1px solid var(--border-light);
@@ -75,6 +76,22 @@
   font-size: 0.9rem;
   margin-bottom: 14px;
   resize: vertical;
+  background: #fff;
+  color: var(--text-body);
+}
+
+.contact-form select:invalid {
+  color: var(--text-muted);
+}
+
+.contact-form__status {
+  font-size: 0.85rem;
+  margin: -6px 0 14px;
+  color: var(--text-muted);
+}
+
+.contact-form__status.is-error {
+  color: var(--red-badge, #d8302a);
 }
 
 .contact-form__row {

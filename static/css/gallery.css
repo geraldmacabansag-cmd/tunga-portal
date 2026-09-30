@@ -226,6 +226,116 @@
   pointer-events: none;
 }
 
+/* ---------- Lightbox — opened by clicking a photo in the masonry grid ---------- */
+.gallery-lightbox {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  border: none;
+  border-radius: 14px;
+  padding: 0;
+  width: min(720px, 92vw);
+  max-height: 88vh;
+  background: transparent;
+  box-shadow: 0 20px 60px rgba(10, 20, 40, 0.35);
+}
+/* Same belt-and-suspenders centering as the site's other <dialog>s
+   (.ann-dialog in announcements.css) — explicit centering survives more
+   browsers' quirks than relying on the UA stylesheet's margin:auto. */
+.gallery-lightbox[open] {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.gallery-lightbox::backdrop {
+  background: rgba(10, 20, 40, 0.7);
+}
+
+.gallery-lightbox__box {
+  position: relative;
+  line-height: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #000;
+}
+
+.gallery-lightbox__box img {
+  display: block;
+  width: 100%;
+  max-height: 88vh;
+  object-fit: contain;
+  background: #000;
+}
+
+.gallery-lightbox__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(10, 20, 40, 0.6);
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+}
+.gallery-lightbox__close:hover {
+  background: rgba(10, 20, 40, 0.88);
+}
+
+/* The photo's details, anchored to the lower-left corner of the image
+   itself (not a separate panel below it) — a dark gradient scrim keeps the
+   white text readable over any photo. */
+.gallery-lightbox__caption {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 32px 18px 14px;
+  background: linear-gradient(to top, rgba(10, 20, 40, 0.85), rgba(10, 20, 40, 0));
+  color: #fff;
+  text-align: left;
+  line-height: 1.35;
+}
+
+.gallery-lightbox__title {
+  display: block;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.gallery-lightbox__meta {
+  display: block;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.85);
+  margin-top: 3px;
+}
+
+@media (max-width: 600px) {
+  .gallery-lightbox {
+    width: 94vw;
+    max-height: 90vh;
+    border-radius: 12px;
+  }
+  .gallery-lightbox__box {
+    border-radius: 12px;
+  }
+  .gallery-lightbox__caption {
+    padding: 26px 14px 12px;
+  }
+  .gallery-lightbox__title {
+    font-size: 0.95rem;
+  }
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 1080px) {
   .gallery-featured-grid { grid-template-columns: repeat(2, 1fr); }

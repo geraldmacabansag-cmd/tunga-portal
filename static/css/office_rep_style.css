@@ -1002,6 +1002,59 @@ textarea.note-input{
 }
 
 /* ==========================================================================
+   Form Builder (templates/office_dashboard/form-fields-builder.html)
+   Two-column layout: the PDF stage on the left, the field list on the right
+   at a fixed 320px. On narrow screens the fixed side column no longer fits
+   next to the stage, so it drops below it and goes full width instead.
+   ========================================================================== */
+.form-builder-layout{
+  display:flex;
+  gap:20px;
+  align-items:flex-start;
+  padding:20px;
+}
+.form-builder-main{
+  flex:1;
+  min-width:0;
+}
+.form-builder-pager{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:12px;
+}
+.form-builder-stage-wrap{
+  max-width:100%;
+  overflow-x:auto;
+}
+.form-builder-side{
+  width:320px;
+  flex-shrink:0;
+}
+.form-builder-field-list{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  max-height:60vh;
+  overflow-y:auto;
+}
+.form-builder-back-btn span{white-space:nowrap;}
+
+@media (max-width:900px){
+  .form-builder-layout{flex-direction:column;padding:14px;gap:14px;}
+  .form-builder-side{width:100%;}
+  .form-builder-field-list{max-height:40vh;}
+}
+@media (max-width:860px){
+  /* This page's topbar has no bell/account chip, just a single "Back to
+     Forms" link — the shared rule above hides the subtitle and truncates
+     the title, but the button text itself still needs to shrink to an
+     icon so it doesn't crowd the title on phone widths. */
+  .form-builder-back-btn span{display:none;}
+  .form-builder-back-btn{padding:8px 10px;}
+}
+
+/* ==========================================================================
    Interactive UI additions (modal, toast, dropdowns, row menu)
    ========================================================================== */
 

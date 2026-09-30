@@ -19,6 +19,113 @@ from .otp_utils import send_signup_otp, send_password_reset_otp
 from offices.models import Office
 from django.core.paginator import Paginator
 
+# ---------------------------------------------------------------------------
+# Shared helpers for the Events tab's sidebar "month calendar" — used by both
+# the full announcement() page render and the events_calendar_partial() AJAX
+# endpoint the "‹ ›" arrows now call, so a month change no longer reloads the
+# whole page (which was resetting the scroll position back to the top).
+# ---------------------------------------------------------------------------
+
+def _get_featured_event(today):
+    """The event the Events tab's calendar should mark as "featured" (red)
+    for whichever month it falls in — same selection rule used for the big
+    "Featured Event" hero on the main Events tab: an explicitly
+    Super-Admin-featured event if there is one, else the soonest upcoming
+    published event, else None."""
+    dated_upcoming = list(
+        Event.objects.filter(status='published', event_date__gte=today)
+        .order_by('event_date', 'start_time')
+    )
+    undated_upcoming = list(
+        Event.objects.filter(status='published', event_date__isnull=True)
+        .order_by('-created_at')
+    )
+    upcoming_qs = dated_upcoming + undated_upcoming
+
+    featured_dated = [e for e in dated_upcoming if e.is_featured]
+    featured_undated = [e for e in undated_upcoming if e.is_featured]
+    featured_candidates = featured_dated + featured_undated
+
+    if featured_candidates:
+        return featured_candidates[0]
+    if upcoming_qs:
+        return upcoming_qs[0]
+    return None
+
+
+def _build_month_calendar(request, today, featured_event, month_param_name='events_month'):
+    """Builds one month's worth of calendar cells for the given ?<month_param_name>=YYYY-MM
+    (falling back to the current month if missing/malformed), plus the
+    prev/next month params for the "‹ ›" arrows."""
+    month_param = request.GET.get(month_param_name, '').strip()
+    try:
+        cal_year, cal_month = [int(part) for part in month_param.split('-')]
+        if not (1 <= cal_month <= 12):
+            raise ValueError
+    except (ValueError, TypeError):
+        cal_year, cal_month = today.year, today.month
+
+    month_events = list(
+        Event.objects.filter(status='published', event_date__year=cal_year, event_date__month=cal_month)
+        .select_related('representative__office')
+        .order_by('event_date', 'start_time')
+    )
+    for e in month_events:
+        e.category_label = e.category or "General"
+
+    events_by_day = {}
+    for e in month_events:
+        events_by_day.setdefault(e.event_date.day, []).append(e)
+
+    featured_day = featured_event.event_date.day if (
+        featured_event and featured_event.event_date
+        and featured_event.event_date.year == cal_year and featured_event.event_date.month == cal_month
+    ) else None
+
+    calendar_weeks = []
+    for week in cal_module.Calendar(firstweekday=6).monthdayscalendar(cal_year, cal_month):
+        week_cells = []
+        for day in week:
+            if day == 0:
+                week_cells.append(None)
+                continue
+            day_events = events_by_day.get(day, [])
+            cell_date = date(cal_year, cal_month, day)
+            week_cells.append({
+                "day": day,
+                "date_obj": cell_date,
+                "events": day_events,
+                "is_today": cell_date == today,
+                "is_featured": day == featured_day,
+            })
+        calendar_weeks.append(week_cells)
+
+    prev_year, prev_month = (cal_year - 1, 12) if cal_month == 1 else (cal_year, cal_month - 1)
+    next_year, next_month = (cal_year + 1, 1) if cal_month == 12 else (cal_year, cal_month + 1)
+
+    return {
+        "cal_year": cal_year,
+        "cal_month": cal_month,
+        "month_events": month_events,
+        "calendar_weeks": calendar_weeks,
+        "calendar_month_label": date(cal_year, cal_month, 1).strftime("%B %Y"),
+        "calendar_prev_param": f"{prev_year:04d}-{prev_month:02d}",
+        "calendar_next_param": f"{next_year:04d}-{next_month:02d}",
+    }
+
+
+def events_calendar_partial(request):
+    """AJAX endpoint for the Events tab calendar's "‹ ›" arrows: returns just
+    the month header + day grid + event-detail <template>s for the
+    requested month, so JS can swap it into the page in place instead of
+    doing a full reload — which was resetting the page's scroll position
+    back to the top every time a different month was picked."""
+    today = timezone.localdate()
+    featured_event = _get_featured_event(today)
+    calendar_ctx = _build_month_calendar(request, today, featured_event)
+    return render(request, "portal/_events_calendar_dynamic.html", calendar_ctx)
+
+
 # Create your views here.
 def home(request):
     home_announcements = list(
@@ -148,7 +255,16 @@ def announcement(request):
     featured_news = all_news[:3]
     news_main_story = featured_news[0] if len(featured_news) > 0 else None
     news_side_stories = featured_news[1:3]
-    news_grid_items = all_news[3:]
+    news_grid_items_all = all_news[3:]
+
+    # "Latest News" grid pagination — 6 per page (3 rows of the 2-column
+    # grid). Uses its own ?news_page= query param (not the Events tab's
+    # ?events_month=) plus the #news hash, same pattern as the Events tab's
+    # "‹ ›" month links: a normal page reload that lands back on the right
+    # tab via the hash-restore script at the bottom of the template.
+    news_paginator = Paginator(news_grid_items_all, 6)
+    news_page_obj = news_paginator.get_page(request.GET.get('news_page'))
+    news_grid_items = news_page_obj.object_list
 
     # For the "Events" tab — the Super Admin can mark a specific event as
     # "Featured" (Event.is_featured) so it becomes the big "Featured Event"
@@ -208,52 +324,22 @@ def announcement(request):
     upcoming_events = [e for e in upcoming_qs if e != featured_event][:6]
     past_events = past_qs
 
+    # "Up Next" sidebar panel on the Events tab — a quick-glance list of the
+    # 4 soonest dated upcoming events (undated ones have no "OCT 10"-style
+    # date to show here, so they're left to the main Upcoming Events grid).
+    up_next_events = dated_upcoming[:4]
+
     # ---- Events tab sidebar: the small month calendar --------------------
-    # ?events_month=YYYY-MM lets the "‹ ›" arrows browse other months with a
-    # normal page reload (no JS/AJAX needed). Falls back to the current
-    # month, and to the current month again if the param is malformed.
-    events_month_param = request.GET.get('events_month', '').strip()
-    try:
-        cal_year, cal_month = [int(part) for part in events_month_param.split('-')]
-        if not (1 <= cal_month <= 12):
-            raise ValueError
-    except (ValueError, TypeError):
-        cal_year, cal_month = today.year, today.month
-
-    month_events = list(
-        Event.objects.filter(status='published', event_date__year=cal_year, event_date__month=cal_month)
-        .select_related('representative__office')
-        .order_by('event_date', 'start_time')
-    )
-    for e in month_events:
-        e.category_label = e.category or "General"
-
-    events_by_day = {}
-    for e in month_events:
-        events_by_day.setdefault(e.event_date.day, []).append(e)
-
-    featured_day = featured_event.event_date.day if (
-        featured_event and featured_event.event_date
-        and featured_event.event_date.year == cal_year and featured_event.event_date.month == cal_month
-    ) else None
-
-    calendar_weeks = []
-    for week in cal_module.Calendar(firstweekday=6).monthdayscalendar(cal_year, cal_month):
-        week_cells = []
-        for day in week:
-            if day == 0:
-                week_cells.append(None)
-                continue
-            day_events = events_by_day.get(day, [])
-            cell_date = date(cal_year, cal_month, day)
-            week_cells.append({
-                "day": day,
-                "date_obj": cell_date,
-                "events": day_events,
-                "is_today": cell_date == today,
-                "is_featured": day == featured_day,
-            })
-        calendar_weeks.append(week_cells)
+    # ?events_month=YYYY-MM lets the "‹ ›" arrows browse other months. The
+    # arrows themselves now fetch this via events_calendar_partial() over
+    # AJAX (see that view + the Events tab's JS) instead of reloading the
+    # whole page, but this same helper builds the calendar for the initial
+    # page load too, so both stay in sync.
+    calendar_ctx = _build_month_calendar(request, today, featured_event)
+    cal_year = calendar_ctx["cal_year"]
+    cal_month = calendar_ctx["cal_month"]
+    month_events = calendar_ctx["month_events"]
+    calendar_weeks = calendar_ctx["calendar_weeks"]
 
     # Templates for the Announcement/News/Event detail dialogs are rendered
     # once per event on the page; featured_event/upcoming_events/past_events
@@ -265,9 +351,6 @@ def announcement(request):
     if featured_event:
         already_rendered_ids.add(featured_event.id)
     calendar_only_events = [e for e in month_events if e.id not in already_rendered_ids]
-
-    prev_year, prev_month = (cal_year - 1, 12) if cal_month == 1 else (cal_year, cal_month - 1)
-    next_year, next_month = (cal_year + 1, 1) if cal_month == 12 else (cal_year, cal_month + 1)
 
     # ---- "From Our Offices" sidebar panel (All Updates tab) --------------
     # One row per office that has at least one published announcement, each
@@ -348,13 +431,15 @@ def announcement(request):
         "news_main_story": news_main_story,
         "news_side_stories": news_side_stories,
         "news_grid_items": news_grid_items,
+        "news_page_obj": news_page_obj,
         "featured_event": featured_event,
         "upcoming_events": upcoming_events,
         "past_events": past_events,
+        "up_next_events": up_next_events,
         "calendar_weeks": calendar_weeks,
-        "calendar_month_label": date(cal_year, cal_month, 1).strftime("%B %Y"),
-        "calendar_prev_param": f"{prev_year:04d}-{prev_month:02d}",
-        "calendar_next_param": f"{next_year:04d}-{next_month:02d}",
+        "calendar_month_label": calendar_ctx["calendar_month_label"],
+        "calendar_prev_param": calendar_ctx["calendar_prev_param"],
+        "calendar_next_param": calendar_ctx["calendar_next_param"],
         "calendar_only_events": calendar_only_events,
         "office_updates": office_updates,
         "office_directory": office_directory,
@@ -460,7 +545,18 @@ def history(request):
     return render(request, "portal/history.html")
 
 def contact(request):
-    return render(request, "portal/contactus.html")
+    # Populates the "Send Us a Message" office dropdown — only offices that
+    # are publicly visible and actually have a contact email on file, since
+    # that email is where the form's Gmail redirect needs to send to.
+    offices_for_contact = (
+        Office.objects.exclude(slug="lgu-super-admin")
+        .filter(is_visible=True)
+        .exclude(email="")
+        .order_by("name")
+    )
+    return render(request, "portal/contactus.html", {
+        "offices_for_contact": offices_for_contact,
+    })
 
 def signup(request):
     if request.method == "POST":

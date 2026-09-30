@@ -319,13 +319,25 @@ Home | Digital Governance Portal
 
           <p class="top-no-results panel" style="display:none;padding:30px;text-align:center;color:var(--text-muted);">No news matches your search.</p>
 
+          {% if news_page_obj.paginator.num_pages > 1 %}
           <div class="news-pagination">
-            <button type="button" class="news-page-btn" disabled><i class="fa-solid fa-chevron-left"></i></button>
-            <button type="button" class="news-page-btn active">1</button>
-            <button type="button" class="news-page-btn">2</button>
-            <button type="button" class="news-page-btn">3</button>
-            <button type="button" class="news-page-btn"><i class="fa-solid fa-chevron-right"></i></button>
+            {% if news_page_obj.has_previous %}
+            <a href="?news_page={{ news_page_obj.previous_page_number }}#news" class="news-page-btn"><i class="fa-solid fa-chevron-left"></i></a>
+            {% else %}
+            <span class="news-page-btn disabled"><i class="fa-solid fa-chevron-left"></i></span>
+            {% endif %}
+
+            {% for num in news_page_obj.paginator.page_range %}
+            <a href="?news_page={{ num }}#news" class="news-page-btn {% if num == news_page_obj.number %}active{% endif %}">{{ num }}</a>
+            {% endfor %}
+
+            {% if news_page_obj.has_next %}
+            <a href="?news_page={{ news_page_obj.next_page_number }}#news" class="news-page-btn"><i class="fa-solid fa-chevron-right"></i></a>
+            {% else %}
+            <span class="news-page-btn disabled"><i class="fa-solid fa-chevron-right"></i></span>
+            {% endif %}
           </div>
+          {% endif %}
 
         </div>
 
@@ -465,42 +477,8 @@ Home | Digital Governance Portal
         <aside class="announcements-side">
 
           <div class="panel ann-side-panel events-cal">
-            <div class="events-cal__head">
-              <a href="?events_month={{ calendar_prev_param }}#events" class="events-cal__nav"><i class="fa-solid fa-chevron-left"></i></a>
-              <h3>{{ calendar_month_label }}</h3>
-              <a href="?events_month={{ calendar_next_param }}#events" class="events-cal__nav"><i class="fa-solid fa-chevron-right"></i></a>
-            </div>
-            <div class="events-cal__grid events-cal__grid--head">
-              <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
-            </div>
-            <div class="events-cal__grid">
-              {% for week in calendar_weeks %}
-                {% for cell in week %}
-                  {% if not cell %}
-                    <span></span>
-                  {% elif cell.events|length == 0 %}
-                    <span{% if cell.is_today %} class="cal-day-today"{% endif %}>{{ cell.day }}</span>
-                  {% elif cell.events|length == 1 %}
-                    <button type="button"
-                      class="cal-day{% if cell.is_featured %} cal-day--featured{% else %} cal-day--event{% endif %}{% if cell.is_today %} cal-day-today{% endif %} js-event-open"
-                      data-event="{{ cell.events.0.id }}"
-                      data-event-title="{{ cell.events.0.title }}"
-                      data-event-office="{{ cell.events.0.representative.office.name|default:'—' }}">{{ cell.day }}</button>
-                  {% else %}
-                    <button type="button"
-                      class="cal-day{% if cell.is_featured %} cal-day--featured{% else %} cal-day--event{% endif %}{% if cell.is_today %} cal-day-today{% endif %} js-cal-day"
-                      data-date="{{ cell.date_obj|date:'Y-m-d' }}">{{ cell.day }}</button>
-                    <template class="tpl-cal-agenda" data-date="{{ cell.date_obj|date:'F j, Y' }}">
-                      {% for e in cell.events %}
-                      <a href="#" class="cal-agenda-item js-event-open" data-event="{{ e.id }}" data-event-title="{{ e.title }}" data-event-office="{{ e.representative.office.name|default:'—' }}">
-                        <span class="cal-agenda-item__time">{% if e.start_time %}{{ e.start_time|time:"g:i A" }}{% else %}All day{% endif %}</span>
-                        <span class="cal-agenda-item__title">{{ e.title }}</span>
-                      </a>
-                      {% endfor %}
-                    </template>
-                  {% endif %}
-                {% endfor %}
-              {% endfor %}
+            <div id="events-calendar-dynamic" data-events-calendar-url="{% url 'events_calendar_partial' %}">
+              {% include "portal/_events_calendar_dynamic.html" %}
             </div>
             <div class="events-cal__legend">
               <span><i class="cal-dot cal-dot--featured"></i> Featured</span>
@@ -508,17 +486,14 @@ Home | Digital Governance Portal
             </div>
           </div>
 
-          {% for e in calendar_only_events %}
-          <template id="tpl-event-{{ e.id }}">{% include "portal/_event_detail.html" %}</template>
-          {% endfor %}
-
           <div class="panel ann-side-panel">
             <h3>Up Next</h3>
             <ul class="events-upnext">
-              <li><span class="events-upnext__date">OCT 10</span><span>Fun Run for a Cause</span></li>
-              <li><span class="events-upnext__date">OCT 16</span><span>Gulayan sa Barangay Fair</span></li>
-              <li><span class="events-upnext__date">OCT 24</span><span>SK Youth Leadership Summit</span></li>
-              <li><span class="events-upnext__date">NOV 01</span><span>Oplan Kaluluwa</span></li>
+              {% for e in up_next_events %}
+              <li><span class="events-upnext__date">{{ e.event_date|date:"M d"|upper }}</span><span>{{ e.title }}</span></li>
+              {% empty %}
+              <li><span>No upcoming events scheduled.</span></li>
+              {% endfor %}
             </ul>
           </div>
 
@@ -608,6 +583,47 @@ Home | Digital Governance Portal
 
 <script>
 (function () {
+  // Events tab calendar "‹ ›" links used to reload the whole page
+  // (?events_month=...), which always reset the scroll position back to
+  // the top — jarring when the calendar sits partway down the sidebar, and
+  // no amount of "restore the scroll position after reload" trickery ever
+  // looked fully smooth. Fetching just the calendar's own markup and
+  // swapping it into #events-calendar-dynamic avoids a page reload (and
+  // therefore the scroll jump) entirely. The <a href="?events_month=...">
+  // is kept in the template as a plain-navigation fallback for anyone
+  // without JS — this listener only takes over when it can.
+  var calendarDynamic = document.getElementById('events-calendar-dynamic');
+
+  function loadCalendarMonth(pageUrl) {
+    if (!calendarDynamic) return;
+    var ajaxUrl = calendarDynamic.getAttribute('data-events-calendar-url')
+      + pageUrl.search; // reuse the same ?events_month=... the link already built
+    fetch(ajaxUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then(function (res) {
+        if (!res.ok) throw new Error('bad response');
+        return res.text();
+      })
+      .then(function (html) {
+        calendarDynamic.innerHTML = html;
+      })
+      .catch(function () {
+        // Something went wrong (offline, server error, etc.) — fall back to
+        // a normal full navigation rather than leaving the arrow dead.
+        window.location.href = pageUrl.href;
+      });
+  }
+
+  document.addEventListener('click', function (e) {
+    var navLink = e.target.closest('.events-cal__nav');
+    if (!navLink || !calendarDynamic) return;
+    e.preventDefault();
+    var pageUrl = new URL(navLink.href, window.location.href);
+    loadCalendarMonth(pageUrl);
+    // Keeps the address bar (and a reload/share of it) pointed at the same
+    // month, without triggering a navigation ourselves.
+    history.replaceState(null, '', pageUrl.search + '#events');
+  });
+
   var tabs = document.querySelectorAll('.filter-tab');
   var panels = document.querySelectorAll('.tab-panel');
 
@@ -819,16 +835,10 @@ Home | Digital Governance Portal
     });
   }
 
-  // News tab: pagination buttons are visual-only for now (hardcoded cards),
-  // just toggles which page number looks active.
-  document.querySelectorAll('.news-page-btn').forEach(function (btn) {
-    if (btn.disabled) return;
-    btn.addEventListener('click', function () {
-      if (!/^\d+$/.test(btn.textContent.trim())) return;
-      document.querySelectorAll('.news-page-btn').forEach(function (b) { b.classList.remove('active'); });
-      btn.classList.add('active');
-    });
-  });
+  // News tab: pagination is now real server-side paging (?news_page=N),
+  // rendered as plain links by the template — no JS needed to make the
+  // page numbers work. Each link's #news hash is what brings the reloaded
+  // page back to the News tab instead of resetting to "All Updates".
 
   // ---- Top search bar + "Filter" dropdown (works across all four tabs) --
   // The Announcements tab already has its own dedicated search box + category

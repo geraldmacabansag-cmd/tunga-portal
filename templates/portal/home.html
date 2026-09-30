@@ -63,6 +63,7 @@ Home | Digital Governance Portal
         {% for a in home_announcements %}
         <li class="feed-item">
           <div class="feed-item__date">{{ a.display_date|date:"M"|upper }}<strong>{{ a.display_date|date:"d" }}</strong>{{ a.display_date|date:"Y" }}</div>
+          {% if a.image %}<img src="{{ a.image.url }}" alt="{{ a.title }}" class="feed-item__thumb">{% endif %}
           <div class="feed-item__body">
             {% if forloop.first %}<span class="badge-new">NEW</span>{% endif %}
             <a href="{% url 'announcement' %}" class="feed-item__title">{{ a.title }}</a>
@@ -122,7 +123,7 @@ Home | Digital Governance Portal
   <div class="container">
     <div class="section-title--row">
       <h2 class="section-title" style="margin-bottom:0;padding-bottom:0;">Photo Gallery</h2>
-      <a href="#" class="view-all">View All</a>
+      <a href="{% url 'gallery' %}" class="view-all">View All</a>
     </div>
     <div class="gallery-strip">
       <button class="gallery-nav gallery-nav--prev" aria-label="Previous photo"><i class="fa-solid fa-arrow-left"></i></button>
