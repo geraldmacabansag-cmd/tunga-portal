@@ -146,8 +146,26 @@
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">Link URL <span class="req">*</span></label>
-          <input class="form-input" type="text" name="url" placeholder="/offices or https://example.com" required>
+          <label class="form-label">Link Destination <span class="req">*</span></label>
+          <select class="form-input" name="url" onchange="toggleQuickLinkCustomUrl(this)" required>
+            <optgroup label="Main Pages">
+              {% for p in static_pages_for_links %}
+              <option value="{{ p.url }}">{{ p.label }}</option>
+              {% endfor %}
+            </optgroup>
+            <optgroup label="Offices">
+              {% for o in offices_for_links %}
+              <option value="{{ o.quicklink_url }}">{{ o.name }}</option>
+              {% endfor %}
+            </optgroup>
+            <optgroup label="Services">
+              {% for s in services_for_links %}
+              <option value="{{ s.quicklink_url }}">{{ s.name }} — {{ s.office.name }}</option>
+              {% endfor %}
+            </optgroup>
+            <option value="__custom__">Custom URL…</option>
+          </select>
+          <input class="form-input quicklink-custom-url is-hidden" type="text" name="url_custom" placeholder="/path or https://example.com" style="margin-top:8px;">
         </div>
         <div class="form-row">
           <div class="form-group">
@@ -193,8 +211,26 @@
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">Link URL <span class="req">*</span></label>
-          <input class="form-input" type="text" name="url" value="{{ l.url }}" required>
+          <label class="form-label">Link Destination <span class="req">*</span></label>
+          <select class="form-input" name="url" onchange="toggleQuickLinkCustomUrl(this)" required>
+            <optgroup label="Main Pages">
+              {% for p in static_pages_for_links %}
+              <option value="{{ p.url }}" {% if l.url == p.url %}selected{% endif %}>{{ p.label }}</option>
+              {% endfor %}
+            </optgroup>
+            <optgroup label="Offices">
+              {% for o in offices_for_links %}
+              <option value="{{ o.quicklink_url }}" {% if l.url == o.quicklink_url %}selected{% endif %}>{{ o.name }}</option>
+              {% endfor %}
+            </optgroup>
+            <optgroup label="Services">
+              {% for s in services_for_links %}
+              <option value="{{ s.quicklink_url }}" {% if l.url == s.quicklink_url %}selected{% endif %}>{{ s.name }} — {{ s.office.name }}</option>
+              {% endfor %}
+            </optgroup>
+            <option value="__custom__" {% if l.is_custom_url %}selected{% endif %}>Custom URL…</option>
+          </select>
+          <input class="form-input quicklink-custom-url{% if not l.is_custom_url %} is-hidden{% endif %}" type="text" name="url_custom" placeholder="/path or https://example.com" value="{% if l.is_custom_url %}{{ l.url }}{% endif %}" style="margin-top:8px;">
         </div>
         <div class="form-row">
           <div class="form-group">
@@ -239,4 +275,25 @@
 </div>
 {% endfor %}
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Shows/hides the free-text URL field next to the "Link Destination"
+  // select — only needed when "Custom URL…" is chosen instead of one of
+  // the real site pages/offices/services the select already lists.
+  function toggleQuickLinkCustomUrl(selectEl) {
+    var wrapper = selectEl.closest('.form-group');
+    var customInput = wrapper ? wrapper.querySelector('.quicklink-custom-url') : null;
+    if (!customInput) return;
+    if (selectEl.value === '__custom__') {
+      customInput.classList.remove('is-hidden');
+      customInput.setAttribute('required', 'required');
+    } else {
+      customInput.classList.add('is-hidden');
+      customInput.removeAttribute('required');
+      customInput.value = '';
+    }
+  }
+</script>
 {% endblock %}

@@ -1147,6 +1147,7 @@ button {
   display: flex;
   align-items: center;
   gap: 8px;
+  position: relative;
 }
 
 .nav-search-input {
@@ -1177,5 +1178,99 @@ button {
 @media (max-width: 700px) {
   .nav-search-wrap.open .nav-search-input {
     width: 140px;
+  }
+}
+
+/* Search suggestions dropdown */
+.nav-search-results {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 320px;
+  max-width: calc(100vw - 32px);
+  max-height: 360px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  box-shadow: 0 12px 28px rgba(10, 31, 107, 0.14);
+  z-index: 60;
+  padding: 6px;
+}
+
+.nav-search-result {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.nav-search-result:hover,
+.nav-search-result.is-active {
+  background: #f1f4fc;
+}
+
+.nav-search-result__icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #e9edfb;
+  color: var(--navy);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+}
+
+.nav-search-result__text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-search-result__label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-search-result__meta {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-search-result__type {
+  flex-shrink: 0;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  background: #f4f6fb;
+  padding: 3px 7px;
+  border-radius: 999px;
+}
+
+.nav-search-empty {
+  padding: 14px 10px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+@media (max-width: 700px) {
+  .nav-search-results {
+    width: calc(100vw - 32px);
+    right: -40px;
   }
 }

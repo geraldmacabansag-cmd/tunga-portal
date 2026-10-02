@@ -977,6 +977,7 @@ table.data-table {
   align-items:center;
   justify-content:space-between;
   gap:20px;
+  flex-wrap:wrap;
 
   background:linear-gradient(120deg, var(--navy-800), var(--navy-950));
   color:#fff;
@@ -986,6 +987,12 @@ table.data-table {
   margin-bottom:20px;
 
   box-shadow:var(--shadow-sm);
+}
+/* Text side — allowed to shrink/wrap instead of forcing the banner wider
+   than its container (which is what was pushing this subtitle off-screen
+   on small screens rather than letting it just wrap onto its own line). */
+.welcome-banner > div{
+  min-width:0;
 }
 .welcome-banner h2{
   margin:0 0 4px;
@@ -997,6 +1004,8 @@ table.data-table {
   margin:0;
   font-size:13px;
   color:#aab2d6;
+  white-space:normal;
+  overflow-wrap:break-word;
 }
 .welcome-banner .date-chip{
   flex-shrink:0;
@@ -1091,6 +1100,7 @@ table.data-table {
 /* ---------- Dashboard responsive ---------- */
 @media (max-width:600px){
   .welcome-banner{flex-direction:column; align-items:flex-start; gap:12px;}
+  .welcome-banner > div{width:100%;}
   .approval-row{flex-wrap:wrap;}
   .approval-row .ar-actions{width:100%; justify-content:flex-end;}
 }
@@ -1331,7 +1341,7 @@ textarea.note-input{
   .topbar-left{gap:10px;min-width:0;flex:1 1 auto;}
   .page-heading{min-width:0;overflow:hidden;}
   .page-heading h1{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .page-heading p{display:none;}
+  .page-heading p{font-size:11px;margin:1px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .field.search{display:none !important;}
   .mobile-search-btn{display:flex !important;}
   .topbar-right{gap:8px;flex-shrink:0;}
@@ -1868,3 +1878,6 @@ input[type="date"].form-input::-webkit-calendar-picker-indicator:hover {
 .charter-table tfoot td { background: var(--gray-50, #f9fafb); font-weight: 800; }
 .charter-table .charter-subhead { background: var(--blue-50, #eff6ff); font-weight: 700; text-align: center; }
 .charter-info-table th { background: var(--blue-100, #bfdbfe); width: 200px; }
+/* Quick Link modal: "Custom URL..." field, shown only when picked from
+   the Link Destination select (see super-admin-homepage.html). */
+.is-hidden { display: none !important; }

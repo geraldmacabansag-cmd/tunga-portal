@@ -1166,7 +1166,7 @@ def add_service(request, rep):
         if not name:
             messages.error(request, "Service name is required.")
         else:
-            Service.objects.create(
+            service = Service.objects.create(
                 office=rep.office,
                 name=name,
                 description=description,
@@ -1177,7 +1177,15 @@ def add_service(request, rep):
                 who_may_avail=who_may_avail,
                 service_scope=service_scope,
             )
-            messages.success(request, f'"{name}" was added to your services.')
+            messages.success(request, f'"{name}" was added. Add its requirements, process steps, fees and other details below.')
+
+            next_page = request.POST.get('next') or request.GET.get('next')
+            if next_page == 'services':
+                # Straight into that service's own detail view instead of
+                # the bare list — the Services page reads this "service"
+                # query param on load and opens the matching detail panel.
+                return redirect(f"{reverse('office_dashboard:services')}?service={service.pk}")
+            return redirect('office_dashboard:profile')
 
     next_page = request.POST.get('next') or request.GET.get('next')
     if next_page == 'services':

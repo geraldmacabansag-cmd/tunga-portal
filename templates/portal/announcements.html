@@ -1001,6 +1001,30 @@ Home | Digital Governance Portal
   if (initialTab && document.querySelector('.filter-tab[data-tab="' + initialTab + '"]')) {
     activateTab(initialTab);
   }
+
+  // Deep link from the site-wide navbar search: ?open_announcement=<id>,
+  // ?open_news=<id> or ?open_event=<id> opens that specific item's modal
+  // automatically, by simply clicking the matching card/link already in
+  // the DOM (the tab above has just been activated, so its panel is
+  // visible). The click handlers wired further up in this file do the
+  // rest (openAnnDialog / openNewsDialog / openEventDialog).
+  var deepLinkParams = new URLSearchParams(window.location.search);
+  var deepLinkAnnId = deepLinkParams.get('open_announcement');
+  var deepLinkNewsId = deepLinkParams.get('open_news');
+  var deepLinkEventId = deepLinkParams.get('open_event');
+
+  if (deepLinkAnnId) {
+    var deepAnnEl = document.querySelector('.js-ann-open[data-ann="' + deepLinkAnnId + '"]');
+    if (deepAnnEl) deepAnnEl.click();
+  }
+  if (deepLinkNewsId) {
+    var deepNewsEl = document.querySelector('.js-news-open[data-news="' + deepLinkNewsId + '"]');
+    if (deepNewsEl) deepNewsEl.click();
+  }
+  if (deepLinkEventId) {
+    var deepEventEl = document.querySelector('.js-event-open[data-event="' + deepLinkEventId + '"]');
+    if (deepEventEl) deepEventEl.click();
+  }
 })();
 </script>
 

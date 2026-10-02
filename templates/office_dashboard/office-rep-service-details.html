@@ -97,7 +97,7 @@
                 </td>
                 <td>
                   <div class="action-icons">
-                    <button type="button" class="ic view-service-btn" title="View"
+                    <button type="button" class="ic view-service-btn" title="Edit"
                       data-id="{{ service.pk }}"
                       data-name="{{ service.name }}"
                       data-icon="{{ service.icon }}"
@@ -120,7 +120,7 @@
                       data-schedule-of-service="{{ service.schedule_of_service|default:'' }}"
                       data-steps="{{ service.steps_json }}"
                       data-requirements="{{ service.requirements_json }}">
-                      <i class="fa-regular fa-eye"></i>
+                      <i class="fa-regular fa-pen-to-square"></i>
                     </button>
                     <button type="button" class="ic" title="Delete" data-delete-target="delete-modal-{{ service.pk }}">
                       <i class="fa-regular fa-trash-can"></i>
@@ -664,13 +664,13 @@
 
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
-          <button type="submit" class="btn btn-primary">Add</button>
+          <button type="button" class="btn btn-primary" id="add-service-confirm-btn">Add</button>
         </div>
       </form>
 
       <p style="margin:14px 0 0;font-size:.82rem;color:var(--gray-500,#5d667f);">
         <i class="fa-regular fa-circle-question"></i>
-        After adding, click the <strong>View</strong> button on the service to add or edit its requirements, process steps, fees, and other details.
+        This won't be saved yet — you'll see it in the detail view first, and it's only added once you click <strong>Save Changes</strong> there. Requirements, process steps, fees, and other details can be filled in once it's saved.
       </p>
     </div>
   </div>
@@ -705,6 +705,12 @@
   // Site-wide switch set by the Super Admin from their Services page —
   // same value for every service shown on this page.
   var editingGloballyEnabled = true;
+
+  // True while the detail view is showing an unsaved Add Service preview
+  // rather than a real, saved service (see confirmAddServiceDraft() and
+  // showDetail()'s isDraft handling further down).
+  var isDraftService = false;
+
   var listView = document.getElementById('services-list-view');
   var detailView = document.getElementById('service-detail-view');
   var crumbSep = document.getElementById('crumb-sep');
@@ -881,6 +887,18 @@
   var saveChangesBtn = document.getElementById('save-changes-btn');
   if (saveChangesBtn) {
     saveChangesBtn.addEventListener('click', function () {
+      if (isDraftService) {
+        // Nothing has been written to the database for this one yet — this
+        // click is what actually creates it. Submit the same form the Add
+        // Service modal filled in (its fields were left untouched, see
+        // buildAddServiceDraft()/the confirm handler above) for real this
+        // time; the server creates the service and redirects back here
+        // with ?service=<new id>, which lands on the now-saved service with
+        // Requirements/Client Steps/Forms unlocked.
+        if (addServiceForm) addServiceForm.submit();
+        return;
+      }
+
       if (!currentServicePk) return;
 
       var csrf = getCsrfToken();
@@ -1283,6 +1301,27 @@
     // fees, or reminders. Disable the controls up front instead of
     // letting them try and hit a 403 from the server.
     var isPublished = data.status === 'published';
+
+    // A brand-new service previewed from the Add Service modal (see
+    // confirmAddServiceDraft() below) — nothing has been written to the
+    // database yet, so it has no real id. Requirements/Steps/Forms all
+    // need a real service to attach to, so those stay locked until this
+    // is actually saved via the Save Changes button.
+    var isDraft = !data.id;
+    isDraftService = isDraft;
+
+    var draftNote = document.getElementById('detail-draft-note');
+    if (!draftNote) {
+      draftNote = document.createElement('div');
+      draftNote.id = 'detail-draft-note';
+      draftNote.className = 'reminder-box';
+      draftNote.style.marginBottom = '14px';
+      draftNote.innerHTML = '<span class="ic"><i class="fa-solid fa-circle-info"></i></span><div><strong>Not saved yet</strong><p>Review the details above, then click <strong>Save Changes</strong> to add this service. Requirements, process steps, and forms can be added once it\'s saved.</p></div>';
+      var subtabsEl3 = document.querySelector('.subtabs');
+      if (subtabsEl3 && subtabsEl3.parentNode) subtabsEl3.parentNode.insertBefore(draftNote, subtabsEl3.nextSibling);
+    }
+    draftNote.style.display = isDraft ? '' : 'none';
+
     var lockedNote = document.getElementById('detail-locked-note');
     if (!lockedNote) {
       lockedNote = document.createElement('div');
@@ -1295,21 +1334,31 @@
     }
     lockedNote.style.display = isPublished ? '' : 'none';
 
-    ['save-changes-btn', 'step-modal-trigger', 'requirement-modal-trigger', 'legal-basis-modal-trigger', 'schedule-of-service-modal-trigger', 'reminders-modal-trigger'].forEach(function (id) {
+    // Save Changes stays enabled for a draft (clicking it is what actually
+    // creates the service) — only the sub-resource tabs below it need a
+    // real, saved service to attach to.
+    var saveChangesBtnEl = document.getElementById('save-changes-btn');
+    if (saveChangesBtnEl) saveChangesBtnEl.disabled = isPublished;
+
+    ['step-modal-trigger', 'requirement-modal-trigger', 'legal-basis-modal-trigger', 'schedule-of-service-modal-trigger', 'reminders-modal-trigger'].forEach(function (id) {
       var btn = document.getElementById(id);
-      if (btn) btn.disabled = isPublished;
+      if (btn) btn.disabled = isPublished || isDraft;
     });
 
     // Edit button (name/description/division/classification/type of
     // transaction/who may avail/internal-external/icon): disabled once
     // published, same as everything else, but can ALSO be switched off by
     // the Super Admin independently (editEnabled), even while pending.
+    // Also disabled for a draft — re-open the Add Service modal instead,
+    // since there's no saved service yet for the Edit modal to post to.
     var editingDisabledByAdmin = data.editEnabled === 'false';
     // Edit button is governed ONLY by the Super Admin's global switch now —
     // it stays clickable even after the service is published, so the Super
     // Admin can let an office fix a published service's basic info when needed.
     var editServiceBtnEl = document.getElementById('edit-service-btn');
-    if (editServiceBtnEl) editServiceBtnEl.disabled = !editingGloballyEnabled;
+    if (editServiceBtnEl) editServiceBtnEl.disabled = !editingGloballyEnabled || isDraft;
+
+    if (previewBtn) previewBtn.disabled = isDraft;
 
     var editLockedNote = document.getElementById('detail-edit-locked-note');
     if (!editLockedNote) {
@@ -1363,6 +1412,14 @@
     crumbCurrent.style.display = 'none';
     crumbSep.style.display = 'none';
     try { history.replaceState(null, '', window.location.pathname); } catch (e) {}
+
+    // Leaving an unsaved Add Service preview without clicking Save Changes
+    // abandons it — clear the hidden form so the next "Add Service" opens
+    // with a blank slate instead of the discarded draft's old values.
+    if (isDraftService) {
+      isDraftService = false;
+      if (addServiceForm) addServiceForm.reset();
+    }
   }
 
   document.querySelectorAll('.view-service-btn').forEach(function (btn) {
@@ -1408,6 +1465,7 @@
   // office-profile page.
   var addServiceModal = document.getElementById('add-service-modal');
   var addServiceForm = addServiceModal ? addServiceModal.querySelector('form') : null;
+  var addServiceConfirmBtn = document.getElementById('add-service-confirm-btn');
 
   function openAddServiceModal() {
     if (!addServiceModal) return;
@@ -1420,6 +1478,49 @@
     addServiceModal.classList.remove('open');
     document.body.classList.remove('modal-open');
     setTimeout(function () { if (addServiceForm) addServiceForm.reset(); }, 200);
+  }
+
+  // "Add" in the Add Service modal no longer saves anything — it just
+  // previews the entered details in the detail view (as an unsaved draft)
+  // so the office rep can check them over. The fields stay sitting in this
+  // same (now hidden) form; clicking Save Changes there is what actually
+  // submits it to the server and creates the service — see the
+  // save-changes-btn handler below.
+  function buildAddServiceDraft() {
+    var fd = new FormData(addServiceForm);
+    return {
+      id: null,
+      name: (fd.get('name') || '').trim(),
+      description: (fd.get('description') || '').trim(),
+      division: (fd.get('division') || '').trim(),
+      classification: (fd.get('classification') || '').trim(),
+      transactionType: fd.getAll('transaction_type').join(', '),
+      whoMayAvail: (fd.get('who_may_avail') || '').trim(),
+      serviceScope: fd.get('service_scope') || '',
+      icon: fd.get('icon') || 'fa-solid fa-file-signature',
+      status: 'draft',
+      statusDisplay: 'Draft — not yet saved',
+      editEnabled: 'true',
+      reminders: '',
+      steps: '[]',
+      requirements: '[]',
+      legalBasis: '',
+      scheduleOfService: '',
+      adminNote: '',
+      published: 'Not yet saved',
+    };
+  }
+
+  if (addServiceConfirmBtn) {
+    addServiceConfirmBtn.addEventListener('click', function () {
+      if (!addServiceForm) return;
+      if (!addServiceForm.reportValidity()) return;
+
+      var draft = buildAddServiceDraft();
+      addServiceModal.classList.remove('open');
+      document.body.classList.remove('modal-open');
+      showDetail(draft);
+    });
   }
 
   // Delete Service: per-service confirmation popup (same pattern as the

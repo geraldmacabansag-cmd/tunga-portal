@@ -86,6 +86,8 @@ urlpatterns = [
 
     path('Admin-Website-setting/', views.admin_web_setting, name='ad_web_setting'),
     path('Admin-Analytics-Reports/', views.admin_analytics, name='ad_analytics'),
+    path('Admin-Analytics-Reports/export/office-activity/', views.admin_export_office_activity, name='admin_export_office_activity'),
+    path('Admin-Analytics-Reports/export/approval-history/', views.admin_export_approval_history, name='admin_export_approval_history'),
     path('Admin-Activity-Logs/', views.admin_activity_log, name='ad_activity_log'),
     path('Admin-System-Settings/', views.admin_system_setting, name='ad_system_settings'),
 

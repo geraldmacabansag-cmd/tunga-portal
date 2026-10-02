@@ -7,10 +7,11 @@ from django.core.paginator import Paginator
 from django.contrib.auth.models import User
 from django.db.models import Count, Sum, Q, F
 from django.utils import timezone
-from office_dashboard.models import Announcement, NewsUpdate, Event, DownloadableForm, Photo, Album, Service, OfficeRepresentative, Notification, ServiceEditSettings
+from office_dashboard.models import Announcement, NewsUpdate, Event, DownloadableForm, Photo, Album, Service, OfficeRepresentative, Notification, ServiceEditSettings, ActivityLog
 from offices.models import Office
 from django.http import Http404, FileResponse, HttpResponse
 from datetime import timedelta
+import csv
 import io
 from office_dashboard.views import FORM_CATEGORY_CHOICES
 from django.utils.text import slugify
@@ -248,12 +249,26 @@ def admin_my_account(request):
     fields."""
     super_admin = SuperAdmin.objects.get(user=request.user)
 
+    # The synthetic "LGU Super Admin" Office (see get_or_create_lgu_rep()) —
+    # its name is what shows up as the office label on everything the Super
+    # Admin posts directly (announcements, news, events, forms, gallery
+    # uploads), so it's editable right here alongside the rest of the Super
+    # Admin's own profile rather than on the real Offices management page
+    # (which deliberately excludes this bookkeeping-only record).
+    lgu_office, _ = Office.objects.get_or_create(
+        slug=LGU_SUPER_ADMIN_SLUG,
+        defaults={"name": "LGU Super Admin"},
+    )
+
     if request.method == "POST":
         full_name = request.POST.get('full_name', '').strip()
         email = request.POST.get('email', '').strip()
+        office_name = request.POST.get('office_name', '').strip()
 
         if not full_name:
             messages.error(request, "Full name is required.")
+        elif not office_name:
+            messages.error(request, "Office/Department name is required.")
         else:
             name_parts = full_name.split(' ', 1)
             request.user.first_name = name_parts[0]
@@ -280,10 +295,16 @@ def admin_my_account(request):
                 ) if hasattr(e, 'message_dict') else " ".join(e.messages)
                 messages.error(request, f"Could not save your changes: {error_text}")
             else:
+                if lgu_office.name != office_name:
+                    lgu_office.name = office_name
+                    lgu_office.save()
                 messages.success(request, "Account details updated.")
         return redirect('admin_dashboard:admin_account')
 
-    return render(request, "admin_dashboard/super-admin-my-account.html", {"super_admin": super_admin})
+    return render(request, "admin_dashboard/super-admin-my-account.html", {
+        "super_admin": super_admin,
+        "lgu_office": lgu_office,
+    })
 
 
 @super_admin_required
@@ -573,6 +594,7 @@ def admin_announcement(request):
         "current_category": category,
         "current_sort": sort,
         "offices_with_reps": Office.objects.exclude(slug=LGU_SUPER_ADMIN_SLUG).filter(representative__isnull=False).select_related('representative').order_by('name'),
+        "lgu_office_name": Office.objects.filter(slug=LGU_SUPER_ADMIN_SLUG).values_list('name', flat=True).first() or "LGU Super Admin",
     })
 
 @super_admin_required
@@ -714,6 +736,7 @@ def admin_news_update(request):
         "current_q": q,
         "current_category": category,
         "office_reps": OfficeRepresentative.objects.select_related('office').order_by('office__name'),
+        "lgu_office_name": Office.objects.filter(slug=LGU_SUPER_ADMIN_SLUG).values_list('name', flat=True).first() or "LGU Super Admin",
     })
 
 @super_admin_required
@@ -818,6 +841,7 @@ def admin_events(request):
         "current_q": q,
         "current_category": category,
         "current_when": when,
+        "lgu_office_name": Office.objects.filter(slug=LGU_SUPER_ADMIN_SLUG).values_list('name', flat=True).first() or "LGU Super Admin",
     })
 
 @super_admin_required
@@ -906,6 +930,7 @@ def admin_download_forms(request):
         "current_sort": sort,
         "category_choices": FORM_CATEGORY_CHOICES,
         "offices_with_reps": Office.objects.exclude(slug=LGU_SUPER_ADMIN_SLUG).filter(representative__isnull=False).order_by('name'),
+        "lgu_office_name": Office.objects.filter(slug=LGU_SUPER_ADMIN_SLUG).values_list('name', flat=True).first() or "LGU Super Admin",
     })
 
 @super_admin_required
@@ -1047,6 +1072,7 @@ def admin_gallery(request):
         "albums_by_office": albums_by_office,
         "offices_with_reps": Office.objects.exclude(slug=LGU_SUPER_ADMIN_SLUG).filter(representative__isnull=False).order_by('name'),
         "photo_category_choices": Photo.CATEGORY_CHOICES,
+        "lgu_office_name": Office.objects.filter(slug=LGU_SUPER_ADMIN_SLUG).values_list('name', flat=True).first() or "LGU Super Admin",
     })
 
 @super_admin_required
@@ -1546,13 +1572,52 @@ def admin_roles(request):
 
 @super_admin_required
 def admin_homepage(request):
-    quick_links = QuickLink.objects.all()
+    quick_links = list(QuickLink.objects.all())
     today = timezone.localdate()
- 
+
+    # ---- Pages/content a Quick Link can point to, for the "Link
+    # Destination" picker -- static site pages, plus every office and every
+    # published service, so the Super Admin picks a real destination instead
+    # of hand-typing a URL that can drift out of date or get mistyped. ----
+    static_pages_for_links = [
+        {"label": "Home", "url": "/"},
+        {"label": "Announcements & News", "url": "/announcement/"},
+        {"label": "-- Announcements tab", "url": "/announcement/#announcements"},
+        {"label": "-- News tab", "url": "/announcement/#news"},
+        {"label": "-- Events tab", "url": "/announcement/#events"},
+        {"label": "Gallery", "url": "/gallery/"},
+        {"label": "Offices Directory", "url": "/offices/"},
+        {"label": "About Us", "url": "/about/"},
+        {"label": "-- About: History", "url": "/about/#history"},
+        {"label": "-- About: Municipal Officials", "url": "/about/#officials"},
+        {"label": "-- About: Barangays", "url": "/about/#barangays"},
+        {"label": "Contact Us", "url": "/contact/"},
+    ]
+
+    offices_for_links = list(Office.objects.exclude(slug=LGU_SUPER_ADMIN_SLUG).order_by('name'))
+    for o in offices_for_links:
+        o.quicklink_url = f"/offices/{o.slug}/"
+
+    services_for_links = list(
+        Service.objects.filter(status="published").select_related('office').order_by('office__name', 'name')
+    )
+    for s in services_for_links:
+        s.quicklink_url = f"/offices/{s.office.slug}/#svc-{s.id}" if s.office else ""
+
+    known_urls = {p["url"] for p in static_pages_for_links}
+    known_urls |= {o.quicklink_url for o in offices_for_links}
+    known_urls |= {s.quicklink_url for s in services_for_links if s.quicklink_url}
+
+    for l in quick_links:
+        l.is_custom_url = l.url not in known_urls
+
     return render(request, "admin_dashboard/super-admin-homepage.html", {
         "quick_links": quick_links,
-        "quick_links_active_count": quick_links.filter(is_active=True).count(),
-        "quick_links_total_count": quick_links.count(),
+        "static_pages_for_links": static_pages_for_links,
+        "offices_for_links": offices_for_links,
+        "services_for_links": services_for_links,
+        "quick_links_active_count": sum(1 for l in quick_links if l.is_active),
+        "quick_links_total_count": len(quick_links),
         "emergency_contacts_count": EmergencyContact.objects.count(),
         "home_announcements_count": Announcement.objects.filter(status="published").count(),
         "upcoming_events_count": Event.objects.filter(status="published", event_date__gte=today).count(),
@@ -1568,9 +1633,15 @@ def admin_quicklink_save(request, pk):
     if request.method == "POST":
         label = request.POST.get('label', '').strip()
         url = request.POST.get('url', '').strip()
- 
+        if url == '__custom__':
+            # The "Link Destination" <select> submits this sentinel when the
+            # Super Admin picked "Custom URL..." instead of one of the real
+            # site pages/offices/services it lists -- the actual address
+            # they typed is in the paired text field shown only in that case.
+            url = request.POST.get('url_custom', '').strip()
+
         if not label or not url:
-            messages.error(request, "Please fill in both the label and the link URL.")
+            messages.error(request, "Please fill in both the label and the link destination.")
         else:
             is_create = link.pk is None
             link.label = label
@@ -1927,9 +1998,253 @@ def admin_web_setting(request):
     })
 
 
+# Config for every content type that feeds the Analytics & Reports page.
+# "date_field" is whichever timestamp each model actually has for "when was
+# this submitted" (they're not all named the same), and "office_filter" is
+# the lookup used to trace a row back to an office — most content hangs off
+# an OfficeRepresentative, but Forms and Services are linked to an Office
+# directly.
+CONTENT_TYPES_ANALYTICS = [
+    {"label": "Announcements", "model": Announcement, "icon": "fa-solid fa-bullhorn", "date_field": "created_at", "office_filter": "representative__office"},
+    {"label": "News & Updates", "model": NewsUpdate, "icon": "fa-regular fa-newspaper", "date_field": "created_at", "office_filter": "representative__office"},
+    {"label": "Events", "model": Event, "icon": "fa-regular fa-calendar", "date_field": "created_at", "office_filter": "representative__office"},
+    {"label": "Downloadable Forms", "model": DownloadableForm, "icon": "fa-solid fa-file-arrow-down", "date_field": "date_uploaded", "office_filter": "office"},
+    {"label": "Gallery Photos", "model": Photo, "icon": "fa-regular fa-image", "date_field": "created_at", "office_filter": "representative__office"},
+    {"label": "Services", "model": Service, "icon": "fa-solid fa-list-check", "date_field": "published_at", "office_filter": "office"},
+]
+
+
+def _weekly_buckets(dates, week_start, num_weeks=8):
+    """Buckets a flat list of date objects into num_weeks weekly buckets
+    ending on the current week (oldest first), with each bucket's bar_pct
+    scaled against the busiest week — used to draw the plain CSS bar charts
+    on the Analytics page without pulling in a charting library."""
+    buckets = []
+    for i in range(num_weeks - 1, -1, -1):
+        w_start = week_start - timedelta(weeks=i)
+        w_end = w_start + timedelta(days=6)
+        count = sum(1 for d in dates if w_start <= d <= w_end)
+        buckets.append({"label": w_start.strftime("%b %d"), "count": count})
+    peak = max((b["count"] for b in buckets), default=0) or 1
+    for b in buckets:
+        b["bar_pct"] = round(b["count"] / peak * 100)
+    return buckets
+
+
+def _avg_turnaround_days(qs, created_field, published_field):
+    """Average days between submission and the moment it was actually
+    approved — only meaningful for the two content types that stamp a
+    separate "published on" date (see _stamp_published_date above); other
+    types only know their current status, not when it changed."""
+    diffs = []
+    for obj in qs.filter(status="published"):
+        published = getattr(obj, published_field, None)
+        created = getattr(obj, created_field, None)
+        if not published or not created:
+            continue
+        created_date = created.date() if hasattr(created, 'date') else created
+        diffs.append((published - created_date).days)
+    if not diffs:
+        return None
+    return round(sum(diffs) / len(diffs), 1)
+
+
 @super_admin_required
 def admin_analytics(request):
-    return render(request, "admin_dashboard/super-admin-analytics.html")
+    today = timezone.localdate()
+    week_start = today - timedelta(days=today.weekday())
+    month_start = today.replace(day=1)
+    trend_start = week_start - timedelta(weeks=7)
+
+    offices = Office.objects.exclude(slug=LGU_SUPER_ADMIN_SLUG)
+
+    # ---- 1. Content Activity Overview ----
+    content_overview = []
+    submission_dates = []
+    for ct in CONTENT_TYPES_ANALYTICS:
+        qs = ct["model"].objects.all()
+        content_overview.append({
+            "label": ct["label"],
+            "icon": ct["icon"],
+            "total": qs.count(),
+            "published": qs.filter(status="published").count(),
+            "pending": qs.filter(status__in=["pending", "returned"]).count(),
+            "rejected": qs.filter(status="reject").count(),
+            "archived": qs.filter(status="archive").count(),
+        })
+        field = ct["date_field"]
+        for v in qs.filter(**{f"{field}__gte": trend_start}).values_list(field, flat=True):
+            if v is not None:
+                submission_dates.append(v.date() if hasattr(v, 'date') else v)
+
+    submission_weeks = _weekly_buckets(submission_dates, week_start)
+    total_published_content = sum(c["published"] for c in content_overview)
+    total_pending_content = sum(c["pending"] for c in content_overview)
+    services_published_total = Service.objects.filter(status="published").count()
+
+    # ---- 2. Approval turnaround ----
+    announcement_turnaround = _avg_turnaround_days(Announcement.objects.all(), 'created_at', 'date_posted')
+    news_turnaround = _avg_turnaround_days(NewsUpdate.objects.all(), 'created_at', 'date_published')
+
+    # ---- 3. Office performance ----
+    office_performance = []
+    for office in offices:
+        services_count = Service.objects.filter(office=office).count()
+        published_count = (
+            Announcement.objects.filter(status="published", representative__office=office).count()
+            + NewsUpdate.objects.filter(status="published", representative__office=office).count()
+            + Event.objects.filter(status="published", representative__office=office).count()
+            + DownloadableForm.objects.filter(status="published", office=office).count()
+            + Photo.objects.filter(status="published", representative__office=office).count()
+            + Service.objects.filter(status="published", office=office).count()
+        )
+        pending_count = (
+            Announcement.objects.filter(status__in=["pending", "returned"], representative__office=office).count()
+            + NewsUpdate.objects.filter(status__in=["pending", "returned"], representative__office=office).count()
+            + Event.objects.filter(status__in=["pending", "returned"], representative__office=office).count()
+            + DownloadableForm.objects.filter(status__in=["pending", "returned"], office=office).count()
+            + Photo.objects.filter(status__in=["pending", "returned"], representative__office=office).count()
+            + Service.objects.filter(status__in=["pending", "returned"], office=office).count()
+        )
+        office_performance.append({
+            "office": office,
+            "services_count": services_count,
+            "published_count": published_count,
+            "pending_count": pending_count,
+        })
+    office_performance.sort(key=lambda r: (-r["pending_count"], -r["published_count"]))
+    offices_with_no_services = [r["office"] for r in office_performance if r["services_count"] == 0]
+
+    # ---- Most active office representatives this month, by logged actions ----
+    active_reps_qs = (
+        ActivityLog.objects.filter(created_at__date__gte=month_start)
+        .values(
+            "representative__user__first_name",
+            "representative__user__last_name",
+            "representative__user__username",
+            "representative__office__name",
+        )
+        .annotate(action_count=Count("id"))
+        .order_by("-action_count")[:5]
+    )
+    active_reps = [
+        {
+            "name": (f"{r['representative__user__first_name']} {r['representative__user__last_name']}".strip()
+                      or r['representative__user__username']),
+            "office": r["representative__office__name"],
+            "action_count": r["action_count"],
+        }
+        for r in active_reps_qs
+    ]
+
+    # ---- 4. Resident engagement ----
+    resident_qs = User.objects.filter(is_staff=False, is_superuser=False, office_rep__isnull=True)
+    residents_total = resident_qs.count()
+    residents_new_this_week = resident_qs.filter(date_joined__date__gte=week_start).count()
+    residents_new_this_month = resident_qs.filter(date_joined__date__gte=month_start).count()
+    signup_dates = [
+        d.date() if hasattr(d, 'date') else d
+        for d in resident_qs.filter(date_joined__date__gte=trend_start).values_list('date_joined', flat=True)
+    ]
+    signup_weeks = _weekly_buckets(signup_dates, week_start)
+
+    # ---- 5. Most viewed / downloaded content ----
+    # Only Announcements, News and Forms actually track this (views /
+    # download_count fields) — Events, Photos and Services don't have an
+    # equivalent counter yet, so they're left out rather than faked.
+    top_announcements = Announcement.objects.filter(status="published").order_by("-views")[:5]
+    top_news = NewsUpdate.objects.filter(status="published").order_by("-views")[:5]
+    top_forms = DownloadableForm.objects.filter(status="published").order_by("-download_count")[:5]
+
+    # ---- 6. Service directory health ----
+    recent_services = Service.objects.filter(status="published").select_related("office").order_by("-published_at")[:5]
+
+    return render(request, "admin_dashboard/super-admin-analytics.html", {
+        "content_overview": content_overview,
+        "total_published_content": total_published_content,
+        "total_pending_content": total_pending_content,
+        "services_published_total": services_published_total,
+        "submission_weeks": submission_weeks,
+        "announcement_turnaround": announcement_turnaround,
+        "news_turnaround": news_turnaround,
+        "office_performance": office_performance[:8],
+        "offices_with_no_services": offices_with_no_services,
+        "active_reps": active_reps,
+        "residents_total": residents_total,
+        "residents_new_this_week": residents_new_this_week,
+        "residents_new_this_month": residents_new_this_month,
+        "signup_weeks": signup_weeks,
+        "top_announcements": top_announcements,
+        "top_news": top_news,
+        "top_forms": top_forms,
+        "recent_services": recent_services,
+    })
+
+
+@super_admin_required
+def admin_export_office_activity(request):
+    """Downloads the Office Performance table (all offices, not just the
+    top 8 shown on-page) as a CSV."""
+    offices = Office.objects.exclude(slug=LGU_SUPER_ADMIN_SLUG)
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="office-activity-{timezone.localdate()}.csv"'
+    writer = csv.writer(response)
+    writer.writerow(["Office", "Services Listed", "Published Content", "Pending Items", "Status"])
+    for office in offices:
+        services_count = Service.objects.filter(office=office).count()
+        published_count = (
+            Announcement.objects.filter(status="published", representative__office=office).count()
+            + NewsUpdate.objects.filter(status="published", representative__office=office).count()
+            + Event.objects.filter(status="published", representative__office=office).count()
+            + DownloadableForm.objects.filter(status="published", office=office).count()
+            + Photo.objects.filter(status="published", representative__office=office).count()
+            + Service.objects.filter(status="published", office=office).count()
+        )
+        pending_count = (
+            Announcement.objects.filter(status__in=["pending", "returned"], representative__office=office).count()
+            + NewsUpdate.objects.filter(status__in=["pending", "returned"], representative__office=office).count()
+            + Event.objects.filter(status__in=["pending", "returned"], representative__office=office).count()
+            + DownloadableForm.objects.filter(status__in=["pending", "returned"], office=office).count()
+            + Photo.objects.filter(status__in=["pending", "returned"], representative__office=office).count()
+            + Service.objects.filter(status__in=["pending", "returned"], office=office).count()
+        )
+        writer.writerow([
+            office.name, services_count, published_count, pending_count,
+            "Needs review" if pending_count > 0 else "Up to date",
+        ])
+    return response
+
+
+@super_admin_required
+def admin_export_approval_history(request):
+    """Downloads every item resolved (published or rejected) this month as
+    a CSV — the "approval history" report for the current month."""
+    today = timezone.localdate()
+    month_start = today.replace(day=1)
+
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="approval-history-{today.strftime("%Y-%m")}.csv"'
+    writer = csv.writer(response)
+    writer.writerow(["Type", "Title", "Office", "Submitted", "Status"])
+
+    rows = []
+    for a in Announcement.objects.filter(status__in=["published", "reject"], created_at__date__gte=month_start).select_related('representative__office'):
+        rows.append(("Announcement", a.title, a.representative.office.name if a.representative.office else "—", a.created_at.date(), a.get_status_display()))
+    for n in NewsUpdate.objects.filter(status__in=["published", "reject"], created_at__date__gte=month_start).select_related('representative__office'):
+        rows.append(("News", n.title, n.representative.office.name if n.representative.office else "—", n.created_at.date(), n.get_status_display()))
+    for e in Event.objects.filter(status__in=["published", "reject"], created_at__date__gte=month_start).select_related('representative__office'):
+        rows.append(("Event", e.title, e.representative.office.name if e.representative.office else "—", e.created_at.date(), e.get_status_display()))
+    for f in DownloadableForm.objects.filter(status__in=["published", "reject"], date_uploaded__date__gte=month_start).select_related('office'):
+        rows.append(("Form", f.title, f.office.name if f.office else "—", f.date_uploaded.date(), f.get_status_display()))
+    for p in Photo.objects.filter(status__in=["published", "reject"], created_at__date__gte=month_start).select_related('representative__office'):
+        rows.append(("Gallery", p.title, p.representative.office.name if p.representative.office else "—", p.created_at.date(), p.get_status_display()))
+    for s in Service.objects.filter(status__in=["published", "reject"], published_at__date__gte=month_start).select_related('office'):
+        rows.append(("Service", s.name, s.office.name if s.office else "—", s.published_at.date(), s.get_status_display()))
+
+    rows.sort(key=lambda r: r[3], reverse=True)
+    for row in rows:
+        writer.writerow(row)
+    return response
 
 @super_admin_required
 def admin_activity_log(request):

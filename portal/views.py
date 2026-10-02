@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib.auth.models import User
 from .models import CitizenProfile
-from office_dashboard.models import OfficeRepresentative, Announcement, NewsUpdate, Event, Photo, Album
+from office_dashboard.models import OfficeRepresentative, Announcement, NewsUpdate, Event, Photo, Album, Service, DownloadableForm
 from django.db.models import Count, Q
 from admin_dashboard.models import SuperAdmin, EmergencyContact, QuickLink
 from django.utils import timezone
@@ -730,3 +730,112 @@ def send_reset_otp_ajax(request):
     if success:
         return JsonResponse({"success": True})
     return JsonResponse({"success": False, "error": error or "Could not send the code. Please try again."}, status=500)
+
+
+# ---------------------------------------------------------------------------
+# Public navbar search — a short list of JSON suggestions for whatever the
+# visitor has typed so far, each one pointing straight at the page/section
+# it belongs to. Announcements/News/Events are opened through their existing
+# modal on the Announcements page (it already knows how to read these query
+# params — see the deep-link block at the bottom of announcements.html);
+# everything else links straight to a real page, anchor or "#svc-<id>" /
+# "#forms-panel" section that already exists on that page.
+# ---------------------------------------------------------------------------
+def site_search(request):
+    query = (request.GET.get('q') or '').strip()
+    results = []
+
+    if len(query) < 2:
+        return JsonResponse({"results": results})
+
+    MAX_PER_TYPE = 4
+    MAX_TOTAL = 10
+    q_lower = query.lower()
+
+    static_pages = [
+        {"label": "Home", "url": reverse('home'), "keywords": ["home", "homepage", "main"]},
+        {"label": "Announcements", "url": reverse('announcement') + "#announcements", "keywords": ["announcement", "notice", "advisory"]},
+        {"label": "News & Updates", "url": reverse('announcement') + "#news", "keywords": ["news", "update"]},
+        {"label": "Events", "url": reverse('announcement') + "#events", "keywords": ["event", "calendar", "activity"]},
+        {"label": "Photo Gallery", "url": reverse('gallery'), "keywords": ["gallery", "photo", "picture", "album"]},
+        {"label": "Offices Directory", "url": reverse('offices'), "keywords": ["office", "offices", "department"]},
+        {"label": "About Us", "url": reverse('about'), "keywords": ["about", "mission", "vision"]},
+        {"label": "History", "url": reverse('history'), "keywords": ["history", "founding", "heritage"]},
+        {"label": "Municipal Officials", "url": reverse('about') + "#officials", "keywords": ["official", "mayor", "councilor", "officials"]},
+        {"label": "Barangays", "url": reverse('about') + "#barangays", "keywords": ["barangay", "barangays"]},
+        {"label": "Contact Us", "url": reverse('contact'), "keywords": ["contact", "phone", "email", "address", "hotline"]},
+        {"label": "Citizen Login", "url": reverse('login'), "keywords": ["login", "sign in"]},
+        {"label": "Create Account", "url": reverse('signup'), "keywords": ["signup", "register", "create account"]},
+    ]
+    for p in static_pages:
+        haystack = (p["label"] + " " + " ".join(p["keywords"])).lower()
+        if q_lower in haystack:
+            results.append({"label": p["label"], "type": "Page", "meta": "", "url": p["url"]})
+
+    offices = Office.objects.filter(name__icontains=query).exclude(slug='lgu-super-admin').order_by('name')[:MAX_PER_TYPE]
+    for o in offices:
+        results.append({"label": o.name, "type": "Office", "meta": "Office", "url": reverse('offices:office_detail', args=[o.slug])})
+
+    services = (Service.objects.filter(name__icontains=query, status='published')
+                .select_related('office').order_by('name')[:MAX_PER_TYPE])
+    for s in services:
+        if not s.office:
+            continue
+        results.append({
+            "label": s.name,
+            "type": "Service",
+            "meta": s.office.name,
+            "url": f"{reverse('offices:office_detail', args=[s.office.slug])}#svc-{s.id}",
+        })
+
+    anns = (Announcement.objects.filter(title__icontains=query, status='published')
+            .order_by('-date_posted', '-created_at')[:MAX_PER_TYPE])
+    for a in anns:
+        results.append({
+            "label": a.title,
+            "type": "Announcement",
+            "meta": "Announcement",
+            "url": f"{reverse('announcement')}?open_announcement={a.id}#announcements",
+        })
+
+    news_items = (NewsUpdate.objects.filter(title__icontains=query, status='published')
+                  .order_by('-date_published', '-created_at')[:MAX_PER_TYPE])
+    for n in news_items:
+        results.append({
+            "label": n.title,
+            "type": "News",
+            "meta": "News & Updates",
+            "url": f"{reverse('announcement')}?open_news={n.id}#news",
+        })
+
+    events = (Event.objects.filter(title__icontains=query, status='published')
+              .order_by('-event_date')[:MAX_PER_TYPE])
+    for e in events:
+        results.append({
+            "label": e.title,
+            "type": "Event",
+            "meta": "Event",
+            "url": f"{reverse('announcement')}?open_event={e.id}#events",
+        })
+
+    forms = (DownloadableForm.objects.filter(title__icontains=query, status='published')
+             .select_related('office').order_by('title')[:MAX_PER_TYPE])
+    for frm in forms:
+        if not frm.office:
+            continue
+        results.append({
+            "label": frm.title,
+            "type": "Form",
+            "meta": frm.office.name,
+            "url": f"{reverse('offices:office_detail', args=[frm.office.slug])}#forms-panel",
+        })
+
+    photos = (Photo.objects.filter(title__icontains=query, status='published')
+              .order_by('-created_at')[:MAX_PER_TYPE])
+    for ph in photos:
+        photo_url = reverse('gallery')
+        if ph.album_id:
+            photo_url += f"?album={ph.album_id}"
+        results.append({"label": ph.title, "type": "Photo", "meta": "Gallery", "url": photo_url})
+
+    return JsonResponse({"results": results[:MAX_TOTAL]})

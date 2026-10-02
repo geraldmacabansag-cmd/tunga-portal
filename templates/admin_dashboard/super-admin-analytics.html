@@ -9,10 +9,248 @@
 
 {% block content %}
 
-      <div class="empty-state">
-        <div class="ei"><i class="fa-solid fa-chart-line"></i></div>
-        <h2>Analytics & Reports</h2>
-        <p>This page is ready and waiting &mdash; nothing has been built here yet.</p>
-      </div>
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="top"><span class="stat-icon green"><i class="fa-solid fa-circle-check"></i></span></div>
+    <div class="stat-value">{{ total_published_content }}</div>
+    <div class="stat-label">Published content</div>
+    <div class="stat-sub">Across all content types</div>
+  </div>
+  <div class="stat-card">
+    <div class="top"><span class="stat-icon amber"><i class="fa-solid fa-hourglass-half"></i></span></div>
+    <div class="stat-value">{{ total_pending_content }}</div>
+    <div class="stat-label">Pending review</div>
+    <div class="stat-sub">Needs a Super Admin decision</div>
+  </div>
+  <div class="stat-card">
+    <div class="top"><span class="stat-icon blue"><i class="fa-solid fa-users"></i></span></div>
+    <div class="stat-value">{{ residents_total }}</div>
+    <div class="stat-label">Registered residents</div>
+    <div class="stat-sub">{{ residents_new_this_month }} new this month</div>
+  </div>
+  <div class="stat-card">
+    <div class="top"><span class="stat-icon gray"><i class="fa-solid fa-list-check"></i></span></div>
+    <div class="stat-value">{{ services_published_total }}</div>
+    <div class="stat-label">Active services listed</div>
+    <div class="stat-sub">Published across all offices</div>
+  </div>
+</div>
 
+<!-- Content Activity Overview -->
+<div class="panel" style="margin-top:20px;">
+  <div class="panel-header">
+    <h2>Content Activity Overview</h2>
+  </div>
+  <div class="table-wrap" style="border:none;border-radius:0;">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Content Type</th>
+          <th>Total</th>
+          <th>Published</th>
+          <th>Pending / Returned</th>
+          <th>Rejected</th>
+          <th>Archived</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ct in content_overview %}
+        <tr>
+          <td><p class="cell-primary"><i class="{{ ct.icon }}" style="margin-right:8px;color:var(--gray-400);"></i>{{ ct.label }}</p></td>
+          <td>{{ ct.total }}</td>
+          <td>{{ ct.published }}</td>
+          <td>{{ ct.pending }}</td>
+          <td>{{ ct.rejected }}</td>
+          <td>{{ ct.archived }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="grid-2" style="margin-top:20px;">
+
+  <!-- Submissions Trend -->
+  <div class="panel">
+    <div class="panel-header"><h2>Submissions — Last 8 Weeks</h2></div>
+    <div class="panel-body">
+      <div class="bar-chart">
+        {% for w in submission_weeks %}
+        <div class="bar-col">
+          <span class="val">{{ w.count }}</span>
+          <span class="bar" data-height="{{ w.bar_pct }}" style="background:var(--blue-600);"></span>
+          <span class="lbl">{{ w.label }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      <p class="form-hint" style="margin-top:10px;">New announcements, news, events, forms, photos and services submitted each week, across every office.</p>
+    </div>
+  </div>
+
+  <!-- Resident Signups Trend -->
+  <div class="panel">
+    <div class="panel-header"><h2>Resident Signups — Last 8 Weeks</h2></div>
+    <div class="panel-body">
+      <div class="bar-chart">
+        {% for w in signup_weeks %}
+        <div class="bar-col">
+          <span class="val">{{ w.count }}</span>
+          <span class="bar" data-height="{{ w.bar_pct }}" style="background:var(--green-600);"></span>
+          <span class="lbl">{{ w.label }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="info-row" style="margin-top:10px;"><span class="k">New this week</span><span class="v">{{ residents_new_this_week }}</span></div>
+      <div class="info-row" style="border-bottom:none;"><span class="k">New this month</span><span class="v">{{ residents_new_this_month }}</span></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="grid-2" style="margin-top:20px;">
+
+  <!-- Approval Turnaround -->
+  <div class="panel">
+    <div class="panel-header"><h2>Approval Turnaround</h2></div>
+    <div class="panel-body">
+      <div class="info-row">
+        <span class="k"><i class="fa-solid fa-bullhorn" style="margin-right:8px;color:var(--gray-400);"></i>Announcements — avg. days to approve</span>
+        <span class="v">{% if announcement_turnaround is not None %}{{ announcement_turnaround }} days{% else %}No data yet{% endif %}</span>
+      </div>
+      <div class="info-row" style="border-bottom:none;">
+        <span class="k"><i class="fa-regular fa-newspaper" style="margin-right:8px;color:var(--gray-400);"></i>News &amp; Updates — avg. days to approve</span>
+        <span class="v">{% if news_turnaround is not None %}{{ news_turnaround }} days{% else %}No data yet{% endif %}</span>
+      </div>
+      <p class="form-hint" style="margin-top:14px;">Only Announcements and News record a separate "date approved" — other content types only track their current status, not when it last changed.</p>
+    </div>
+  </div>
+
+  <!-- Most active office representatives -->
+  <div class="panel">
+    <div class="panel-header"><h2>Most Active Office Reps — This Month</h2></div>
+    <div class="panel-body">
+      {% for rep in active_reps %}
+      <div class="info-row" {% if forloop.last %}style="border-bottom:none;"{% endif %}>
+        <span class="k">{{ forloop.counter }}. {{ rep.name }} <span style="color:var(--gray-400);">— {{ rep.office }}</span></span>
+        <span class="v">{{ rep.action_count }} action{{ rep.action_count|pluralize }}</span>
+      </div>
+      {% empty %}
+      <p style="color:var(--gray-400);font-size:13px;">No logged activity yet this month.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+
+<!-- Office Performance -->
+<div class="panel" style="margin-top:20px;">
+  <div class="panel-header">
+    <h2>Office Performance</h2>
+    <a class="link" href="{% url 'admin_dashboard:admin_export_office_activity' %}"><i class="fa-solid fa-file-arrow-down"></i> Export CSV</a>
+  </div>
+  <div class="table-wrap" style="border:none;border-radius:0;">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Office</th>
+          <th>Services listed</th>
+          <th>Published content</th>
+          <th>Pending items</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in office_performance %}
+        <tr>
+          <td><p class="cell-primary">{{ row.office.name }}</p></td>
+          <td>{{ row.services_count }}</td>
+          <td>{{ row.published_count }}</td>
+          <td>{{ row.pending_count }}</td>
+          <td>
+            {% if row.pending_count > 0 %}
+            <span class="badge badge-amber">Needs review</span>
+            {% else %}
+            <span class="badge badge-green">Up to date</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" style="text-align:center;color:var(--gray-400);padding:20px 0;">No offices yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if offices_with_no_services %}
+  <div class="panel-body" style="border-top:1px solid var(--gray-100);">
+    <p class="form-hint" style="margin:0;"><i class="fa-solid fa-triangle-exclamation" style="color:var(--amber-600);"></i>
+      No services listed yet: {% for o in offices_with_no_services %}{{ o.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+    </p>
+  </div>
+  {% endif %}
+</div>
+
+<div class="grid-2" style="margin-top:20px;">
+
+  <!-- Most Viewed / Downloaded Content -->
+  <div class="panel">
+    <div class="panel-header"><h2>Most Viewed &amp; Downloaded</h2></div>
+    <div class="panel-body">
+      <h3 style="font-size:12.5px;color:var(--gray-500);text-transform:uppercase;letter-spacing:.03em;margin:0 0 6px;">Top Announcements</h3>
+      {% for a in top_announcements %}
+      <div class="info-row"><span class="k">{{ a.title }}</span><span class="v">{{ a.views }} view{{ a.views|pluralize }}</span></div>
+      {% empty %}
+      <p style="color:var(--gray-400);font-size:13px;">No published announcements yet.</p>
+      {% endfor %}
+
+      <h3 style="font-size:12.5px;color:var(--gray-500);text-transform:uppercase;letter-spacing:.03em;margin:18px 0 6px;">Top News &amp; Updates</h3>
+      {% for n in top_news %}
+      <div class="info-row"><span class="k">{{ n.title }}</span><span class="v">{{ n.views }} view{{ n.views|pluralize }}</span></div>
+      {% empty %}
+      <p style="color:var(--gray-400);font-size:13px;">No published news yet.</p>
+      {% endfor %}
+
+      <h3 style="font-size:12.5px;color:var(--gray-500);text-transform:uppercase;letter-spacing:.03em;margin:18px 0 6px;">Top Downloadable Forms</h3>
+      {% for f in top_forms %}
+      <div class="info-row" {% if forloop.last %}style="border-bottom:none;"{% endif %}><span class="k">{{ f.title }}</span><span class="v">{{ f.download_count }} download{{ f.download_count|pluralize }}</span></div>
+      {% empty %}
+      <p style="color:var(--gray-400);font-size:13px;">No published forms yet.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Service Directory Health -->
+  <div class="panel">
+    <div class="panel-header"><h2>Recently Added Services</h2></div>
+    <div class="panel-body">
+      {% for s in recent_services %}
+      <div class="info-row" {% if forloop.last %}style="border-bottom:none;"{% endif %}>
+        <span class="k">{{ s.name }} <span style="color:var(--gray-400);">— {{ s.office.name }}</span></span>
+        <span class="v">{{ s.published_at|date:"M d, Y" }}</span>
+      </div>
+      {% empty %}
+      <p style="color:var(--gray-400);font-size:13px;">No published services yet.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+
+<!-- Export Reports -->
+<div class="panel" style="margin-top:20px;">
+  <div class="panel-header"><h2>Export Reports</h2></div>
+  <div class="panel-body" style="display:flex;gap:12px;flex-wrap:wrap;">
+    <a href="{% url 'admin_dashboard:admin_export_office_activity' %}" class="btn btn-secondary"><i class="fa-solid fa-file-arrow-down"></i> Office Activity (CSV)</a>
+    <a href="{% url 'admin_dashboard:admin_export_approval_history' %}" class="btn btn-secondary"><i class="fa-solid fa-file-arrow-down"></i> Approval History — This Month (CSV)</a>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.querySelectorAll('.bar-chart .bar[data-height]').forEach(function (bar) {
+    bar.style.height = bar.dataset.height + '%';
+  });
+</script>
 {% endblock %}

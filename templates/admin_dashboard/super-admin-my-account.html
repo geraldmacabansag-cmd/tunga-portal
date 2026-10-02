@@ -37,6 +37,11 @@
           <label class="form-label">Mobile Number</label>
           <input class="form-input" type="text" value="{{ super_admin.mobile_number }}" disabled>
         </div>
+        <div class="form-group">
+          <label class="form-label">Office / Department Name</label>
+          <input class="form-input" type="text" value="{{ lgu_office.name }}" disabled>
+          <div class="form-hint">Shown as the office label on announcements, news, events, forms and photos you post directly.</div>
+        </div>
       </div>
     </div>
 
@@ -72,6 +77,11 @@
           <div class="form-group">
             <label class="form-label">Mobile Number</label>
             <div class="input-icon-wrap"><i class="fa-solid fa-phone"></i><input class="form-input" type="tel" name="mobile_number" maxlength="11" minlength="11" pattern="[0-9]{11}" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')" value="{{ super_admin.mobile_number }}"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Office / Department Name <span class="req">*</span></label>
+            <input class="form-input" type="text" name="office_name" value="{{ lgu_office.name }}" required>
+            <div class="form-hint">Shown as the office label on announcements, news, events, forms and photos you post directly.</div>
           </div>
         </div>
         <div style="display:flex;gap:10px;justify-content:flex-end;">

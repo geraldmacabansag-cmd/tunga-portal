@@ -113,7 +113,7 @@
           Offices <i class="fa-solid fa-chevron-down nav-dropdown__chevron"></i>
         </button>
         <div class="nav-dropdown__menu nav-dropdown__menu--scroll">
-          <a href="{% url 'offices' %}" class="nav-dropdown__item nav-dropdown__item--all"><i class="fa-solid fa-building"></i> All Offices</a>
+          <a href="{% url 'offices' %}" class="nav-dropdown__item nav-dropdown__item--all">All Offices</a>
           {% if nav_offices %}
           <div class="nav-dropdown__divider"></div>
           {% for o in nav_offices %}
@@ -138,10 +138,11 @@
       <a href="{% url 'contact' %}" class="{% if request.resolver_match.url_name == 'contact' %}active{% endif %}">Contact Us</a>
     </div>
     <div class="nav-search-wrap">
-      <input type="text" class="nav-search-input" id="navSearchInput" placeholder="Search the site..." aria-label="Search the site">
+      <input type="text" class="nav-search-input" id="navSearchInput" placeholder="Search the site..." aria-label="Search the site" autocomplete="off">
       <button type="button" class="nav-search" id="navSearchToggle" aria-label="Open search" aria-expanded="false">
         <i class="fa-solid fa-magnifying-glass"></i>
       </button>
+      <div class="nav-search-results" id="navSearchResults" hidden></div>
     </div>
     <button type="button" class="nav-toggle" id="navToggle" aria-label="Toggle navigation menu" aria-controls="mainNav" aria-expanded="false">
       <i class="fa-solid fa-bars"></i>
@@ -309,14 +310,96 @@
     }
   });
     /* -------------------------------------------------------------- */
-    /* Expanding nav search (design only — no search logic yet)        */
+    /* Expanding nav search — searches announcements, news, events,    */
+    /* services, offices, forms, gallery photos and static pages, and   */
+    /* shows a dropdown of matching suggestions as the visitor types.   */
+    /* Picking one (click or Enter) jumps straight to wherever that     */
+    /* result lives on the site.                                       */
     /* -------------------------------------------------------------- */
     var searchWrap = document.querySelector('.nav-search-wrap');
     var searchToggle = document.getElementById('navSearchToggle');
     var searchInput = document.getElementById('navSearchInput');
+    var searchResults = document.getElementById('navSearchResults');
 
-    if (searchWrap && searchToggle && searchInput) {
+    if (searchWrap && searchToggle && searchInput && searchResults) {
       var searchIcon = searchToggle.querySelector('i');
+      var searchTimer = null;
+      var searchSeq = 0;
+      var activeIndex = -1;
+
+      var TYPE_ICONS = {
+        'Page': 'fa-solid fa-file-lines',
+        'Office': 'fa-solid fa-building',
+        'Service': 'fa-solid fa-list-check',
+        'Announcement': 'fa-solid fa-bullhorn',
+        'News': 'fa-regular fa-newspaper',
+        'Event': 'fa-regular fa-calendar',
+        'Form': 'fa-regular fa-file-pdf',
+        'Photo': 'fa-regular fa-image'
+      };
+
+      function closeResults() {
+        searchResults.hidden = true;
+        searchResults.innerHTML = '';
+        activeIndex = -1;
+      }
+
+      function closeSearch() {
+        searchWrap.classList.remove('open');
+        searchToggle.setAttribute('aria-expanded', 'false');
+        searchIcon.className = 'fa-solid fa-magnifying-glass';
+        searchInput.value = '';
+        closeResults();
+      }
+
+      function highlightActive() {
+        var items = searchResults.querySelectorAll('.nav-search-result');
+        items.forEach(function (el, i) {
+          el.classList.toggle('is-active', i === activeIndex);
+        });
+      }
+
+      function renderResults(items) {
+        if (!items.length) {
+          searchResults.innerHTML = '<div class="nav-search-empty">No matches found.</div>';
+          searchResults.hidden = false;
+          return;
+        }
+        searchResults.innerHTML = '';
+        items.forEach(function (item) {
+          var row = document.createElement('a');
+          row.className = 'nav-search-result';
+          row.href = item.url;
+          var iconClass = TYPE_ICONS[item.type] || 'fa-solid fa-magnifying-glass';
+          row.innerHTML =
+            '<span class="nav-search-result__icon"><i class="' + iconClass + '"></i></span>' +
+            '<span class="nav-search-result__text">' +
+              '<span class="nav-search-result__label"></span>' +
+              (item.meta ? '<span class="nav-search-result__meta"></span>' : '') +
+            '</span>' +
+            '<span class="nav-search-result__type">' + item.type + '</span>';
+          row.querySelector('.nav-search-result__label').textContent = item.label;
+          var metaEl = row.querySelector('.nav-search-result__meta');
+          if (metaEl) metaEl.textContent = item.meta;
+          row.addEventListener('click', function () {
+            closeSearch();
+          });
+          searchResults.appendChild(row);
+        });
+        activeIndex = -1;
+        searchResults.hidden = false;
+      }
+
+      function runSearch(query) {
+        var seq = ++searchSeq;
+        fetch('/search/?q=' + encodeURIComponent(query), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+          .then(function (res) { return res.ok ? res.json() : { results: [] }; })
+          .then(function (data) {
+            if (seq !== searchSeq) return; // a newer keystroke already fired another request
+            renderResults(data.results || []);
+          })
+          .catch(function () { if (seq === searchSeq) closeResults(); });
+      }
 
       searchToggle.addEventListener('click', function () {
         var isOpen = searchWrap.classList.toggle('open');
@@ -326,15 +409,43 @@
           searchInput.focus();
         } else {
           searchInput.value = '';
+          closeResults();
+        }
+      });
+
+      searchInput.addEventListener('input', function () {
+        var query = searchInput.value.trim();
+        clearTimeout(searchTimer);
+        if (query.length < 2) {
+          closeResults();
+          return;
+        }
+        searchTimer = setTimeout(function () { runSearch(query); }, 200);
+      });
+
+      searchInput.addEventListener('keydown', function (e) {
+        var items = searchResults.querySelectorAll('.nav-search-result');
+        if (!items.length) return;
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          activeIndex = Math.min(activeIndex + 1, items.length - 1);
+          highlightActive();
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          activeIndex = Math.max(activeIndex - 1, 0);
+          highlightActive();
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          var pick = activeIndex >= 0 ? items[activeIndex] : items[0];
+          if (pick) pick.click();
+        } else if (e.key === 'Escape') {
+          closeSearch();
         }
       });
 
       document.addEventListener('click', function (e) {
         if (!searchWrap.contains(e.target) && searchWrap.classList.contains('open')) {
-          searchWrap.classList.remove('open');
-          searchToggle.setAttribute('aria-expanded', 'false');
-          searchIcon.className = 'fa-solid fa-magnifying-glass';
-          searchInput.value = '';
+          closeSearch();
         }
       });
     }

@@ -118,7 +118,7 @@
           <div class="form-group">
             <label class="form-label">Posted by (office)<span class="req">*</span></label>
             <select class="form-input" name="office" id="photoOffice" required>
-              <option value="super_admin" selected>LGU Super Admin</option>
+              <option value="super_admin" selected>{{ lgu_office_name }}</option>
               {% for o in offices_with_reps %}
                 <option value="{{ o.id }}">{{ o.name }}</option>
               {% endfor %}
