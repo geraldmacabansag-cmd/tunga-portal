@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="{% static 'css/super_admin_style.css' %}">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
-<body data-page="{% block body_page %}dashboard{% endblock %}" data-logout-url="{% url 'logout' %}">
+<body data-page="{% block body_page %}dashboard{% endblock %}" data-logout-url="{% url 'logout' %}" data-account-url="{% url 'admin_dashboard:admin_account' %}" data-changepass-url="{% url 'admin_dashboard:admin_change_pass' %}">
 <script>
   // Restore the sidebar's collapsed/expanded state before it paints, so
   // navigating between pages doesn't flash it open and then snap shut.
@@ -92,6 +92,14 @@
     </ul>
 
     <ul>
+      <li class="nav-section-title">Account</li>
+      {% url 'admin_dashboard:admin_account' as admin_account_url %}
+      <li class="nav-item{% if request.path == admin_account_url %} active{% endif %}"><a href="{{ admin_account_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-regular fa-user"></i></span> My Account</a></li>
+      {% url 'admin_dashboard:admin_change_pass' as admin_changepass_url %}
+      <li class="nav-item{% if request.path == admin_changepass_url %} active{% endif %}"><a href="{{ admin_changepass_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-lock"></i></span> Change Password</a></li>
+    </ul>
+
+    <ul>
       <li class="nav-section-title">Reports &amp; Analytics</li>
       {% url 'admin_dashboard:ad_analytics' as analytics_url %}
       <li class="nav-item{% if request.path == analytics_url %} active{% endif %}"><a href="{{ analytics_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-chart-line"></i></span> Analytics &amp; Reports</a></li>
@@ -138,7 +146,7 @@
         <label class="field search" id="topbarSearchField" style="display:flex;align-items:center;gap:8px;width:220px;border-radius:999px;padding:9px 16px;color:var(--gray-400);"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search anything..." style="border:0;outline:0;flex:1;font:inherit;background:transparent;color:var(--gray-800);"></label>
         <button class="icon-button"><i class="fa-regular fa-bell"></i><span class="dot">5</span></button>
         <div class="user-chip">
-          <img src="{% static 'images/icon/profile_logo.jpeg' %}" alt="">
+          <img src="{% if request.user.super_admin.photo %}{{ request.user.super_admin.photo.url }}{% else %}{% static 'images/icon/profile_logo.jpeg' %}{% endif %}" alt="">
           <div class="who"><div class="name">{{ request.user.get_full_name|default:request.user.username }}</div><div class="role">Super Admin</div></div>
           <i class="fa-solid fa-chevron-down chev"></i>
         </div>

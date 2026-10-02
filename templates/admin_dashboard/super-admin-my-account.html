@@ -1,0 +1,151 @@
+{% extends "super-admin-base.html" %}
+{% load static %}
+{% block body_page %}admin-my-account{% endblock %}
+
+{% block page_title %}My Account{% endblock %}
+{% block page_subtitle %}Manage your Super Admin profile{% endblock %}
+{% block breadcrumbs %}<span class="current">My Account</span>{% endblock %}
+
+{% block content %}
+
+<div class="grid-3">
+  <section class="panel">
+    <div class="panel-header">
+      <h2>Personal Information</h2>
+      <button class="btn btn-secondary btn-sm" id="edit-account-btn" type="button"><i class="fa-solid fa-pen-to-square"></i> Edit Account</button>
+    </div>
+
+    <!-- VIEW MODE -->
+    <div class="panel-body" id="account-view-mode">
+      <div class="avatar-upload" style="margin-bottom:22px;text-align:center;">
+        <img src="{% if super_admin.photo %}{{ super_admin.photo.url }}{% else %}{% static 'images/icon/profile_logo.jpeg' %}{% endif %}" alt="" style="width:96px;height:96px;object-fit:cover;border-radius:50%;display:block;margin:0 auto;">
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input class="form-input" type="text" value="{{ request.user.get_full_name }}" disabled>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <input class="form-input" type="text" value="{{ request.user.username }}" disabled>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input class="form-input" type="text" value="{{ request.user.email }}" disabled>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mobile Number</label>
+          <input class="form-input" type="text" value="{{ super_admin.mobile_number }}" disabled>
+        </div>
+      </div>
+    </div>
+
+    <!-- EDIT MODE -->
+    <div class="panel-body" id="account-edit-mode" style="display:none;">
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div class="avatar-upload" style="margin-bottom:22px;text-align:center;">
+          <img id="account-photo-preview" src="{% if super_admin.photo %}{{ super_admin.photo.url }}{% else %}{% static 'images/icon/profile_logo.jpeg' %}{% endif %}" alt="" style="width:96px;height:96px;object-fit:cover;border-radius:50%;display:block;margin:0 auto 12px;">
+          <div>
+            <label class="btn btn-secondary btn-sm" style="cursor:pointer;">
+              <i class="fa-solid fa-upload"></i> Change Photo
+              <input type="file" name="photo" id="account-photo-input" accept="image/*" style="display:none;">
+            </label>
+            <div class="form-hint">JPG or PNG, at least 200×200px.</div>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Full Name</label>
+            <input class="form-input" type="text" name="full_name" value="{{ request.user.get_full_name }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Username</label>
+            <input class="form-input" type="text" value="{{ request.user.username }}" disabled style="background:var(--gray-50);color:var(--gray-500);">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email Address</label>
+            <div class="input-icon-wrap"><i class="fa-regular fa-envelope"></i><input class="form-input" type="email" name="email" value="{{ request.user.email }}"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Mobile Number</label>
+            <div class="input-icon-wrap"><i class="fa-solid fa-phone"></i><input class="form-input" type="tel" name="mobile_number" maxlength="11" minlength="11" pattern="[0-9]{11}" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')" value="{{ super_admin.mobile_number }}"></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+          <button type="button" class="btn btn-secondary" id="cancel-edit-account">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-regular fa-floppy-disk"></i> Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <div class="stack">
+    <section class="panel">
+      <div class="panel-header"><h2>Account</h2></div>
+      <div class="panel-body">
+        <div class="info-row"><span class="k">Role</span><span class="v">Super Admin</span></div>
+        <div class="info-row"><span class="k">Status</span><span class="v"><span class="badge badge-green">Online</span></span></div>
+        <div class="info-row"><span class="k">Member Since</span><span class="v">{{ request.user.date_joined|date:"M d, Y" }}</span></div>
+        <div class="info-row" style="border-bottom:none;"><span class="k">Last Login</span><span class="v">{{ request.user.last_login|date:"M d, Y, g:i A"|default:"—" }}</span></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  var editBtn = document.getElementById('edit-account-btn');
+  var cancelBtn = document.getElementById('cancel-edit-account');
+  var viewMode = document.getElementById('account-view-mode');
+  var editMode = document.getElementById('account-edit-mode');
+  if (editBtn) {
+    editBtn.addEventListener('click', function () {
+      viewMode.style.display = 'none';
+      editMode.style.display = 'block';
+    });
+  }
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', function () {
+      editMode.style.display = 'none';
+      viewMode.style.display = 'block';
+    });
+  }
+
+  // Live-preview the chosen photo (both in the edit form and the topbar's
+  // user-chip avatar) before the form is actually submitted — mirrors the
+  // same behavior on the Office Representative's My Account page.
+  var photoInput = document.getElementById('account-photo-input');
+  var photoPreview = document.getElementById('account-photo-preview');
+  var chipImg = document.querySelector('.user-chip img');
+  if (photoInput) {
+    var originalPreviewSrc = photoPreview ? photoPreview.src : null;
+    var originalChipSrc = chipImg ? chipImg.src : null;
+
+    photoInput.addEventListener('change', function () {
+      var file = photoInput.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        if (photoPreview) photoPreview.src = e.target.result;
+        if (chipImg) chipImg.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', function () {
+        photoInput.value = '';
+        if (photoPreview) photoPreview.src = originalPreviewSrc;
+        if (chipImg) chipImg.src = originalChipSrc;
+      });
+    }
+  }
+})();
+</script>
+{% endblock %}

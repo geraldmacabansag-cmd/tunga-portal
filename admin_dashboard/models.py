@@ -5,6 +5,8 @@ from django.core.exceptions import ValidationError
 
 class SuperAdmin(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="super_admin")
+    mobile_number = models.CharField(max_length=20, blank=True)
+    photo = models.ImageField(upload_to="super_admin_photos/", blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def clean(self):

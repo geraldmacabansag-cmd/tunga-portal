@@ -692,10 +692,12 @@
     if (chip) {
       chip.addEventListener('click', function (e) {
         e.stopPropagation();
+        var accountUrl = document.body.dataset.accountUrl || 'my-account.html';
+        var changepassUrl = document.body.dataset.changepassUrl || 'change-password.html';
         toggleDropdown(chip,
           '<div class="dropdown-panel">' +
-          '<a href="my-account.html"><i class="fa-regular fa-user"></i> My Account</a>' +
-          '<a href="change-password.html"><i class="fa-solid fa-lock"></i> Change Password</a>' +
+          '<a href="' + accountUrl + '"><i class="fa-regular fa-user"></i> My Account</a>' +
+          '<a href="' + changepassUrl + '"><i class="fa-solid fa-lock"></i> Change Password</a>' +
           '<a href="/" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-arrow-up-right-from-square"></i> View Public Website</a>' +
           '<div class="dd-item danger" data-act="logout"><i class="fa-solid fa-arrow-right-from-bracket"></i> Log Out</div>' +
           '</div>');
@@ -1193,6 +1195,15 @@
 
     // Avatar / logo upload buttons
     $$('.avatar-upload .btn').forEach(function (btn) {
+      // Pages with a REAL, backend-wired upload (e.g. Super Admin's My
+      // Account) already nest their own named <input type="file"> inside
+      // this button. Skip those here — otherwise this demo handler creates
+      // a SECOND, unnamed phantom input, hijacks the button's click to open
+      // THAT one instead, and fakes a preview/toast for it. Since it has no
+      // "name" attribute, whatever gets picked there never actually reaches
+      // request.FILES on submit — the save silently does nothing even
+      // though everything "looked" like it worked.
+      if (btn.querySelector('input[type="file"]')) return;
       var img = btn.closest('.avatar-upload').querySelector('img');
       var input = document.createElement('input');
       input.type = 'file'; input.accept = 'image/*'; input.style.display = 'none';

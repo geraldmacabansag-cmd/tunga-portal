@@ -994,7 +994,10 @@ textarea.note-input{
   .topbar-left{gap:10px;min-width:0;flex:1 1 auto;}
   .page-heading{min-width:0;overflow:hidden;}
   .page-heading h1{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .page-heading p{display:none;}
+  /* Instead of hiding the subtitle outright, truncate it to one line the
+     same way the title is truncated above — it still shows, it just can't
+     wrap onto a second line and push the topbar taller / overflow. */
+  .page-heading p{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11.5px;margin-top:1px;}
   .topbar-right{gap:8px;flex-shrink:0;}
   .user-chip{padding:3px;gap:0;border:0;background:transparent;}
   .user-chip .who,

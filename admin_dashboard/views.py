@@ -18,6 +18,9 @@ import secrets
 import json
 import re
 from django.urls import reverse
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 
 
 def _parse_leading_number(text):
@@ -79,6 +82,20 @@ def super_admin_required(view_func):
     return wrapper
 
 
+# Icon/color for each pending-item type shown in the dashboard's "Awaiting
+# your approval" panel. Kept separate from TYPE_META (used by the Approval
+# Center) because that panel only has 4 accent colors available (blue/green/
+# amber/red), not the 6 tag colors TYPE_META uses.
+DASH_APPROVAL_META = {
+    "Announcement": {"color": "blue", "icon": "fa-solid fa-bullhorn"},
+    "News": {"color": "amber", "icon": "fa-regular fa-newspaper"},
+    "Event": {"color": "green", "icon": "fa-regular fa-calendar"},
+    "Form": {"color": "amber", "icon": "fa-solid fa-file-arrow-down"},
+    "Gallery": {"color": "red", "icon": "fa-regular fa-image"},
+    "Service": {"color": "red", "icon": "fa-solid fa-list-check"},
+}
+
+
 @super_admin_required
 def dashboard(request):
     today = timezone.localdate()
@@ -112,6 +129,60 @@ def dashboard(request):
         + pending_services.filter(published_at__date=today).count()
     )
  
+    # ---- Awaiting your approval (same pending queries as above, merged into
+    # one "what needs a look" list for the dashboard panel, newest first) ----
+    recent_pending = []
+    for a in pending_announcements.select_related('representative__office'):
+        recent_pending.append({
+            'item_type': 'Announcement', 'pk': a.pk,
+            'title': f'New announcement: "{a.title}"',
+            'office': a.representative.office.name if a.representative and a.representative.office else '—',
+            'date': a.created_at,
+        })
+    for n in pending_news.select_related('representative__office'):
+        recent_pending.append({
+            'item_type': 'News', 'pk': n.pk,
+            'title': f'News update: "{n.title}"',
+            'office': n.representative.office.name if n.representative and n.representative.office else '—',
+            'date': n.created_at,
+        })
+    for e in pending_events.select_related('representative__office'):
+        recent_pending.append({
+            'item_type': 'Event', 'pk': e.pk,
+            'title': f'New event: "{e.title}"',
+            'office': e.representative.office.name if e.representative and e.representative.office else '—',
+            'date': e.created_at,
+        })
+    for f in pending_forms.select_related('office'):
+        recent_pending.append({
+            'item_type': 'Form', 'pk': f.pk,
+            'title': f'Updated form: "{f.title}"',
+            'office': f.office.name if f.office else '—',
+            'date': f.date_uploaded,
+        })
+    for p in pending_photos.select_related('representative__office'):
+        recent_pending.append({
+            'item_type': 'Gallery', 'pk': p.pk,
+            'title': f'New photo: "{p.title}"',
+            'office': p.representative.office.name if p.representative and p.representative.office else '—',
+            'date': p.created_at,
+        })
+    for s in pending_services.select_related('office'):
+        recent_pending.append({
+            'item_type': 'Service', 'pk': s.pk,
+            'title': f'New service: "{s.name}"',
+            'office': s.office.name if s.office else '—',
+            'date': s.published_at,
+        })
+
+    for item in recent_pending:
+        meta = DASH_APPROVAL_META.get(item['item_type'], {})
+        item['icon_color'] = meta.get('color', 'blue')
+        item['icon'] = meta.get('icon', 'fa-solid fa-file')
+
+    recent_pending.sort(key=lambda i: i['date'] or timezone.now(), reverse=True)
+    recent_pending = recent_pending[:4]
+
     # ---- Registered residents (ordinary citizen accounts only) ----
     resident_qs = User.objects.filter(is_staff=False, is_superuser=False, office_rep__isnull=True)
     residents_total = resident_qs.count()
@@ -144,15 +215,22 @@ def dashboard(request):
             "services_count": services_count,
             "pending_count": office_pending_count,
         })
- 
+
+    # Drop offices that have nothing to show at all (no services listed and
+    # nothing pending) — otherwise an office that has simply never been set
+    # up yet still took one of the 5 slots below just because the table was
+    # sorted and sliced without checking whether there was anything to show.
+    office_rows = [r for r in office_rows if r["services_count"] > 0 or r["pending_count"] > 0]
+
     # Busiest offices first: whoever needs the most attention, then whoever
     # has the most services listed.
     office_rows.sort(key=lambda r: (-r["pending_count"], -r["services_count"]))
     office_rows = office_rows[:5]
- 
+
     return render(request, "admin_dashboard/super-admin-dashboard.html", {
         "pending_total": pending_total,
         "pending_today": pending_today,
+        "recent_pending": recent_pending,
         "residents_total": residents_total,
         "residents_new_this_month": residents_new_this_month,
         "announcements_total": announcements_total,
@@ -161,6 +239,80 @@ def dashboard(request):
         "services_office_count": services_office_count,
         "office_rows": office_rows,
     })
+
+
+@super_admin_required
+def admin_my_account(request):
+    """Mirrors office_dashboard's my_account view, but for the Super Admin's
+    own User account plus the SuperAdmin model's own mobile_number/photo
+    fields."""
+    super_admin = SuperAdmin.objects.get(user=request.user)
+
+    if request.method == "POST":
+        full_name = request.POST.get('full_name', '').strip()
+        email = request.POST.get('email', '').strip()
+
+        if not full_name:
+            messages.error(request, "Full name is required.")
+        else:
+            name_parts = full_name.split(' ', 1)
+            request.user.first_name = name_parts[0]
+            request.user.last_name = name_parts[1] if len(name_parts) > 1 else ''
+            request.user.email = email
+            request.user.save()
+
+            super_admin.mobile_number = request.POST.get('mobile_number', '')
+            uploaded_photo = request.FILES.get('photo')
+            if uploaded_photo:
+                super_admin.photo = uploaded_photo
+
+            try:
+                # SuperAdmin.save() calls self.full_clean() internally (it's
+                # how the "only one Super Admin" rule is enforced) — that
+                # means a freshly uploaded photo also gets Django's normal
+                # ImageField validation (valid image, readable by Pillow)
+                # run on it right here, and if it fails, this raises
+                # ValidationError instead of silently doing nothing.
+                super_admin.save()
+            except ValidationError as e:
+                error_text = " ".join(
+                    msg for messages_list in e.message_dict.values() for msg in messages_list
+                ) if hasattr(e, 'message_dict') else " ".join(e.messages)
+                messages.error(request, f"Could not save your changes: {error_text}")
+            else:
+                messages.success(request, "Account details updated.")
+        return redirect('admin_dashboard:admin_account')
+
+    return render(request, "admin_dashboard/super-admin-my-account.html", {"super_admin": super_admin})
+
+
+@super_admin_required
+def admin_change_password(request):
+    if request.method == "POST":
+        current_password = request.POST.get('current_password', '')
+        new_password = request.POST.get('new_password', '')
+        confirm_password = request.POST.get('confirm_password', '')
+
+        if not request.user.check_password(current_password):
+            messages.error(request, "Current password is incorrect.")
+        elif new_password != confirm_password:
+            messages.error(request, "New password and confirmation do not match.")
+        else:
+            try:
+                validate_password(new_password, user=request.user)
+            except ValidationError as e:
+                for err in e.messages:
+                    messages.error(request, err)
+            else:
+                request.user.set_password(new_password)
+                request.user.save()
+                update_session_auth_hash(request, request.user)  # keeps them logged in
+                messages.success(request, "Password updated successfully.")
+
+        return redirect('admin_dashboard:admin_change_pass')
+
+    return render(request, "admin_dashboard/super-admin-change-password.html")
+
 
 TYPE_META = {
     "Announcement": {"tag_class": "tag-blue", "icon": "fa-solid fa-bullhorn", "thumb_class": "tag-blue"},

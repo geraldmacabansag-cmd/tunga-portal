@@ -53,6 +53,10 @@ urlpatterns = [
     path('Admin-Users/<int:pk>/toggle-active/', views.admin_user_toggle_active, name='admin_user_toggle_active'),
 
     path('Admin-Roles-Permision/', views.admin_roles, name='ad_roles'),
+
+    path('Admin-My-Account/', views.admin_my_account, name='admin_account'),
+    path('Admin-Change-Password/', views.admin_change_password, name='admin_change_pass'),
+
     path('Admin-Homepage/', views.admin_homepage, name='ad_homepage'),
     path('Admin-Homepage/quick-link/<int:pk>/save/', views.admin_quicklink_save, name='admin_quicklink_save'),
     path('Admin-Homepage/quick-link/create/save/', lambda request: views.admin_quicklink_save(request, pk=0), name='admin_quicklink_create'),
