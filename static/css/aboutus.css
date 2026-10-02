@@ -15,7 +15,11 @@
 
 .vmv-panel {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  /* Vision / Mission / Core Values are each only rendered when the Super
+     Admin has actually filled them in, so the number of columns here can be
+     3, 2 or 1 depending on what's set — auto-fit sizes the remaining
+     column(s) to fill the row evenly instead of leaving empty gaps. */
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 30px;
   padding: 34px 36px;
 }
@@ -39,8 +43,30 @@
   border-radius: 50%;
   background: var(--bg-light);
   color: var(--navy);
-  font-size: 1.3rem;
   margin-bottom: 16px;
+}
+
+/* The glyph itself lives on the <i> nested inside .vmv-icon, kept separate
+   from the circle styling above — putting Font Awesome's own classes on the
+   exact same element as the circle's sizing/background was rendering as an
+   empty circle with no icon showing. */
+.vmv-icon i {
+  font-size: 1.3rem;
+}
+
+.vmv-col__head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* Hidden at desktop — Vision/Mission/Values are always expanded there, so
+   there's nothing to indicate. Only appears once the small-screen rule
+   below turns .vmv-col__head into a tap target. */
+.vmv-col__chevron {
+  display: none;
+  color: var(--navy);
+  transition: transform 0.15s ease;
 }
 
 .vmv-col h3 {
@@ -91,7 +117,11 @@
 
 .history-grid {
   display: grid;
-  grid-template-columns: 1fr 1.2fr;
+  /* The intro-text column and the Timeline column can each be absent
+     independently (depending on what's filled in from the Super Admin's
+     History tab), so this sizes itself to however many of the two actually
+     render instead of leaving one side blank. */
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 40px;
 }
 
@@ -170,13 +200,21 @@
 }
 
 .officials-strip {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr) auto;
+  /* Flex-wrap instead of a grid: the number of official cards is whatever
+     the Super Admin has added, and a stretching grid track made each
+     photo grow to fill the row when there were only 2 or 3 officials —
+     here every card keeps the same fixed width no matter how many there
+     are, wrapping onto additional rows on narrower screens instead. */
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
   gap: 18px;
-  align-items: center;
 }
 
 .official-card {
+  flex: 0 0 140px;
+  width: 140px;
   text-align: center;
   border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
@@ -203,8 +241,15 @@
   padding-bottom: 12px;
 }
 
-.officials-strip__next {
-  justify-self: center;
+/* Only the first 4 officials show by default; "View All Officials" adds
+   .expanded to #officialsStrip (see about.html's extra_js) to reveal the
+   rest in place instead of linking anywhere. */
+.official-card--extra {
+  display: none;
+}
+
+.officials-strip.expanded .official-card--extra {
+  display: block;
 }
 
 .officials-panel__cta {
@@ -219,7 +264,10 @@
 
 .glance-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  /* Any of the 5 tiles can be hidden when its value is left blank in the
+     Super Admin, so this fills the row with however many remain instead of
+     leaving gaps where the hidden ones used to be. */
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 20px;
 }
 
@@ -273,20 +321,19 @@
   .timeline {
     padding-left: 100px;
   }
-  .officials-strip {
-    grid-template-columns: repeat(3, 1fr);
-  }
-  .officials-strip__next {
-    display: none;
+  .official-card {
+    flex-basis: 120px;
+    width: 120px;
   }
   .glance-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   }
 }
 
 @media (max-width: 600px) {
-  .officials-strip {
-    grid-template-columns: repeat(2, 1fr);
+  .official-card {
+    flex-basis: 100px;
+    width: 100px;
   }
   .glance-grid {
     grid-template-columns: 1fr;
@@ -302,7 +349,9 @@
 
 .barangays-groups {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* Poblacion and Rural can each be empty independently, so this sizes to
+     whichever group(s) actually have barangays in them. */
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 24px;
 }
 
@@ -368,5 +417,110 @@
 @media (max-width: 700px) {
   .barangays-groups {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ==========================================================================
+   Small-screen pass — every panel on this page (VMV, History, Officials,
+   Barangays, At a Glance) shares the same heavy desktop padding and font
+   sizes, which eats into the readable width on a phone. This tightens all
+   of them together instead of one at a time.
+   ========================================================================== */
+@media (max-width: 600px) {
+  .vmv-panel,
+  .history-panel,
+  .officials-panel,
+  .barangays-panel,
+  .glance-panel {
+    padding: 22px 18px;
+  }
+
+  .vmv-icon {
+    width: 44px;
+    height: 44px;
+    margin-bottom: 0;
+  }
+  .vmv-icon i {
+    font-size: 1.1rem;
+  }
+
+  /* Vision / Mission / Core Values collapse into a tap-to-expand accordion
+     here only — full text for all three stacked open by default was the
+     "takes a lot of space" complaint. Desktop (outside this media query)
+     always shows .vmv-col__body regardless of the .open class. */
+  .vmv-col__head {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+  }
+  .vmv-col h3 {
+    margin-bottom: 0;
+  }
+  .vmv-col__chevron {
+    display: inline-block;
+    margin-left: auto;
+  }
+  .js-vmv-col.open .vmv-col__chevron {
+    transform: rotate(180deg);
+  }
+  .vmv-col__body {
+    display: none;
+    margin-top: 12px;
+  }
+  .js-vmv-col.open .vmv-col__body {
+    display: block;
+  }
+
+  .timeline {
+    padding-left: 70px;
+  }
+  .timeline::before {
+    left: 46px;
+  }
+  .timeline__year {
+    left: -70px;
+    width: 46px;
+    font-size: 0.82rem;
+  }
+  .timeline li::before {
+    left: -24px;
+  }
+
+  .history-text__img {
+    max-height: 180px;
+    object-fit: cover;
+  }
+}
+
+@media (max-width: 420px) {
+  .vmv-panel,
+  .history-panel,
+  .officials-panel,
+  .barangays-panel,
+  .glance-panel {
+    padding: 18px 14px;
+  }
+
+  .official-card {
+    flex-basis: 84px;
+    width: 84px;
+  }
+
+  .timeline {
+    padding-left: 56px;
+  }
+  .timeline::before {
+    left: 36px;
+  }
+  .timeline__year {
+    position: static;
+    display: block;
+    text-align: left;
+    width: auto;
+    margin-bottom: 4px;
+  }
+  .timeline li::before {
+    left: -20px;
   }
 }

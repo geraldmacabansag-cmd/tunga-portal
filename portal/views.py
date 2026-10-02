@@ -539,7 +539,22 @@ def offices(request):
     })
 
 def about(request):
-    return render(request, "portal/about.html")
+    from admin_dashboard.models import AboutPageContent, HistoryMilestone, AboutOfficial, Barangay
+
+    about_content = AboutPageContent.get_solo()
+    barangays_poblacion = list(Barangay.objects.filter(group="poblacion"))
+    barangays_rural = list(Barangay.objects.filter(group="rural"))
+
+    return render(request, "portal/about.html", {
+        "about_content": about_content,
+        "core_values": about_content.core_values_list(),
+        "history_paragraphs": about_content.history_intro_paragraphs(),
+        "milestones": HistoryMilestone.objects.all(),
+        "about_officials": AboutOfficial.objects.all(),
+        "barangays_poblacion": barangays_poblacion,
+        "barangays_rural": barangays_rural,
+        "barangays_total": len(barangays_poblacion) + len(barangays_rural),
+    })
 
 def history(request):
     return render(request, "portal/history.html")

@@ -505,7 +505,12 @@
     var panel = ic.closest('.panel');
 
     if (/fa-trash-can/.test(cls)) {
-      if (document.body.dataset.page === 'emergency-contacts' || document.body.dataset.page === 'services') return;
+      // "about-page" (the Super Admin "About Us Page" screen's Timeline,
+      // Officials and Barangays tables) has its own real add/edit/delete
+      // modals wired to the backend — without this exclusion, this generic
+      // demo handler was ALSO opening its own fake delete confirmation on
+      // top of the real one every time a row's trash icon was clicked.
+      if (document.body.dataset.page === 'emergency-contacts' || document.body.dataset.page === 'services' || document.body.dataset.page === 'about-page') return;
       e.preventDefault();
       var label = getRowLabel(row);
       confirmAction('Delete "' + label + '"? This cannot be undone.', function () {
@@ -513,7 +518,9 @@
         toast(label + ' deleted.');
       }, { danger: true, okText: 'Delete' });
     } else if (/fa-pen-to-square/.test(cls)) {
-      if (document.body.dataset.page === 'emergency-contacts' || document.body.dataset.page === 'office overview') return; 
+      // Same reason as the delete exclusion above — "about-page" has its own
+      // real edit modals, so this generic one must stay out of the way.
+      if (document.body.dataset.page === 'emergency-contacts' || document.body.dataset.page === 'office overview' || document.body.dataset.page === 'about-page') return;
       e.preventDefault();
       openEditModal(row, panel);
     } else if (/fa-eye/.test(cls)) {  

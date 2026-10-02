@@ -2,7 +2,7 @@ from functools import wraps
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import SuperAdmin, SiteContactInfo, EmergencyContact, EmailProviderSettings, QuickLink
+from .models import SuperAdmin, SiteContactInfo, EmergencyContact, EmailProviderSettings, QuickLink, AboutPageContent, HistoryMilestone, AboutOfficial, Barangay
 from django.core.paginator import Paginator
 from django.contrib.auth.models import User
 from django.db.models import Count, Sum, Q, F
@@ -1458,7 +1458,234 @@ def admin_quicklink_move(request, pk, direction):
                 links[index].save(update_fields=['order'])
                 links[target].save(update_fields=['order'])
     return redirect('admin_dashboard:ad_homepage')
- 
+
+
+@super_admin_required
+def admin_about_page(request):
+    """Super Admin's "About Us Page" screen — one page with a tab per
+    section of the public About Us page (About Us / History / Municipal
+    Officials / Barangays / At a Glance), mirroring the tabbed layout
+    already used for Website Settings. AboutPageContent.get_solo() seeds
+    itself with the page's original hardcoded copy on first use, so nothing
+    on the live site changes until an admin actually edits something here."""
+    content = AboutPageContent.get_solo()
+
+    if request.method == "POST":
+        section = request.POST.get('section')
+
+        if section == 'history':
+            content.history_intro = request.POST.get('history_intro', '').strip()
+            if request.FILES.get('history_image'):
+                content.history_image = request.FILES.get('history_image')
+            content.save()
+            messages.success(request, "History content was updated.")
+        elif section == 'barangays':
+            content.barangays_intro = request.POST.get('barangays_intro', '').strip()
+            content.save()
+            messages.success(request, "Barangays section was updated.")
+        elif section == 'glance':
+            content.glance_population_value = request.POST.get('glance_population_value', '').strip()
+            content.glance_population_label = request.POST.get('glance_population_label', '').strip()
+            content.glance_land_area_value = request.POST.get('glance_land_area_value', '').strip()
+            content.glance_land_area_label = request.POST.get('glance_land_area_label', '').strip()
+            content.glance_households_value = request.POST.get('glance_households_value', '').strip()
+            content.glance_households_label = request.POST.get('glance_households_label', '').strip()
+            content.glance_established_value = request.POST.get('glance_established_value', '').strip()
+            content.glance_established_label = request.POST.get('glance_established_label', '').strip()
+            content.save()
+            messages.success(request, '"Municipality at a Glance" was updated.')
+        else:
+            content.hero_intro = request.POST.get('hero_intro', '').strip()
+            content.vision_text = request.POST.get('vision_text', '').strip()
+            content.mission_text = request.POST.get('mission_text', '').strip()
+            content.core_values = request.POST.get('core_values', '').strip()
+            content.save()
+            messages.success(request, "About Us content was updated.")
+
+        return redirect(reverse('admin_dashboard:ad_about_page') + '#' + (section or 'about'))
+
+    return render(request, "admin_dashboard/super-admin-about-page.html", {
+        "content": content,
+        "milestones": HistoryMilestone.objects.all(),
+        "officials": AboutOfficial.objects.all(),
+        "barangays_poblacion": Barangay.objects.filter(group='poblacion'),
+        "barangays_rural": Barangay.objects.filter(group='rural'),
+    })
+
+
+@super_admin_required
+def admin_about_milestone_save(request, pk):
+    m = get_object_or_404(HistoryMilestone, pk=pk) if pk else HistoryMilestone()
+    if request.method == "POST":
+        year_label = request.POST.get('year_label', '').strip()
+        description = request.POST.get('description', '').strip()
+        if not year_label or not description:
+            messages.error(request, "Please fill in both the year/label and the description.")
+        else:
+            is_create = m.pk is None
+            m.year_label = year_label
+            m.description = description
+            m.is_present = request.POST.get('is_present') == 'on'
+            if is_create:
+                m.order = HistoryMilestone.objects.count()
+            m.save()
+            messages.success(request, f'"{year_label}" was saved.')
+    return redirect(reverse('admin_dashboard:ad_about_page') + '#history')
+
+
+@super_admin_required
+def admin_about_milestone_delete(request, pk):
+    m = get_object_or_404(HistoryMilestone, pk=pk)
+    if request.method == "POST":
+        label = m.year_label
+        m.delete()
+        messages.success(request, f'"{label}" was removed.')
+    return redirect(reverse('admin_dashboard:ad_about_page') + '#history')
+
+
+@super_admin_required
+def admin_about_official_save(request, pk):
+    o = get_object_or_404(AboutOfficial, pk=pk) if pk else AboutOfficial()
+    if request.method == "POST":
+        name = request.POST.get('name', '').strip()
+        position = request.POST.get('position', '').strip()
+        if not name or not position:
+            messages.error(request, "Please fill in both the name and the position.")
+        else:
+            is_create = o.pk is None
+            o.name = name
+            o.position = position
+            if request.FILES.get('photo'):
+                o.photo = request.FILES.get('photo')
+            if is_create:
+                o.order = AboutOfficial.objects.count()
+            o.save()
+            messages.success(request, f'"{name}" was saved.')
+    return redirect(reverse('admin_dashboard:ad_about_page') + '#officials')
+
+
+@super_admin_required
+def admin_about_official_delete(request, pk):
+    o = get_object_or_404(AboutOfficial, pk=pk)
+    if request.method == "POST":
+        name = o.name
+        o.delete()
+        messages.success(request, f'"{name}" was removed.')
+    return redirect(reverse('admin_dashboard:ad_about_page') + '#officials')
+
+
+@super_admin_required
+def admin_about_barangay_save(request, pk):
+    b = get_object_or_404(Barangay, pk=pk) if pk else Barangay()
+    if request.method == "POST":
+        name = request.POST.get('name', '').strip()
+        if not name:
+            messages.error(request, "Please enter a barangay name.")
+        else:
+            is_create = b.pk is None
+            b.name = name
+            b.group = request.POST.get('group', 'poblacion')
+            if is_create:
+                b.order = Barangay.objects.filter(group=b.group).count()
+            b.save()
+            messages.success(request, f'"{name}" was saved.')
+    return redirect(reverse('admin_dashboard:ad_about_page') + '#barangays')
+
+
+@super_admin_required
+def admin_about_barangay_delete(request, pk):
+    b = get_object_or_404(Barangay, pk=pk)
+    if request.method == "POST":
+        name = b.name
+        b.delete()
+        messages.success(request, f'"{name}" was removed.')
+    return redirect(reverse('admin_dashboard:ad_about_page') + '#barangays')
+
+
+# The page's original hardcoded content — shared by the "Reset to Default"
+# button below so it restores exactly what a brand-new install seeds via
+# admin_dashboard/migrations/0012_seed_about_page.py.
+_ABOUT_DEFAULT_MILESTONES = [
+    ("1949", "Executive Order No. 266 was signed on September 26, 1949, creating Tunga as an independent municipality.", False),
+    ("1950s", "Establishment of the municipal government and initial development of public services.", False),
+    ("1970s", "Expansion of infrastructure, schools, and health services in the municipality.", False),
+    ("1990s", "Growth of agriculture and local industries, improving the livelihood of residents.", False),
+    ("2000s", "Strengthening of governance and community participation in local development.", False),
+    ("Present", "Tunga continues to progress towards a more resilient, inclusive, and sustainable future.", True),
+]
+_ABOUT_DEFAULT_OFFICIALS = [
+    ("Hon. Pedro D. Dela Cruz", "Municipal Mayor"),
+    ("Hon. Maria L. Santos", "Vice Mayor"),
+    ("Hon. Juanito R. Reyes", "SB Member"),
+    ("Hon. Liza M. Alegre", "SB Member"),
+    ("Hon. Ricardo P. Torres", "SB Member"),
+]
+_ABOUT_DEFAULT_BARANGAYS_POBLACION = ["San Antonio", "San Pedro", "San Roque", "San Vicente", "Santo Niño"]
+_ABOUT_DEFAULT_BARANGAYS_RURAL = ["Astorga", "Balire", "Banawang"]
+
+
+@super_admin_required
+def admin_about_reset_defaults(request):
+    """Resets just the ONE tab named by POST['tab'] back to the page's
+    original hardcoded content — the other 4 tabs' edits are left alone.
+    "defaults" is a throwaway, unsaved AboutPageContent() instance, which
+    Django populates with each field's declared default the moment it's
+    instantiated — an easy way to read "what's the factory value for this
+    field" without hardcoding it a second time here."""
+    tab = request.POST.get('tab', 'about')
+    defaults = AboutPageContent()
+
+    if request.method == "POST":
+        content = AboutPageContent.get_solo()
+
+        if tab == 'history':
+            content.history_intro = defaults.history_intro
+            content.history_image = None
+            content.save()
+            HistoryMilestone.objects.all().delete()
+            for order, (year_label, description, is_present) in enumerate(_ABOUT_DEFAULT_MILESTONES):
+                HistoryMilestone.objects.create(year_label=year_label, description=description, is_present=is_present, order=order)
+            messages.success(request, "The History tab was reset to its default content.")
+
+        elif tab == 'officials':
+            AboutOfficial.objects.all().delete()
+            for order, (name, position) in enumerate(_ABOUT_DEFAULT_OFFICIALS):
+                AboutOfficial.objects.create(name=name, position=position, order=order)
+            messages.success(request, "The Municipal Officials tab was reset to its default content.")
+
+        elif tab == 'barangays':
+            content.barangays_intro = defaults.barangays_intro
+            content.save()
+            Barangay.objects.all().delete()
+            for order, name in enumerate(_ABOUT_DEFAULT_BARANGAYS_POBLACION):
+                Barangay.objects.create(name=name, group="poblacion", order=order)
+            for order, name in enumerate(_ABOUT_DEFAULT_BARANGAYS_RURAL):
+                Barangay.objects.create(name=name, group="rural", order=order)
+            messages.success(request, "The Barangays tab was reset to its default content.")
+
+        elif tab == 'glance':
+            content.glance_population_value = defaults.glance_population_value
+            content.glance_population_label = defaults.glance_population_label
+            content.glance_land_area_value = defaults.glance_land_area_value
+            content.glance_land_area_label = defaults.glance_land_area_label
+            content.glance_households_value = defaults.glance_households_value
+            content.glance_households_label = defaults.glance_households_label
+            content.glance_established_value = defaults.glance_established_value
+            content.glance_established_label = defaults.glance_established_label
+            content.save()
+            messages.success(request, '"Municipality at a Glance" was reset to its default content.')
+
+        else:
+            tab = 'about'
+            content.hero_intro = defaults.hero_intro
+            content.vision_text = defaults.vision_text
+            content.mission_text = defaults.mission_text
+            content.core_values = defaults.core_values
+            content.save()
+            messages.success(request, "The About Us tab was reset to its default content.")
+
+    return redirect(reverse('admin_dashboard:ad_about_page') + '#' + tab)
+
 
 @super_admin_required
 def admin_interactive_map(request):

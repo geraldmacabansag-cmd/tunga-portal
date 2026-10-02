@@ -59,7 +59,19 @@ urlpatterns = [
     path('Admin-Homepage/quick-link/<int:pk>/delete/', views.admin_quicklink_delete, name='admin_quicklink_delete'),
     path('Admin-Homepage/quick-link/<int:pk>/move-up/', lambda request, pk: views.admin_quicklink_move(request, pk, 'up'), name='admin_quicklink_move_up'),
     path('Admin-Homepage/quick-link/<int:pk>/move-down/', lambda request, pk: views.admin_quicklink_move(request, pk, 'down'), name='admin_quicklink_move_down'),
- 
+
+    path('Admin-About-Page/', views.admin_about_page, name='ad_about_page'),
+    path('Admin-About-Page/milestone/<int:pk>/save/', views.admin_about_milestone_save, name='admin_about_milestone_save'),
+    path('Admin-About-Page/milestone/create/save/', lambda request: views.admin_about_milestone_save(request, pk=0), name='admin_about_milestone_create'),
+    path('Admin-About-Page/milestone/<int:pk>/delete/', views.admin_about_milestone_delete, name='admin_about_milestone_delete'),
+    path('Admin-About-Page/official/<int:pk>/save/', views.admin_about_official_save, name='admin_about_official_save'),
+    path('Admin-About-Page/official/create/save/', lambda request: views.admin_about_official_save(request, pk=0), name='admin_about_official_create'),
+    path('Admin-About-Page/official/<int:pk>/delete/', views.admin_about_official_delete, name='admin_about_official_delete'),
+    path('Admin-About-Page/barangay/<int:pk>/save/', views.admin_about_barangay_save, name='admin_about_barangay_save'),
+    path('Admin-About-Page/barangay/create/save/', lambda request: views.admin_about_barangay_save(request, pk=0), name='admin_about_barangay_create'),
+    path('Admin-About-Page/barangay/<int:pk>/delete/', views.admin_about_barangay_delete, name='admin_about_barangay_delete'),
+    path('Admin-About-Page/reset-defaults/', views.admin_about_reset_defaults, name='admin_about_reset_defaults'),
+
 
     path('Admin-Interactive-Map/', views.admin_interactive_map, name='ad_map'),
 

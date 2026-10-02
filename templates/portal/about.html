@@ -13,191 +13,217 @@ Home | Digital Governance Portal
   <div class="page-hero__inner">
     <div class="breadcrumb"><a href="{% url 'home' %}">Home</a> <i class="fa-solid fa-chevron-right" style="font-size:.65rem"></i> <span class="current">About Us</span></div>
     <h1>About Us</h1>
-    <p>The Municipality of Tunga is committed to good governance, transparent leadership, and the continuous progress and well-being of our people.</p>
+    {% if about_content.hero_intro %}<p>{{ about_content.hero_intro }}</p>{% endif %}
   </div>
 </section>
 
+{% if about_content.vision_text or about_content.mission_text or core_values %}
 <section class="vmv-wrap">
   <div class="container">
     <div class="panel vmv-panel">
-      <div class="vmv-col">
-        <i class="fa-solid fa-binoculars vmv-icon"></i>
-        <h3>Our Vision</h3>
-        <p>Tunga is an innovative Smart City, becoming the institutional training center
-          focused on peace and security instrumentalities of Region 8, and the home for
-          empowered citizens, and progressive climate-resilient and sustained
-          environment governed by transparent and accountable leaders</p>
+      {% if about_content.vision_text %}
+      <div class="vmv-col js-vmv-col">
+        <div class="vmv-col__head js-vmv-toggle">
+          <span class="vmv-icon"><i class="fa-solid fa-binoculars"></i></span>
+          <h3>Our Vision</h3>
+          <i class="fa-solid fa-chevron-down vmv-col__chevron"></i>
+        </div>
+        <div class="vmv-col__body">
+          <p>{{ about_content.vision_text }}</p>
+        </div>
       </div>
-      <div class="vmv-col">
-        <i class="fa-solid fa-bullseye vmv-icon"></i>
-        <h3>Our Mission</h3>
-        <p>“Our mission at Tunga is to establish a pioneering Smart City that serves as
-            the premier training center for peace and security instrumentalities in Region
-            8. We are dedicated to empowering our citizens and fostering a progressive,
-            climate-resilient environment, all while ensuring governance that is
-            transparent and accountable.”
-            </p>
+      {% endif %}
+      {% if about_content.mission_text %}
+      <div class="vmv-col js-vmv-col">
+        <div class="vmv-col__head js-vmv-toggle">
+          <span class="vmv-icon"><i class="fa-solid fa-bullseye"></i></span>
+          <h3>Our Mission</h3>
+          <i class="fa-solid fa-chevron-down vmv-col__chevron"></i>
+        </div>
+        <div class="vmv-col__body">
+          <p>{{ about_content.mission_text }}</p>
+        </div>
       </div>
-      <div class="vmv-col">
-        <i class="fa-solid fa-gem vmv-icon"></i>
-        <h3>Our Core Values</h3>
-        <ul class="values-list">
-          <li><i class="fa-solid fa-circle-check"></i> Integrity</li>
-          <li><i class="fa-solid fa-circle-check"></i> Transparency</li>
-          <li><i class="fa-solid fa-circle-check"></i> Accountability</li>
-          <li><i class="fa-solid fa-circle-check"></i> Excellence</li>
-          <li><i class="fa-solid fa-circle-check"></i> Service to Others</li>
-        </ul>
+      {% endif %}
+      {% if core_values %}
+      <div class="vmv-col js-vmv-col">
+        <div class="vmv-col__head js-vmv-toggle">
+          <span class="vmv-icon"><i class="fa-solid fa-gem"></i></span>
+          <h3>Our Core Values</h3>
+          <i class="fa-solid fa-chevron-down vmv-col__chevron"></i>
+        </div>
+        <div class="vmv-col__body">
+          <ul class="values-list">
+            {% for value in core_values %}
+            <li><i class="fa-solid fa-circle-check"></i> {{ value }}</li>
+            {% endfor %}
+          </ul>
+        </div>
       </div>
+      {% endif %}
     </div>
   </div>
 </section>
+{% endif %}
 
+{% if history_paragraphs or milestones %}
 <section class="history-wrap" id="history">
   <div class="container">
     <div class="panel history-panel">
       <h2 class="section-title">Our History</h2>
       <div class="history-grid">
+        {% if history_paragraphs %}
         <div class="history-text">
-          <p>The Municipality of Tunga was formerly a barrio of the Municipality of Barugo. Through Executive Order No. 266, signed by President Elpidio Quirino on September 26, 1949, Tunga was officially created as an independent municipality.</p>
-          <p>Since its creation, Tunga has continued to develop while preserving its agricultural heritage, close-knit community, and local traditions.</p>
-          <img src="{% static 'images/hero-building.svg' %}" alt="Historic Tunga welcome arch" class="history-text__img">
+          {% for paragraph in history_paragraphs %}
+          <p>{{ paragraph }}</p>
+          {% endfor %}
+          <img src="{% if about_content.history_image %}{{ about_content.history_image.url }}{% else %}{% static 'images/hero-building.svg' %}{% endif %}" alt="Historic Tunga welcome arch" class="history-text__img">
         </div>
+        {% endif %}
+        {% if milestones %}
         <ul class="timeline">
+          {% for m in milestones %}
           <li>
-            <span class="timeline__year">1949</span>
-            <p>Executive Order No. 266 was signed on September 26, 1949, creating Tunga as an independent municipality.</p>
+            <span class="timeline__year{% if m.is_present %} timeline__year--present{% endif %}">{{ m.year_label }}</span>
+            <p>{{ m.description }}</p>
           </li>
-          <li>
-            <span class="timeline__year">1950s</span>
-            <p>Establishment of the municipal government and initial development of public services.</p>
-          </li>
-          <li>
-            <span class="timeline__year">1970s</span>
-            <p>Expansion of infrastructure, schools, and health services in the municipality.</p>
-          </li>
-          <li>
-            <span class="timeline__year">1990s</span>
-            <p>Growth of agriculture and local industries, improving the livelihood of residents.</p>
-          </li>
-          <li>
-            <span class="timeline__year">2000s</span>
-            <p>Strengthening of governance and community participation in local development.</p>
-          </li>
-          <li>
-            <span class="timeline__year timeline__year--present">Present</span>
-            <p>Tunga continues to progress towards a more resilient, inclusive, and sustainable future.</p>
-          </li>
+          {% endfor %}
         </ul>
+        {% endif %}
       </div>
     </div>
   </div>
 </section>
+{% endif %}
 
+{% if about_officials %}
 <section class="officials-wrap" id="officials">
   <div class="container">
     <div class="panel officials-panel">
       <h2 class="section-title">Our Officials</h2>
-      <div class="officials-strip">
-        <div class="official-card">
-          <img src="{% static 'images/avatar-male-1.svg' %}" alt="Hon. Pedro D. Dela Cruz, Municipal Mayor">
-          <p class="official-card__name">Hon. Pedro D. Dela Cruz</p>
-          <p class="official-card__role">Municipal Mayor</p>
+      <div class="officials-strip" id="officialsStrip">
+        {% for o in about_officials %}
+        <div class="official-card{% if forloop.counter > 4 %} official-card--extra{% endif %}">
+          <img src="{% if o.photo %}{{ o.photo.url }}{% else %}{% static 'images/avatar-male-1.svg' %}{% endif %}" alt="{{ o.name }}, {{ o.position }}">
+          <p class="official-card__name">{{ o.name }}</p>
+          <p class="official-card__role">{{ o.position }}</p>
         </div>
-        <div class="official-card">
-          <img src="{% static 'images/avatar-female-1.svg' %}" alt="Hon. Maria L. Santos, Vice Mayor">
-          <p class="official-card__name">Hon. Maria L. Santos</p>
-          <p class="official-card__role">Vice Mayor</p>
-        </div>
-        <div class="official-card">
-          <img src="{% static 'images/avatar-male-2.svg' %}" alt="Hon. Juanito R. Reyes, SB Member">
-          <p class="official-card__name">Hon. Juanito R. Reyes</p>
-          <p class="official-card__role">SB Member</p>
-        </div>
-        <div class="official-card">
-          <img src="{% static 'images/avatar-female-2.svg' %}" alt="Hon. Liza M. Alegre, SB Member">
-          <p class="official-card__name">Hon. Liza M. Alegre</p>
-          <p class="official-card__role">SB Member</p>
-        </div>
-        <div class="official-card">
-          <img src="{% static 'images/avatar-male-3.svg' %}" alt="Hon. Ricardo P. Torres, SB Member">
-          <p class="official-card__name">Hon. Ricardo P. Torres</p>
-          <p class="official-card__role">SB Member</p>
-        </div>
-        <button class="gallery-nav officials-strip__next" aria-label="More officials"><i class="fa-solid fa-arrow-right"></i></button>
+        {% endfor %}
       </div>
+      {% if about_officials|length > 4 %}
       <div class="officials-panel__cta">
-        <a href="#" class="btn btn-outline"><i class="fa-solid fa-users"></i> View All Officials</a>
+        <button type="button" class="btn btn-outline" id="officialsToggleBtn" onclick="toggleAllOfficials()"><i class="fa-solid fa-chevron-down"></i> View All Officials</button>
       </div>
+      {% endif %}
     </div>
   </div>
 </section>
+{% endif %}
 
+{% if barangays_poblacion or barangays_rural %}
 <section class="barangays-wrap" id="barangays">
   <div class="container">
     <div class="panel barangays-panel">
       <h2 class="section-title">Barangays of Tunga</h2>
-      <p class="barangays-intro">The municipality is composed of 8 barangays.</p>
+      {% if about_content.barangays_intro %}<p class="barangays-intro">{{ about_content.barangays_intro }}</p>{% endif %}
 
       <div class="barangays-groups">
+        {% if barangays_poblacion %}
         <div class="barangays-group">
           <div class="barangays-group__label">
             <span class="barangays-group__dot barangays-group__dot--pob"></span>
-            Poblacion (Urban) &middot; 5
+            Poblacion (Urban) &middot; {{ barangays_poblacion|length }}
           </div>
           <div class="barangays-group__list">
-            <div class="barangays-group__item"><i class="fa-solid fa-building"></i><span>San Antonio</span></div>
-            <div class="barangays-group__item"><i class="fa-solid fa-building"></i><span>San Pedro</span></div>
-            <div class="barangays-group__item"><i class="fa-solid fa-building"></i><span>San Roque</span></div>
-            <div class="barangays-group__item"><i class="fa-solid fa-building"></i><span>San Vicente</span></div>
-            <div class="barangays-group__item"><i class="fa-solid fa-building"></i><span>Santo Ni&ntilde;o</span></div>
+            {% for b in barangays_poblacion %}
+            <div class="barangays-group__item"><i class="fa-solid fa-building"></i><span>{{ b.name }}</span></div>
+            {% endfor %}
           </div>
         </div>
+        {% endif %}
 
+        {% if barangays_rural %}
         <div class="barangays-group">
           <div class="barangays-group__label">
             <span class="barangays-group__dot barangays-group__dot--rural"></span>
-            Rural &middot; 3
+            Rural &middot; {{ barangays_rural|length }}
           </div>
           <div class="barangays-group__list">
-            <div class="barangays-group__item"><i class="fa-solid fa-location-dot"></i><span>Astorga</span></div>
-            <div class="barangays-group__item"><i class="fa-solid fa-location-dot"></i><span>Balire</span></div>
-            <div class="barangays-group__item"><i class="fa-solid fa-location-dot"></i><span>Banawang</span></div>
+            {% for b in barangays_rural %}
+            <div class="barangays-group__item"><i class="fa-solid fa-location-dot"></i><span>{{ b.name }}</span></div>
+            {% endfor %}
           </div>
         </div>
+        {% endif %}
       </div>
     </div>
   </div>
 </section>
+{% endif %}
 
 <section class="glance-wrap">
   <div class="container">
     <div class="panel glance-panel">
       <h2 class="section-title">The Municipality at a Glance</h2>
       <div class="glance-grid">
+        {% if about_content.glance_population_value %}
         <div class="glance-item">
           <i class="fa-solid fa-hand-holding-heart"></i>
-          <div><strong>34,567+</strong><span>Population (2025 PSA Estimate)</span></div>
+          <div><strong>{{ about_content.glance_population_value }}</strong><span>{{ about_content.glance_population_label }}</span></div>
         </div>
+        {% endif %}
+        {% if about_content.glance_land_area_value %}
         <div class="glance-item">
           <i class="fa-solid fa-map-location-dot"></i>
-          <div><strong>78.45 km&sup2;</strong><span>Total Land Area</span></div>
+          <div><strong>{{ about_content.glance_land_area_value }}</strong><span>{{ about_content.glance_land_area_label }}</span></div>
         </div>
+        {% endif %}
         <div class="glance-item">
           <i class="fa-solid fa-church"></i>
-          <div><strong>8</strong><span>Barangays</span></div>
+          <div><strong>{{ barangays_total }}</strong><span>Barangays</span></div>
         </div>
+        {% if about_content.glance_households_value %}
         <div class="glance-item">
           <i class="fa-solid fa-house-chimney"></i>
-          <div><strong>8,652+</strong><span>Households</span></div>
+          <div><strong>{{ about_content.glance_households_value }}</strong><span>{{ about_content.glance_households_label }}</span></div>
         </div>
+        {% endif %}
+        {% if about_content.glance_established_value %}
         <div class="glance-item">
           <i class="fa-regular fa-calendar-check"></i>
-          <div><strong>Established</strong><span>September 26, 1949 (E.O. No. 266)</span></div>
+          <div><strong>{{ about_content.glance_established_value }}</strong><span>{{ about_content.glance_established_label }}</span></div>
         </div>
+        {% endif %}
       </div>
     </div>
   </div>
 </section>
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  // Vision / Mission / Core Values collapse into a tap-to-expand accordion
+  // on small screens only (see the @media rule in aboutus.css) — the click
+  // handler itself is harmless at desktop widths since the CSS there keeps
+  // .vmv-col__body always visible regardless of the "open" class.
+  document.querySelectorAll('.js-vmv-toggle').forEach(function (head) {
+    head.addEventListener('click', function () {
+      var col = head.closest('.js-vmv-col');
+      if (col) col.classList.toggle('open');
+    });
+  });
+})();
+
+function toggleAllOfficials() {
+  var strip = document.getElementById('officialsStrip');
+  var btn = document.getElementById('officialsToggleBtn');
+  if (!strip || !btn) return;
+  var expanded = strip.classList.toggle('expanded');
+  btn.innerHTML = expanded
+    ? '<i class="fa-solid fa-chevron-up"></i> Show Fewer Officials'
+    : '<i class="fa-solid fa-chevron-down"></i> View All Officials';
+}
+</script>
 {% endblock %}

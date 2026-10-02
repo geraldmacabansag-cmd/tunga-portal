@@ -1,0 +1,694 @@
+{% extends "super-admin-base.html" %}
+{% load static %}
+
+{% block page_title_tag %}About Us Page{% endblock %}
+{% block body_page %}about-page{% endblock %}
+{% block page_title %}About Us Page{% endblock %}
+{% block page_subtitle %}Edit the content shown on the public "About Us" page{% endblock %}
+{% block breadcrumbs %}<span>Dashboard</span><span class="sep">›</span><span>Website Management</span><span class="sep">›</span><span class="current">About Us Page</span>{% endblock %}
+
+{% block content %}
+
+<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;">
+  <div>
+    <h2 style="margin:0;font-size:16px;font-weight:800;color:var(--gray-900);">About Us Page</h2>
+    <p style="margin:3px 0 0;font-size:12.5px;color:var(--gray-500);">Controls the About Us, History, Municipal Officials, Barangays and "At a Glance" sections of the public site</p>
+  </div>
+  <div style="display:flex;gap:10px;">
+    <button type="button" class="btn btn-secondary" onclick="openResetModal()"><i class="fa-solid fa-rotate-left"></i> Reset Tab to Default</button>
+    <a href="{% url 'about' %}" target="_blank" class="btn btn-secondary"><i class="fa-solid fa-up-right-from-square"></i> View Public Page</a>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="subtabs">
+    <div class="subtab active" data-section="about"><i class="fa-regular fa-file-lines"></i> About Us</div>
+    <div class="subtab" data-section="history"><i class="fa-solid fa-landmark"></i> History</div>
+    <div class="subtab" data-section="officials"><i class="fa-solid fa-users"></i> Municipal Officials</div>
+    <div class="subtab" data-section="barangays"><i class="fa-solid fa-map-location-dot"></i> Barangays</div>
+    <div class="subtab" data-section="glance"><i class="fa-solid fa-chart-simple"></i> At a Glance</div>
+  </div>
+
+  <div class="panel-body">
+
+    <!-- ============ ABOUT US (Vision / Mission / Values) ============ -->
+    <div class="settings-section" id="section-about">
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="section" value="about">
+
+        <div class="form-group">
+          <label class="form-label">Hero intro text</label>
+          <textarea class="form-input form-textarea" name="hero_intro" style="min-height:70px;">{{ content.hero_intro }}</textarea>
+          <span class="form-help">Shown under the "About Us" heading at the top of the page.</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Our Vision</label>
+          <textarea class="form-input form-textarea" name="vision_text" style="min-height:110px;">{{ content.vision_text }}</textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Our Mission</label>
+          <textarea class="form-input form-textarea" name="mission_text" style="min-height:110px;">{{ content.mission_text }}</textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Our Core Values</label>
+          <textarea class="form-input form-textarea" name="core_values" style="min-height:110px;">{{ content.core_values }}</textarea>
+          <span class="form-help">One value per line (e.g. Integrity, Transparency, Accountability).</span>
+        </div>
+
+        <div class="modal-actions" style="justify-content:flex-start;border-top:none;padding-top:4px;">
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save About Us</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- ============ HISTORY ============ -->
+    <div class="settings-section" id="section-history" style="display:none;">
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" name="section" value="history">
+
+        <div class="form-group">
+          <label class="form-label">History intro paragraphs</label>
+          <textarea class="form-input form-textarea" name="history_intro" style="min-height:110px;">{{ content.history_intro }}</textarea>
+          <span class="form-help">One paragraph per line.</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">History side image</label>
+          <img id="history-image-preview" src="{% if content.history_image %}{{ content.history_image.url }}{% else %}{% static 'images/hero-building.svg' %}{% endif %}" alt="" style="width:100%;max-width:320px;height:160px;border-radius:10px;object-fit:cover;border:1px solid var(--gray-200);margin-bottom:8px;display:block;">
+          <span class="form-help" id="history-image-preview-label" style="display:block;margin-bottom:8px;">{% if content.history_image %}Current image{% else %}Current image (default){% endif %}</span>
+          <input class="form-input file-input" type="file" name="history_image" id="history-image-input" accept="image/*">
+        </div>
+
+        <div class="modal-actions" style="justify-content:flex-start;border-top:none;padding-top:4px;">
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save History Intro</button>
+        </div>
+      </form>
+
+      <div class="panel-header" style="margin-top:22px;">
+        <h2><i class="fa-solid fa-timeline" style="color:var(--amber-600,#c07f0a);margin-right:8px;"></i>Timeline</h2>
+        <span class="ic" onclick="document.getElementById('add-milestone-modal').classList.add('open')" style="background:var(--blue-600);color:#fff;padding:8px 14px;border-radius:8px;cursor:pointer;"><i class="fa-solid fa-plus"></i> Add Milestone</span>
+      </div>
+      <p class="form-help" style="margin:0 0 14px;">Shown as the vertical timeline next to the history text.</p>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Year / Label</th>
+              <th>Description</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for m in milestones %}
+            <tr>
+              <td><p class="cell-primary">{{ m.year_label }}</p>{% if m.is_present %}<span class="tag tag-gray">Present marker</span>{% endif %}</td>
+              <td>{{ m.description|truncatechars:90 }}</td>
+              <td>
+                <div class="action-icons">
+                  <span class="ic" title="Edit" onclick="document.getElementById('edit-milestone-modal-{{ m.pk }}').classList.add('open')"><i class="fa-regular fa-pen-to-square"></i></span>
+                  <span class="ic" title="Delete" onclick="document.getElementById('delete-milestone-modal-{{ m.pk }}').classList.add('open')"><i class="fa-regular fa-trash-can"></i></span>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr class="no-results-row"><td colspan="3">No timeline entries yet. Click "Add Milestone" to create one.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ============ MUNICIPAL OFFICIALS ============ -->
+    <div class="settings-section" id="section-officials" style="display:none;">
+      <div class="panel-header">
+        <h2><i class="fa-solid fa-users" style="color:var(--amber-600,#c07f0a);margin-right:8px;"></i>Officials Strip</h2>
+        <span class="ic" onclick="document.getElementById('add-official-modal').classList.add('open')" style="background:var(--blue-600);color:#fff;padding:8px 14px;border-radius:8px;cursor:pointer;"><i class="fa-solid fa-plus"></i> Add Official</span>
+      </div>
+      <p class="form-help" style="margin:0 0 14px;">Photo cards shown in the "Our Officials" section of the About Us page.</p>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Photo</th>
+              <th>Name</th>
+              <th>Position</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for o in officials %}
+            <tr>
+              <td><img src="{% if o.photo %}{{ o.photo.url }}{% else %}{% static 'images/avatar-male-1.svg' %}{% endif %}" alt="" style="width:40px;height:40px;border-radius:50%;object-fit:cover;"></td>
+              <td><p class="cell-primary">{{ o.name }}</p></td>
+              <td>{{ o.position }}</td>
+              <td>
+                <div class="action-icons">
+                  <span class="ic" title="Edit" onclick="document.getElementById('edit-official-modal-{{ o.pk }}').classList.add('open')"><i class="fa-regular fa-pen-to-square"></i></span>
+                  <span class="ic" title="Delete" onclick="document.getElementById('delete-official-modal-{{ o.pk }}').classList.add('open')"><i class="fa-regular fa-trash-can"></i></span>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr class="no-results-row"><td colspan="4">No officials yet. Click "Add Official" to create one.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ============ BARANGAYS ============ -->
+    <div class="settings-section" id="section-barangays" style="display:none;">
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="section" value="barangays">
+        <div class="form-group">
+          <label class="form-label">Intro line</label>
+          <input class="form-input" type="text" name="barangays_intro" value="{{ content.barangays_intro }}">
+        </div>
+        <div class="modal-actions" style="justify-content:flex-start;border-top:none;padding-top:4px;">
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Intro Line</button>
+        </div>
+      </form>
+
+      <div class="panel-header" style="margin-top:22px;">
+        <h2><i class="fa-solid fa-building" style="color:var(--amber-600,#c07f0a);margin-right:8px;"></i>Poblacion (Urban)</h2>
+        <span class="ic" onclick="document.getElementById('add-barangay-poblacion-modal').classList.add('open')" style="background:var(--blue-600);color:#fff;padding:8px 14px;border-radius:8px;cursor:pointer;"><i class="fa-solid fa-plus"></i> Add Barangay</span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Name</th><th>Actions</th></tr></thead>
+          <tbody>
+            {% for b in barangays_poblacion %}
+            <tr>
+              <td>{{ b.name }}</td>
+              <td>
+                <div class="action-icons">
+                  <span class="ic" title="Edit" onclick="document.getElementById('edit-barangay-modal-{{ b.pk }}').classList.add('open')"><i class="fa-regular fa-pen-to-square"></i></span>
+                  <span class="ic" title="Delete" onclick="document.getElementById('delete-barangay-modal-{{ b.pk }}').classList.add('open')"><i class="fa-regular fa-trash-can"></i></span>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr class="no-results-row"><td colspan="2">No Poblacion barangays yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="panel-header" style="margin-top:22px;">
+        <h2><i class="fa-solid fa-location-dot" style="color:var(--amber-600,#c07f0a);margin-right:8px;"></i>Rural</h2>
+        <span class="ic" onclick="document.getElementById('add-barangay-rural-modal').classList.add('open')" style="background:var(--blue-600);color:#fff;padding:8px 14px;border-radius:8px;cursor:pointer;"><i class="fa-solid fa-plus"></i> Add Barangay</span>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Name</th><th>Actions</th></tr></thead>
+          <tbody>
+            {% for b in barangays_rural %}
+            <tr>
+              <td>{{ b.name }}</td>
+              <td>
+                <div class="action-icons">
+                  <span class="ic" title="Edit" onclick="document.getElementById('edit-barangay-modal-{{ b.pk }}').classList.add('open')"><i class="fa-regular fa-pen-to-square"></i></span>
+                  <span class="ic" title="Delete" onclick="document.getElementById('delete-barangay-modal-{{ b.pk }}').classList.add('open')"><i class="fa-regular fa-trash-can"></i></span>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr class="no-results-row"><td colspan="2">No Rural barangays yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ============ AT A GLANCE ============ -->
+    <div class="settings-section" id="section-glance" style="display:none;">
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="section" value="glance">
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Population — value</label>
+            <input class="form-input" type="text" name="glance_population_value" value="{{ content.glance_population_value }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Population — label</label>
+            <input class="form-input" type="text" name="glance_population_label" value="{{ content.glance_population_label }}">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Land area — value</label>
+            <input class="form-input" type="text" name="glance_land_area_value" value="{{ content.glance_land_area_value }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Land area — label</label>
+            <input class="form-input" type="text" name="glance_land_area_label" value="{{ content.glance_land_area_label }}">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Households — value</label>
+            <input class="form-input" type="text" name="glance_households_value" value="{{ content.glance_households_value }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Households — label</label>
+            <input class="form-input" type="text" name="glance_households_label" value="{{ content.glance_households_label }}">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Established — value</label>
+            <input class="form-input" type="text" name="glance_established_value" value="{{ content.glance_established_value }}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Established — label</label>
+            <input class="form-input" type="text" name="glance_established_label" value="{{ content.glance_established_label }}">
+          </div>
+        </div>
+
+        <p class="form-help">The "Barangays" tile on this section always shows the live count of barangays entered in the Barangays tab, so there's nothing to type for it here.</p>
+
+        <div class="modal-actions" style="justify-content:flex-start;border-top:none;padding-top:4px;">
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save At a Glance</button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+</div>
+
+<!-- ======================= MILESTONE MODALS ======================= -->
+<div class="modal-backdrop" id="add-milestone-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Add Milestone</h3>
+      <button type="button" class="modal-x" onclick="document.getElementById('add-milestone-modal').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form method="post" action="{% url 'admin_dashboard:admin_about_milestone_create' %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label">Year / Label <span class="req">*</span></label>
+          <input class="form-input" type="text" name="year_label" placeholder="e.g. 1949 or Present" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description <span class="req">*</span></label>
+          <textarea class="form-input form-textarea" name="description" required></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="display:flex;align-items:center;gap:8px;font-weight:600;">
+            <input type="checkbox" name="is_present" style="width:16px;height:16px;">
+            Style as the gold "Present" marker
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('add-milestone-modal').classList.remove('open')">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Add Milestone</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% for m in milestones %}
+<div class="modal-backdrop" id="edit-milestone-modal-{{ m.pk }}">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Edit Milestone</h3>
+      <button type="button" class="modal-x" onclick="document.getElementById('edit-milestone-modal-{{ m.pk }}').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form method="post" action="{% url 'admin_dashboard:admin_about_milestone_save' m.pk %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label">Year / Label <span class="req">*</span></label>
+          <input class="form-input" type="text" name="year_label" value="{{ m.year_label }}" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description <span class="req">*</span></label>
+          <textarea class="form-input form-textarea" name="description" required>{{ m.description }}</textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="display:flex;align-items:center;gap:8px;font-weight:600;">
+            <input type="checkbox" name="is_present" {% if m.is_present %}checked{% endif %} style="width:16px;height:16px;">
+            Style as the gold "Present" marker
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('edit-milestone-modal-{{ m.pk }}').classList.remove('open')">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="delete-milestone-modal-{{ m.pk }}">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Delete milestone</h3>
+      <button type="button" class="modal-x" onclick="document.getElementById('delete-milestone-modal-{{ m.pk }}').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <p class="confirm-msg">Are you sure you want to delete "{{ m.year_label }}"? This cannot be undone.</p>
+      <form method="post" action="{% url 'admin_dashboard:admin_about_milestone_delete' m.pk %}">
+        {% csrf_token %}
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('delete-milestone-modal-{{ m.pk }}').classList.remove('open')">Cancel</button>
+          <button type="submit" class="btn btn-danger"><i class="fa-regular fa-trash-can"></i> Delete</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<!-- ======================= OFFICIAL MODALS ======================= -->
+<div class="modal-backdrop" id="add-official-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Add Official</h3>
+      <button type="button" class="modal-x" onclick="document.getElementById('add-official-modal').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form method="post" action="{% url 'admin_dashboard:admin_about_official_create' %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label">Name <span class="req">*</span></label>
+          <input class="form-input" type="text" name="name" placeholder="e.g. Hon. Pedro D. Dela Cruz" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Position <span class="req">*</span></label>
+          <input class="form-input" type="text" name="position" placeholder="e.g. Municipal Mayor" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Photo</label>
+          <input class="form-input file-input" type="file" name="photo" accept="image/*">
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('add-official-modal').classList.remove('open')">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Add Official</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% for o in officials %}
+<div class="modal-backdrop" id="edit-official-modal-{{ o.pk }}">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Edit Official</h3>
+      <button type="button" class="modal-x" onclick="document.getElementById('edit-official-modal-{{ o.pk }}').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form method="post" action="{% url 'admin_dashboard:admin_about_official_save' o.pk %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label">Name <span class="req">*</span></label>
+          <input class="form-input" type="text" name="name" value="{{ o.name }}" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Position <span class="req">*</span></label>
+          <input class="form-input" type="text" name="position" value="{{ o.position }}" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Photo</label>
+          {% if o.photo %}<img src="{{ o.photo.url }}" alt="" style="width:48px;height:48px;border-radius:50%;object-fit:cover;margin-bottom:8px;display:block;">{% endif %}
+          <input class="form-input file-input" type="file" name="photo" accept="image/*">
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('edit-official-modal-{{ o.pk }}').classList.remove('open')">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="delete-official-modal-{{ o.pk }}">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Delete official</h3>
+      <button type="button" class="modal-x" onclick="document.getElementById('delete-official-modal-{{ o.pk }}').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <p class="confirm-msg">Are you sure you want to delete "{{ o.name }}"? This cannot be undone.</p>
+      <form method="post" action="{% url 'admin_dashboard:admin_about_official_delete' o.pk %}">
+        {% csrf_token %}
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('delete-official-modal-{{ o.pk }}').classList.remove('open')">Cancel</button>
+          <button type="submit" class="btn btn-danger"><i class="fa-regular fa-trash-can"></i> Delete</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<!-- ======================= BARANGAY MODALS ======================= -->
+<div class="modal-backdrop" id="add-barangay-poblacion-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Add Poblacion Barangay</h3>
+      <button type="button" class="modal-x" onclick="document.getElementById('add-barangay-poblacion-modal').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form method="post" action="{% url 'admin_dashboard:admin_about_barangay_create' %}">
+        {% csrf_token %}
+        <input type="hidden" name="group" value="poblacion">
+        <div class="form-group">
+          <label class="form-label">Barangay name <span class="req">*</span></label>
+          <input class="form-input" type="text" name="name" required>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('add-barangay-poblacion-modal').classList.remove('open')">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Add Barangay</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="add-barangay-rural-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Add Rural Barangay</h3>
+      <button type="button" class="modal-x" onclick="document.getElementById('add-barangay-rural-modal').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form method="post" action="{% url 'admin_dashboard:admin_about_barangay_create' %}">
+        {% csrf_token %}
+        <input type="hidden" name="group" value="rural">
+        <div class="form-group">
+          <label class="form-label">Barangay name <span class="req">*</span></label>
+          <input class="form-input" type="text" name="name" required>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('add-barangay-rural-modal').classList.remove('open')">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Add Barangay</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% for b in barangays_poblacion %}
+<div class="modal-backdrop" id="edit-barangay-modal-{{ b.pk }}">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Edit Barangay</h3>
+      <button type="button" class="modal-x" onclick="document.getElementById('edit-barangay-modal-{{ b.pk }}').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form method="post" action="{% url 'admin_dashboard:admin_about_barangay_save' b.pk %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label">Barangay name <span class="req">*</span></label>
+          <input class="form-input" type="text" name="name" value="{{ b.name }}" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Group</label>
+          <select class="form-input" name="group">
+            <option value="poblacion" selected>Poblacion (Urban)</option>
+            <option value="rural">Rural</option>
+          </select>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('edit-barangay-modal-{{ b.pk }}').classList.remove('open')">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="delete-barangay-modal-{{ b.pk }}">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Delete barangay</h3>
+      <button type="button" class="modal-x" onclick="document.getElementById('delete-barangay-modal-{{ b.pk }}').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <p class="confirm-msg">Are you sure you want to delete "{{ b.name }}"? This cannot be undone.</p>
+      <form method="post" action="{% url 'admin_dashboard:admin_about_barangay_delete' b.pk %}">
+        {% csrf_token %}
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('delete-barangay-modal-{{ b.pk }}').classList.remove('open')">Cancel</button>
+          <button type="submit" class="btn btn-danger"><i class="fa-regular fa-trash-can"></i> Delete</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+{% for b in barangays_rural %}
+<div class="modal-backdrop" id="edit-barangay-modal-{{ b.pk }}">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Edit Barangay</h3>
+      <button type="button" class="modal-x" onclick="document.getElementById('edit-barangay-modal-{{ b.pk }}').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form method="post" action="{% url 'admin_dashboard:admin_about_barangay_save' b.pk %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label">Barangay name <span class="req">*</span></label>
+          <input class="form-input" type="text" name="name" value="{{ b.name }}" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Group</label>
+          <select class="form-input" name="group">
+            <option value="poblacion">Poblacion (Urban)</option>
+            <option value="rural" selected>Rural</option>
+          </select>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('edit-barangay-modal-{{ b.pk }}').classList.remove('open')">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="delete-barangay-modal-{{ b.pk }}">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Delete barangay</h3>
+      <button type="button" class="modal-x" onclick="document.getElementById('delete-barangay-modal-{{ b.pk }}').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <p class="confirm-msg">Are you sure you want to delete "{{ b.name }}"? This cannot be undone.</p>
+      <form method="post" action="{% url 'admin_dashboard:admin_about_barangay_delete' b.pk %}">
+        {% csrf_token %}
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('delete-barangay-modal-{{ b.pk }}').classList.remove('open')">Cancel</button>
+          <button type="submit" class="btn btn-danger"><i class="fa-regular fa-trash-can"></i> Delete</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<!-- ======================= RESET TO DEFAULT MODAL ======================= -->
+<!-- Scoped to whichever tab is open when "Reset Tab to Default" is clicked —
+     openResetModal() (in extra_js below) fills in #reset-tab-input and
+     #reset-tab-label right before this opens, so the confirmation message
+     and the POST both target only that one tab. -->
+<div class="modal-backdrop" id="reset-defaults-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Reset <span id="reset-tab-label">this tab</span> to default?</h3>
+      <button type="button" class="modal-x" onclick="document.getElementById('reset-defaults-modal').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <p class="confirm-msg">This discards your edits on the <strong id="reset-tab-label-2">this tab</strong> tab only — the other tabs are not affected — and restores that tab's original default content. This cannot be undone.</p>
+      <form method="post" action="{% url 'admin_dashboard:admin_about_reset_defaults' %}">
+        {% csrf_token %}
+        <input type="hidden" name="tab" id="reset-tab-input" value="about">
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('reset-defaults-modal').classList.remove('open')">Cancel</button>
+          <button type="submit" class="btn btn-danger"><i class="fa-solid fa-rotate-left"></i> Reset Tab to Default</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  var TAB_NAMES = ['about', 'history', 'officials', 'barangays', 'glance'];
+
+  function activateTab(name){
+    if (TAB_NAMES.indexOf(name) === -1) name = 'about';
+    document.querySelectorAll('.subtabs .subtab').forEach(function(t){
+      t.classList.toggle('active', t.dataset.section === name);
+    });
+    document.querySelectorAll('.settings-section').forEach(function(sec){
+      sec.style.display = (sec.id === 'section-' + name) ? 'block' : 'none';
+    });
+  }
+
+  document.querySelectorAll('.subtabs .subtab').forEach(function(tabEl){
+    tabEl.addEventListener('click', function(){
+      activateTab(tabEl.dataset.section);
+      history.replaceState(null, '', '#' + tabEl.dataset.section);
+    });
+  });
+
+  activateTab(window.location.hash.replace('#', ''));
+
+  var TAB_LABELS = {
+    about: 'About Us',
+    history: 'History',
+    officials: 'Municipal Officials',
+    barangays: 'Barangays',
+    glance: 'At a Glance'
+  };
+
+  function openResetModal(){
+    var activeTabEl = document.querySelector('.subtabs .subtab.active');
+    var tab = activeTabEl ? activeTabEl.dataset.section : 'about';
+    var label = TAB_LABELS[tab] || 'this tab';
+    document.getElementById('reset-tab-input').value = tab;
+    document.getElementById('reset-tab-label').textContent = '"' + label + '"';
+    document.getElementById('reset-tab-label-2').textContent = label;
+    document.getElementById('reset-defaults-modal').classList.add('open');
+  }
+
+  function wireImagePreview(inputId, previewId, labelId, newFileLabel){
+    var input = document.getElementById(inputId);
+    var preview = document.getElementById(previewId);
+    var label = document.getElementById(labelId);
+    if (!input) return;
+
+    input.addEventListener('change', function(){
+      var file = input.files && input.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function(e){
+        preview.src = e.target.result;
+        if (label) label.textContent = newFileLabel;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  wireImagePreview('history-image-input', 'history-image-preview', 'history-image-preview-label', 'New image selected — not saved yet, click Save History Intro to apply it.');
+</script>
+{% endblock %}

@@ -162,7 +162,124 @@ class QuickLink(models.Model):
  
     class Meta:
         ordering = ["order", "id"]
- 
+
     def __str__(self):
         return self.label
-     
+
+
+class AboutPageContent(models.Model):
+    """Singleton holding the editable text for the public "About Us" page's
+    About Us, History, Barangays-intro and "At a Glance" sections — anything
+    on that page that isn't a repeatable list (those are HistoryMilestone,
+    AboutOfficial and Barangay below). Seeded with the municipality's
+    original hardcoded copy, so the page looks the same the moment the
+    Super Admin's "About Us Page" screen goes live."""
+
+    # --- Hero + About Us (Vision / Mission / Values) ---
+    hero_intro = models.TextField(
+        default="The Municipality of Tunga is committed to good governance, transparent leadership, and the continuous progress and well-being of our people."
+    )
+    vision_text = models.TextField(
+        default="Tunga is an innovative Smart City, becoming the institutional training center focused on peace and security instrumentalities of Region 8, and the home for empowered citizens, and progressive climate-resilient and sustained environment governed by transparent and accountable leaders"
+    )
+    mission_text = models.TextField(
+        default="“Our mission at Tunga is to establish a pioneering Smart City that serves as the premier training center for peace and security instrumentalities in Region 8. We are dedicated to empowering our citizens and fostering a progressive, climate-resilient environment, all while ensuring governance that is transparent and accountable.”"
+    )
+    core_values = models.TextField(
+        default="Integrity\nTransparency\nAccountability\nExcellence\nService to Others",
+        help_text="One value per line.",
+    )
+
+    # --- History intro paragraphs + side image ---
+    history_intro = models.TextField(
+        default="The Municipality of Tunga was formerly a barrio of the Municipality of Barugo. Through Executive Order No. 266, signed by President Elpidio Quirino on September 26, 1949, Tunga was officially created as an independent municipality.\nSince its creation, Tunga has continued to develop while preserving its agricultural heritage, close-knit community, and local traditions.",
+        help_text="One paragraph per line.",
+    )
+    history_image = models.ImageField(upload_to="about/", blank=True, null=True)
+
+    # --- Barangays section intro line ---
+    barangays_intro = models.CharField(
+        max_length=255,
+        default="The municipality is composed of 8 barangays.",
+    )
+
+    # --- Municipality at a Glance (5 stat tiles) ---
+    glance_population_value = models.CharField(max_length=50, default="34,567+")
+    glance_population_label = models.CharField(max_length=100, default="Population (2025 PSA Estimate)")
+    glance_land_area_value = models.CharField(max_length=50, default="78.45 km²")
+    glance_land_area_label = models.CharField(max_length=100, default="Total Land Area")
+    glance_households_value = models.CharField(max_length=50, default="8,652+")
+    glance_households_label = models.CharField(max_length=100, default="Households")
+    glance_established_value = models.CharField(max_length=50, default="Established")
+    glance_established_label = models.CharField(max_length=150, default="September 26, 1949 (E.O. No. 266)")
+
+    last_updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "About Page Content"
+        verbose_name_plural = "About Page Content"
+
+    def __str__(self):
+        return "About Page Content"
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    def core_values_list(self):
+        return [v.strip() for v in self.core_values.splitlines() if v.strip()]
+
+    def history_intro_paragraphs(self):
+        return [p.strip() for p in self.history_intro.splitlines() if p.strip()]
+
+
+class HistoryMilestone(models.Model):
+    """One row of the About page's History timeline (e.g. "1949" paired with
+    the E.O. No. 266 paragraph). is_present styles the row as the gold
+    "Present" marker instead of a plain year, matching the page's original
+    hardcoded timeline."""
+    year_label = models.CharField(max_length=30, help_text='e.g. "1949", "1950s", or "Present"')
+    description = models.TextField()
+    is_present = models.BooleanField(default=False, help_text='Styles this entry as the gold "Present" marker instead of a year.')
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order", "id"]
+
+    def __str__(self):
+        return self.year_label
+
+
+class AboutOfficial(models.Model):
+    """One official card shown in the About page's "Our Officials" strip.
+    Deliberately separate from OfficeRepresentative (the Offices app's
+    functional office-dashboard accounts) — this is just the public roster
+    photo/name/title, same as the page's original hardcoded cards."""
+    name = models.CharField(max_length=150)
+    position = models.CharField(max_length=150)
+    photo = models.ImageField(upload_to="about/officials/", blank=True, null=True)
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order", "id"]
+
+    def __str__(self):
+        return f"{self.name} ({self.position})"
+
+
+class Barangay(models.Model):
+    """One barangay listed on the About page's Barangays section."""
+    GROUP_CHOICES = [
+        ("poblacion", "Poblacion (Urban)"),
+        ("rural", "Rural"),
+    ]
+    name = models.CharField(max_length=100)
+    group = models.CharField(max_length=20, choices=GROUP_CHOICES, default="poblacion")
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["group", "order", "id"]
+
+    def __str__(self):
+        return self.name
