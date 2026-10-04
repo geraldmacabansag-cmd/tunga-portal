@@ -1558,6 +1558,32 @@ body.modal-open{overflow:hidden;}
   font-weight: 700;
 }
 
+/* Form Hints */
+
+.form-hint {
+  font-size: 12px;
+  color: var(--gray-500);
+}
+
+.form-hint--notice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  padding: 7px 10px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 6px;
+  color: #9a3412;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.form-hint--notice i {
+  color: #ea580c;
+  font-size: 12px;
+}
+
 .req {
   color: var(--red-600);
   margin-left: 2px;

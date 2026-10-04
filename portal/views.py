@@ -3,10 +3,13 @@ from datetime import date
 from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.contrib import messages
-from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
+from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout, update_session_auth_hash
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
 from .models import CitizenProfile
-from office_dashboard.models import OfficeRepresentative, Announcement, NewsUpdate, Event, Photo, Album, Service, DownloadableForm
+from office_dashboard.models import OfficeRepresentative, Announcement, NewsUpdate, Event, Photo, Album, Service, DownloadableForm, FormSubmission
 from django.db.models import Count, Q
 from admin_dashboard.models import SuperAdmin, EmergencyContact, QuickLink
 from django.utils import timezone
@@ -839,3 +842,78 @@ def site_search(request):
         results.append({"label": ph.title, "type": "Photo", "meta": "Gallery", "url": photo_url})
 
     return JsonResponse({"results": results[:MAX_TOTAL]})
+
+
+# ---------------------------------------------------------------------------
+# Citizen "My Account" / "Settings" popups — opened from the side panel on
+# every public page (see base.html). Both are plain POSTs that redirect
+# back to whatever page the citizen was on ("next"), same pattern as the
+# Office Rep / Super Admin "My Account" pages, just scoped down to what a
+# citizen actually has: their own User fields + CitizenProfile.mobile_number,
+# a password change, and a read-only list of forms they've submitted online.
+# ---------------------------------------------------------------------------
+@login_required
+def account_update(request):
+    next_url = request.POST.get('next') or request.GET.get('next') or reverse('home')
+
+    if request.method == "POST":
+        full_name = request.POST.get('full_name', '').strip()
+        mobile_number = request.POST.get('mobile_number', '').strip()
+
+        if not full_name:
+            messages.error(request, "Full name is required.")
+        else:
+            name_parts = full_name.split(' ', 1)
+            request.user.first_name = name_parts[0]
+            request.user.last_name = name_parts[1] if len(name_parts) > 1 else ''
+            request.user.save()
+
+            profile, _ = CitizenProfile.objects.get_or_create(user=request.user)
+            profile.mobile_number = mobile_number
+            profile.save()
+
+            messages.success(request, "Account details updated.")
+
+    return redirect(next_url)
+
+
+@login_required
+def account_change_password(request):
+    next_url = request.POST.get('next') or request.GET.get('next') or reverse('home')
+
+    if request.method == "POST":
+        current_password = request.POST.get('current_password', '')
+        new_password = request.POST.get('new_password', '')
+        confirm_password = request.POST.get('confirm_password', '')
+
+        if not request.user.check_password(current_password):
+            messages.error(request, "Current password is incorrect.")
+        elif new_password != confirm_password:
+            messages.error(request, "New password and confirmation do not match.")
+        else:
+            try:
+                validate_password(new_password, user=request.user)
+            except ValidationError as e:
+                for err in e.messages:
+                    messages.error(request, err)
+            else:
+                request.user.set_password(new_password)
+                request.user.save()
+                update_session_auth_hash(request, request.user)  # keeps them logged in
+                messages.success(request, "Password updated successfully.")
+
+    return redirect(next_url)
+
+
+@login_required
+def account_submissions_partial(request):
+    """Lazy-loaded fragment for the My Account popup's "My Form Submissions"
+    list — fetched only when the popup is actually opened, so base.html
+    doesn't have to run this query on every single page load."""
+    submissions = list(
+        FormSubmission.objects
+        .filter(user=request.user)
+        .select_related('form', 'form__office')
+        .order_by('-submitted_at')[:20]
+    )
+    return render(request, "portal/_account_submissions.html", {"submissions": submissions})

@@ -252,6 +252,22 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="replaceRepConfirmModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Confirm Replacement</h3>
+      <button type="button" class="modal-x" onclick="closeModal('replaceRepConfirmModal')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <p class="confirm-msg" id="replaceRepConfirmMsg"></p>
+      <div class="modal-actions" style="padding:0;">
+        <button type="button" class="btn btn-secondary" id="replaceRepConfirmBack">Back</button>
+        <button type="button" class="btn btn-danger" id="replaceRepConfirmBtn"><i class="fa-solid fa-arrow-right-arrow-left"></i> Yes, Replace</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="toast-host" id="toastHost"></div>
 
 <script src="app.js"></script>
@@ -299,12 +315,54 @@
   document.querySelectorAll('.replace-rep-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
       var d = btn.dataset;
+      var replaceRepModal = document.getElementById('replaceRepModal');
       document.getElementById('replaceRepMsg').textContent =
         d.office + ' is currently represented by ' + d.currentName + '. Choose a new user account to take over this office — all of ' + d.office + '\'s existing content will remain linked to it.';
       document.getElementById('replaceRepForm').action = d.replaceUrl;
       document.getElementById('replaceRepForm').reset();
+      replaceRepModal.dataset.office = d.office;
+      replaceRepModal.dataset.currentName = d.currentName;
       openModal('replaceRepModal');
     });
+  });
+
+  // Require an explicit confirmation step before a replacement is actually saved.
+  var replaceRepForm = document.getElementById('replaceRepForm');
+  replaceRepForm.addEventListener('submit', function (e) {
+    if (replaceRepForm.dataset.confirmed === '1') {
+      replaceRepForm.dataset.confirmed = '';
+      return;
+    }
+    e.preventDefault();
+    var select = replaceRepForm.querySelector('select[name="new_user"]');
+    if (!select.value) return;
+    var newUserText = select.options[select.selectedIndex].text;
+    var office = document.getElementById('replaceRepModal').dataset.office || 'this office';
+    var currentName = document.getElementById('replaceRepModal').dataset.currentName || 'the current representative';
+    document.getElementById('replaceRepConfirmMsg').textContent =
+      'Replace ' + currentName + ' with ' + newUserText + ' as the representative for ' + office + '? ' +
+      currentName + ' will immediately lose access to the office dashboard. This action cannot be undone.';
+    closeModal('replaceRepModal');
+    openModal('replaceRepConfirmModal');
+  });
+
+  document.getElementById('replaceRepConfirmBtn').addEventListener('click', function () {
+    closeModal('replaceRepConfirmModal');
+    replaceRepForm.dataset.confirmed = '1';
+    if (replaceRepForm.requestSubmit) {
+      replaceRepForm.requestSubmit();
+    } else {
+      replaceRepForm.submit();
+    }
+  });
+
+  document.getElementById('replaceRepConfirmBack').addEventListener('click', function () {
+    closeModal('replaceRepConfirmModal');
+    openModal('replaceRepModal');
+  });
+
+  document.getElementById('replaceRepConfirmModal').addEventListener('click', function (e) {
+    if (e.target === this) closeModal('replaceRepConfirmModal');
   });
 
   function showToast(msg){

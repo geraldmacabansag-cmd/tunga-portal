@@ -278,6 +278,25 @@ button {
   background: #f4f6f5;
 }
 
+.side-panel__link-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 20px;
+  color: #333;
+  text-decoration: none;
+  font-size: 0.95rem;
+  background: none;
+  border: none;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+}
+.side-panel__link-btn:hover {
+  background: #f4f6f5;
+}
+
 .side-panel__footer {
   border-top: 1px solid #eee;
   padding: 14px 20px;
@@ -1272,5 +1291,175 @@ button {
   .nav-search-results {
     width: calc(100vw - 32px);
     right: -40px;
+  }
+}
+
+/* My Account / Settings popups (native <dialog>, see base.html).
+   Positioned explicitly with fixed + translate rather than relying on the
+   <dialog> UA stylesheet's own auto-centering (margin: auto) — the site's
+   global "* { margin: 0; }" reset above overrides that, so without this
+   the popup would otherwise land pinned near the top of the viewport
+   instead of centered. */
+.account-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  border: none;
+  border-radius: 14px;
+  padding: 0;
+  width: 420px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 64px);
+  box-shadow: 0 20px 48px rgba(10, 31, 107, 0.2);
+}
+.account-modal::backdrop {
+  background: rgba(10, 20, 50, 0.45);
+}
+.account-modal__box {
+  position: relative;
+  padding: 28px 26px 26px;
+  overflow-y: auto;
+  max-height: calc(100vh - 64px);
+}
+.account-modal__close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: #f4f6fb;
+  color: var(--text-dark, #0a1f6b);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.account-modal__close:hover {
+  background: #e9edfb;
+}
+.account-modal__title {
+  margin: 0 0 18px;
+  font-size: 1.2rem;
+  color: var(--text-dark, #0a1f6b);
+}
+.account-modal__subtitle {
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+  color: var(--text-dark, #0a1f6b);
+}
+.account-modal__field {
+  margin-bottom: 14px;
+}
+.account-modal__field label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted, #5d667f);
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.account-modal__field input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--border-light, #e3e7f1);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  color: var(--text-dark, #0a1f6b);
+  box-sizing: border-box;
+}
+.account-modal__field input:disabled {
+  background: #f4f6fb;
+  color: var(--text-muted, #5d667f);
+}
+.account-modal__field input:focus {
+  outline: none;
+  border-color: var(--navy, #0a1f6b);
+}
+.account-modal__hint {
+  display: block;
+  margin-top: 5px;
+  font-size: 0.75rem;
+  color: var(--text-muted, #5d667f);
+}
+.account-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+.account-modal__divider {
+  border: none;
+  border-top: 1px solid var(--border-light, #e3e7f1);
+  margin: 22px 0 18px;
+}
+.account-modal__loading {
+  color: var(--text-muted, #5d667f);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.account-submissions-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+.account-submissions-list__item {
+  padding: 10px 12px;
+  border: 1px solid var(--border-light, #e3e7f1);
+  border-radius: 8px;
+}
+.account-submissions-list__title {
+  margin: 0 0 3px;
+  font-size: 0.87rem;
+  font-weight: 600;
+  color: var(--text-dark, #0a1f6b);
+}
+.account-submissions-list__meta {
+  margin: 0;
+  font-size: 0.76rem;
+  color: var(--text-muted, #5d667f);
+}
+.account-submissions-empty {
+  color: var(--text-muted, #5d667f);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+@media (max-width: 600px) {
+  .account-modal {
+    width: calc(100vw - 24px);
+    max-height: calc(100vh - 32px);
+  }
+  .account-modal__box {
+    padding: 22px 18px 20px;
+    max-height: calc(100vh - 32px);
+  }
+  .account-modal__title {
+    font-size: 1.05rem;
+    margin-bottom: 14px;
+  }
+  .account-modal__close {
+    top: 12px;
+    right: 12px;
+    width: 30px;
+    height: 30px;
+  }
+  .account-modal__actions {
+    justify-content: stretch;
+  }
+  .account-modal__actions .btn {
+    width: 100%;
+    text-align: center;
   }
 }

@@ -1387,7 +1387,6 @@ def office_toggle_visibility(request, rep):
 def my_account(request, rep):
     if request.method == "POST":
         full_name = request.POST.get('full_name', '').strip()
-        email = request.POST.get('email', '').strip()
 
         if not full_name:
             messages.error(request, "Full name is required.")
@@ -1395,7 +1394,6 @@ def my_account(request, rep):
             name_parts = full_name.split(' ', 1)
             rep.user.first_name = name_parts[0]
             rep.user.last_name = name_parts[1] if len(name_parts) > 1 else ''
-            rep.user.email = email
             rep.user.save()
 
             rep.position = request.POST.get('position', '')

@@ -1881,3 +1881,53 @@ input[type="date"].form-input::-webkit-calendar-picker-indicator:hover {
 /* Quick Link modal: "Custom URL..." field, shown only when picked from
    the Link Destination select (see super-admin-homepage.html). */
 .is-hidden { display: none !important; }
+
+/* ==========================================================================
+   Downloadable Forms — "Make Fillable" field builder
+   (same layout/classes as the office rep's own builder, see
+   .form-builder-* in office_rep_style.css — kept in sync so both look and
+   behave identically). Two-column layout: a flexible PDF stage on the
+   left and a fixed-width field list on the right; the side column drops
+   below the stage and goes full width on narrower screens.
+   ========================================================================== */
+.form-builder-layout{
+  display:flex;
+  gap:20px;
+  align-items:flex-start;
+}
+.form-builder-main{
+  flex:1;
+  min-width:0;
+}
+.form-builder-pager{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:12px;
+}
+.form-builder-stage-wrap{
+  max-width:100%;
+  overflow-x:auto;
+}
+.form-builder-side{
+  width:320px;
+  flex-shrink:0;
+}
+.form-builder-field-list{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  max-height:60vh;
+  overflow-y:auto;
+}
+.form-builder-back-btn span{white-space:nowrap;}
+
+@media (max-width:900px){
+  .form-builder-layout{flex-direction:column;gap:14px;}
+  .form-builder-side{width:100%;}
+  .form-builder-field-list{max-height:40vh;}
+}
+@media (max-width:860px){
+  .form-builder-back-btn span{display:none;}
+  .form-builder-back-btn{padding:8px 10px;}
+}

@@ -79,8 +79,8 @@
         <i class="fa-solid fa-user-shield"></i> Switch to Admin Dashboard
       </a>
       {% endif %}
-    <a href="#"><i class="fa-regular fa-id-card"></i> Account</a>
-    <a href="#"><i class="fa-solid fa-gear"></i> Settings</a>
+    <button type="button" class="side-panel__link-btn" id="openAccountModalBtn"><i class="fa-regular fa-id-card"></i> Account</button>
+    <button type="button" class="side-panel__link-btn" id="openSettingsModalBtn"><i class="fa-solid fa-gear"></i> Settings</button>
     <a href="#"><i class="fa-regular fa-bell"></i> Notifications</a>
     <a href="#"><i class="fa-regular fa-circle-question"></i> Help &amp; Support</a>
   </div>
@@ -91,6 +91,76 @@
     </a>
   </div>
 </aside>
+
+<!-- My Account popup: profile fields + a read-only list of forms this
+     citizen has submitted online (loaded lazily via fetch only once this
+     is actually opened — see the script at the bottom of this file). -->
+<dialog id="accountModal" class="account-modal" aria-labelledby="accountModalTitle">
+  <div class="account-modal__box">
+    <button type="button" class="account-modal__close" id="accountModalClose" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    <h2 id="accountModalTitle" class="account-modal__title">My Account</h2>
+
+    <form method="post" action="{% url 'account_update' %}">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.path }}">
+      <div class="account-modal__field">
+        <label for="account-full-name">Full Name</label>
+        <input type="text" id="account-full-name" name="full_name" value="{{ user.get_full_name }}" required>
+      </div>
+      <div class="account-modal__field">
+        <label for="account-email">Email Address</label>
+        <input type="email" id="account-email" value="{{ user.email }}" disabled>
+        <small class="account-modal__hint">Email address cannot be changed.</small>
+      </div>
+      <div class="account-modal__field">
+        <label for="account-mobile">Mobile Number</label>
+        <input type="text" id="account-mobile" name="mobile_number" value="{{ user.profile.mobile_number }}">
+      </div>
+      <div class="account-modal__field">
+        <label for="account-username">Username</label>
+        <input type="text" id="account-username" value="{{ user.username }}" disabled>
+      </div>
+      <div class="account-modal__actions">
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+      </div>
+    </form>
+
+    <hr class="account-modal__divider">
+
+    <h3 class="account-modal__subtitle">My Form Submissions</h3>
+    <div id="accountSubmissionsHost">
+      <p class="account-modal__loading">Loading…</p>
+    </div>
+  </div>
+</dialog>
+
+<!-- Settings popup: password change only, for now. -->
+<dialog id="settingsModal" class="account-modal" aria-labelledby="settingsModalTitle">
+  <div class="account-modal__box">
+    <button type="button" class="account-modal__close" id="settingsModalClose" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    <h2 id="settingsModalTitle" class="account-modal__title">Settings</h2>
+
+    <form method="post" action="{% url 'account_change_password' %}">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.path }}">
+      <div class="account-modal__field">
+        <label for="settings-current-password">Current Password</label>
+        <input type="password" id="settings-current-password" name="current_password" required>
+      </div>
+      <div class="account-modal__field">
+        <label for="settings-new-password">New Password</label>
+        <input type="password" id="settings-new-password" name="new_password" required>
+      </div>
+      <div class="account-modal__field">
+        <label for="settings-confirm-password">Confirm New Password</label>
+        <input type="password" id="settings-confirm-password" name="confirm_password" required>
+      </div>
+      <div class="account-modal__actions">
+        <button type="submit" class="btn btn-primary">Update Password</button>
+      </div>
+    </form>
+  </div>
+</dialog>
 {% endif %} 
 
 <nav class="site-header">
@@ -256,6 +326,54 @@
       overlay.addEventListener('click', closePanel);
       if (closeBtn) closeBtn.addEventListener('click', closePanel);
     }
+
+    /* -------------------------------------------------------------- */
+    /* My Account / Settings popups — opened from the side panel. Both  */
+    /* are plain <dialog> elements; My Account's form submissions list  */
+    /* is fetched once, the first time that popup is actually opened,   */
+    /* rather than on every page load.                                  */
+    /* -------------------------------------------------------------- */
+    (function () {
+      var accountModal = document.getElementById('accountModal');
+      var settingsModal = document.getElementById('settingsModal');
+      if (!accountModal && !settingsModal) return;
+
+      function closeSidePanel() {
+        if (panel) panel.classList.remove('open');
+        if (overlay) overlay.classList.remove('open');
+      }
+
+      var accountSubmissionsLoaded = false;
+      var openAccountBtn = document.getElementById('openAccountModalBtn');
+      if (openAccountBtn && accountModal) {
+        openAccountBtn.addEventListener('click', function () {
+          closeSidePanel();
+          accountModal.showModal();
+          if (!accountSubmissionsLoaded) {
+            accountSubmissionsLoaded = true;
+            var host = document.getElementById('accountSubmissionsHost');
+            fetch('{% url "account_submissions_partial" %}', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+              .then(function (res) { if (!res.ok) throw new Error('bad response'); return res.text(); })
+              .then(function (html) { host.innerHTML = html; })
+              .catch(function () { host.innerHTML = '<p class="account-modal__loading">Could not load your submissions right now.</p>'; });
+          }
+        });
+        var accountModalClose = document.getElementById('accountModalClose');
+        if (accountModalClose) accountModalClose.addEventListener('click', function () { accountModal.close(); });
+        accountModal.addEventListener('click', function (e) { if (e.target === accountModal) accountModal.close(); });
+      }
+
+      var openSettingsBtn = document.getElementById('openSettingsModalBtn');
+      if (openSettingsBtn && settingsModal) {
+        openSettingsBtn.addEventListener('click', function () {
+          closeSidePanel();
+          settingsModal.showModal();
+        });
+        var settingsModalClose = document.getElementById('settingsModalClose');
+        if (settingsModalClose) settingsModalClose.addEventListener('click', function () { settingsModal.close(); });
+        settingsModal.addEventListener('click', function (e) { if (e.target === settingsModal) settingsModal.close(); });
+      }
+    })();
 
     /* -------------------------------------------------------------- */
     /* Home page "Photo Gallery" strip — prev/next arrows scroll the   */

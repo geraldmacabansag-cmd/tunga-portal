@@ -1,0 +1,14 @@
+{% if submissions %}
+<ul class="account-submissions-list">
+  {% for s in submissions %}
+  <li class="account-submissions-list__item">
+    <div>
+      <p class="account-submissions-list__title">{{ s.form.title }}</p>
+      <p class="account-submissions-list__meta">{{ s.form.office.name|default:"—" }} &middot; Submitted {{ s.submitted_at|date:"M d, Y g:i A" }}</p>
+    </div>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="account-submissions-empty">You haven't submitted any forms online yet.</p>
+{% endif %}

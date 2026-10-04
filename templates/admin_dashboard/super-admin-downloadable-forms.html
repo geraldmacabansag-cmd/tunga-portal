@@ -108,6 +108,7 @@
                     data-description="{{ f.description }}"
                     data-office-id="{% if f.office.slug == 'lgu-super-admin' %}super_admin{% else %}{{ f.office.id }}{% endif %}"
                   ><i class="fa-regular fa-pen-to-square"></i></button>
+                  <a class="ic" href="{% url 'admin_dashboard:admin_form_fields_builder' f.pk %}" title="Make Fillable / Edit Fields"><i class="fa-solid fa-pen-ruler"></i></a>
                   <button type="button" class="ic delete-form-btn" title="Delete"
                     data-title="{{ f.title }}"
                     data-delete-url="{% url 'admin_dashboard:admin_form_delete' f.pk %}"

@@ -7,9 +7,9 @@ from django.core.paginator import Paginator
 from django.contrib.auth.models import User
 from django.db.models import Count, Sum, Q, F
 from django.utils import timezone
-from office_dashboard.models import Announcement, NewsUpdate, Event, DownloadableForm, Photo, Album, Service, OfficeRepresentative, Notification, ServiceEditSettings, ActivityLog
+from office_dashboard.models import Announcement, NewsUpdate, Event, DownloadableForm, FormField, Photo, Album, Service, OfficeRepresentative, Notification, ServiceEditSettings, ActivityLog
 from offices.models import Office
-from django.http import Http404, FileResponse, HttpResponse
+from django.http import Http404, FileResponse, HttpResponse, JsonResponse
 from datetime import timedelta
 import csv
 import io
@@ -1024,6 +1024,56 @@ def admin_view_form_file(request, pk):
             pass
 
     return FileResponse(io.BytesIO(data), content_type="application/pdf")
+
+
+@super_admin_required
+def admin_form_fields_builder(request, pk):
+    form = get_object_or_404(DownloadableForm, pk=pk)
+    fields = list(form.fields.all().values(
+        'id', 'label', 'field_type', 'required', 'page_number', 'x', 'y', 'width', 'height', 'order'
+    ))
+    return render(request, "admin_dashboard/super-admin-form-fields-builder.html", {
+        "form_obj": form,
+        "fields_json": json.dumps(fields),
+    })
+
+
+@super_admin_required
+def admin_save_form_fields(request, pk):
+    form = get_object_or_404(DownloadableForm, pk=pk)
+
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "Invalid request."}, status=400)
+
+    try:
+        payload = json.loads(request.body)
+        incoming_fields = payload.get('fields', [])
+    except (json.JSONDecodeError, AttributeError):
+        return JsonResponse({"success": False, "error": "Invalid data."}, status=400)
+
+    # Simplest correct approach: replace the whole field set each save,
+    # rather than trying to diff individual adds/edits/deletes.
+    form.fields.all().delete()
+
+    for i, f in enumerate(incoming_fields):
+        label = (f.get('label') or '').strip()
+        if not label:
+            continue
+        FormField.objects.create(
+            form=form,
+            label=label,
+            field_type=f.get('field_type', 'text'),
+            required=bool(f.get('required', True)),
+            page_number=int(f.get('page_number', 1)),
+            x=float(f.get('x', 0)),
+            y=float(f.get('y', 0)),
+            width=float(f.get('width', 0.2)),
+            height=float(f.get('height', 0.03)),
+            order=i,
+        )
+
+    messages.success(request, f'"{form.title}" is now fillable — fields were saved.' if incoming_fields else f'All fields were removed from "{form.title}".')
+    return JsonResponse({"success": True})
 
 
 @super_admin_required
