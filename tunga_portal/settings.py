@@ -120,6 +120,7 @@ TEMPLATES = [
                 'admin_dashboard.context_processors.is_super_admin',
                 'admin_dashboard.context_processors.ticker_announcements',
                 'admin_dashboard.context_processors.nav_offices',
+                'admin_dashboard.context_processors.public_notifications',
             ],
         },
     },

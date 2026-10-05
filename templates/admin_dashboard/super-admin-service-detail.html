@@ -92,12 +92,20 @@
       {% endif %}
 
       {% if forms %}
-        <h3 class="charter-subtitle">Downloadable Forms</h3>
-        <ul class="charter-list">
-          {% for form in forms %}
-          <li><a href="{% url 'admin_dashboard:admin_download_form_file' form.pk %}" target="_blank" rel="noopener"><i class="fa-solid fa-file-arrow-down"></i> {{ form.title }}</a></li>
-          {% endfor %}
-        </ul>
+        <div class="charter-forms">
+          <h3 class="charter-forms__title"><i class="fa-solid fa-file-arrow-down"></i> Downloadable Forms</h3>
+          <ul class="charter-forms__list">
+            {% for form in forms %}
+            <li>
+              <a class="charter-forms__link" href="{% url 'admin_dashboard:admin_download_form_file' form.pk %}" target="_blank" rel="noopener">
+                <span class="charter-forms__icon"><i class="fa-solid fa-file-pdf"></i></span>
+                <span class="charter-forms__name">{{ form.title }}</span>
+                <span class="charter-forms__cta"><i class="fa-solid fa-download"></i> Download</span>
+              </a>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
       {% endif %}
     </div>
   </section>

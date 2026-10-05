@@ -42,6 +42,7 @@
             <div class="user-menu">
               <button type="button" class="user-menu__avatar" aria-label="Account menu">
                 {{ user.first_name|default:user.username|slice:":1"|upper }}
+                <span class="notif-dot" id="notifDot" hidden></span>
               </button>
             </div>
           {% else %}
@@ -81,11 +82,41 @@
       {% endif %}
     <button type="button" class="side-panel__link-btn" id="openAccountModalBtn"><i class="fa-regular fa-id-card"></i> Account</button>
     <button type="button" class="side-panel__link-btn" id="openSettingsModalBtn"><i class="fa-solid fa-gear"></i> Settings</button>
-    <a href="#"><i class="fa-regular fa-bell"></i> Notifications</a>
+    <button type="button" class="side-panel__link-btn notif-toggle" id="notifToggle" aria-expanded="false" aria-controls="notifList">
+      <i class="fa-regular fa-bell"></i> Notifications
+      <span class="notif-badge" id="notifBadge" hidden>0</span>
+      <i class="fa-solid fa-chevron-down notif-toggle__chev"></i>
+    </button>
+    <div class="notif-list" id="notifList" hidden>
+      {% if public_notifications %}
+      <div class="notif-list__bar">
+        <span>New updates from the municipality</span>
+        <button type="button" id="notifMarkAll">Mark all as read</button>
+      </div>
+      {% for n in public_notifications %}
+      <div class="notif-row" data-key="{{ n.key }}">
+      <a href="{{ n.url }}" class="notif-item notif-item--{{ n.kind }}" data-key="{{ n.key }}">
+        <span class="notif-item__icon"><i class="{{ n.icon }}"></i></span>
+        <span class="notif-item__body">
+          <span class="notif-item__top">
+            <span class="notif-item__label">{{ n.label }}</span>
+            {% if n.urgent %}<span class="notif-item__urgent">Urgent</span>{% endif %}
+            <span class="notif-item__new">New</span>
+          </span>
+          <span class="notif-item__title">{{ n.title }}</span>
+          <span class="notif-item__meta">{% if n.office %}{{ n.office }} &middot; {% endif %}{% if n.event_date %}On {{ n.event_date|date:"M j, Y" }} &middot; {% endif %}{{ n.when|timesince }} ago</span>
+        </span>
+      </a>
+      <button type="button" class="notif-dismiss" aria-label="Remove this notification" title="Remove"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      {% endfor %}
+      <p class="notif-empty" id="notifEmpty" hidden>No notifications.</p>
+      {% else %}
+      <p class="notif-empty">No new updates in the last 30 days.</p>
+      {% endif %}
+    </div>
     <a href="#"><i class="fa-regular fa-circle-question"></i> Help &amp; Support</a>
-  </div>
-
-  <div class="side-panel__footer">
+    <hr class="side-panel__sep">
     <a href="{% url 'logout' %}" class="side-panel__logout">
       <i class="fa-solid fa-right-from-bracket"></i> Log Out
     </a>
@@ -296,6 +327,83 @@
     </div>
   </div>
 </footer>
+
+{% if user.is_authenticated %}
+<script>
+/* Notifications in the side panel. Which items a person has already seen is
+   kept per account in this browser's localStorage. */
+(function () {
+  var toggle = document.getElementById('notifToggle');
+  var list = document.getElementById('notifList');
+  if (!toggle || !list) return;
+  var badge = document.getElementById('notifBadge');
+  var dot = document.getElementById('notifDot');
+  var markAll = document.getElementById('notifMarkAll');
+  var storeKey = 'tunga_seen_notifs_{{ user.pk }}';
+  var dismissKey = 'tunga_dismissed_notifs_{{ user.pk }}';
+  var rows = Array.prototype.slice.call(list.querySelectorAll('.notif-row'));
+  var emptyMsg = document.getElementById('notifEmpty');
+  var bar = list.querySelector('.notif-list__bar');
+  function visibleItems() {
+    return rows.filter(function (r) { return !r.hidden; }).map(function (r) { return r.querySelector('.notif-item'); });
+  }
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(storeKey) || '[]'); } catch (e) { return []; }
+  }
+  function save(keys) {
+    try { localStorage.setItem(storeKey, JSON.stringify(keys.slice(-200))); } catch (e) {}
+  }
+  var seen = load();
+  var dismissed = [];
+  try { dismissed = JSON.parse(localStorage.getItem(dismissKey) || '[]'); } catch (e) {}
+  function saveDismissed() {
+    try { localStorage.setItem(dismissKey, JSON.stringify(dismissed.slice(-300))); } catch (e) {}
+  }
+
+  function render() {
+    var unread = 0;
+    rows.forEach(function (r) { r.hidden = dismissed.indexOf(r.getAttribute('data-key')) !== -1; });
+    var items = visibleItems();
+    if (emptyMsg) emptyMsg.hidden = items.length > 0;
+    if (bar) bar.hidden = items.length === 0;
+    items.forEach(function (el) {
+      var isNew = seen.indexOf(el.getAttribute('data-key')) === -1;
+      el.classList.toggle('is-new', isNew);
+      if (isNew) unread++;
+    });
+    if (badge) { badge.textContent = unread > 9 ? '9+' : unread; badge.hidden = unread === 0; }
+    if (dot) dot.hidden = unread === 0;
+    if (markAll) markAll.hidden = unread === 0;
+  }
+  function markRead(keys) {
+    keys.forEach(function (k) { if (seen.indexOf(k) === -1) seen.push(k); });
+    save(seen);
+    render();
+  }
+
+  toggle.addEventListener('click', function () {
+    var open = list.hidden;
+    list.hidden = !open;
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    toggle.classList.toggle('is-open', open);
+  });
+  if (markAll) markAll.addEventListener('click', function () {
+    markRead(visibleItems().map(function (el) { return el.getAttribute('data-key'); }));
+  });
+  rows.forEach(function (r) {
+    var key = r.getAttribute('data-key');
+    r.querySelector('.notif-item').addEventListener('click', function () { markRead([key]); });
+    r.querySelector('.notif-dismiss').addEventListener('click', function () {
+      if (dismissed.indexOf(key) === -1) dismissed.push(key);
+      saveDismissed();
+      render();
+    });
+  });
+  render();
+})();
+</script>
+{% endif %}
 
 {% if messages %}
 <div id="server-messages" hidden>

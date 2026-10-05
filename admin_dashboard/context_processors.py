@@ -34,8 +34,58 @@ def nav_offices(request):
         .order_by("name")
     )
     for o in offices_list:
-        o.nav_url = (
-            reverse('offices:mayor') if o.slug == 'office-of-the-mayor'
-            else reverse('offices:office_detail', args=[o.slug])
-        )
+        o.nav_url = reverse('offices:office_detail', args=[o.slug])
     return {"nav_offices": offices_list}
+
+
+def public_notifications(request):
+    """Feeds the "Notifications" list in the public site's side panel
+    (base.html) for signed-in citizens: the newest published announcements,
+    news and events from the last 30 days, merged newest-first. Which ones a
+    person has already seen is remembered in their browser (localStorage),
+    so nothing here needs a database table."""
+    if not request.user.is_authenticated:
+        return {"public_notifications": []}
+
+    from django.urls import reverse
+    from django.utils import timezone
+    from office_dashboard.models import Announcement, Event, NewsUpdate
+
+    cutoff = timezone.now() - timezone.timedelta(days=30)
+    page = reverse('announcement')
+    items = []
+
+    def office_name(obj):
+        try:
+            return obj.representative.office.name
+        except Exception:
+            return ""
+
+    for a in (Announcement.objects.filter(status='published', created_at__gte=cutoff)
+              .select_related('representative__office').order_by('-created_at')[:10]):
+        items.append({
+            "key": f"a{a.pk}", "kind": "announcement", "label": "Announcement",
+            "icon": "fa-solid fa-bullhorn", "title": a.title, "office": office_name(a),
+            "when": a.created_at, "url": f"{page}?open_announcement={a.pk}#announcements",
+            "urgent": a.priority in ("High", "Urgent"),
+        })
+
+    for n in (NewsUpdate.objects.filter(status='published', created_at__gte=cutoff)
+              .select_related('representative__office').order_by('-created_at')[:10]):
+        items.append({
+            "key": f"n{n.pk}", "kind": "news", "label": "News",
+            "icon": "fa-regular fa-newspaper", "title": n.title, "office": office_name(n),
+            "when": n.created_at, "url": f"{page}?open_news={n.pk}#news", "urgent": False,
+        })
+
+    for e in (Event.objects.filter(status='published', created_at__gte=cutoff)
+              .select_related('representative__office').order_by('-created_at')[:10]):
+        items.append({
+            "key": f"e{e.pk}", "kind": "event", "label": "Event",
+            "icon": "fa-regular fa-calendar", "title": e.title, "office": office_name(e),
+            "when": e.created_at, "url": f"{page}?open_event={e.pk}#events", "urgent": False,
+            "event_date": e.event_date,
+        })
+
+    items.sort(key=lambda i: i["when"], reverse=True)
+    return {"public_notifications": items[:15]}

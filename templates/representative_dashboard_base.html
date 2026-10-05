@@ -53,8 +53,6 @@
       <li class="nav-section-title">Office Management</li>
       {% url 'office_dashboard:profile' as profile_url %}
       <li class="nav-item{% if request.path == profile_url %} active{% endif %}"><a href="{{ profile_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-regular fa-id-card"></i></span> Office Profile</a></li>
-      {% url 'office_dashboard:directory' as directory_url %}
-      <li class="nav-item{% if request.path == directory_url %} active{% endif %}"><a href="{{ directory_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-address-book"></i></span> Office Directory</a></li>
       {% url 'office_dashboard:location' as location_url %}
       <li class="nav-item{% if request.path == location_url %} active{% endif %}"><a href="{{ location_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-location-dot"></i></span> Office Location</a></li>
       {% url 'office_dashboard:page_settings' as page_settings_url %}

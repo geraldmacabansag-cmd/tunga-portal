@@ -948,17 +948,6 @@ function wireOfficeProfileToggle() {
     });
   }
 
-  function wireAddServiceCreate() {
-    if (document.body.dataset.page !== 'office-profile') return;
-    var trigger = document.getElementById('open-add-service');
-    var modal = document.getElementById('add-service-modal');
-    if (!trigger || !modal) return;
-    wireStaticModalChrome(modal);
-    trigger.addEventListener('click', function () { openStaticModal(modal); });
-    // no submit listener here — the <form> posts to Django normally so the
-    // service (including the chosen icon) is actually saved to the database
-  }
-
   /* ------------------------------------------------------------------ */
   /* Page: office-rep-dashboard                                          */
   /* ------------------------------------------------------------------ */
@@ -1474,7 +1463,6 @@ function wireOfficeProfileToggle() {
     wireServiceIconPicker();
 
     wireOfficeOverviewCreate();
-    wireAddServiceCreate();
     
     wireAccountToggle();
     wireAccountPhotoPreview();

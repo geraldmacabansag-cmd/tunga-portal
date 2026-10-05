@@ -356,11 +356,16 @@
   gap: 14px;
 }
 
-/* A horizontally-scrolling row (not a static grid) so the prev/next arrows
-   have something to actually scroll — 5 tiles visible at a time on
-   desktop, with the rest reachable via the arrows or a swipe. */
+/* Two rows of photos. Tiles fill top-to-bottom, then move to the next column
+   (grid-auto-flow: column), and the track still scrolls sideways when there
+   are more columns than fit — 4 columns visible on desktop (so the 8 photos
+   the home page loads all show at once), 3 on tablets, 2 on phones — with the
+   prev/next arrows or a swipe to reach the rest. */
 .gallery-strip__track {
-  display: flex;
+  display: grid;
+  grid-template-rows: repeat(2, auto);
+  grid-auto-flow: column;
+  grid-auto-columns: calc((100% - 3 * 14px) / 4);
   gap: 14px;
   flex: 1;
   min-width: 0;
@@ -375,7 +380,7 @@
 }
 
 .gallery-strip__track img {
-  flex: 0 0 calc((100% - 4 * 14px) / 5);
+  width: 100%;
   height: 130px;
   object-fit: cover;
   border-radius: var(--radius-md);
@@ -418,8 +423,8 @@
   .feed-panel:last-child {
     grid-column: auto;
   }
-  .gallery-strip__track img {
-    flex-basis: calc((100% - 2 * 14px) / 3);
+  .gallery-strip__track {
+    grid-auto-columns: calc((100% - 2 * 14px) / 3);
   }
   .news-item {
     flex-direction: column;
@@ -577,10 +582,10 @@
 
   .gallery-strip__track {
     gap: 10px;
+    grid-auto-columns: calc((100% - 10px) / 2);
   }
 
   .gallery-strip__track img {
-    flex-basis: calc((100% - 10px) / 2);
     height: 90px;
   }
 

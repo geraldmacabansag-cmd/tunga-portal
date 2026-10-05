@@ -153,7 +153,7 @@ def home(request):
 
     gallery_photos = list(
         Photo.objects.filter(status='published')
-        .order_by('-created_at')[:8]
+        .order_by('-created_at')[:16]
     )
 
     return render(request, "portal/home.html", {
@@ -375,8 +375,8 @@ def announcement(request):
         if office.id in seen_office_ids:
             continue
         seen_office_ids.add(office.id)
-        icon, color, _ = OFFICE_CARD_STYLE.get(office.slug, OFFICE_CARD_DEFAULT)
-        office_url = reverse('offices:mayor') if office.slug == 'office-of-the-mayor' else reverse('offices:office_detail', args=[office.slug])
+        icon, color, _ = get_office_card_style(office)
+        office_url = reverse('offices:office_detail', args=[office.slug])
         office_updates.append({
             "office": office,
             "url": office_url,
@@ -405,8 +405,8 @@ def announcement(request):
         .order_by('name')
     )
     for office in active_offices:
-        icon, color, _ = OFFICE_CARD_STYLE.get(office.slug, OFFICE_CARD_DEFAULT)
-        office_url = reverse('offices:mayor') if office.slug == 'office-of-the-mayor' else reverse('offices:office_detail', args=[office.slug])
+        icon, color, _ = get_office_card_style(office)
+        office_url = reverse('offices:office_detail', args=[office.slug])
         office_anns = Announcement.objects.filter(status='published', representative__office=office)
         latest = office_anns.order_by('-date_posted', '-created_at').first()
         office_directory.append({
@@ -476,6 +476,54 @@ OFFICE_CARD_STYLE = {
 OFFICE_CARD_DEFAULT = ("fa-solid fa-landmark", "navy", None)
 
 
+# Extra entry for the Vice Mayor's office (no uploaded seal image yet, so it
+# gets a Font Awesome icon only).
+OFFICE_CARD_STYLE.setdefault(
+    "office-of-the-vice-mayor", ("fa-solid fa-user-tie", "green", None)
+)
+
+# When an office's slug isn't an exact key above (it was created or renamed
+# on the live site under a slightly different name — "MPDO" instead of
+# "Municipal Planning and Development Coordinator", "SB Office", "Office of
+# the Vice Mayor", ...), fall back to matching words in its name/slug. First
+# rule that matches wins, so the more specific ones come first.
+_OFFICE_STYLE_RULES = [
+    (("vice mayor", "vice-mayor", "vice-mayor's"), "office-of-the-vice-mayor"),
+    (("sangguniang", "sb office", "sb-office", "sb office"), "sangguniang-bayan-sb"),
+    (("planning", "mpdo", "mpdc"), "municipal-planning-and-development-coordinator"),
+    (("treasur",), "municipal-treasurer's-office"),
+    (("assessor",), "municipal-assessor's-office"),
+    (("account",), "municipal-accounting-office"),
+    (("budget",), "municipal-budget-office"),
+    (("civil registrar", "civil-registrar", "mcr"), "municipal-civil-registrar's-office"),
+    (("health", "mho"), "municipal-health-office"),
+    (("social welfare", "social-welfare", "mswdo"), "municipal-social-welfare-and-development-office-mswdo"),
+    (("engineer", "building official"), "municipal-engineering-office"),
+    (("agricultur", "mao"), "municipal-agriculture-office"),
+    (("permit", "bplo"), "business-permits-and-licensing-office-bplo"),
+    (("human resource", "human-resource", "hrmo"), "human-resource-management-office-hrmo"),
+    (("disaster", "mdrrmo", "drrm"), "municipal-disaster-risk-reduction-management"),
+    (("environment", "menro"), "municipal-environment-and-natural-resources-office"),
+    (("youth", "lydo"), "local-youth-development-office"),
+    (("tourism",), "municipal-tourism-office"),
+    (("bac",), "office-of-the-bac-and-the-bac-secretariat"),
+    (("general services", "general-services"), "office-of-the-general-services"),
+    (("mayor",), "office-of-the-mayor"),
+]
+
+
+def get_office_card_style(office):
+    """(icon_class, color, static_image_or_None) for an office card."""
+    style = OFFICE_CARD_STYLE.get(office.slug)
+    if style:
+        return style
+    haystack = f"{office.name} {office.slug}".lower().replace("’", "'")
+    for words, key in _OFFICE_STYLE_RULES:
+        if any(w in haystack for w in words):
+            return OFFICE_CARD_STYLE[key]
+    return OFFICE_CARD_DEFAULT
+
+
 def gallery(request):
     # Every published photo regardless of who posted it — an office
     # representative or the Super Admin (who posts through the same
@@ -532,7 +580,7 @@ def offices(request):
         .order_by("name")
     )
     for office in office_list:
-        icon, color, icon_image = OFFICE_CARD_STYLE.get(office.slug, OFFICE_CARD_DEFAULT)
+        icon, color, icon_image = get_office_card_style(office)
         office.card_icon = icon
         office.card_color = color
         office.card_image = icon_image

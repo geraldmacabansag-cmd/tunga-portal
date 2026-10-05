@@ -1188,12 +1188,18 @@
       });
     }
     if (forms.length) {
-      html += '<h3 class="charter-subtitle">Downloadable Forms</h3>' +
-        '<ul class="charter-list">' + forms.map(function (f) {
+      html += '<div class="charter-forms">' +
+        '<h3 class="charter-forms__title"><i class="fa-solid fa-file-arrow-down"></i> Downloadable Forms</h3>' +
+        '<ul class="charter-forms__list">' + forms.map(function (f) {
           return f.url
-            ? '<li><a href="' + escapeHtml(f.url) + '" target="_blank" rel="noopener"><i class="fa-solid fa-file-arrow-down"></i> ' + escapeHtml(f.name) + '</a></li>'
-            : '<li>' + escapeHtml(f.name) + '</li>';
-        }).join('') + '</ul>';
+            ? '<li><a class="charter-forms__link" href="' + escapeHtml(f.url) + '" target="_blank" rel="noopener">' +
+                '<span class="charter-forms__icon"><i class="fa-solid fa-file-pdf"></i></span>' +
+                '<span class="charter-forms__name">' + escapeHtml(f.name) + '</span>' +
+                '<span class="charter-forms__cta"><i class="fa-solid fa-download"></i> Download</span></a></li>'
+            : '<li><div class="charter-forms__item--plain">' +
+                '<span class="charter-forms__icon"><i class="fa-solid fa-file-pdf"></i></span>' +
+                '<span class="charter-forms__name">' + escapeHtml(f.name) + '</span></div></li>';
+        }).join('') + '</ul></div>';
     }
 
     return html;
@@ -2050,6 +2056,21 @@
 .charter-subtitle { font-size: 14px; margin: 22px 0 8px; }
 .charter-plain { font-size: 13px; color: var(--gray-700, #374151); margin: 0; }
 .charter-list { margin: 0; padding-left: 18px; font-size: 13px; color: var(--gray-700, #374151); }
+/* Service preview: Downloadable Forms - highlighted card so the forms are easy to spot */
+.charter-forms { margin: 26px 0 4px; padding: 16px; background: #eef2ff; border: 1px solid #c7d2fe; border-left: 5px solid #16307f; border-radius: 10px; }
+.charter-forms__title { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; font-size: 15px; font-weight: 800; color: #16307f; }
+.charter-forms__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.charter-forms__link, .charter-forms__item--plain { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: #fff; border: 1px solid #d5ddf5; border-radius: 8px; color: #16307f; text-decoration: none; transition: border-color .15s, box-shadow .15s, transform .15s; }
+.charter-forms__link:hover { border-color: #16307f; box-shadow: 0 3px 10px rgba(22, 48, 127, .14); transform: translateY(-1px); text-decoration: none; }
+.charter-forms__icon { flex: 0 0 auto; width: 36px; height: 36px; border-radius: 8px; background: #fde8e8; color: #c0392b; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+.charter-forms__name { flex: 1 1 140px; min-width: 0; font-size: 14px; font-weight: 700; line-height: 1.3; word-break: break-word; }
+.charter-forms__cta { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 999px; background: #16307f; color: #fff; font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+.charter-forms__link:hover .charter-forms__cta { background: #0f2262; }
+@media (max-width: 480px) {
+  .charter-forms { padding: 12px; }
+  .charter-forms__link { flex-wrap: wrap; }
+  .charter-forms__cta { width: 100%; justify-content: center; }
+}
 .charter-table { width: 100%; border-collapse: collapse; margin-bottom: 18px; font-size: 12.5px; table-layout: fixed; }
 .charter-table th, .charter-table td { border: 1px solid var(--gray-300, #d1d5db); padding: 8px 10px; text-align: left; vertical-align: top; word-wrap: break-word; }
 .charter-table thead th { background: var(--blue-100, #bfdbfe); font-weight: 800; }

@@ -11,11 +11,6 @@ import re
 import io
 import json
 
-@login_required
-def mayor(request):
-    return render(request, 'offices/mayorsoffice.html')
-
-
 def serve_form_pdf(request, pk):
     """Streams a published form's original PDF through our own server instead
     of linking straight to the storage backend's public URL. Some storage
@@ -123,7 +118,14 @@ def office_detail(request, slug):
         s.charter_general_requirements = general_requirements
         s.charter_grouped_requirements = grouped_requirements
         s.charter_has_requirements = bool(requirements)
-        s.charter_forms = s.forms.all().order_by('-date_uploaded')
+        # Only forms that have been approved and published: the PDF links below
+        # (offices:view_pdf) 404 for anything still pending, returned, rejected
+        # or archived. The forms are already prefetched, so filter in Python.
+        s.charter_forms = sorted(
+            (f for f in s.forms.all() if f.status == "published"),
+            key=lambda f: f.date_uploaded,
+            reverse=True,
+        )
 
     announcements = (
         Announcement.objects.filter(representative=rep, status="published")
@@ -136,9 +138,12 @@ def office_detail(request, slug):
         .order_by("-date_uploaded")[:6]
     )
 
+    # Every published photo from this office, newest first. The template shows
+    # the first four in the Gallery panel and reveals the rest when the visitor
+    # clicks "View more images about this office".
     photos = (
         Photo.objects.filter(representative=rep, status="published")
-        .order_by("-created_at")[:4]
+        .order_by("-created_at")
         if rep else []
     )
 

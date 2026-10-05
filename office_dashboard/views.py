@@ -1119,6 +1119,21 @@ def office_profile(request, rep):
     office = rep.office
 
     if request.method == "POST":
+        if request.POST.get('form_name') == 'social_media':
+            for field in SOCIAL_LINK_FIELDS:
+                setattr(office, field, request.POST.get(field, '').strip())
+            office.save(update_fields=SOCIAL_LINK_FIELDS)
+            messages.success(request, "Social media links updated.")
+            log_activity(
+                rep,
+                "Social media links updated",
+                "Updated the office's social media links shown on its public page",
+                "account",
+                "fa-solid fa-share-nodes",
+                "var(--blue-600)",
+            )
+            return redirect('office_dashboard:profile')
+
         name = request.POST.get('name', '').strip()
         if not name:
             messages.error(request, "Office name is required.")
@@ -1134,14 +1149,28 @@ def office_profile(request, rep):
             office.telephone = request.POST.get('telephone', '')
             if request.FILES.get('logo'):
                 office.logo = request.FILES.get('logo')
+            elif request.POST.get('reset_logo') == '1' and office.logo:
+                # Back to the office's default icon: drop the uploaded logo.
+                try:
+                    office.logo.delete(save=False)
+                except Exception:
+                    pass
+                office.logo = None
             office.save()
             messages.success(request, "Office profile updated.")
             log_activity(rep, "Office profile updated", "Updated office information", "account", "fa-solid fa-building", "var(--blue-600)")
         return redirect('office_dashboard:profile')
 
+    # The office's built-in icon (same one used on the public Offices page),
+    # shown whenever no logo has been uploaded.
+    from portal.views import get_office_card_style
+    default_icon_class, _color, default_icon_image = get_office_card_style(office)
+
     return render(request, "office_dashboard/office-profile.html", {
         "rep": rep,
         "office": office,
+        "default_icon_class": default_icon_class,
+        "default_icon_image": default_icon_image,
         "services": office.services.all(),
         "category_choices": Service.CATEGORY_CHOICES,
         "icon_choices": Service.ICON_CHOICES,
@@ -1242,10 +1271,6 @@ def edit_service(request, rep, pk):
     return redirect(f"{reverse('office_dashboard:services')}?service={service.pk}")
 
 @office_rep_required
-def office_directory(request, rep):
-    return render(request, "office_dashboard/office-directory.html", {"rep": rep})
-
-@office_rep_required
 def office_location(request, rep):
     return render(request, "office_dashboard/office-location.html", {"rep": rep})
 
@@ -1255,8 +1280,8 @@ SOCIAL_LINK_FIELDS = ["facebook_url", "twitter_url", "instagram_url", "youtube_u
 @office_rep_required
 def office_page_settings(request, rep):
     """Lets the office representative manage everything shown on their
-    office's public page from one place: the banner image, social media
-    links, visibility, and (via the separate office_reorder_services
+    office's public page from one place: the banner image, visibility,
+    and (via the separate office_reorder_services
     endpoint) the order their services are listed in."""
     office = rep.office
  
@@ -1286,20 +1311,6 @@ def office_page_settings(request, rep):
                 )
             else:
                 messages.error(request, "Please choose an image to upload.")
- 
-        elif form_name == 'social_media':
-            for field in SOCIAL_LINK_FIELDS:
-                setattr(office, field, request.POST.get(field, '').strip())
-            office.save(update_fields=SOCIAL_LINK_FIELDS)
-            messages.success(request, "Social media links updated.")
-            log_activity(
-                rep,
-                "Social media links updated",
-                "Updated the office's social media links shown on its public page",
-                "account",
-                "fa-solid fa-share-nodes",
-                "var(--blue-600)",
-            )
  
         return redirect('office_dashboard:page_settings')
  

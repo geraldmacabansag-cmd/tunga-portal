@@ -125,17 +125,19 @@ Home | Digital Governance Portal
       <h2 class="section-title" style="margin-bottom:0;padding-bottom:0;">Photo Gallery</h2>
       <a href="{% url 'gallery' %}" class="view-all">View All</a>
     </div>
+    {% if gallery_photos %}
     <div class="gallery-strip">
-      <button class="gallery-nav gallery-nav--prev" aria-label="Previous photo"><i class="fa-solid fa-arrow-left"></i></button>
+      <button class="gallery-nav gallery-nav--prev" aria-label="Previous photos"><i class="fa-solid fa-arrow-left"></i></button>
       <div class="gallery-strip__track">
         {% for p in gallery_photos %}
-        <img src="{{ p.image.url }}" alt="{{ p.title }}">
-        {% empty %}
-        <p style="padding:12px;color:var(--gray-500,#6b7286);">No photos published yet.</p>
+        <img src="{{ p.image.url }}" alt="{{ p.title }}" loading="lazy">
         {% endfor %}
       </div>
-      <button class="gallery-nav gallery-nav--next" aria-label="Next photo"><i class="fa-solid fa-arrow-right"></i></button>
+      <button class="gallery-nav gallery-nav--next" aria-label="Next photos"><i class="fa-solid fa-arrow-right"></i></button>
     </div>
+    {% else %}
+    <p style="padding:12px;color:var(--gray-500,#6b7286);">No photos published yet.</p>
+    {% endif %}
   </div>
 </section>
 
