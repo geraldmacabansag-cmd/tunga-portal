@@ -12,9 +12,9 @@
      container, instead of reloading the whole page. Keeping this exact
      markup in one shared file means the two can never drift apart. -->
 <div class="events-cal__head">
-  <a href="?events_month={{ calendar_prev_param }}#events" class="events-cal__nav" data-cal-nav="prev"><i class="fa-solid fa-chevron-left"></i></a>
+  <a href="?events_month={{ calendar_prev_param }}{{ calendar_office_qs }}#events" class="events-cal__nav" data-cal-nav="prev"><i class="fa-solid fa-chevron-left"></i></a>
   <h3>{{ calendar_month_label }}</h3>
-  <a href="?events_month={{ calendar_next_param }}#events" class="events-cal__nav" data-cal-nav="next"><i class="fa-solid fa-chevron-right"></i></a>
+  <a href="?events_month={{ calendar_next_param }}{{ calendar_office_qs }}#events" class="events-cal__nav" data-cal-nav="next"><i class="fa-solid fa-chevron-right"></i></a>
 </div>
 <div class="events-cal__grid events-cal__grid--head">
   <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>

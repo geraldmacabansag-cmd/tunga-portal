@@ -102,7 +102,7 @@ def office_detail(request, slug):
 
     services = list(
         Service.objects.filter(office=office, status="published")
-        .prefetch_related("requirements", "steps", "fees", "forms")
+        .prefetch_related("requirements", "steps", "fees", "forms", "forms__fields")
         .order_by("order", "name")
     )
 
@@ -126,6 +126,10 @@ def office_detail(request, slug):
             key=lambda f: f.date_uploaded,
             reverse=True,
         )
+        # A form can be filled out online only once the office has placed
+        # fields on it (prefetched above, so no extra queries here).
+        for f in s.charter_forms:
+            f.can_fill_online = len(f.fields.all()) > 0
 
     announcements = (
         Announcement.objects.filter(representative=rep, status="published")

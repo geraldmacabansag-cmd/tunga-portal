@@ -230,6 +230,7 @@ def dashboard(request, rep):
         "upcoming_events": upcoming_events,
         "all_albums_for_upload": rep.albums.order_by('name'),
         "category_choices": FORM_CATEGORY_CHOICES,
+        "services": available_services_for_forms(rep),
     })
 
 @office_rep_required
@@ -691,12 +692,23 @@ def save_schedule_of_service(request, rep, service_pk):
 
 FORM_CATEGORY_CHOICES = ["Permits", "Clearance", "Health", "Assistance"]
 
+def available_services_for_forms(rep):
+    """Services of this office a downloadable form can be linked to: every
+    service except archived ones, in the same order as the Services page."""
+    return list(
+        Service.objects.filter(office=rep.office)
+        .exclude(status="archive")
+        .order_by("order", "name")
+    )
+
+
 @office_rep_required
 def downloadable_forms(request, rep):
     return render(request, "office_dashboard/downloadable-forms.html", {
         "rep": rep,
-        "forms": rep.office.downloadable_forms.all(),
+        "forms": rep.office.downloadable_forms.select_related("service").all(),
         "category_choices": FORM_CATEGORY_CHOICES,
+        "services": available_services_for_forms(rep),
     })
 
 @office_rep_required
@@ -709,6 +721,11 @@ def upload_form(request, rep):
         uploaded_file = request.FILES.get('file')
         service_id = request.POST.get('service')
 
+        # Every form must belong to one of this office's (non-archived) services.
+        service = None
+        if service_id and str(service_id).isdigit():
+            service = Service.objects.filter(pk=service_id, office=rep.office).exclude(status="archive").first()
+
         error = None
         if not title:
             error = "Form name is required."
@@ -716,13 +733,14 @@ def upload_form(request, rep):
             error = "Please attach a PDF file."
         elif not uploaded_file.name.lower().endswith('.pdf'):
             error = "Only PDF files are allowed."
+        elif service is None:
+            error = "Please choose the service this form belongs to."
 
         if error:
             if is_ajax:
                 return JsonResponse({"success": False, "error": error}, status=400)
             messages.error(request, error)
         else:
-            service = Service.objects.filter(pk=service_id, office=rep.office).first() if service_id else None
             DownloadableForm.objects.create(
                 office=rep.office,
                 service=service,
@@ -735,9 +753,10 @@ def upload_form(request, rep):
             )
             if is_ajax:
                 return JsonResponse({"success": True, "title": title})
-            messages.success(request, f'"{title}" was uploaded.')
-            if service_id:
-                return redirect(f"{reverse('office_dashboard:services')}?service={service_id}&tab=forms")
+            messages.success(request, f'"{title}" was uploaded and linked to {service.name}.')
+            # From a service's own page the form belongs on that service's Forms tab.
+            if request.POST.get('return_to') == 'service':
+                return redirect(f"{reverse('office_dashboard:services')}?service={service.pk}&tab=forms")
 
     return redirect('office_dashboard:downloadable_form')
 
@@ -875,7 +894,16 @@ def edit_form(request, rep, pk):
                 messages.error(request, "Only PDF files are allowed.")
                 return redirect('office_dashboard:downloadable_form')
 
+            service_id = request.POST.get('service')
+            service = None
+            if service_id and str(service_id).isdigit():
+                service = Service.objects.filter(pk=service_id, office=rep.office).exclude(status="archive").first()
+            if service is None:
+                messages.error(request, "Please choose the service this form belongs to.")
+                return redirect('office_dashboard:downloadable_form')
+
             form.title = title
+            form.service = service
             form.description = request.POST.get('description', '')
             form.category = request.POST.get('category', '')
             if new_file:

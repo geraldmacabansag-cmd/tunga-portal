@@ -43,6 +43,17 @@ Home | Digital Governance Portal
   </div>
 </section>
 
+{% if filter_office %}
+<section class="office-filter-wrap">
+  <div class="container">
+    <div class="office-filter-banner">
+      <span><i class="fa-solid fa-filter"></i> Showing announcements, news and events from <strong>{{ filter_office.name }}</strong> only.</span>
+      <a href="{% url 'announcement' %}" class="office-filter-banner__clear"><i class="fa-solid fa-xmark"></i> Show all offices</a>
+    </div>
+  </div>
+</section>
+{% endif %}
+
 <section class="announcements-body">
   <div class="container">
 

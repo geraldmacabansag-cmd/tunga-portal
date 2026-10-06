@@ -2071,3 +2071,16 @@ body.lock { overflow: hidden; }
   overflow: hidden;
   overflow-wrap: anywhere;
 }
+
+/* "Showing only <office>" banner (from an office page's View All links) */
+.office-filter-wrap { padding-top: 18px; }
+.office-filter-banner {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px 16px;
+  padding: 12px 18px;
+  background: #eef3ff; border: 1px solid #c9d6fb; border-radius: 12px;
+  color: var(--navy); font-size: 0.9rem;
+}
+.office-filter-banner i { margin-right: 6px; color: #2f5bea; }
+.office-filter-banner__clear { font-weight: 700; color: var(--navy); white-space: nowrap; }
+.office-filter-banner__clear:hover { text-decoration: underline; }
+.office-filter-banner__clear i { color: inherit; margin-right: 4px; }

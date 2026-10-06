@@ -29,18 +29,31 @@ from django.core.paginator import Paginator
 # whole page (which was resetting the scroll position back to the top).
 # ---------------------------------------------------------------------------
 
-def _get_featured_event(today):
+def _get_office_filter(request):
+    """The office picked with ?office=<slug> (used by the office page's "View
+    All" links so the Announcements page can show just that office's posts),
+    or None when no/an unknown office is given."""
+    slug = request.GET.get('office', '').strip()
+    if not slug:
+        return None
+    return Office.objects.filter(slug=slug, is_visible=True).exclude(slug='lgu-super-admin').first()
+
+
+def _get_featured_event(today, office=None):
     """The event the Events tab's calendar should mark as "featured" (red)
     for whichever month it falls in — same selection rule used for the big
     "Featured Event" hero on the main Events tab: an explicitly
     Super-Admin-featured event if there is one, else the soonest upcoming
     published event, else None."""
+    event_base = Event.objects.filter(status='published')
+    if office is not None:
+        event_base = event_base.filter(representative__office=office)
     dated_upcoming = list(
-        Event.objects.filter(status='published', event_date__gte=today)
+        event_base.filter(event_date__gte=today)
         .order_by('event_date', 'start_time')
     )
     undated_upcoming = list(
-        Event.objects.filter(status='published', event_date__isnull=True)
+        event_base.filter(event_date__isnull=True)
         .order_by('-created_at')
     )
     upcoming_qs = dated_upcoming + undated_upcoming
@@ -68,8 +81,12 @@ def _build_month_calendar(request, today, featured_event, month_param_name='even
     except (ValueError, TypeError):
         cal_year, cal_month = today.year, today.month
 
+    office_filter = _get_office_filter(request)
+    month_events_qs = Event.objects.filter(status='published', event_date__year=cal_year, event_date__month=cal_month)
+    if office_filter is not None:
+        month_events_qs = month_events_qs.filter(representative__office=office_filter)
     month_events = list(
-        Event.objects.filter(status='published', event_date__year=cal_year, event_date__month=cal_month)
+        month_events_qs
         .select_related('representative__office')
         .order_by('event_date', 'start_time')
     )
@@ -114,6 +131,8 @@ def _build_month_calendar(request, today, featured_event, month_param_name='even
         "calendar_month_label": date(cal_year, cal_month, 1).strftime("%B %Y"),
         "calendar_prev_param": f"{prev_year:04d}-{prev_month:02d}",
         "calendar_next_param": f"{next_year:04d}-{next_month:02d}",
+        # Keeps ?office=<slug> on the "‹ ›" links so browsing months stays filtered.
+        "calendar_office_qs": f"&office={office_filter.slug}" if office_filter is not None else "",
     }
 
 
@@ -124,7 +143,7 @@ def events_calendar_partial(request):
     doing a full reload — which was resetting the page's scroll position
     back to the top every time a different month was picked."""
     today = timezone.localdate()
-    featured_event = _get_featured_event(today)
+    featured_event = _get_featured_event(today, _get_office_filter(request))
     calendar_ctx = _build_month_calendar(request, today, featured_event)
     return render(request, "portal/_events_calendar_dynamic.html", calendar_ctx)
 
@@ -167,8 +186,15 @@ def home(request):
     })
 
 def announcement(request):
+    # ?office=<slug> (from an office page's "View All" links) narrows the
+    # announcements, news and events on this page to that one office.
+    filter_office = _get_office_filter(request)
+
+    def only_office(qs):
+        return qs.filter(representative__office=filter_office) if filter_office is not None else qs
+
     announcements = list(
-        Announcement.objects.filter(status='published')
+        only_office(Announcement.objects.filter(status='published'))
         .select_related('representative__office')
         .order_by('-date_posted', '-created_at')[:5]
     )
@@ -176,7 +202,7 @@ def announcement(request):
         a.display_date = a.date_posted or a.created_at.date()
 
     news_items = list(
-        NewsUpdate.objects.filter(status='published')
+        only_office(NewsUpdate.objects.filter(status='published'))
         .select_related('representative__office')
         .order_by('-date_published', '-created_at')[:5]
     )
@@ -186,7 +212,7 @@ def announcement(request):
     # Full list for the "Announcements" tab — every published announcement,
     # newest first, with the extra display fields the card layout needs.
     all_announcements = list(
-        Announcement.objects.filter(status='published')
+        only_office(Announcement.objects.filter(status='published'))
         .select_related('representative__office')
         .order_by('-date_posted', '-created_at')
     )
@@ -237,7 +263,7 @@ def announcement(request):
     # everything else goes in the "Latest News" grid below it. Pagination,
     # the sidebar (Search/Most Read/Topics/Share box) stay hardcoded for now.
     all_news = list(
-        NewsUpdate.objects.filter(status='published')
+        only_office(NewsUpdate.objects.filter(status='published'))
         .select_related('representative__office')
         .order_by('-date_published', '-created_at')
     )
@@ -296,19 +322,19 @@ def announcement(request):
     # "Date to be announced" fallback in the template) so they're never
     # silently invisible on the public page.
     dated_upcoming = list(
-        Event.objects.filter(status='published', event_date__gte=today)
+        only_office(Event.objects.filter(status='published', event_date__gte=today))
         .select_related('representative__office')
         .order_by('event_date', 'start_time')
     )
     undated_upcoming = list(
-        Event.objects.filter(status='published', event_date__isnull=True)
+        only_office(Event.objects.filter(status='published', event_date__isnull=True))
         .select_related('representative__office')
         .order_by('-created_at')
     )
     upcoming_qs = dated_upcoming + undated_upcoming
 
     past_qs = list(
-        Event.objects.filter(status='published', event_date__lt=today)
+        only_office(Event.objects.filter(status='published', event_date__lt=today))
         .select_related('representative__office')
         .order_by('-event_date', '-start_time')[:3]
     )
@@ -454,6 +480,8 @@ def announcement(request):
         "calendar_month_label": calendar_ctx["calendar_month_label"],
         "calendar_prev_param": calendar_ctx["calendar_prev_param"],
         "calendar_next_param": calendar_ctx["calendar_next_param"],
+        "calendar_office_qs": calendar_ctx["calendar_office_qs"],
+        "filter_office": filter_office,
         "calendar_only_events": calendar_only_events,
         "office_updates": office_updates,
         "office_directory": office_directory,

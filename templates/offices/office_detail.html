@@ -49,14 +49,14 @@
     <div class="panel announce-panel">
       <div class="section-title--row">
         <h2 class="section-title" style="margin:0;padding:0;">Announcements</h2>
-        <a href="{% url 'announcement' %}" class="view-all">View All</a>
+        <a href="{% url 'announcement' %}?office={{ office.slug }}#announcements" class="view-all">View All</a>
       </div>
       <ul class="update-list">
         {% for a in announcements %}
-        <li class="update-item">
+        <li class="update-item update-item--clickable js-ann-open" role="button" tabindex="0" data-ann="{{ a.pk }}" data-ann-title="{{ a.title }}" data-ann-office="{{ office.name }}">
           <div class="update-item__date">{{ a.date_posted|date:"M"|upper }}<strong>{{ a.date_posted|date:"d" }}</strong>{{ a.date_posted|date:"Y" }}</div>
           <div class="update-item__body">
-            <a href="{% url 'announcement' %}" class="update-item__title">{{ a.title }}</a>
+            <a href="{% url 'announcement' %}?office={{ office.slug }}&open_announcement={{ a.pk }}#announcements" class="update-item__title">{{ a.title }}</a>
             <p>{{ a.subtitle|default:a.content|truncatewords:24 }}</p>
           </div>
         </li>
@@ -64,20 +64,20 @@
         <li class="update-item"><div class="update-item__body"><p>No announcements from this office yet.</p></div></li>
         {% endfor %}
       </ul>
-      <a href="{% url 'announcement' %}" class="view-all announce-panel__viewall">View All Announcements <i class="fa-solid fa-arrow-right"></i></a>
+      <a href="{% url 'announcement' %}?office={{ office.slug }}#announcements" class="view-all announce-panel__viewall">View All Announcements <i class="fa-solid fa-arrow-right"></i></a>
     </div>
 
     <div class="panel announce-panel news-panel" id="news-panel">
       <div class="section-title--row">
         <h2 class="section-title" style="margin:0;padding:0;">News and Updates</h2>
-        <a href="{% url 'announcement' %}#news" class="view-all">View All</a>
+        <a href="{% url 'announcement' %}?office={{ office.slug }}#news" class="view-all">View All</a>
       </div>
       <ul class="update-list">
         {% for n in news_items %}
-        <li class="update-item">
+        <li class="update-item update-item--clickable js-news-open" role="button" tabindex="0" data-news="{{ n.pk }}" data-news-title="{{ n.title }}" data-news-office="{{ office.name }}">
           <div class="update-item__date">{{ n.display_date|date:"M"|upper }}<strong>{{ n.display_date|date:"d" }}</strong>{{ n.display_date|date:"Y" }}</div>
           <div class="update-item__body">
-            <a href="{% url 'announcement' %}?open_news={{ n.pk }}#news" class="update-item__title">{{ n.title }}</a>
+            <a href="{% url 'announcement' %}?office={{ office.slug }}&open_news={{ n.pk }}#news" class="update-item__title">{{ n.title }}</a>
             <p>{{ n.summary|default:n.content|truncatechars:110 }}</p>
           </div>
         </li>
@@ -85,7 +85,7 @@
         <li class="update-item"><div class="update-item__body"><p>No news from this office yet.</p></div></li>
         {% endfor %}
       </ul>
-      <a href="{% url 'announcement' %}#news" class="view-all announce-panel__viewall">View All News <i class="fa-solid fa-arrow-right"></i></a>
+      <a href="{% url 'announcement' %}?office={{ office.slug }}#news" class="view-all announce-panel__viewall">View All News <i class="fa-solid fa-arrow-right"></i></a>
     </div>
 
   </div>
@@ -264,6 +264,67 @@
   </div>
 </dialog>
 
+<!-- Announcement / News pop-ups: same look as the public Announcements page.
+     One hidden <template> per item, cloned into the dialog by the script below. -->
+{% for a in announcements %}
+<template id="tpl-ann-{{ a.pk }}">
+  <div class="ann-dlg-badges">
+    <span class="ann-badge ann-badge--{{ a.category|default:'General'|slugify }}">{{ a.category|default:"General"|upper }}</span>
+  </div>
+  {% if a.subtitle %}<p class="ann-dlg-subtitle">{{ a.subtitle }}</p>{% endif %}
+  {% if a.image %}<img src="{{ a.image.url }}" alt="{{ a.title }}" class="ann-dlg-image">{% endif %}
+  <div class="ann-dlg-content">
+    {% if a.content %}{{ a.content|linebreaks }}{% else %}<p>No further details were provided for this announcement.</p>{% endif %}
+  </div>
+  <div class="ann-dlg-footer">
+    <div><i class="fa-regular fa-building"></i> {{ office.name }}</div>
+    <div><i class="fa-regular fa-calendar"></i> {{ a.date_posted|default:a.created_at|date:"F d, Y" }}</div>
+    {% if a.author %}<div><i class="fa-regular fa-user"></i> {{ a.author }}</div>{% endif %}
+    {% if a.priority and a.priority != "Normal" %}<div><i class="fa-solid fa-circle-exclamation"></i> {{ a.priority }} priority</div>{% endif %}
+  </div>
+</template>
+{% endfor %}
+
+{% for n in news_items %}
+<template id="tpl-news-{{ n.pk }}">
+  <div class="ann-dlg-badges">
+    <span class="ann-badge ann-badge--general">{{ n.category|default:"General"|upper }}</span>
+  </div>
+  {% if n.summary %}<p class="ann-dlg-subtitle">{{ n.summary }}</p>{% endif %}
+  {% if n.image %}<img src="{{ n.image.url }}" alt="{{ n.title }}" class="ann-dlg-image">{% endif %}
+  <div class="ann-dlg-content">
+    {% if n.content %}{{ n.content|linebreaks }}{% else %}<p>No further details were provided for this story.</p>{% endif %}
+  </div>
+  <div class="ann-dlg-footer">
+    <div><i class="fa-regular fa-building"></i> {{ office.name }}</div>
+    <div><i class="fa-regular fa-calendar"></i> {{ n.display_date|date:"F d, Y" }}</div>
+    {% if n.author %}<div><i class="fa-regular fa-user"></i> {{ n.author }}</div>{% endif %}
+    {% if n.source %}<div><i class="fa-solid fa-link"></i> {{ n.source }}</div>{% endif %}
+    {% if n.tags %}<div><i class="fa-solid fa-tags"></i> {{ n.tags }}</div>{% endif %}
+  </div>
+</template>
+{% endfor %}
+
+<dialog id="annDialog" aria-labelledby="annDlgTitle" class="ann-dialog">
+  <div class="ann-dlg">
+    <div class="ann-dlg-head">
+      <div><small id="annDlgOffice"></small><h2 id="annDlgTitle"></h2></div>
+      <button type="button" class="ann-dlg-close" id="annDlgClose" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="ann-dlg-body" id="annDlgBody"></div>
+  </div>
+</dialog>
+
+<dialog id="newsDialog" aria-labelledby="newsDlgTitle" class="ann-dialog">
+  <div class="ann-dlg">
+    <div class="ann-dlg-head">
+      <div><small id="newsDlgOffice"></small><h2 id="newsDlgTitle"></h2></div>
+      <button type="button" class="ann-dlg-close" id="newsDlgClose" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="ann-dlg-body" id="newsDlgBody"></div>
+  </div>
+</dialog>
+
 {% for s in services %}
 <template id="tpl-svc-{{ s.id }}">
   {% if s.description %}<p class="charter-desc">{{ s.description }}</p>{% endif %}
@@ -334,12 +395,23 @@
       <h3 class="charter-forms__title"><i class="fa-solid fa-file-arrow-down"></i> Downloadable Forms</h3>
       <ul class="charter-forms__list">
         {% for form in s.charter_forms %}
-        <li>
-          <a class="charter-forms__link" href="{% url 'offices:view_pdf' form.pk %}" target="_blank" rel="noopener">
+        <li class="charter-forms__row">
+          <a class="charter-forms__file" href="{% url 'offices:view_pdf' form.pk %}" target="_blank" rel="noopener" title="Open the PDF in a new tab">
             <span class="charter-forms__icon"><i class="fa-solid fa-file-pdf"></i></span>
             <span class="charter-forms__name">{{ form.title }}</span>
-            <span class="charter-forms__cta"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open PDF</span>
           </a>
+          <span class="charter-forms__actions">
+            {% if form.can_fill_online %}
+              {% if user.is_authenticated %}
+              <button type="button" class="charter-forms__btn charter-forms__btn--fill js-fill-online" data-fill-url="{% url 'offices:fill_form' form.pk %}" data-fill-title="{{ form.title }}"><i class="fa-solid fa-pen-to-square"></i> Fill Out Online</button>
+              {% else %}
+              <a class="charter-forms__btn charter-forms__btn--fill" href="{% url 'login' %}?next={{ request.path|urlencode }}" title="Log in to fill out this form online"><i class="fa-solid fa-pen-to-square"></i> Fill Out Online</a>
+              {% endif %}
+            {% else %}
+              <span class="charter-forms__btn charter-forms__btn--fill is-disabled" title="This form isn't set up for online filling yet"><i class="fa-solid fa-pen-to-square"></i> Fill Out Online</span>
+            {% endif %}
+            <a class="charter-forms__btn charter-forms__btn--download" href="{% url 'offices:view_pdf' form.pk %}?download=1" download><i class="fa-solid fa-download"></i> Download</a>
+          </span>
         </li>
         {% endfor %}
       </ul>
@@ -360,6 +432,13 @@
 .svc-card i { font-size: 1.3rem; color: #0a1f6b; }
 .svc-card h3 { font-size: .95rem; font-weight: 700; color: #0a1f6b; margin: 0 0 6px; line-height: 1.35; }
 .svc-card p { font-size: .85rem; color: #8a92ab; margin: 0; }
+
+/* Clickable announcement / news rows sit on the dark navy panels here, so the
+   hover colour must stay dark (the light default made the white text vanish). */
+.announce-panel .update-item--clickable { border-radius: 10px; transition: background-color .15s ease; }
+.announce-panel .update-item--clickable:hover,
+.announce-panel .update-item--clickable:focus-visible { background: rgba(255, 255, 255, 0.10); outline: none; }
+.announce-panel .update-item--clickable:focus-visible { box-shadow: 0 0 0 2px #e5b524; }
 
 /* ---- Services of the Office: service list (left) + details table (right) ---- */
 .svc-split { padding: 28px 30px 30px; background: #fff; }
@@ -492,10 +571,23 @@
 .charter-forms__name { flex: 1 1 140px; min-width: 0; font-size: 14px; font-weight: 700; line-height: 1.3; word-break: break-word; }
 .charter-forms__cta { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 999px; background: #16307f; color: #fff; font-size: 12.5px; font-weight: 700; white-space: nowrap; }
 .charter-forms__link:hover .charter-forms__cta { background: #0f2262; }
+.charter-forms__row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; padding: 10px 12px; background: #fff; border: 1px solid #d5ddf5; border-radius: 8px; }
+.charter-forms__file { flex: 1 1 200px; min-width: 0; display: flex; align-items: center; gap: 12px; color: #16307f; text-decoration: none; }
+.charter-forms__file:hover .charter-forms__name { text-decoration: underline; }
+.charter-forms__actions { flex: 0 0 auto; display: flex; flex-wrap: wrap; gap: 8px; }
+.charter-forms__btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 8px 15px; border-radius: 999px; border: 1.5px solid #16307f; font: inherit; font-size: 12.5px; font-weight: 700; line-height: 1.2; white-space: nowrap; cursor: pointer; text-decoration: none; transition: background-color .15s, color .15s, box-shadow .15s; }
+.charter-forms__btn--fill { background: #16307f; color: #fff; }
+.charter-forms__btn--fill:hover { background: #0f2262; border-color: #0f2262; color: #fff; text-decoration: none; }
+.charter-forms__btn--download { background: #fff; color: #16307f; }
+.charter-forms__btn--download:hover { background: #eef2ff; text-decoration: none; }
+.charter-forms__btn.is-disabled { background: #e6e9f2; border-color: #d5d9e6; color: #8a92ab; cursor: not-allowed; }
+.charter-forms__btn:focus-visible { outline: 2px solid #e5b524; outline-offset: 2px; }
 @media (max-width: 480px) {
   .charter-forms { padding: 12px; }
   .charter-forms__link { flex-wrap: wrap; }
   .charter-forms__cta { width: 100%; justify-content: center; }
+  .charter-forms__actions { width: 100%; }
+  .charter-forms__actions .charter-forms__btn { flex: 1 1 140px; }
 }
 .charter-table { width: 100%; border-collapse: collapse; margin-bottom: 18px; font-size: 12.5px; table-layout: fixed; border: 2px solid #000; }
 .charter-table th, .charter-table td { border: 2px solid #000; padding: 8px 10px; text-align: left; vertical-align: top; word-wrap: break-word; }
@@ -577,6 +669,59 @@
   .gallery-more-btn { width: 100%; white-space: normal; text-align: center; padding: 12px 16px; }
 }
 </style>
+
+<script>
+// Announcement / News pop-ups on the office page: clicking a row opens the
+// full details in a dialog (same pattern as the public Announcements page).
+(function () {
+  function wire(kind) {
+    var dlg = document.getElementById(kind + 'Dialog');
+    if (!dlg) return;
+    var titleEl = document.getElementById(kind + 'DlgTitle');
+    var officeEl = document.getElementById(kind + 'DlgOffice');
+    var bodyEl = document.getElementById(kind + 'DlgBody');
+    var tplPrefix = kind === 'ann' ? 'tpl-ann-' : 'tpl-news-';
+    var attr = kind === 'ann' ? 'data-ann' : 'data-news';
+    var rowSel = kind === 'ann' ? '.js-ann-open' : '.js-news-open';
+
+    function open(row) {
+      var tpl = document.getElementById(tplPrefix + row.getAttribute(attr));
+      if (!tpl) return;
+      titleEl.textContent = row.getAttribute(attr + '-title') || '';
+      officeEl.textContent = row.getAttribute(attr + '-office') || '';
+      bodyEl.innerHTML = '';
+      bodyEl.appendChild(tpl.content.cloneNode(true));
+      bodyEl.scrollTop = 0;
+      if (!dlg.open) dlg.showModal();
+      document.body.classList.add('lock');
+    }
+
+    document.querySelectorAll(rowSel).forEach(function (row) {
+      row.addEventListener('click', function (e) {
+        e.preventDefault();   // the title link inside is only a no-JS fallback
+        open(row);
+      });
+      row.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(row); }
+      });
+    });
+
+    function close() { if (dlg.open) dlg.close(); }
+    document.getElementById(kind + 'DlgClose').addEventListener('click', close);
+    dlg.addEventListener('click', function (e) { if (e.target === dlg) close(); });
+    dlg.addEventListener('close', function () { document.body.classList.remove('lock'); });
+
+    // Deep link: ?open_announcement=ID / ?open_news=ID opens it right away.
+    var param = new URLSearchParams(window.location.search).get(kind === 'ann' ? 'open_announcement' : 'open_news');
+    if (param) {
+      var target = document.querySelector(rowSel + '[' + attr + '="' + param + '"]');
+      if (target) open(target);
+    }
+  }
+  wire('ann');
+  wire('news');
+})();
+</script>
 
 <script>
 // Services of the Office (the list + details section below the news row):
@@ -713,10 +858,13 @@
       });
   }
 
-  document.querySelectorAll('.js-fill-online').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      openFill(btn.getAttribute('data-fill-url'), btn.getAttribute('data-fill-title'));
-    });
+  // Delegated: the buttons live inside service details that are cloned into
+  // the page when a service is picked, so they don't exist at load time.
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.js-fill-online');
+    if (!btn) return;
+    e.preventDefault();
+    openFill(btn.getAttribute('data-fill-url'), btn.getAttribute('data-fill-title'));
   });
 
   function closeFillDlg() { if (dlg.open) dlg.close(); }

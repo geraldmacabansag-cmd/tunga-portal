@@ -441,6 +441,23 @@
                 <textarea class="form-input" id="qa-df-description" name="description" rows="3" placeholder="What this form is for"></textarea>
               </div>
               <div class="form-group">
+                <label class="form-label" for="qa-df-service">Service <span class="req">*</span></label>
+                {% if services %}
+                <select class="form-input" id="qa-df-service" name="service" required>
+                  <option value="" disabled selected>Select the service this form belongs to…</option>
+                  {% for s in services %}
+                    <option value="{{ s.pk }}">{{ s.name }}</option>
+                  {% endfor %}
+                </select>
+                <small class="form-help">Every form must be linked to one of your available services.</small>
+                {% else %}
+                <div style="padding:10px 12px;border-radius:8px;background:var(--amber-50);color:var(--amber-700);font-size:13px;">
+                  You have no available services yet. <a href="{% url 'office_dashboard:services' %}" style="font-weight:700;text-decoration:underline;">Add a service</a> first, then link this form to it.
+                </div>
+                {% endif %}
+              </div>
+
+              <div class="form-group">
                 <label class="form-label" for="qa-df-category">Category</label>
                 <select class="form-input" id="qa-df-category" name="category">
                   {% for cat in category_choices %}
@@ -450,7 +467,7 @@
               </div>
               <div class="modal-actions">
                 <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
-                <button type="submit" class="btn btn-primary">Add Form</button>
+                <button type="submit" class="btn btn-primary"{% if not services %} disabled title="Add a service first"{% endif %}>Add Form</button>
               </div>
             </form>
           </div>
