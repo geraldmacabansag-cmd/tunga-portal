@@ -21,6 +21,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
         
 
+  <link rel="icon" type="image/png" href="{% static 'images/tunga_leyte_logo.png' %}">
 </head>
 
 <body>
@@ -269,16 +270,16 @@
           <p>Tunga, Leyte Philippines</p>
           <div class="footer-social-icons">
             {% if site_contact.social_facebook and site_contact.show_facebook_footer %}
-              <a href="{{ site_contact.social_facebook }}" target="_blank" rel="noopener" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i></a>
+              <a href="{{ site_contact.social_facebook }}" target="_blank" rel="noopener" class="footer-social-link footer-social-link--facebook" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i><span class="footer-social-link__name">Facebook</span></a>
             {% endif %}
             {% if site_contact.social_twitter and site_contact.show_twitter_footer %}
-              <a href="{{ site_contact.social_twitter }}" target="_blank" rel="noopener" aria-label="X (Twitter)"><i class="fa-brands fa-square-x-twitter"></i></a>
+              <a href="{{ site_contact.social_twitter }}" target="_blank" rel="noopener" class="footer-social-link footer-social-link--twitter" aria-label="X (Twitter)"><i class="fa-brands fa-square-x-twitter"></i><span class="footer-social-link__name">X (Twitter)</span></a>
             {% endif %}
             {% if site_contact.social_instagram and site_contact.show_instagram_footer %}
-              <a href="{{ site_contact.social_instagram }}" target="_blank" rel="noopener" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
+              <a href="{{ site_contact.social_instagram }}" target="_blank" rel="noopener" class="footer-social-link footer-social-link--instagram" aria-label="Instagram"><i class="fa-brands fa-instagram"></i><span class="footer-social-link__name">Instagram</span></a>
             {% endif %}
             {% if site_contact.social_youtube and site_contact.show_youtube_footer %}
-              <a href="{{ site_contact.social_youtube }}" target="_blank" rel="noopener" aria-label="YouTube"><i class="fa-brands fa-youtube"></i></a>
+              <a href="{{ site_contact.social_youtube }}" target="_blank" rel="noopener" class="footer-social-link footer-social-link--youtube" aria-label="YouTube"><i class="fa-brands fa-youtube"></i><span class="footer-social-link__name">YouTube</span></a>
             {% endif %}
           </div>
       </div>

@@ -34,7 +34,9 @@ Home | Digital Governance Portal
 
     {% for office in office_list %}
     <a href="{% url 'offices:office_detail' office.slug %}" class="office-card office-card--{{ office.card_color }}">
-      {% if office.card_image %}
+      {% if office.logo %}
+        <img src="{{ office.logo.url }}" alt="{{ office.name }}" class="office-card__icon office-card__icon--img" loading="lazy">
+      {% elif office.card_image %}
         <img src="{% static office.card_image %}" alt="{{ office.name }}" class="office-card__icon office-card__icon--img">
       {% else %}
         <i class="{{ office.card_icon }} office-card__icon"></i>

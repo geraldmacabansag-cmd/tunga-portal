@@ -7,13 +7,13 @@ from django.core.paginator import Paginator
 from django.contrib.auth.models import User
 from django.db.models import Count, Sum, Q, F
 from django.utils import timezone
-from office_dashboard.models import Announcement, NewsUpdate, Event, DownloadableForm, FormField, Photo, Album, Service, OfficeRepresentative, Notification, ServiceEditSettings, ActivityLog
+from office_dashboard.models import Announcement, NewsUpdate, Event, DownloadableForm, FormField, Photo, Album, Service, OfficeRepresentative, Notification, ServiceEditSettings, ActivityLog, Message
 from offices.models import Office
 from django.http import Http404, FileResponse, HttpResponse, JsonResponse
 from datetime import timedelta
 import csv
 import io
-from office_dashboard.views import FORM_CATEGORY_CHOICES
+from office_dashboard.views import FORM_CATEGORY_CHOICES, serialize_chat_message, MESSAGE_MAX_LENGTH
 from django.utils.text import slugify
 import secrets
 import json
@@ -1298,7 +1298,7 @@ def admin_offices(request):
     if status_filter:
         rows = [r for r in rows if r["status"] == status_filter]
 
-    rows.sort(key=lambda r: r["office"].name)
+    rows.sort(key=lambda r: (r["office"].display_order, r["office"].name))
 
     return render(request, "admin_dashboard/super-admin-office-overview.html", {
         "rows": rows,
@@ -1308,7 +1308,42 @@ def admin_offices(request):
         "inactive_count": inactive_count,
         "current_q": q,
         "current_status": status_filter,
+        "reorder_rows": sorted(
+            all_offices, key=lambda o: (o.display_order, o.name)
+        ),
     })
+
+
+@super_admin_required
+def admin_offices_reorder(request):
+    """Saves the drag-and-drop order of offices (position on the public site).
+    Expects JSON: {"order": [office_id, office_id, ...]} in the new order."""
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "error": "POST required."}, status=405)
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+        ids = [int(i) for i in payload.get("order", [])]
+    except (ValueError, TypeError):
+        return JsonResponse({"ok": False, "error": "Invalid data."}, status=400)
+
+    offices = {
+        o.pk: o
+        for o in Office.objects.exclude(slug=LGU_SUPER_ADMIN_SLUG).filter(pk__in=ids)
+    }
+    changed = []
+    position = 0
+    for pk in ids:
+        office = offices.get(pk)
+        if office is None:
+            continue
+        position += 1
+        if office.display_order != position:
+            office.display_order = position
+            changed.append(office)
+    if changed:
+        Office.objects.bulk_update(changed, ["display_order"])
+    return JsonResponse({"ok": True, "count": position})
+
 
 @super_admin_required
 def admin_office_edit(request, pk):
@@ -2422,3 +2457,97 @@ def admin_archive_delete_permanent(request, item_type, pk):
         messages.success(request, f'"{title}" was permanently deleted.')
 
     return redirect('admin_dashboard:ad_archive')
+
+
+# ---------------------------------------------------------------------------
+# Messages: the Super Admin's side of the chat with each Office Representative.
+# One conversation per representative; the page lists them and
+# static/js/messages.js loads / polls / sends through the JSON endpoints.
+# ---------------------------------------------------------------------------
+def _message_conversations():
+    """Every real office representative with their latest message and the
+    number of messages from them the Super Admin hasn't opened yet. Ones with
+    a conversation come first (most recent on top), then the rest by office."""
+    reps = (
+        OfficeRepresentative.objects
+        .exclude(office__slug=LGU_SUPER_ADMIN_SLUG)
+        .select_related("office", "user")
+    )
+    rows = []
+    for rep in reps:
+        last = rep.chat_messages.order_by("-id").first()
+        unread = rep.chat_messages.filter(sender=Message.SENDER_REP, read_at__isnull=True).count()
+        rows.append({
+            "rep": rep,
+            "office_name": rep.office.name,
+            "person": rep.user.get_full_name() or rep.user.username,
+            "last_body": last.body if last else "",
+            "last_sender": last.sender if last else "",
+            "last_time": timezone.localtime(last.created_at) if last else None,
+            "unread": unread,
+        })
+    rows.sort(key=lambda r: (r["last_time"] is None, -(r["last_time"].timestamp() if r["last_time"] else 0), r["office_name"].lower()))
+    return rows
+
+
+@super_admin_required
+def admin_messages(request):
+    conversations = _message_conversations()
+    selected = None
+    rep_id = request.GET.get("rep")
+    if rep_id and rep_id.isdigit():
+        selected = next((c for c in conversations if c["rep"].id == int(rep_id)), None)
+    return render(request, "admin_dashboard/super-admin-messages.html", {
+        "conversations": conversations,
+        "selected": selected,
+    })
+
+
+@super_admin_required
+def admin_messages_data(request):
+    rep = get_object_or_404(OfficeRepresentative.objects.exclude(office__slug=LGU_SUPER_ADMIN_SLUG), pk=request.GET.get("rep") or 0)
+    try:
+        after = int(request.GET.get("after", 0))
+    except (TypeError, ValueError):
+        after = 0
+
+    # Opening a conversation marks that representative's messages as read.
+    rep.chat_messages.filter(
+        sender=Message.SENDER_REP, read_at__isnull=True
+    ).update(read_at=timezone.now())
+
+    items = rep.chat_messages.filter(id__gt=after)
+    return JsonResponse({
+        "messages": [serialize_chat_message(m) for m in items],
+        "unread": {
+            str(c["rep"].id): c["unread"] for c in _message_conversations()
+        },
+    })
+
+
+@super_admin_required
+def admin_messages_send(request):
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "POST required."}, status=405)
+    rep = get_object_or_404(OfficeRepresentative.objects.exclude(office__slug=LGU_SUPER_ADMIN_SLUG), pk=request.POST.get("rep") or 0)
+    body = request.POST.get("body", "").strip()
+    if not body:
+        return JsonResponse({"success": False, "error": "Type a message first."}, status=400)
+    if len(body) > MESSAGE_MAX_LENGTH:
+        return JsonResponse({"success": False, "error": f"Messages are limited to {MESSAGE_MAX_LENGTH} characters."}, status=400)
+
+    msg = Message.objects.create(representative=rep, sender=Message.SENDER_ADMIN, body=body)
+
+    # Let the representative know through their normal notifications too —
+    # one unread "new message" notification at a time, so a back-and-forth
+    # doesn't pile up dozens of them.
+    title = "New message from the Super Admin"
+    if not Notification.objects.filter(representative=rep, title=title, is_read=False).exists():
+        Notification.objects.create(
+            representative=rep,
+            title=title,
+            description=body[:120],
+            level="info",
+            link_url=reverse("office_dashboard:messages"),
+        )
+    return JsonResponse({"success": True, "message": serialize_chat_message(msg)})

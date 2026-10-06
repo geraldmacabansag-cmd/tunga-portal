@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-{% load static %}
+{% load static message_tags %}
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -7,13 +7,14 @@
 <title>Dashboard · Office Representative · Municipality of Tunga</title>
 <link rel="stylesheet" href="{% static 'css/office_rep_style.css' %}">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="icon" type="image/png" href="{% static 'images/tunga_leyte_logo.png' %}">
 </head>
 
 <body data-page="{% block body_page %}dashboard{% endblock %}">
 <div class="app-shell">
-  <aside class="sidebar" id="sidebar">
+  <aside class="sidebar sidebar--rep" id="sidebar">
     <div class="sidebar-brand">
-      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/99/Ph_seal_leyte_tunga.png/120px-Ph_seal_leyte_tunga.png" alt="" onerror="this.style.visibility='hidden'">
+      <img src="{% static 'images/tunga_leyte_logo.png' %}" alt="Municipality of Tunga" class="sidebar-logo">
       <div class="sidebar-brand-text">
         <div class="muni">Municipality of</div>
         <div class="name">TUNGA</div>
@@ -30,7 +31,12 @@
     <div class="sidebar-nav" id="sidebarNav">
     <ul>
       {% url 'office_dashboard:dashboard' as dashboard_url %}
-      <li class="nav-item{% if request.path == dashboard_url %} active{% endif %}"><a href="{% url 'office_dashboard:dashboard' %}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-gauge"></i></span> Dashboard</a></li>
+      <li class="nav-item{% if request.path == dashboard_url %} active{% endif %}"><a href="{% url 'office_dashboard:dashboard' %}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-gauge-high"></i></span> Dashboard</a></li>
+      {% url 'office_dashboard:messages' as messages_url %}
+      {% unread_messages request as msg_unread %}
+      <li class="nav-item{% if request.path == messages_url %} active{% endif %}">
+        <a href="{{ messages_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-comments"></i></span> Messages{% if msg_unread > 0 %}<span class="badge badge--msg">{{ msg_unread }}</span>{% endif %}</a>
+      </li>
     </ul>
 
     <ul>
@@ -40,19 +46,19 @@
       {% url 'office_dashboard:news_update' as news_url %}
       <li class="nav-item{% if request.path == news_url %} active{% endif %}"><a href="{{ news_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-newspaper"></i></span> News &amp; Updates</a></li>
       {% url 'office_dashboard:event' as event_url %}
-      <li class="nav-item{% if request.path == event_url %} active{% endif %}"><a href="{{ event_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-regular fa-calendar"></i></span> Events</a></li>
+      <li class="nav-item{% if request.path == event_url %} active{% endif %}"><a href="{{ event_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-calendar-days"></i></span> Events</a></li>
       {% url 'office_dashboard:services' as services_url %}
       <li class="nav-item{% if request.path == services_url %} active{% endif %}"><a href="{{ services_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-list-check"></i></span> Services</a></li>
       {% url 'office_dashboard:downloadable_form' as forms_url %}
       <li class="nav-item{% if request.path == forms_url %} active{% endif %}"><a href="{{ forms_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-file-arrow-down"></i></span> Downloadable Forms</a></li>
       {% url 'office_dashboard:gallery' as gallery_url %}
-      <li class="nav-item{% if request.path == gallery_url %} active{% endif %}"><a href="{{ gallery_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-regular fa-images"></i></span> Gallery</a></li>
+      <li class="nav-item{% if request.path == gallery_url %} active{% endif %}"><a href="{{ gallery_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-images"></i></span> Gallery</a></li>
     </ul>
 
     <ul>
       <li class="nav-section-title">Office Management</li>
       {% url 'office_dashboard:profile' as profile_url %}
-      <li class="nav-item{% if request.path == profile_url %} active{% endif %}"><a href="{{ profile_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-regular fa-id-card"></i></span> Office Profile</a></li>
+      <li class="nav-item{% if request.path == profile_url %} active{% endif %}"><a href="{{ profile_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-id-card"></i></span> Office Profile</a></li>
       {% url 'office_dashboard:location' as location_url %}
       <li class="nav-item{% if request.path == location_url %} active{% endif %}"><a href="{{ location_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-location-dot"></i></span> Office Location</a></li>
       {% url 'office_dashboard:page_settings' as page_settings_url %}
@@ -63,7 +69,7 @@
     <ul>
       <li class="nav-section-title">Account</li>
       {% url 'office_dashboard:account' as account_url %}
-      <li class="nav-item{% if request.path == account_url %} active{% endif %}"><a href="{{ account_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-regular fa-user"></i></span> My Account</a></li>
+      <li class="nav-item{% if request.path == account_url %} active{% endif %}"><a href="{{ account_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-user"></i></span> My Account</a></li>
       {% url 'office_dashboard:change_pass' as changepass_url %}
       <li class="nav-item{% if request.path == changepass_url %} active{% endif %}"><a href="{{ changepass_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-lock"></i></span> Change Password</a></li>
     </ul>
@@ -73,7 +79,7 @@
       {% url 'office_dashboard:notification' as notif_url %}
       <li class="nav-item{% if request.path == notif_url %} active{% endif %}">
         <a href="{{ notif_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;">
-          <span class="glyph"><i class="fa-regular fa-envelope"></i></span> Notification
+          <span class="glyph"><i class="fa-solid fa-envelope"></i></span> Notification
         </a>
         {% if rep.unread_notifications_count > 0 %}<span class="badge">{{ rep.unread_notifications_count }}</span>{% endif %}
       </li>
@@ -112,7 +118,7 @@
 <!-- User chip dropdown (top right avatar). Static HTML content;
      opened/closed with plain JavaScript only — see script below. -->
 <div class="dropdown-panel user-panel" id="userDropdown" role="menu" aria-hidden="true">
-  <a href="{% url 'office_dashboard:account' %}"><i class="fa-regular fa-user"></i> My Account</a>
+  <a href="{% url 'office_dashboard:account' %}"><i class="fa-solid fa-user"></i> My Account</a>
   <a href="{% url 'office_dashboard:change_pass' %}"><i class="fa-solid fa-lock"></i> Change Password</a>
   <a href="{% url 'home' %}" class="sidebar-view-site" style="color:inherit;" target="_blank"><i class="fa-solid fa-arrow-up-right-from-square"></i> View Public Website</a>
   <div class="dd-item danger" data-act="logout" role="menuitem"><i class="fa-solid fa-arrow-right-from-bracket"></i> Log Out</div>
@@ -173,4 +179,3 @@
 {% block extra_js %}{% endblock %}
 </body>
 </html>
-

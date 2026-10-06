@@ -1,0 +1,67 @@
+{% extends "representative_dashboard_base.html" %}
+{% load static %}
+
+{% block body_page %}messages{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/messages.css' %}">
+
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')"><i class="fa-solid fa-bars"></i></button>
+        <div class="page-heading">
+          <h1>Messages</h1>
+          <p>Talk directly with the Super Admin</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-button" id="notifBellBtn" type="button" aria-haspopup="true" aria-expanded="false"><i class="fa-regular fa-bell"></i>{% if rep.unread_notifications_count > 0 %}<span class="dot">{{ rep.unread_notifications_count }}</span>{% endif %}</button>
+        <div class="user-chip">
+          <img src="{% if rep.photo %}{{ rep.photo.url }}{% else %}{% static 'images/icon/profile_logo.jpeg' %}{% endif %}" alt="">
+          <div class="who"><div class="name">{{ rep.user.get_full_name|default:rep.user.username }}</div><div class="role">{{ rep.position|default:"Office Representative" }}</div></div>
+          <i class="fa-solid fa-chevron-down chev"></i>
+        </div>
+      </div>
+    </header>
+
+    <nav class="breadcrumbs">
+      <span>Dashboard</span><span class="sep">›</span><span class="current">Messages</span>
+    </nav>
+
+    <main class="content">
+      <div class="chat-layout chat-layout--single">
+        <section class="chat-card chat-card--thread" id="chat"
+                 data-mine="rep"
+                 data-data-url="{% url 'office_dashboard:messages_data' %}"
+                 data-send-url="{% url 'office_dashboard:messages_send' %}">
+          {% csrf_token %}
+          <div class="chat-head">
+            <span class="chat-head__avatar"><i class="fa-solid fa-user-shield"></i></span>
+            <div>
+              <div class="chat-head__title">Super Admin</div>
+              <div class="chat-head__sub">Municipality of Tunga &middot; {{ rep.office.name }}</div>
+            </div>
+          </div>
+
+          <div class="chat-body" id="chatBody">
+            <div class="chat-empty" id="chatEmpty">
+              <i class="fa-regular fa-comments"></i>
+              No messages yet. Send the Super Admin a message and the conversation will appear here.
+            </div>
+          </div>
+
+          <div class="chat-error" id="chatError" hidden></div>
+          <form class="chat-form" id="chatForm" autocomplete="off">
+            <textarea id="chatInput" rows="1" maxlength="2000" placeholder="Write a message to the Super Admin…" aria-label="Message"></textarea>
+            <button type="submit" class="chat-send" id="chatSend"><i class="fa-solid fa-paper-plane"></i> Send</button>
+          </form>
+        </section>
+      </div>
+    </main>
+  </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/messages.js' %}"></script>
+{% endblock %}

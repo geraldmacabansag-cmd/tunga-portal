@@ -31,7 +31,7 @@ def nav_offices(request):
         Office.objects
         .exclude(slug="lgu-super-admin")
         .filter(is_visible=True, representative__isnull=False, representative__user__is_active=True)
-        .order_by("name")
+        .order_by("display_order", "name")
     )
     for o in offices_list:
         o.nav_url = reverse('offices:office_detail', args=[o.slug])

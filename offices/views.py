@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.http import FileResponse, JsonResponse, Http404, HttpResponse
 from .models import Office
 from office_dashboard.models import (
-    Announcement, DownloadableForm, Photo, Service,
+    Announcement, DownloadableForm, NewsUpdate, Photo, Service,
     FormField, FormSubmission, FormSubmissionValue,
 )
 import re
@@ -129,7 +129,7 @@ def office_detail(request, slug):
 
     announcements = (
         Announcement.objects.filter(representative=rep, status="published")
-        .order_by("-date_posted", "-created_at")[:5]
+        .order_by("-date_posted", "-created_at")[:3]
         if rep else []
     )
 
@@ -137,6 +137,14 @@ def office_detail(request, slug):
         DownloadableForm.objects.filter(office=office, status="published")
         .order_by("-date_uploaded")[:6]
     )
+
+    # This office's latest published news, for the "News and Updates" panel.
+    news_items = list(
+        NewsUpdate.objects.filter(representative=rep, status="published")
+        .order_by("-date_published", "-created_at")[:3]
+    ) if rep else []
+    for n in news_items:
+        n.display_date = n.date_published or n.created_at.date()
 
     # Every published photo from this office, newest first. The template shows
     # the first four in the Gallery panel and reveals the rest when the visitor
@@ -153,6 +161,7 @@ def office_detail(request, slug):
         "services": services,
         "announcements": announcements,
         "forms": forms,
+        "news_items": news_items,
         "photos": photos,
     })
 

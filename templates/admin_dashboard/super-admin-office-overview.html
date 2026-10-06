@@ -39,6 +39,7 @@
       <section class="panel">
         <div class="panel-header">
           <h2>All Offices</h2>
+          <button type="button" class="btn btn-secondary btn-sm" id="open-reorder-offices"><i class="fa-solid fa-arrows-up-down"></i> Reorder Offices</button>
         </div>
         <form method="get" class="filters-row">
           <label class="field search" style="flex:1;"><i class="fa-solid fa-magnifying-glass"></i><input type="text" name="q" value="{{ current_q }}" placeholder="Search office..." onchange="this.form.submit()"></label>
@@ -228,6 +229,146 @@
   </div>
 </div>
 {% endfor %}
+
+<div class="modal-backdrop" id="reorder-offices-modal">
+  <div class="modal-box" style="max-width:560px;">
+    <div class="modal-head">
+      <h3>Reorder Offices</h3>
+      <button type="button" class="modal-x" id="reorder-close" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <p style="color:#5d667f;font-size:.88rem;margin:0 0 14px;">
+        Drag offices (or use the arrows) to set the order they appear on the public website: the Offices page, the navbar dropdown, the home page directory and the contact form.
+      </p>
+      {% csrf_token %}
+      <ul class="reorder-list" id="reorder-list">
+        {% for o in reorder_rows %}
+        <li class="reorder-item" draggable="true" data-office-id="{{ o.pk }}">
+          <i class="fa-solid fa-grip-vertical reorder-item__grip"></i>
+          <span class="reorder-item__pos"></span>
+          <span class="reorder-item__name">{{ o.name }}</span>
+          {% if not o.is_visible %}<span class="reorder-item__tag">Hidden</span>{% endif %}
+          <span class="reorder-item__btns">
+            <button type="button" class="reorder-btn" data-dir="-1" aria-label="Move up"><i class="fa-solid fa-chevron-up"></i></button>
+            <button type="button" class="reorder-btn" data-dir="1" aria-label="Move down"><i class="fa-solid fa-chevron-down"></i></button>
+          </span>
+        </li>
+        {% endfor %}
+      </ul>
+      <p id="reorder-msg" style="font-size:.85rem;margin:10px 0 0;display:none;"></p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="reorder-cancel">Cancel</button>
+        <button type="button" class="btn btn-primary" id="reorder-save"><i class="fa-regular fa-floppy-disk"></i> Save Order</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.reorder-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; max-height:55vh; overflow-y:auto; }
+.reorder-item { display:flex; align-items:center; gap:10px; background:#f8f9fc; border:1px solid #e3e7f1; border-radius:8px; padding:9px 12px; cursor:grab; user-select:none; }
+.reorder-item.dragging { opacity:.45; }
+.reorder-item.drop-target { border-color:#16307f; box-shadow:0 0 0 2px rgba(22,48,127,.15); }
+.reorder-item__grip { color:#9aa3bd; }
+.reorder-item__pos { min-width:26px; height:26px; border-radius:50%; background:#16307f; color:#fff; font-size:.75rem; font-weight:700; display:inline-flex; align-items:center; justify-content:center; }
+.reorder-item__name { flex:1; font-size:.92rem; font-weight:600; color:#16307f; min-width:0; overflow-wrap:anywhere; }
+.reorder-item__tag { font-size:.68rem; font-weight:700; background:#e3e7f1; color:#5d667f; padding:2px 8px; border-radius:20px; }
+.reorder-item__btns { display:inline-flex; gap:4px; }
+.reorder-btn { width:30px; height:30px; border:1px solid #d5dae6; background:#fff; border-radius:6px; cursor:pointer; color:#16307f; }
+.reorder-btn:hover { background:#eef2ff; }
+.reorder-btn:disabled { opacity:.35; cursor:default; }
+</style>
+
+<script>
+(function () {
+  var modal = document.getElementById('reorder-offices-modal');
+  var openBtn = document.getElementById('open-reorder-offices');
+  var list = document.getElementById('reorder-list');
+  if (!modal || !openBtn || !list) return;
+  var msg = document.getElementById('reorder-msg');
+  var saveBtn = document.getElementById('reorder-save');
+  var original = list.innerHTML;
+  var dragging = null;
+
+  function items() { return Array.prototype.slice.call(list.querySelectorAll('.reorder-item')); }
+  function renumber() {
+    var all = items();
+    all.forEach(function (li, i) {
+      li.querySelector('.reorder-item__pos').textContent = i + 1;
+      li.querySelector('[data-dir="-1"]').disabled = (i === 0);
+      li.querySelector('[data-dir="1"]').disabled = (i === all.length - 1);
+    });
+  }
+  function close() { modal.classList.remove('open'); }
+  function open() {
+    list.innerHTML = original;
+    msg.style.display = 'none';
+    renumber();
+    modal.classList.add('open');
+  }
+  openBtn.addEventListener('click', open);
+  document.getElementById('reorder-close').addEventListener('click', close);
+  document.getElementById('reorder-cancel').addEventListener('click', close);
+
+  list.addEventListener('dragstart', function (e) {
+    dragging = e.target.closest('.reorder-item');
+    if (!dragging) return;
+    dragging.classList.add('dragging');
+    if (e.dataTransfer) { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', dragging.dataset.officeId); }
+  });
+  list.addEventListener('dragend', function () {
+    if (dragging) dragging.classList.remove('dragging');
+    items().forEach(function (li) { li.classList.remove('drop-target'); });
+    dragging = null;
+    renumber();
+  });
+  list.addEventListener('dragover', function (e) {
+    e.preventDefault();
+    var target = e.target.closest('.reorder-item');
+    if (!target || !dragging || target === dragging) return;
+    var rect = target.getBoundingClientRect();
+    var before = (e.clientY - rect.top) < rect.height / 2;
+    list.insertBefore(dragging, before ? target : target.nextSibling);
+  });
+  list.addEventListener('drop', function (e) { e.preventDefault(); });
+
+  // Arrow buttons: same result without dragging (also works on touch screens).
+  list.addEventListener('click', function (e) {
+    var btn = e.target.closest('.reorder-btn');
+    if (!btn) return;
+    var li = btn.closest('.reorder-item');
+    var dir = parseInt(btn.dataset.dir, 10);
+    if (dir < 0 && li.previousElementSibling) list.insertBefore(li, li.previousElementSibling);
+    if (dir > 0 && li.nextElementSibling) list.insertBefore(li.nextElementSibling, li);
+    renumber();
+  });
+
+  function csrf() {
+    var el = modal.querySelector('input[name=csrfmiddlewaretoken]');
+    return el ? el.value : '';
+  }
+  function show(text, ok) {
+    msg.style.display = 'block';
+    msg.style.color = ok ? '#1d8a4a' : '#c0392b';
+    msg.textContent = text;
+  }
+  saveBtn.addEventListener('click', function () {
+    var ids = items().map(function (li) { return parseInt(li.dataset.officeId, 10); });
+    saveBtn.disabled = true;
+    fetch("{% url 'admin_dashboard:admin_offices_reorder' %}", {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+      body: JSON.stringify({ order: ids })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.ok) { show('Order saved.', true); setTimeout(function () { window.location.reload(); }, 500); }
+        else { show(d.error || 'Could not save the order.', false); saveBtn.disabled = false; }
+      })
+      .catch(function () { show('Could not save the order. Please try again.', false); saveBtn.disabled = false; });
+  });
+})();
+</script>
 
 <script src="super_admin.js"></script>
 

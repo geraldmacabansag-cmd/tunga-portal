@@ -1,0 +1,87 @@
+{% extends "super-admin-base.html" %}
+{% load static %}
+{% block body_page %}admin-messages{% endblock %}
+
+{% block page_title %}Messages{% endblock %}
+{% block page_subtitle %}Chat with the office representatives{% endblock %}
+{% block breadcrumbs %}<span class="current">Messages</span>{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/messages.css' %}">
+
+<div class="chat-layout{% if selected %} has-selected{% endif %}">
+
+  <aside class="chat-card chat-card--list">
+    <div class="chat-list__head">
+      <h2>Office Representatives</h2>
+      <p>Pick an office to open the conversation.</p>
+    </div>
+    <label class="chat-list__search"><i class="fa-solid fa-magnifying-glass"></i><input type="text" id="chatListSearch" placeholder="Search offices…" aria-label="Search offices"></label>
+    <div class="chat-list__items">
+      {% for c in conversations %}
+      <a href="{% url 'admin_dashboard:ad_messages' %}?rep={{ c.rep.id }}"
+         class="chat-conv{% if selected and selected.rep.id == c.rep.id %} is-active{% endif %}"
+         data-search="{{ c.office_name|lower }} {{ c.person|lower }}">
+        <span class="chat-conv__avatar"><i class="fa-solid fa-building"></i></span>
+        <span class="chat-conv__body">
+          <span class="chat-conv__name" style="display:block;">{{ c.office_name }}</span>
+          <span class="chat-conv__last" style="display:block;">{% if c.last_body %}{% if c.last_sender == 'admin' %}You: {% endif %}{{ c.last_body }}{% else %}{{ c.person }}{% endif %}</span>
+        </span>
+        <span class="chat-conv__meta">
+          {% if c.last_time %}<span class="chat-conv__time">{{ c.last_time|date:"M j" }}</span>{% endif %}
+          <span class="chat-conv__badge" data-conv-unread="{{ c.rep.id }}"{% if not c.unread %} hidden{% endif %}>{{ c.unread }}</span>
+        </span>
+      </a>
+      {% empty %}
+      <div class="chat-list__empty">No office representatives yet.</div>
+      {% endfor %}
+      {% if conversations %}<div class="chat-list__empty" id="chatListNone" hidden>No offices match your search.</div>{% endif %}
+    </div>
+  </aside>
+
+  {% if selected %}
+  <section class="chat-card chat-card--thread" id="chat"
+           data-mine="admin"
+           data-rep="{{ selected.rep.id }}"
+           data-data-url="{% url 'admin_dashboard:ad_messages_data' %}"
+           data-send-url="{% url 'admin_dashboard:ad_messages_send' %}">
+    {% csrf_token %}
+    <div class="chat-head">
+      <a href="{% url 'admin_dashboard:ad_messages' %}" class="chat-back" aria-label="Back to offices"><i class="fa-solid fa-arrow-left"></i></a>
+      <span class="chat-head__avatar"><i class="fa-solid fa-building"></i></span>
+      <div>
+        <div class="chat-head__title">{{ selected.office_name }}</div>
+        <div class="chat-head__sub">{{ selected.person }}{% if selected.rep.position %} &middot; {{ selected.rep.position }}{% endif %}</div>
+      </div>
+    </div>
+
+    <div class="chat-body" id="chatBody">
+      <div class="chat-empty" id="chatEmpty">
+        <i class="fa-regular fa-comments"></i>
+        No messages with {{ selected.office_name }} yet. Say hello below.
+      </div>
+    </div>
+
+    <div class="chat-error" id="chatError" hidden></div>
+    <form class="chat-form" id="chatForm" autocomplete="off">
+      <textarea id="chatInput" rows="1" maxlength="2000" placeholder="Write a message to {{ selected.office_name }}…" aria-label="Message"></textarea>
+      <button type="submit" class="chat-send" id="chatSend"><i class="fa-solid fa-paper-plane"></i> Send</button>
+    </form>
+  </section>
+  {% else %}
+  <section class="chat-card chat-card--thread">
+    <div class="chat-body">
+      <div class="chat-empty">
+        <i class="fa-regular fa-comments"></i>
+        Select an office on the left to read or start a conversation.
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/messages.js' %}"></script>
+{% endblock %}

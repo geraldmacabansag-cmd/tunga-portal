@@ -26,11 +26,11 @@
   <div class="container">
     <div class="panel services-offered-panel">
       <h2 class="section-title services-offered-title">Services Offered</h2>
-      <p class="services-offered-sub">Select a service to see who may avail, the requirements, the steps, fees and processing time.</p>
+      <p class="services-offered-sub">Select a service to see its description in the Services of the Office section below.</p>
 
       <div class="svc-grid">
         {% for s in services %}
-        <a href="#svc-{{ s.id }}" class="svc-card" data-svc="svc-{{ s.id }}" data-title="{{ s.name }}">
+        <a href="#services-section" class="svc-card" data-svc-goto="svc-{{ s.id }}" data-title="{{ s.name }}">
           <span class="svc-icon"><i class="{{ s.icon }}"></i></span>
           <h3>{{ s.name }}</h3>
           <p>{{ s.get_category_display }}</p>
@@ -67,37 +67,64 @@
       <a href="{% url 'announcement' %}" class="view-all announce-panel__viewall">View All Announcements <i class="fa-solid fa-arrow-right"></i></a>
     </div>
 
-    <div class="panel forms-panel" id="forms-panel">
+    <div class="panel announce-panel news-panel" id="news-panel">
       <div class="section-title--row">
-        <h2 class="section-title" style="margin:0;padding:0;">Downloadable Forms</h2>
+        <h2 class="section-title" style="margin:0;padding:0;">News and Updates</h2>
+        <a href="{% url 'announcement' %}#news" class="view-all">View All</a>
       </div>
-      <ul class="forms-list">
-        {% for f in forms %}
-        <li>
-          <i class="fa-regular fa-file-pdf"></i>
-          <div class="forms-list__title"><a href="{% url 'offices:view_pdf' f.pk %}" target="_blank" rel="noopener">{{ f.title }}</a><span>PDF</span></div>
-          <div class="forms-list__actions">
-            {% if f.is_fillable %}
-              {% if user.is_authenticated %}
-                <button type="button" class="btn btn-primary forms-list__dl js-fill-online" data-fill-url="{% url 'offices:fill_form' f.pk %}" data-fill-title="{{ f.title }}" title="Fill Out Online"><i class="fa-solid fa-pen"></i><span class="btn-label">Fill Out Online</span></button>
-              {% else %}
-                <a href="{% url 'login' %}?next={% url 'offices:fill_form' f.pk %}" class="btn btn-primary forms-list__dl" title="Fill Out Online"><i class="fa-solid fa-pen"></i><span class="btn-label">Fill Out Online</span></a>
-              {% endif %}
-            {% endif %}
-            <a href="{% url 'offices:view_pdf' f.pk %}?download=1" class="btn btn-outline forms-list__dl" title="Download"><i class="fa-solid fa-download"></i><span class="btn-label">Download</span></a>
+      <ul class="update-list">
+        {% for n in news_items %}
+        <li class="update-item">
+          <div class="update-item__date">{{ n.display_date|date:"M"|upper }}<strong>{{ n.display_date|date:"d" }}</strong>{{ n.display_date|date:"Y" }}</div>
+          <div class="update-item__body">
+            <a href="{% url 'announcement' %}?open_news={{ n.pk }}#news" class="update-item__title">{{ n.title }}</a>
+            <p>{{ n.summary|default:n.content|truncatechars:110 }}</p>
           </div>
         </li>
         {% empty %}
-        <li><div><span>No downloadable forms from this office yet.</span></div></li>
+        <li class="update-item"><div class="update-item__body"><p>No news from this office yet.</p></div></li>
         {% endfor %}
       </ul>
+      <a href="{% url 'announcement' %}#news" class="view-all announce-panel__viewall">View All News <i class="fa-solid fa-arrow-right"></i></a>
     </div>
 
   </div>
 </section>
 
+<section class="services-split-wrap" id="services-section">
+  <div class="container">
+    <div class="panel svc-split">
+      <div class="svc-split__head">
+        <h2 class="section-title svc-split__title">Services of the Office</h2>
+        <span class="svc-split__hint">Select a service to see its full details</span>
+      </div>
+
+      {% if services %}
+      <div class="svc-split__body">
+        <div class="svc-split__list" role="tablist" aria-label="Services of the office">
+          {% for s in services %}
+          <button type="button" class="svc-item" role="tab" aria-selected="false" data-svc-pick="svc-{{ s.id }}" data-title="{{ s.name }}" data-desc="{{ s.description }}">
+            <span class="svc-item__icon"><i class="{{ s.icon }}"></i></span>
+            <span class="svc-item__name">{{ s.name }}</span>
+            <i class="fa-solid fa-chevron-right svc-item__chev"></i>
+          </button>
+          {% endfor %}
+        </div>
+
+        <div class="svc-split__detail" id="svcDetail" role="tabpanel" aria-live="polite">
+          <h3 class="svc-detail__title" id="svcDetailTitle"></h3>
+          <div class="svc-detail__body" id="svcDetailBody"></div>
+        </div>
+      </div>
+      {% else %}
+      <p style="text-align:center;color:#8a92ab;padding:24px 0 8px;">This office hasn't published any services yet.</p>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
 <section class="mayor-mid-wrap">
-  <div class="container mayor-mid-grid">
+  <div class="container mayor-mid-grid" style="grid-template-columns:1fr;">
 
     <div class="panel gallery-panel" id="officeGalleryPanel">
       <div class="section-title--row">
@@ -121,19 +148,6 @@
       {% else %}
       <p style="color:#8a92ab;padding:8px 0 0;">No photos from this office yet.</p>
       {% endif %}
-    </div>
-
-    <div class="panel map-panel">
-      <div class="section-title--row">
-        <h2 class="section-title" style="margin:0;padding:0;">Interactive Map</h2>
-      </div>
-      <div class="map-box">
-        <img src="images/map-placeholder.svg" alt="Map near {{ office.name }}">
-        <div class="map-filter-card">
-          <strong>Location</strong>
-          <p style="margin:6px 0 0;font-size:.85rem;color:#5d667f;">{{ office.location|default:"Municipal Hall, Tunga, Leyte" }}</p>
-        </div>
-      </div>
     </div>
 
   </div>
@@ -232,21 +246,6 @@
   </div>
 </section>
 
-
-<!-- Service preview: floating modal, one per published service, in the
-     same "Citizen's Charter" style as the office rep's own Preview modal
-     and the Super Admin's service page. Rendered server-side (no JS
-     building of the HTML) — the script below just opens/closes the right
-     <dialog> for the card that was clicked. -->
-<dialog id="svcDialog" aria-labelledby="dlgTitle" class="svc-dialog charter-modal">
-  <div class="svc-dlg">
-    <div class="svc-dlg-head">
-      <div><small>{{ office.name }}</small><h2 id="dlgTitle"></h2></div>
-      <button type="button" class="svc-dlg-close" id="dlgClose" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-    <div class="svc-dlg-body" id="dlgBody"></div>
-  </div>
-</dialog>
 
 <!-- "Fill Out Online" popup: fetches the form-fill fragment for the clicked
      form via AJAX and injects it here, so the citizen never leaves this
@@ -361,6 +360,52 @@
 .svc-card i { font-size: 1.3rem; color: #0a1f6b; }
 .svc-card h3 { font-size: .95rem; font-weight: 700; color: #0a1f6b; margin: 0 0 6px; line-height: 1.35; }
 .svc-card p { font-size: .85rem; color: #8a92ab; margin: 0; }
+
+/* ---- Services of the Office: service list (left) + details table (right) ---- */
+.svc-split { padding: 28px 30px 30px; background: #fff; }
+.svc-split__head { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px 20px; padding-bottom: 18px; border-bottom: 1px solid #e3e7f1; }
+.svc-split__title { margin: 0; padding: 0; }
+.svc-split__hint { color: #5d667f; font-size: .85rem; }
+.svc-split__body { display: grid; grid-template-columns: minmax(240px, 340px) minmax(0, 1fr); gap: 24px; margin-top: 22px; align-items: start; }
+.svc-split__list { display: flex; flex-direction: column; gap: 10px; }
+.svc-item { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; padding: 14px 16px; background: #fff; border: 1px solid #e3e7f1; border-radius: 10px; cursor: pointer; font: inherit; color: #0a1f6b; transition: background-color .15s, border-color .15s, color .15s, box-shadow .15s; }
+.svc-item:hover { border-color: #c7d2fe; box-shadow: 0 4px 12px rgba(10,31,107,.08); }
+.svc-item__icon { flex: 0 0 auto; width: 42px; height: 42px; border-radius: 8px; background: #e9edfb; display: flex; align-items: center; justify-content: center; }
+.svc-item__icon i { font-size: 1.05rem; color: #0a1f6b; }
+.svc-item__name { flex: 1; min-width: 0; font-size: .95rem; font-weight: 700; line-height: 1.35; overflow-wrap: anywhere; }
+.svc-item__chev { flex: 0 0 auto; font-size: .8rem; color: #8a92ab; }
+.svc-item.is-active { background: #0a1f6b; border-color: #0a1f6b; color: #fff; box-shadow: 0 6px 16px rgba(10,31,107,.25); }
+.svc-item.is-active .svc-item__icon { background: rgba(255,255,255,.14); }
+.svc-item.is-active .svc-item__icon i { color: #e5b524; }
+.svc-item.is-active .svc-item__chev { color: #e5b524; }
+.svc-item:focus-visible { outline: 2px solid #e5b524; outline-offset: 2px; }
+
+.svc-split__detail { min-width: 0; border: 1px solid #e3e7f1; border-top: 3px solid #0a1f6b; border-radius: 10px; padding: 24px 26px; overflow-x: auto; }
+.svc-detail__title { margin: 0 0 14px; font-size: 1.35rem; line-height: 1.3; color: #0a1f6b; }
+.svc-detail__body > :last-child { margin-bottom: 0; }
+.svc-detail__desc { margin: 0 0 20px; font-size: .98rem; line-height: 1.65; color: #2b3350; white-space: pre-line; overflow-wrap: anywhere; }
+.svc-detail__desc.is-empty { color: #8a92ab; font-style: italic; }
+.svc-detail__more { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border: 0; border-radius: 8px; background: #0a1f6b; color: #fff; font: inherit; font-weight: 700; font-size: .9rem; cursor: pointer; transition: background-color .15s, transform .15s; }
+.svc-detail__more i { color: #e5b524; }
+.svc-detail__full { margin-top: 18px; }
+.svc-detail__back { background: #fff; color: #0a1f6b; border: 1px solid #0a1f6b; }
+.svc-detail__back i { color: #0a1f6b; }
+.svc-detail__back:hover { background: #e9edfb; }
+.svc-detail__more:hover { background: #12308f; transform: translateY(-1px); }
+.svc-detail__more:focus-visible { outline: 2px solid #e5b524; outline-offset: 2px; }
+
+@media (max-width: 860px) {
+  .svc-split { padding: 20px 16px 22px; }
+  .svc-split__body { grid-template-columns: 1fr; gap: 18px; }
+  .svc-split__detail { padding: 18px 14px; }
+  .svc-detail__title { font-size: 1.15rem; }
+}
+@media (max-width: 600px) {
+  /* Only the wide 5-column steps table scrolls sideways; the others fit. */
+  .svc-detail__body .charter-table:has(th:nth-child(5)) { min-width: 540px; }
+  .svc-detail__body .charter-info-table th { width: 42%; }
+  .svc-detail__body .charter-table th, .svc-detail__body .charter-table td { padding: 6px 8px; }
+}
 
 .svc-dialog {
   border: none; border-radius: 14px; padding: 0; max-width: 640px; width: 92%; max-height: 82vh;
@@ -512,7 +557,8 @@
 }
 /* ---- Office Gallery panel: View All link, 4 visible images, expandable ---- */
 /* Images scale with the panel instead of a fixed 140px height. */
-.gallery-panel .gallery-quad { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+.gallery-panel .gallery-quad { grid-template-columns: repeat(4, 1fr); gap: 14px; }
+@media (max-width: 860px) { .gallery-panel .gallery-quad { grid-template-columns: repeat(2, 1fr); } }
 .gallery-panel .gallery-quad img {
   display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover;
 }
@@ -533,35 +579,100 @@
 </style>
 
 <script>
+// Services of the Office (the list + details section below the news row):
+// pick a service on the left, its Citizen's Charter tables show on the right.
+// Shows the service description; "View Full Details" swaps it, in the same
+// spot, for the full charter tables (with a Back to Description button).
 (function () {
-  var dlg = document.getElementById('svcDialog');
-  var title = document.getElementById('dlgTitle');
-  var body = document.getElementById('dlgBody');
-  function openSvc(id, push) {
-    var t = document.getElementById('tpl-' + id);
-    var card = document.querySelector('[data-svc="' + id + '"]');
-    if (!t || !card) return;
-    title.textContent = card.getAttribute('data-title');
-    body.innerHTML = '';
-    body.appendChild(t.content.cloneNode(true));
-    body.scrollTop = 0;
-    if (!dlg.open) dlg.showModal();
-    document.body.classList.add('lock');
+  var items = Array.prototype.slice.call(document.querySelectorAll('.svc-item'));
+  var detail = document.getElementById('svcDetail');
+  var detailTitle = document.getElementById('svcDetailTitle');
+  var detailBody = document.getElementById('svcDetailBody');
+  if (!items.length || !detail) return;
+
+  // Default view: just the description + a "View Full Details" button.
+  function renderSummary(id) {
+    var item = document.querySelector('.svc-item[data-svc-pick="' + id + '"]');
+    var desc = (item.getAttribute('data-desc') || '').trim();
+    detailBody.innerHTML = '';
+    var p = document.createElement('p');
+    p.className = 'svc-detail__desc' + (desc ? '' : ' is-empty');
+    p.textContent = desc || 'No description has been provided for this service yet.';
+    detailBody.appendChild(p);
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'svc-detail__more';
+    btn.innerHTML = '<i class="fa-solid fa-table-list"></i> View Full Details';
+    btn.addEventListener('click', function () { renderFull(id); });
+    detailBody.appendChild(btn);
+  }
+
+  // Full view: the charter tables replace the description in the same spot.
+  function renderFull(id) {
+    var tpl = document.getElementById('tpl-' + id);
+    if (!tpl) return;
+    detailBody.innerHTML = '';
+    var back = document.createElement('button');
+    back.type = 'button';
+    back.className = 'svc-detail__more svc-detail__back';
+    back.innerHTML = '<i class="fa-solid fa-arrow-left"></i> Back to Description';
+    back.addEventListener('click', function () { renderSummary(id); });
+    detailBody.appendChild(back);
+    var wrap = document.createElement('div');
+    wrap.className = 'svc-detail__full';
+    wrap.appendChild(tpl.content.cloneNode(true));
+    detailBody.appendChild(wrap);
+    detailTitle.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function select(id, scroll) {
+    var item = document.querySelector('.svc-item[data-svc-pick="' + id + '"]');
+    if (!item) return;
+    items.forEach(function (b) {
+      var on = (b === item);
+      b.classList.toggle('is-active', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    detailTitle.textContent = item.getAttribute('data-title') || '';
+    renderSummary(id);
+    // On narrow screens the details sit under the list, so bring them into view.
+    if (scroll && window.matchMedia('(max-width: 860px)').matches) {
+      detail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  items.forEach(function (b) {
+    b.addEventListener('click', function () { select(b.getAttribute('data-svc-pick'), true); });
+  });
+  // Clicking a card in "Services Offered" jumps to the Services of the Office
+  // section and shows that service's description there (no pop-up).
+  function goTo(id, push) {
+    select(id, false);
+    var sec = document.getElementById('services-section');
+    if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
     if (push) { try { history.replaceState(null, '', '#' + id); } catch (e) {} }
   }
-  document.querySelectorAll('[data-svc]').forEach(function (b) {
-    b.addEventListener('click', function (e) { e.preventDefault(); openSvc(b.getAttribute('data-svc'), true); });
+  document.querySelectorAll('[data-svc-goto]').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      e.preventDefault();
+      goTo(a.getAttribute('data-svc-goto'), true);
+    });
   });
-  function closeDlg() { if (dlg.open) dlg.close(); }
-  document.getElementById('dlgClose').addEventListener('click', closeDlg);
-  dlg.addEventListener('click', function (e) { if (e.target === dlg) closeDlg(); });
-  dlg.addEventListener('close', function () {
-    document.body.classList.remove('lock');
-    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
-  });
-  if (location.hash.indexOf('#svc-') === 0) openSvc(location.hash.slice(1), false);
-})();
 
+  var startId = (location.hash.indexOf('#svc-') === 0) ? location.hash.slice(1) : '';
+  if (startId && document.querySelector('.svc-item[data-svc-pick="' + startId + '"]')) {
+    select(startId, false);
+    window.addEventListener('load', function () {
+      var sec = document.getElementById('services-section');
+      if (sec) sec.scrollIntoView({ block: 'start' });
+    });
+  } else {
+    select(items[0].getAttribute('data-svc-pick'), false);
+  }
+})();
+</script>
+
+<script>
 // "Fill Out Online" popup: fetches the PDF-overlay fill fragment for the
 // clicked form via AJAX and injects it into fillDialog. Injected <script>
 // tags don't auto-run when set via innerHTML, so we explicitly recreate

@@ -1,4 +1,4 @@
-{% load static %}
+{% load static message_tags %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,6 +7,7 @@
 <title>{% block page_title_tag %}Dashboard{% endblock %} · Super Admin · Municipality of Tunga</title>
 <link rel="stylesheet" href="{% static 'css/super_admin_style.css' %}">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="icon" type="image/png" href="{% static 'images/tunga_leyte_logo.png' %}">
 </head>
 <body data-page="{% block body_page %}dashboard{% endblock %}" data-logout-url="{% url 'logout' %}" data-account-url="{% url 'admin_dashboard:admin_account' %}" data-changepass-url="{% url 'admin_dashboard:admin_change_pass' %}">
 <script>
@@ -26,9 +27,9 @@
   .admin-sidebar-preload-collapsed #sidebar{width:0;padding-left:0;padding-right:0;opacity:0;overflow:hidden;}
 </style>
 <div class="app-shell">
-  <aside class="sidebar" id="sidebar">
+  <aside class="sidebar sidebar--sa" id="sidebar">
     <div class="sidebar-brand">
-      <span class="seal"><i class="fa-solid fa-landmark"></i></span>
+      <img src="{% static 'images/tunga_leyte_logo.png' %}" alt="Municipality of Tunga" class="sidebar-logo">
       <div class="sidebar-brand-text">
         <div class="muni">Municipality of</div>
         <div class="name">TUNGA</div>
@@ -41,6 +42,9 @@
       <li class="nav-item{% if request.path == dash_url %} active{% endif %}"><a href="{{ dash_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-house"></i></span> Dashboard</a></li>
       {% url 'admin_dashboard:approval_center' as approval_url %}
       <li class="nav-item{% if request.path == approval_url %} active{% endif %}"><a href="{{ approval_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-square-check"></i></span> Approval Center</a> <span class="badge">18</span></li>
+      {% url 'admin_dashboard:ad_messages' as messages_url %}
+      {% unread_messages request as msg_unread %}
+      <li class="nav-item{% if request.path == messages_url %} active{% endif %}"><a href="{{ messages_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-comments"></i></span> Messages{% if msg_unread > 0 %}<span class="badge badge--msg">{{ msg_unread }}</span>{% endif %}</a></li>
       {% url 'admin_dashboard:ad_archive' as archive_url %}
       <li class="nav-item{% if request.path == archive_url %} active{% endif %}"><a href="{{ archive_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-box-archive"></i></span> Archive</a></li>
     </ul>
@@ -52,11 +56,11 @@
       {% url 'admin_dashboard:ad_news_update' as news_url %}
       <li class="nav-item{% if request.path == news_url %} active{% endif %}"><a href="{{ news_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-newspaper"></i></span> News &amp; Updates</a></li>
       {% url 'admin_dashboard:ad_events' as events_url %}
-      <li class="nav-item{% if request.path == events_url %} active{% endif %}"><a href="{{ events_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-regular fa-calendar"></i></span> Events</a></li>
+      <li class="nav-item{% if request.path == events_url %} active{% endif %}"><a href="{{ events_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-calendar-days"></i></span> Events</a></li>
       {% url 'admin_dashboard:ad_forms' as forms_url %}
       <li class="nav-item{% if request.path == forms_url %} active{% endif %}"><a href="{{ forms_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-file-arrow-down"></i></span> Downloadable Forms</a></li>
       {% url 'admin_dashboard:ad_gallery' as gallery_url %}
-      <li class="nav-item{% if request.path == gallery_url %} active{% endif %}"><a href="{{ gallery_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-regular fa-images"></i></span> Gallery</a></li>
+      <li class="nav-item{% if request.path == gallery_url %} active{% endif %}"><a href="{{ gallery_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-images"></i></span> Gallery</a></li>
     </ul>
 
     <ul>
@@ -64,7 +68,7 @@
       {% url 'admin_dashboard:ad_offices' as offices_url %}
       <li class="nav-item{% if request.path == offices_url %} active{% endif %}"><a href="{{ offices_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-building"></i></span> Offices</a></li>
       {% url 'admin_dashboard:ad_office_rep' as office_rep_url %}
-      <li class="nav-item{% if request.path == office_rep_url %} active{% endif %}"><a href="{{ office_rep_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-regular fa-address-book"></i></span> Office Representatives</a></li>
+      <li class="nav-item{% if request.path == office_rep_url %} active{% endif %}"><a href="{{ office_rep_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-address-book"></i></span> Office Representatives</a></li>
       {% url 'admin_dashboard:ad_services' as services_url %}
       <li class="nav-item{% if request.path == services_url %} active{% endif %}"><a href="{{ services_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-list-check"></i></span> Services</a></li>
     </ul>
@@ -82,7 +86,7 @@
       {% url 'admin_dashboard:ad_homepage' as homepage_url %}
       <li class="nav-item{% if request.path == homepage_url %} active{% endif %}"><a href="{{ homepage_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-globe"></i></span> Homepage</a></li>
       {% url 'admin_dashboard:ad_about_page' as about_page_url %}
-      <li class="nav-item{% if request.path == about_page_url %} active{% endif %}"><a href="{{ about_page_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-regular fa-file-lines"></i></span> About Us Page</a></li>
+      <li class="nav-item{% if request.path == about_page_url %} active{% endif %}"><a href="{{ about_page_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-file-lines"></i></span> About Us Page</a></li>
       {% url 'admin_dashboard:ad_map' as map_url %}
       <li class="nav-item{% if request.path == map_url %} active{% endif %}"><a href="{{ map_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-map-location-dot"></i></span> Interactive Map</a></li>
       {% url 'admin_dashboard:ad_emergency_contact' as emergency_url %}
@@ -94,7 +98,7 @@
     <ul>
       <li class="nav-section-title">Account</li>
       {% url 'admin_dashboard:admin_account' as admin_account_url %}
-      <li class="nav-item{% if request.path == admin_account_url %} active{% endif %}"><a href="{{ admin_account_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-regular fa-user"></i></span> My Account</a></li>
+      <li class="nav-item{% if request.path == admin_account_url %} active{% endif %}"><a href="{{ admin_account_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-user"></i></span> My Account</a></li>
       {% url 'admin_dashboard:admin_change_pass' as admin_changepass_url %}
       <li class="nav-item{% if request.path == admin_changepass_url %} active{% endif %}"><a href="{{ admin_changepass_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-lock"></i></span> Change Password</a></li>
     </ul>
@@ -116,6 +120,7 @@
 
     <div class="sidebar-footer">
       <a href="{% url 'logout' %}" class="sidebar-logout" style="color:inherit;text-decoration:none;"><i class="fa-solid fa-arrow-right-from-bracket"></i> Log Out</a>
+      <div class="sidebar-copy">&copy; 2026 Municipality of Tunga, Leyte.<br>All rights reserved.</div>
     </div>
   </aside>
   <script>

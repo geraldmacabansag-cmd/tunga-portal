@@ -592,3 +592,38 @@ def log_activity(rep, title, description="", category="content", icon="fa-solid 
         icon=icon,
         icon_color=icon_color,
     )
+
+
+class Message(models.Model):
+    """One chat message between an Office Representative and the Super Admin.
+
+    Each representative has exactly one conversation with the Super Admin,
+    so the conversation is simply "all messages for this representative".
+    read_at is set when the *recipient* opens it (a rep's messages are read by
+    the Super Admin, the Super Admin's messages are read by the rep)."""
+
+    SENDER_REP = "rep"
+    SENDER_ADMIN = "admin"
+    SENDER_CHOICES = [
+        (SENDER_REP, "Office Representative"),
+        (SENDER_ADMIN, "Super Admin"),
+    ]
+
+    representative = models.ForeignKey(
+        OfficeRepresentative,
+        on_delete=models.CASCADE,
+        related_name="chat_messages",
+    )
+    sender = models.CharField(max_length=10, choices=SENDER_CHOICES)
+    body = models.TextField(max_length=2000)
+    created_at = models.DateTimeField(auto_now_add=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["created_at", "id"]
+        indexes = [
+            models.Index(fields=["representative", "id"], name="msg_rep_id_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.get_sender_display()} -> {self.representative.office}: {self.body[:40]}"

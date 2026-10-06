@@ -67,7 +67,7 @@ Home | Digital Governance Portal
           <div class="feed-item__body">
             {% if forloop.first %}<span class="badge-new">NEW</span>{% endif %}
             <a href="{% url 'announcement' %}" class="feed-item__title">{{ a.title }}</a>
-            <p>{{ a.content|truncatewords:24 }}</p>
+            <p class="feed-item__desc">{{ a.content|truncatewords:18 }}</p>
           </div>
         </li>
         {% empty %}
@@ -79,7 +79,7 @@ Home | Digital Governance Portal
     <div class="panel feed-panel">
       <div class="section-title--row">
         <h2 class="section-title" style="margin-bottom:0;padding-bottom:0;">Upcoming Events</h2>
-        <a href="announcements.html" class="view-all">View All</a>
+        <a href="{% url 'announcement' %}#events" class="view-all">View All</a>
       </div>
       <div class="event-highlight">
         {% if upcoming_event %}
@@ -88,6 +88,7 @@ Home | Digital Governance Portal
           <div>
             <p class="event-highlight__title">{{ upcoming_event.title }}</p>
             <p class="event-highlight__meta"><i class="fa-regular fa-clock"></i> {{ upcoming_event.start_time|time:"g:i A"|default:"TBA" }} &nbsp; <i class="fa-solid fa-location-dot"></i> {{ upcoming_event.location|default:"—" }}</p>
+            {% if upcoming_event.description %}<p class="event-highlight__desc">{{ upcoming_event.description|truncatewords:18 }}</p>{% endif %}
           </div>
         </div>
         {% if upcoming_event.poster %}<img src="{{ upcoming_event.poster.url }}" alt="{{ upcoming_event.title }}" class="event-highlight__img">{% endif %}
@@ -100,7 +101,7 @@ Home | Digital Governance Portal
     <div class="panel feed-panel">
       <div class="section-title--row">
         <h2 class="section-title" style="margin-bottom:0;padding-bottom:0;">News</h2>
-        <a href="announcements.html" class="view-all">View All</a>
+        <a href="{% url 'announcement' %}#news" class="view-all">View All</a>
       </div>
       <div class="news-item">
         {% if latest_news %}
@@ -108,7 +109,7 @@ Home | Digital Governance Portal
         <div>
           <p class="news-item__date">Published on: {{ latest_news.date_published|default:latest_news.created_at|date:"F j, Y" }}</p>
           <a href="{% url 'announcement' %}" class="news-item__title">{{ latest_news.title }}</a>
-          <p class="news-item__excerpt">{{ latest_news.summary|default:latest_news.content|truncatewords:35 }}</p>
+          <p class="news-item__excerpt">{{ latest_news.summary|default:latest_news.content|truncatewords:22 }}</p>
         </div>
         {% else %}
         <p style="padding:12px 0;color:var(--gray-500,#6b7286);">No news posted yet.</p>
@@ -130,7 +131,18 @@ Home | Digital Governance Portal
       <button class="gallery-nav gallery-nav--prev" aria-label="Previous photos"><i class="fa-solid fa-arrow-left"></i></button>
       <div class="gallery-strip__track">
         {% for p in gallery_photos %}
-        <img src="{{ p.image.url }}" alt="{{ p.title }}" loading="lazy">
+        <a href="{{ p.image.url }}" target="_blank" rel="noopener" class="home-gallery-item js-gallery-open"
+           data-image="{{ p.image.url }}"
+           data-title="{{ p.title }}"
+           data-office="{{ p.representative.office.name|default:'LGU Super Admin' }}"
+           data-category="{{ p.category }}"
+           data-date="{{ p.created_at|date:'F j, Y' }}">
+          <img src="{{ p.image.url }}" alt="{{ p.title }}" loading="lazy">
+          <div class="gallery-item__overlay">
+            <span class="gallery-item__title">{{ p.title }}</span>
+            <span class="gallery-item__meta">{{ p.representative.office.name|default:"LGU Super Admin" }}</span>
+          </div>
+        </a>
         {% endfor %}
       </div>
       <button class="gallery-nav gallery-nav--next" aria-label="Next photos"><i class="fa-solid fa-arrow-right"></i></button>
@@ -140,5 +152,62 @@ Home | Digital Governance Portal
     {% endif %}
   </div>
 </section>
+
+{% if gallery_photos %}
+<!-- Same lightbox as the Gallery page: full-size photo with its details on the lower-left. -->
+<dialog id="galleryLightbox" class="gallery-lightbox" aria-labelledby="galleryLightboxTitle">
+  <div class="gallery-lightbox__box">
+    <button type="button" class="gallery-lightbox__close" id="galleryLightboxClose" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    <img id="galleryLightboxImg" src="" alt="">
+    <div class="gallery-lightbox__caption">
+      <span class="gallery-lightbox__title" id="galleryLightboxTitle"></span>
+      <span class="gallery-lightbox__meta" id="galleryLightboxMeta"></span>
+    </div>
+  </div>
+</dialog>
+
+<script>
+(function () {
+  var lightbox = document.getElementById('galleryLightbox');
+  var lightboxImg = document.getElementById('galleryLightboxImg');
+  var lightboxTitle = document.getElementById('galleryLightboxTitle');
+  var lightboxMeta = document.getElementById('galleryLightboxMeta');
+  var closeBtn = document.getElementById('galleryLightboxClose');
+  if (!lightbox) return;
+
+  function openLightbox(trigger) {
+    var d = trigger.dataset;
+    lightboxImg.src = d.image;
+    lightboxImg.alt = d.title || '';
+    lightboxTitle.textContent = d.title || '';
+    var metaParts = [];
+    if (d.office) metaParts.push(d.office);
+    if (d.category) metaParts.push(d.category);
+    if (d.date) metaParts.push(d.date);
+    lightboxMeta.textContent = metaParts.join(' \u2022 ');
+    lightbox.showModal();
+    document.body.classList.add('lock');
+  }
+  function closeLightbox() {
+    lightbox.close();
+    document.body.classList.remove('lock');
+  }
+
+  document.addEventListener('click', function (e) {
+    var trigger = e.target.closest('.js-gallery-open');
+    if (!trigger) return;
+    e.preventDefault();
+    openLightbox(trigger);
+  });
+  closeBtn.addEventListener('click', closeLightbox);
+  lightbox.addEventListener('click', function (e) {
+    if (e.target === lightbox) closeLightbox();
+  });
+  lightbox.addEventListener('close', function () {
+    document.body.classList.remove('lock');
+  });
+})();
+</script>
+{% endif %}
 
 {% endblock %}

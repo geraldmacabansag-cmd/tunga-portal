@@ -153,6 +153,7 @@ def home(request):
 
     gallery_photos = list(
         Photo.objects.filter(status='published')
+        .select_related('representative__office')
         .order_by('-created_at')[:16]
     )
 
@@ -269,6 +270,14 @@ def announcement(request):
     news_page_obj = news_paginator.get_page(request.GET.get('news_page'))
     news_grid_items = news_page_obj.object_list
 
+    # "All Updates" tab: its News rows open the same modal as the News tab.
+    # Use the 5 newest (already annotated above) and work out which of them
+    # have no <template> yet on the page (the News tab only renders the
+    # featured stories + the current grid page), so those get one of their own.
+    news_items = all_news[:5]
+    _covered_news_ids = {n.id for n in featured_news} | {n.id for n in news_grid_items}
+    news_items_extra = [n for n in news_items if n.id not in _covered_news_ids]
+
     # For the "Events" tab — the Super Admin can mark a specific event as
     # "Featured" (Event.is_featured) so it becomes the big "Featured Event"
     # hero regardless of where it falls in the date order. If none is marked
@@ -375,12 +384,13 @@ def announcement(request):
         if office.id in seen_office_ids:
             continue
         seen_office_ids.add(office.id)
-        icon, color, _ = get_office_card_style(office)
+        icon, color, icon_image = get_office_card_style(office)
         office_url = reverse('offices:office_detail', args=[office.slug])
         office_updates.append({
             "office": office,
             "url": office_url,
             "icon": icon,
+            "icon_image": icon_image,
             "color": color,
             "latest_title": a.title,
             "latest_time": a.created_at,
@@ -402,7 +412,7 @@ def announcement(request):
         Office.objects.exclude(slug='lgu-super-admin')
         .filter(is_visible=True, representative__isnull=False, representative__user__is_active=True)
         .select_related('representative__user')
-        .order_by('name')
+        .order_by('display_order', 'name')
     )
     for office in active_offices:
         icon, color, _ = get_office_card_style(office)
@@ -428,6 +438,7 @@ def announcement(request):
     return render(request, "portal/announcements.html", {
         "announcements": announcements,
         "news_items": news_items,
+        "news_items_extra": news_items_extra,
         "all_announcements": all_announcements,
         "announcement_categories": announcement_categories,
         "pinned_announcement": pinned_announcement,
@@ -546,6 +557,20 @@ def gallery(request):
     if current_album:
         photos_qs = photos_qs.filter(album_id=current_album)
 
+    # Sort order: by date created or date modified, newest or oldest first.
+    # "-id"/"id" is a tie-breaker so the order (and pagination) stays stable.
+    SORT_OPTIONS = {
+        "created_desc": ("Date created (newest first)", ("-created_at", "-id")),
+        "created_asc": ("Date created (oldest first)", ("created_at", "id")),
+        "modified_desc": ("Date modified (latest first)", ("-last_updated", "-id")),
+        "modified_asc": ("Date modified (oldest first)", ("last_updated", "id")),
+    }
+    current_sort = request.GET.get('sort', '').strip()
+    if current_sort not in SORT_OPTIONS:
+        current_sort = "created_desc"
+    photos_qs = photos_qs.order_by(*SORT_OPTIONS[current_sort][1])
+    sort_qs = "" if current_sort == "created_desc" else f"&sort={current_sort}"
+
     paginator = Paginator(photos_qs, 16)
     page_obj = paginator.get_page(request.GET.get('page'))
 
@@ -569,6 +594,9 @@ def gallery(request):
         "current_category": current_category,
         "current_album": current_album,
         "featured_albums": featured_albums,
+        "sort_options": [(k, v[0]) for k, v in SORT_OPTIONS.items()],
+        "current_sort": current_sort,
+        "sort_qs": sort_qs,
     })
 
 
@@ -577,7 +605,7 @@ def offices(request):
         Office.objects
         .exclude(slug="lgu-super-admin")
         .filter(is_visible=True)
-        .order_by("name")
+        .order_by("display_order", "name")
     )
     for office in office_list:
         icon, color, icon_image = get_office_card_style(office)
@@ -618,10 +646,25 @@ def contact(request):
         Office.objects.exclude(slug="lgu-super-admin")
         .filter(is_visible=True)
         .exclude(email="")
-        .order_by("name")
+        .order_by("display_order", "name")
     )
+    # Office Directory panel: real data from each office's profile. Only
+    # offices that actually filled in a phone number and/or email are listed.
+    directory_offices = list(
+        Office.objects.exclude(slug="lgu-super-admin")
+        .filter(is_visible=True)
+        .filter(Q(email__gt="") | Q(telephone__gt=""))
+        .order_by("display_order", "name")
+    )
+    for office in directory_offices:
+        icon, color, icon_image = get_office_card_style(office)
+        office.card_icon = icon
+        office.card_color = color
+        office.card_image = icon_image
+
     return render(request, "portal/contactus.html", {
         "offices_for_contact": offices_for_contact,
+        "directory_offices": directory_offices,
     })
 
 def signup(request):

@@ -24,7 +24,7 @@ Home | Digital Governance Portal
       {% if about_content.vision_text %}
       <div class="vmv-col js-vmv-col">
         <div class="vmv-col__head js-vmv-toggle">
-          <span class="vmv-icon"><i class="fa-solid fa-binoculars"></i></span>
+          <span class="vmv-icon"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" d="M3.500 24C8 15.500 15 11.500 24 11.500S40 15.500 44.500 24C40 32.500 33 36.500 24 36.500S8 32.500 3.500 24z"/><ellipse cx="24" cy="24" rx="5" ry="6.500" fill="currentColor"/></svg></span>
           <h3>Our Vision</h3>
           <i class="fa-solid fa-chevron-down vmv-col__chevron"></i>
         </div>
@@ -36,7 +36,7 @@ Home | Digital Governance Portal
       {% if about_content.mission_text %}
       <div class="vmv-col js-vmv-col">
         <div class="vmv-col__head js-vmv-toggle">
-          <span class="vmv-icon"><i class="fa-solid fa-bullseye"></i></span>
+          <span class="vmv-icon"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="23" cy="25" r="16" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="23" cy="25" r="8.500" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="23" cy="25" r="2.800" fill="currentColor"/><path fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" d="M24 24l15-15"/><path fill="currentColor" d="M36 3l1.200 7 7 1.200 3.800-3.800-5-1.200-1.200-5z"/></svg></span>
           <h3>Our Mission</h3>
           <i class="fa-solid fa-chevron-down vmv-col__chevron"></i>
         </div>
@@ -48,7 +48,7 @@ Home | Digital Governance Portal
       {% if core_values %}
       <div class="vmv-col js-vmv-col">
         <div class="vmv-col__head js-vmv-toggle">
-          <span class="vmv-icon"><i class="fa-solid fa-gem"></i></span>
+          <span class="vmv-icon"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="currentColor" d="M24 19.500c-1.500-2.800-6.200-2.600-6.800 1-.5 3 3 5.800 6.800 8 3.800-2.200 7.300-5 6.800-8-.6-3.600-5.300-3.800-6.800-1z" transform="translate(-9.600 -16) scale(1.400)"/><path fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" d="M5 22v10c0 5 3 8 8 9l9 2M43 22v10c0 5-3 8-8 9l-9 2M5 22l5 2.500v8M43 22l-5 2.500v8M22 43V33l-5-4M26 43V33l5-4"/></svg></span>
           <h3>Our Core Values</h3>
           <i class="fa-solid fa-chevron-down vmv-col__chevron"></i>
         </div>
@@ -164,33 +164,32 @@ Home | Digital Governance Portal
 <section class="glance-wrap">
   <div class="container">
     <div class="panel glance-panel">
-      <h2 class="section-title">The Municipality at a Glance</h2>
       <div class="glance-grid">
         {% if about_content.glance_population_value %}
         <div class="glance-item">
-          <i class="fa-solid fa-hand-holding-heart"></i>
+          <span class="glance-item__icon"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="14" r="6.5"/><path d="M12.5 40c0-7 4.8-12 11.5-12s11.5 5 11.5 12z"/><circle cx="10.5" cy="19" r="5"/><path d="M1.5 38c0-5.4 3-9.5 8-9.5 1.6 0 3 .4 4.200 1.100-2.200 2.300-3.400 5.300-3.400 8.400z"/><circle cx="37.5" cy="19" r="5"/><path d="M46.500 38c0-5.400-3-9.500-8-9.500-1.600 0-3 .4-4.200 1.100 2.200 2.300 3.400 5.300 3.400 8.400z"/></svg></span>
           <div><strong>{{ about_content.glance_population_value }}</strong><span>{{ about_content.glance_population_label }}</span></div>
         </div>
         {% endif %}
         {% if about_content.glance_land_area_value %}
         <div class="glance-item">
-          <i class="fa-solid fa-map-location-dot"></i>
+          <span class="glance-item__icon"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M3 17l11-4 11 4 12-4.500v26L25 43.500 14 39.500 3 43.500z"/><path d="M26 3c-4.600 0-8.300 3.600-8.300 8 0 5.800 8.300 14 8.300 14s8.300-8.200 8.300-14c0-4.400-3.700-8-8.300-8z" stroke="#f1f3f9" stroke-width="2.200"/><circle cx="26" cy="11.200" r="3.200" fill="#f1f3f9"/></svg></span>
           <div><strong>{{ about_content.glance_land_area_value }}</strong><span>{{ about_content.glance_land_area_label }}</span></div>
         </div>
         {% endif %}
         <div class="glance-item">
-          <i class="fa-solid fa-church"></i>
+          <span class="glance-item__icon"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill-rule="evenodd" d="M24 4L2.500 22.500h6V42h31V22.500h6zM15 25h6.500v6.500H15zm11.500 0H33v6.500h-6.500zM21 42v-7.500h6V42z"/></svg></span>
           <div><strong>{{ barangays_total }}</strong><span>Barangays</span></div>
         </div>
         {% if about_content.glance_households_value %}
         <div class="glance-item">
-          <i class="fa-solid fa-house-chimney"></i>
+          <span class="glance-item__icon"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill-rule="evenodd" d="M24 3L2 22h6.500v21h31V22H46zM24 22.500a3.300 3.300 0 1 1 0 6.600 3.300 3.300 0 0 1 0-6.600zm-7.500 3.500a2.700 2.700 0 1 1 0 5.400 2.700 2.700 0 0 1 0-5.400zm15 0a2.700 2.700 0 1 1 0 5.400 2.700 2.700 0 0 1 0-5.400zM18 41v-5.500a6 6 0 0 1 12 0V41zm-8.500 0v-4a4.500 4.500 0 0 1 6-4.200A8 8 0 0 0 14 38v3zm29 0v-4a4.500 4.500 0 0 0-6-4.200A8 8 0 0 1 34 38v3z"/></svg></span>
           <div><strong>{{ about_content.glance_households_value }}</strong><span>{{ about_content.glance_households_label }}</span></div>
         </div>
         {% endif %}
         {% if about_content.glance_established_value %}
         <div class="glance-item">
-          <i class="fa-regular fa-calendar-check"></i>
+          <span class="glance-item__icon"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill-rule="evenodd" d="M9 4h30l5 12.500a5.300 5.300 0 0 1-9.500 3.200 5.300 5.300 0 0 1-8.800 0 5.300 5.300 0 0 1-8.400 0 5.300 5.300 0 0 1-8.800 0A5.300 5.300 0 0 1 4 16.500zM8 24.500a8.700 8.700 0 0 0 5 1.700V44h22.500V26.200a8.700 8.700 0 0 0 5-1.700V44H44v2H4v-2h4zM18 29h12v8H18z"/></svg></span>
           <div><strong>{{ about_content.glance_established_value }}</strong><span>{{ about_content.glance_established_label }}</span></div>
         </div>
         {% endif %}

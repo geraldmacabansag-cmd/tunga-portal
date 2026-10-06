@@ -48,6 +48,11 @@ class Office(models.Model):
         help_text="Banner image shown at the top of this office's public page. Defaults to the standard municipal hall photo when empty.",
     )
 
+    # Position on the public site (Offices page, navbar dropdown, directory):
+    # lower numbers come first. The Super Admin sets this by dragging offices
+    # on the Office Overview page. New offices default to the end of the list.
+    display_order = models.PositiveIntegerField(default=9999)
+
     is_visible = models.BooleanField(
         default=True,
         help_text="Uncheck to hide this office from the public Offices page."

@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
-from .models import OfficeRepresentative, Announcement, NewsUpdate, Event, Photo, Album, Service, ProcessStep, Requirement, DownloadableForm, Notification, FormField, ServiceEditSettings
+from .models import OfficeRepresentative, Announcement, NewsUpdate, Event, Photo, Album, Service, ProcessStep, Requirement, DownloadableForm, Notification, FormField, ServiceEditSettings, Message
 
 import json
 import io
@@ -1528,3 +1528,55 @@ def activity_log(request, rep):
         "current_category": category,
         "current_range": range_,
     })
+
+
+# ---------------------------------------------------------------------------
+# Messages: chat between this office representative and the Super Admin.
+# The page is a plain skeleton; static/js/messages.js loads and polls the
+# conversation through rep_messages_data and posts through rep_messages_send.
+# ---------------------------------------------------------------------------
+MESSAGE_MAX_LENGTH = 2000
+
+
+def serialize_chat_message(m):
+    return {
+        "id": m.id,
+        "sender": m.sender,
+        "body": m.body,
+        "time": timezone.localtime(m.created_at).strftime("%b %d, %Y · %I:%M %p").replace(" 0", " "),
+    }
+
+
+@office_rep_required
+def rep_messages(request, rep):
+    return render(request, "office_dashboard/messages.html", {"rep": rep})
+
+
+@office_rep_required
+def rep_messages_data(request, rep):
+    try:
+        after = int(request.GET.get("after", 0))
+    except (TypeError, ValueError):
+        after = 0
+
+    # Opening the conversation marks the Super Admin's messages as read.
+    rep.chat_messages.filter(
+        sender=Message.SENDER_ADMIN, read_at__isnull=True
+    ).update(read_at=timezone.now())
+
+    items = rep.chat_messages.filter(id__gt=after)
+    return JsonResponse({"messages": [serialize_chat_message(m) for m in items]})
+
+
+@office_rep_required
+def rep_messages_send(request, rep):
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "POST required."}, status=405)
+    body = request.POST.get("body", "").strip()
+    if not body:
+        return JsonResponse({"success": False, "error": "Type a message first."}, status=400)
+    if len(body) > MESSAGE_MAX_LENGTH:
+        return JsonResponse({"success": False, "error": f"Messages are limited to {MESSAGE_MAX_LENGTH} characters."}, status=400)
+
+    msg = Message.objects.create(representative=rep, sender=Message.SENDER_REP, body=body)
+    return JsonResponse({"success": True, "message": serialize_chat_message(msg)})

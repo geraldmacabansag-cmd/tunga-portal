@@ -59,6 +59,10 @@ urlpatterns = [
     path('office-notifications/mark-all-read', views.mark_all_notifications_read, name='mark_all_notifications_read'),
     path('office-notifications/<int:pk>/delete', views.delete_notification, name='delete_notification'),
 
+    path('office-messages', views.rep_messages, name='messages'),
+    path('office-messages/data', views.rep_messages_data, name='messages_data'),
+    path('office-messages/send', views.rep_messages_send, name='messages_send'),
+
     path('office-log', views.activity_log, name='log'),
 
 ]

@@ -24,7 +24,7 @@ Photo Gallery | Digital Governance Portal
     <h2 class="section-title gallery-section-title">Featured Albums</h2>
     <div class="gallery-featured-grid">
       {% for a in featured_albums %}
-      <a href="?album={{ a.id }}" class="gallery-featured-card {% if current_album == a.id|stringformat:'s' %}is-active{% endif %}"
+      <a href="?album={{ a.id }}{{ sort_qs }}" class="gallery-featured-card {% if current_album == a.id|stringformat:'s' %}is-active{% endif %}"
          {% if a.cover_photo %}style="--card-img: url('{{ a.cover_photo.image.url }}');"{% else %}style="--card-grad: linear-gradient(135deg, var(--navy), var(--navy-light));"{% endif %}>
         <span class="gallery-featured-card__badge">{{ a.published_count }} photo{{ a.published_count|pluralize }}</span>
         {% if not a.cover_photo %}<span class="gallery-featured-card__icon"><i class="fa-regular fa-image"></i></span>{% endif %}
@@ -41,17 +41,29 @@ Photo Gallery | Digital Governance Portal
     <div class="gallery-allphotos-head">
       <h2 class="section-title gallery-section-title">All Photos</h2>
       <div class="gallery-pills">
-        <a href="{% url 'gallery' %}" class="gallery-pill {% if not current_category and not current_album %}active{% endif %}">All</a>
+        <a href="{% url 'gallery' %}{% if sort_qs %}?{{ sort_qs|slice:"1:" }}{% endif %}" class="gallery-pill {% if not current_category and not current_album %}active{% endif %}">All</a>
         {% for value, label in category_choices %}
-        <a href="?category={{ value }}" class="gallery-pill {% if current_category == value %}active{% endif %}">{{ label }}</a>
+        <a href="?category={{ value }}{{ sort_qs }}" class="gallery-pill {% if current_category == value %}active{% endif %}">{{ label }}</a>
         {% endfor %}
       </div>
     </div>
 
+    <form method="get" class="gallery-sort" id="gallerySortForm">
+      {% if current_category %}<input type="hidden" name="category" value="{{ current_category }}">{% endif %}
+      {% if current_album %}<input type="hidden" name="album" value="{{ current_album }}">{% endif %}
+      <label for="gallerySort"><i class="fa-solid fa-arrow-down-wide-short"></i> Sort by</label>
+      <select name="sort" id="gallerySort" onchange="this.form.submit()">
+        {% for value, label in sort_options %}
+        <option value="{{ value }}" {% if current_sort == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <noscript><button type="submit" class="gallery-page-btn">Apply</button></noscript>
+    </form>
+
     {% if current_album %}
     <p class="gallery-active-filter">
       Showing photos from this album.
-      <a href="{% url 'gallery' %}{% if current_category %}?category={{ current_category }}{% endif %}">Clear filter</a>
+      <a href="{% url 'gallery' %}{% if current_category %}?category={{ current_category }}{{ sort_qs }}{% elif sort_qs %}?{{ sort_qs|slice:'1:' }}{% endif %}">Clear filter</a>
     </p>
     {% endif %}
 
@@ -76,17 +88,17 @@ Photo Gallery | Digital Governance Portal
     {% if page_obj.paginator.num_pages > 1 %}
     <div class="gallery-pagination">
       {% if page_obj.has_previous %}
-        <a href="?page={{ page_obj.previous_page_number }}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_album %}&album={{ current_album }}{% endif %}" class="gallery-page-btn"><i class="fa-solid fa-chevron-left"></i></a>
+        <a href="?page={{ page_obj.previous_page_number }}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_album %}&album={{ current_album }}{% endif %}{{ sort_qs }}" class="gallery-page-btn"><i class="fa-solid fa-chevron-left"></i></a>
       {% else %}
         <span class="gallery-page-btn disabled"><i class="fa-solid fa-chevron-left"></i></span>
       {% endif %}
 
       {% for num in page_obj.paginator.page_range %}
-        <a href="?page={{ num }}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_album %}&album={{ current_album }}{% endif %}" class="gallery-page-btn {% if num == page_obj.number %}active{% endif %}">{{ num }}</a>
+        <a href="?page={{ num }}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_album %}&album={{ current_album }}{% endif %}{{ sort_qs }}" class="gallery-page-btn {% if num == page_obj.number %}active{% endif %}">{{ num }}</a>
       {% endfor %}
 
       {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_album %}&album={{ current_album }}{% endif %}" class="gallery-page-btn"><i class="fa-solid fa-chevron-right"></i></a>
+        <a href="?page={{ page_obj.next_page_number }}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_album %}&album={{ current_album }}{% endif %}{{ sort_qs }}" class="gallery-page-btn"><i class="fa-solid fa-chevron-right"></i></a>
       {% else %}
         <span class="gallery-page-btn disabled"><i class="fa-solid fa-chevron-right"></i></span>
       {% endif %}

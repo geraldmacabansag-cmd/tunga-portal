@@ -1966,3 +1966,173 @@ input[type="date"].form-input::-webkit-calendar-picker-indicator:hover {
     width: 100%;
   }
 }
+
+/* =========================================================
+   Office Representative sidebar — dark glass style with icon tiles.
+   Scoped to .sidebar--rep so the Super Admin sidebar is unaffected.
+========================================================= */
+.sidebar.sidebar--rep{
+  --rep-bg:#080f2c;
+  --rep-tile-a:#3f74ff;
+  --rep-tile-b:#1f48c9;
+  background:linear-gradient(180deg,#0a1235 0%,#070d27 100%);
+  padding:22px 12px 14px;
+  overflow:hidden;               /* only the menu scrolls, footer stays put */
+  border-right:1px solid rgba(255,255,255,.05);
+}
+
+/* brand — centred text */
+.sidebar--rep .sidebar-brand{
+  flex-direction:row;
+  gap:12px;
+  justify-content:flex-start;
+  text-align:left;
+  padding:2px 8px 18px;
+  margin-bottom:16px;
+  border-bottom:0;
+}
+.sidebar--rep .sidebar-brand-text{line-height:1.2;}
+.sidebar--rep .sidebar-brand-text .muni{font-size:10.5px;letter-spacing:.08em;color:#8f98c2;}
+.sidebar--rep .sidebar-brand-text .name{font-size:19px;letter-spacing:.04em;margin:2px 0 1px;}
+.sidebar--rep .sidebar-brand-text .place{font-size:11px;color:#8f98c2;}
+
+/* office card */
+.sidebar--rep .office-switcher{
+  gap:12px;
+  padding:11px 14px;
+  margin-bottom:14px;
+  border-radius:14px;
+  background:linear-gradient(135deg,#16245c 0%,#0f1b48 100%);
+  border:1px solid rgba(120,150,255,.22);
+  box-shadow:0 6px 18px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.05);
+  transition:border-color .15s ease, background .15s ease;
+}
+.sidebar--rep .office-switcher:hover{border-color:rgba(140,170,255,.4);}
+.sidebar--rep .office-switcher .icon{
+  width:36px;height:36px;border-radius:10px;font-size:16px;
+  background:linear-gradient(145deg,var(--rep-tile-a),var(--rep-tile-b));
+  box-shadow:0 4px 10px rgba(47,91,234,.45);
+}
+.sidebar--rep .office-switcher .label{font-size:14px;line-height:1.25;}
+.sidebar--rep .office-switcher .chev{color:#aab3d9;font-size:12px;transition:transform .2s ease;}
+
+/* scrolling menu (slim visible track on the right) */
+.sidebar--rep .sidebar-nav{
+  flex:1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding-right:6px;
+  margin-right:-4px;
+  scrollbar-width:thin;
+  scrollbar-color:rgba(255,255,255,.28) rgba(255,255,255,.06);
+}
+.sidebar--rep .sidebar-nav::-webkit-scrollbar{width:6px;}
+.sidebar--rep .sidebar-nav::-webkit-scrollbar-track{background:rgba(255,255,255,.06);border-radius:999px;}
+.sidebar--rep .sidebar-nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.28);border-radius:999px;}
+.sidebar--rep .sidebar-nav::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.45);}
+
+.sidebar--rep .nav-section-title{
+  font-size:10px;
+  letter-spacing:.1em;
+  color:#7a84b0;
+  margin:14px 8px 6px;
+}
+.sidebar--rep .nav-section-title:first-of-type{margin-top:4px;}
+
+/* menu rows with icon tiles */
+.sidebar--rep .nav-item{
+  position:relative;
+  gap:0;
+  padding:5px 8px;
+  margin-bottom:4px;
+  border-radius:12px;
+  font-size:13px;
+  font-weight:600;
+  color:#dfe4f7;
+  background:transparent;
+  transition:background .15s ease, color .15s ease, transform .15s ease;
+}
+.sidebar--rep .nav-item a{gap:12px !important;min-height:36px;}
+.sidebar--rep .nav-item .glyph{
+  width:34px;height:34px;flex:0 0 34px;
+  border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;color:#fff;opacity:1;
+  background:linear-gradient(145deg,var(--rep-tile-a),var(--rep-tile-b));
+  box-shadow:0 3px 8px rgba(31,72,201,.45), inset 0 1px 0 rgba(255,255,255,.22);
+  transition:background .15s ease, box-shadow .15s ease;
+}
+.sidebar--rep .nav-item:hover{background:rgba(255,255,255,.07);color:#fff;}
+.sidebar--rep .nav-item.active{
+  background:#3b66f5;
+  color:#fff;
+  box-shadow:0 8px 18px rgba(59,102,245,.35);
+}
+.sidebar--rep .nav-item.active .glyph{
+  background:rgba(255,255,255,.2);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.25);
+}
+.sidebar--rep .nav-item .badge{
+  position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  margin:0;min-width:20px;text-align:center;
+}
+
+/* footer buttons */
+.sidebar--rep .sidebar-footer{margin-top:10px;padding-top:12px;flex:0 0 auto;}
+.sidebar--rep .sidebar-view-site{
+  gap:10px;
+  padding:9px 12px;
+  border-radius:8px;
+  font-size:12.5px;
+  font-weight:600;
+  color:#dfe4f7 !important;
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(255,255,255,.03);
+  margin-bottom:8px;
+  transition:background .15s ease, border-color .15s ease;
+}
+.sidebar--rep .sidebar-view-site:hover{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.32);}
+.sidebar--rep .sidebar-logout{
+  margin-top:0;
+  padding:10px 12px;
+  border-radius:8px;
+  gap:10px;
+  font-weight:700;
+  font-size:13px;
+  background:#dc3030;
+  box-shadow:0 6px 14px rgba(220,48,48,.3);
+  cursor:pointer;
+  transition:background .15s ease, transform .15s ease;
+}
+.sidebar--rep .sidebar-logout:hover{background:#c52424;transform:translateY(-1px);}
+.sidebar--rep .sidebar-copy{
+  margin-top:12px;padding:0 6px;
+  font-size:10.5px;line-height:1.45;color:#7a84b0;
+}
+
+/* Sidebar logo: centred above the municipality name */
+.sidebar--rep .sidebar-logo{
+  width:46px;height:46px;flex:0 0 46px;border-radius:50%;
+  object-fit:cover;background:#fff;
+  box-shadow:0 4px 12px rgba(0,0,0,.35);
+}
+
+/* Unread-messages count: a red pill right next to the word "Messages" */
+.sidebar--rep .nav-item .badge--msg{
+  position:static;
+  transform:none;
+  margin:0 0 0 8px;
+  min-width:20px;
+  padding:1px 7px;
+  background:#dc3030;
+  color:#fff;
+  font-size:11px;
+  font-weight:700;
+  line-height:1.5;
+  text-align:center;
+  border-radius:999px;
+  box-shadow:0 2px 6px rgba(220,48,48,.4);
+}
+.sidebar--rep .nav-item .badge--msg::before{display:none;}
+.sidebar--rep .nav-item.active .badge--msg{background:#dc3030;}

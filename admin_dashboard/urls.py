@@ -38,6 +38,7 @@ urlpatterns = [
     path('Admin-Gallery/album/<int:pk>/toggle-featured/', views.admin_album_toggle_featured, name='admin_album_toggle_featured'),
 
     path('Admin-Offices/', views.admin_offices, name='ad_offices'),
+    path('Admin-Offices/reorder/', views.admin_offices_reorder, name='admin_offices_reorder'),
     path('Admin-Offices/<int:pk>/edit/', views.admin_office_edit, name='admin_office_edit'),
     path('Admin-Offices/<int:pk>/toggle-visibility/', views.admin_office_toggle_visibility, name='admin_office_toggle_visibility'),
     
@@ -92,6 +93,10 @@ urlpatterns = [
     path('Admin-Analytics-Reports/export/approval-history/', views.admin_export_approval_history, name='admin_export_approval_history'),
     path('Admin-Activity-Logs/', views.admin_activity_log, name='ad_activity_log'),
     path('Admin-System-Settings/', views.admin_system_setting, name='ad_system_settings'),
+
+    path('Admin-Messages/', views.admin_messages, name='ad_messages'),
+    path('Admin-Messages/data/', views.admin_messages_data, name='ad_messages_data'),
+    path('Admin-Messages/send/', views.admin_messages_send, name='ad_messages_send'),
 
     path('Admin-Archive/', views.admin_archive, name='ad_archive'),
     path('Admin-Archive/<str:item_type>/<int:pk>/restore/', views.admin_archive_restore, name='admin_archive_restore'),

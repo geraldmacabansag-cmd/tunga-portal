@@ -26,23 +26,23 @@ Home | Digital Governance Portal
         <p class="contact-info__lead">You can contact us through the following channels. We will respond as soon as possible.</p>
         <ul class="contact-channels">
           <li>
-            <i class="fa-solid fa-phone contact-channel__icon"></i>
+            <span class="contact-channel__icon"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="21" fill="#1a6bff"/><path fill="#fff" d="M17.500 12.500c-1.200 0-3 1.400-3 3.800 0 9 8.700 17.700 17.700 17.700 2.400 0 3.800-1.800 3.800-3l-.2-2.800-6-2.300-2.700 2.500c-3-1.300-5.500-3.800-6.800-6.800l2.500-2.700-2.300-6z"/><path fill="none" stroke="#fff" stroke-width="2.200" stroke-linecap="round" d="M28 10.500a10 10 0 0 1 9.500 9.500M27 15.200a5.500 5.500 0 0 1 5.800 5.800"/></svg></span>
             <div><strong>Phone</strong><span>{{ site_contact.phone }}{% if site_contact.phone_local %}<br>{{ site_contact.phone_local }}{% endif %}</span></div>
           </li>
           <li>
-            <i class="fa-solid fa-envelope contact-channel__icon"></i>
+            <span class="contact-channel__icon"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="9" width="36" height="28" rx="5" fill="#1a6bff"/><path d="M6 14l15 11 15-11" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="37" cy="35" r="9" fill="#e8f0ff" stroke="#1a6bff" stroke-width="2.500"/><text x="37" y="39.500" text-anchor="middle" font-size="13" font-weight="700" font-family="Arial,sans-serif" fill="#1a6bff">@</text></svg></span>
             <div><strong>Email</strong><span>{{ site_contact.email }}{% if site_contact.email_secondary %}<br>{{ site_contact.email_secondary }}{% endif %}</span></div>
           </li>
           <li>
-            <i class="fa-solid fa-location-dot contact-channel__icon"></i>
+            <span class="contact-channel__icon"><svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#2f6fe4" d="M3 34l15-4 12 4 15-4v10l-15 4-12-4-15 4z"/><path fill="#34b36b" d="M3 34l15-4 6 1.800-9 6.200-12 2z"/><path fill="#e8453c" d="M24 3c-7.200 0-12.500 5.300-12.500 12 0 8.500 12.500 21 12.500 21s12.500-12.500 12.500-21c0-6.700-5.300-12-12.500-12z"/><circle cx="24" cy="15" r="5" fill="#fff"/></svg></span>
             <div><strong>Address</strong><span>{{ site_contact.address }}</span></div>
           </li>
           <li>
-            <i class="fa-brands fa-facebook-f contact-channel__icon"></i>
+            <span class="contact-channel__icon"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="5" y="5" width="38" height="38" rx="9" fill="#1877f2"/><path fill="#fff" d="M26.500 43V28h5l.9-6h-5.900v-3.800c0-1.700.8-3 3.100-3H33V10c-.6-.1-2.500-.3-4.400-.3-4.500 0-7.400 2.700-7.400 7.600V22h-5v6h5v15z"/></svg></span>
             <div><strong>Facebook Page</strong><span>{{ site_contact.facebook_name }}</span></div>
           </li>
           <li>
-            <i class="fa-regular fa-clock contact-channel__icon"></i>
+            <span class="contact-channel__icon"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="22" cy="24" r="19" fill="#1a6bff"/><circle cx="22" cy="24" r="14.500" fill="#fff"/><path d="M22 14v10.500l7 4" fill="none" stroke="#1a6bff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><rect x="29" y="30" width="16" height="15" rx="3" fill="#2a7bff" stroke="#fff" stroke-width="2"/><path d="M29 35h16" stroke="#fff" stroke-width="2"/><g fill="#fff"><rect x="32" y="38" width="3" height="2.500" rx=".5"/><rect x="37" y="38" width="3" height="2.500" rx=".5"/><rect x="32" y="42" width="3" height="2" rx=".5"/></g></svg></span>
             <div><strong>Office Hours</strong><span>{{ site_contact.office_hours }}</span></div>
           </li>
         </ul>
@@ -84,31 +84,24 @@ Home | Digital Governance Portal
       <h2 class="section-title">Office Directory</h2>
       <p class="directory-panel__lead">Find the contact details of our offices.</p>
       <ul class="directory-list">
+        {% for o in directory_offices %}
         <li>
-          <i class="fa-solid fa-user-tie directory-icon directory-icon--navy"></i>
-          <div><a href="{% url 'offices:office_detail' 'office-of-the-mayor' %}">Mayor's Office</a><span><i class="fa-solid fa-phone"></i> (053) 123-4567 loc. 100 &nbsp; <i class="fa-solid fa-envelope"></i> mayor@tunga.gov.ph</span></div>
+          {% if o.logo %}
+          <img src="{{ o.logo.url }}" alt="" class="directory-icon directory-icon--img" loading="lazy">
+          {% elif o.card_image %}
+          <img src="{% static o.card_image %}" alt="" class="directory-icon directory-icon--img" loading="lazy">
+          {% else %}
+          <i class="{{ o.card_icon }} directory-icon directory-icon--{{ o.card_color }}"></i>
+          {% endif %}
+          <div>
+            <a href="{% url 'offices:office_detail' o.slug %}">{{ o.name }}</a>
+            <span>{% if o.telephone %}<i class="fa-solid fa-phone"></i> {{ o.telephone }}{% endif %}{% if o.telephone and o.email %} &nbsp; {% endif %}{% if o.email %}<i class="fa-solid fa-envelope"></i> {{ o.email }}{% endif %}</span>
+          </div>
           <i class="fa-solid fa-arrow-right directory-arrow"></i>
         </li>
-        <li>
-          <i class="fa-solid fa-house-medical directory-icon directory-icon--green"></i>
-          <div><a href="#">Municipal Health Office</a><span><i class="fa-solid fa-phone"></i> (053) 123-4567 loc. 101 &nbsp; <i class="fa-solid fa-envelope"></i> health@tunga.gov.ph</span></div>
-          <i class="fa-solid fa-arrow-right directory-arrow"></i>
-        </li>
-        <li>
-          <i class="fa-solid fa-seedling directory-icon directory-icon--green2"></i>
-          <div><a href="#">Municipal Agriculture Office</a><span><i class="fa-solid fa-phone"></i> (053) 123-4567 loc. 102 &nbsp; <i class="fa-solid fa-envelope"></i> agriculture@tunga.gov.ph</span></div>
-          <i class="fa-solid fa-arrow-right directory-arrow"></i>
-        </li>
-        <li>
-          <i class="fa-solid fa-hard-hat directory-icon directory-icon--navy"></i>
-          <div><a href="#">Municipal Engineering Office</a><span><i class="fa-solid fa-phone"></i> (053) 123-4567 loc. 103 &nbsp; <i class="fa-solid fa-envelope"></i> engineering@tunga.gov.ph</span></div>
-          <i class="fa-solid fa-arrow-right directory-arrow"></i>
-        </li>
-        <li>
-          <i class="fa-solid fa-coins directory-icon directory-icon--purple"></i>
-          <div><a href="#">Municipal Treasurer's Office</a><span><i class="fa-solid fa-phone"></i> (053) 123-4567 loc. 104 &nbsp; <i class="fa-solid fa-envelope"></i> treasurer@tunga.gov.ph</span></div>
-          <i class="fa-solid fa-arrow-right directory-arrow"></i>
-        </li>
+        {% empty %}
+        <li><div><span>No office has published contact details yet.</span></div></li>
+        {% endfor %}
       </ul>
       <a href="{% url 'offices' %}" class="view-all directory-viewall">View All Offices <i class="fa-solid fa-arrow-right"></i></a>
     </div>
