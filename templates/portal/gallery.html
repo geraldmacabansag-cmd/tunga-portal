@@ -41,16 +41,21 @@ Photo Gallery | Digital Governance Portal
     <div class="gallery-allphotos-head">
       <h2 class="section-title gallery-section-title">All Photos</h2>
       <div class="gallery-pills">
-        <a href="{% url 'gallery' %}{% if sort_qs %}?{{ sort_qs|slice:"1:" }}{% endif %}" class="gallery-pill {% if not current_category and not current_album %}active{% endif %}">All</a>
+        <a href="{% url 'gallery' %}{% if sort_qs %}?{{ sort_qs|slice:"1:" }}{% endif %}" class="gallery-pill {% if not current_category and not current_album and not current_source %}active{% endif %}">All</a>
         {% for value, label in category_choices %}
         <a href="?category={{ value }}{{ sort_qs }}" class="gallery-pill {% if current_category == value %}active{% endif %}">{{ label }}</a>
         {% endfor %}
+        {# Images that came with announcements, news and events #}
+        {% for value, label in source_choices %}{% if value != "photo" %}
+        <a href="?source={{ value }}{{ sort_qs }}" class="gallery-pill gallery-pill--source {% if current_source == value %}active{% endif %}">{{ label }}</a>
+        {% endif %}{% endfor %}
       </div>
     </div>
 
     <form method="get" class="gallery-sort" id="gallerySortForm">
       {% if current_category %}<input type="hidden" name="category" value="{{ current_category }}">{% endif %}
       {% if current_album %}<input type="hidden" name="album" value="{{ current_album }}">{% endif %}
+      {% if current_source %}<input type="hidden" name="source" value="{{ current_source }}">{% endif %}
       <label for="gallerySort"><i class="fa-solid fa-arrow-down-wide-short"></i> Sort by</label>
       <select name="sort" id="gallerySort" onchange="this.form.submit()">
         {% for value, label in sort_options %}
@@ -70,16 +75,18 @@ Photo Gallery | Digital Governance Portal
     {% if page_obj.object_list %}
     <div class="gallery-masonry">
       {% for p in page_obj %}
-      <a href="{{ p.image.url }}" target="_blank" rel="noopener" class="gallery-item js-gallery-open"
-         data-image="{{ p.image.url }}"
+      {# p = a gallery photo, or the image of an announcement / news / event (see portal.views.gallery) #}
+      <a href="{{ p.url }}" target="_blank" rel="noopener" class="gallery-item js-gallery-open"
+         data-image="{{ p.url }}"
          data-title="{{ p.title }}"
-         data-office="{{ p.representative.office.name|default:'LGU Super Admin' }}"
+         data-office="{{ p.office }}"
          data-category="{{ p.category }}"
-         data-date="{{ p.created_at|date:'F j, Y' }}">
-        <img src="{{ p.image.url }}" alt="{{ p.title }}" loading="lazy">
+         data-date="{{ p.created|date:'F j, Y' }}">
+        <img src="{{ p.url }}" alt="{{ p.title }}" loading="lazy">
+        {% if p.kind_label %}<span class="gallery-item__badge gallery-item__badge--{{ p.kind }}">{{ p.kind_label }}</span>{% endif %}
         <div class="gallery-item__overlay">
           <span class="gallery-item__title">{{ p.title }}</span>
-          <span class="gallery-item__meta">{{ p.representative.office.name|default:"LGU Super Admin" }}</span>
+          <span class="gallery-item__meta">{{ p.office }}</span>
         </div>
       </a>
       {% endfor %}
@@ -88,17 +95,17 @@ Photo Gallery | Digital Governance Portal
     {% if page_obj.paginator.num_pages > 1 %}
     <div class="gallery-pagination">
       {% if page_obj.has_previous %}
-        <a href="?page={{ page_obj.previous_page_number }}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_album %}&album={{ current_album }}{% endif %}{{ sort_qs }}" class="gallery-page-btn"><i class="fa-solid fa-chevron-left"></i></a>
+        <a href="?page={{ page_obj.previous_page_number }}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_album %}&album={{ current_album }}{% endif %}{{ source_qs }}{{ sort_qs }}" class="gallery-page-btn"><i class="fa-solid fa-chevron-left"></i></a>
       {% else %}
         <span class="gallery-page-btn disabled"><i class="fa-solid fa-chevron-left"></i></span>
       {% endif %}
 
       {% for num in page_obj.paginator.page_range %}
-        <a href="?page={{ num }}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_album %}&album={{ current_album }}{% endif %}{{ sort_qs }}" class="gallery-page-btn {% if num == page_obj.number %}active{% endif %}">{{ num }}</a>
+        <a href="?page={{ num }}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_album %}&album={{ current_album }}{% endif %}{{ source_qs }}{{ sort_qs }}" class="gallery-page-btn {% if num == page_obj.number %}active{% endif %}">{{ num }}</a>
       {% endfor %}
 
       {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_album %}&album={{ current_album }}{% endif %}{{ sort_qs }}" class="gallery-page-btn"><i class="fa-solid fa-chevron-right"></i></a>
+        <a href="?page={{ page_obj.next_page_number }}{% if current_category %}&category={{ current_category }}{% endif %}{% if current_album %}&album={{ current_album }}{% endif %}{{ source_qs }}{{ sort_qs }}" class="gallery-page-btn"><i class="fa-solid fa-chevron-right"></i></a>
       {% else %}
         <span class="gallery-page-btn disabled"><i class="fa-solid fa-chevron-right"></i></span>
       {% endif %}
@@ -108,6 +115,7 @@ Photo Gallery | Digital Governance Portal
     {% else %}
     <p class="ann-placeholder">
       {% if current_album %}No published photos in this album yet.
+      {% elif current_source %}No images of this kind yet.
       {% elif current_category %}No photos in this category yet.
       {% else %}No photos published yet.{% endif %}
     </p>

@@ -193,7 +193,7 @@
 
     <!-- Category -->
     <div class="form-group">
-      <label class="form-label" for="ann-cat">Category</label>
+      <label class="form-label" for="ann-cat">Category <span class="req">*</span></label>
       <select class="form-input" id="ann-cat" name="category" required>
         <option value="">Select Category</option>
         <option value="Community Engagement">Community Engagement</option>
@@ -207,13 +207,14 @@
     <!-- Full Content -->
     <div class="form-group">
       <label class="form-label" for="ann-desc">
-        Content / Full Description
+        Content / Full Description <span class="req">*</span>
       </label>
       <textarea
         class="form-input form-textarea"
         id="ann-desc"
         name="content"
         rows="5"
+        required
         placeholder="Enter the complete announcement details..."
       ></textarea>
     </div>
@@ -262,7 +263,9 @@
         type="datetime-local"
         id="ann-expiration"
         name="expiration_date"
+        min="{% now 'Y-m-d\TH:i' %}"
       >
+      <span class="form-help">Optional. Leave empty if it doesn't expire. After this date it is hidden from the public website.</span>
     </div>
 
     <!-- Priority -->
@@ -328,8 +331,8 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="ann-cat-{{ a.id }}">Category</label>
-          <select class="form-input" id="ann-cat-{{ a.id }}" name="category">
+          <label class="form-label" for="ann-cat-{{ a.id }}">Category <span class="req">*</span></label>
+          <select class="form-input" id="ann-cat-{{ a.id }}" name="category" required>
             <option value="">Select Category</option>
             <option value="Community Engagement" {% if a.category == "Community Engagement" %}selected{% endif %}>Community Engagement</option>
             <option value="Public Notice" {% if a.category == "Public Notice" %}selected{% endif %}>Public Notice</option>
@@ -340,8 +343,8 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="ann-desc-{{ a.id }}">Content / Full Description</label>
-          <textarea class="form-input form-textarea" id="ann-desc-{{ a.id }}" name="content" rows="5">{{ a.content }}</textarea>
+          <label class="form-label" for="ann-desc-{{ a.id }}">Content / Full Description <span class="req">*</span></label>
+          <textarea class="form-input form-textarea" id="ann-desc-{{ a.id }}" name="content" rows="5" required>{{ a.content }}</textarea>
         </div>
 
         <div class="form-group">
@@ -367,6 +370,7 @@
         <div class="form-group">
           <label class="form-label" for="ann-expiration-{{ a.id }}">Expiration Date</label>
           <input class="form-input" type="datetime-local" id="ann-expiration-{{ a.id }}" name="expiration_date" value="{{ a.expiration_date|date:'Y-m-d\TH:i' }}">
+          <span class="form-help">Optional. Leave empty if it doesn't expire. After this date it is hidden from the public website.</span>
         </div>
 
         <!-- Last Updated intentionally not here — set automatically by the server on save -->

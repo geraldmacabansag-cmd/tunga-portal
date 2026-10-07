@@ -67,7 +67,7 @@
             <tr>
               <td>{{ forloop.counter }}. {{ step.title }}</td>
               <td>{{ step.agency_action|default:"—" }}</td>
-              <td>{{ step.fee|default:"—" }}</td>
+              <td style="white-space:pre-line;overflow-wrap:anywhere;">{{ step.fee|default:"—" }}</td>
               <td>{{ step.processing_time|default:"—" }}</td>
               <td>{{ step.person_responsible|default:"—" }}</td>
             </tr>

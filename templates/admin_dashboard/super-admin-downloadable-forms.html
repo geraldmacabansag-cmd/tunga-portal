@@ -141,7 +141,7 @@
   <div class="modal-box">
     <div class="modal-head">
       <h3 id="formModalTitle">Upload Form</h3>
-      <button type="button" class="modal-x" onclick="document.getElementById('formModal').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
+      <button type="button" class="modal-x" onclick="closeModal('formModal')"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="modal-body">
       <form id="formForm" method="post" enctype="multipart/form-data" data-url-template="{% url 'admin_dashboard:admin_form_save' 0 %}">

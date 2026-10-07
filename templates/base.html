@@ -21,7 +21,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
         
 
-  <link rel="icon" type="image/png" href="{% static 'images/tunga_leyte_logo.png' %}">
+  <link rel="icon" href="{% if site_contact.logo %}{{ site_contact.logo.url }}{% else %}{% static 'images/tunga_leyte_logo.png' %}{% endif %}">
 </head>
 
 <body>
@@ -202,7 +202,7 @@
       <div class="brand__text">
         <div class="brand__label">MUNICIPALITY OF</div>
         <div class="brand__name">TUNGA</div>
-        <div class="brand__tagline">Abtik na serbisyo, masulong na bungto.</div>
+        <div class="brand__tagline">{{ site_contact.tagline|default:"Abtik na serbisyo, masulong na bungto." }}</div>
       </div>
     </a>
     <div class="main-nav" id="mainNav">

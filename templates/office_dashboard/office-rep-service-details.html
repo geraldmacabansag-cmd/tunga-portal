@@ -111,7 +111,9 @@
                       data-transaction-type="{{ service.transaction_type_display }}"
                       data-who-may-avail="{{ service.who_may_avail|default:'' }}"
                       data-service-scope="{{ service.get_service_scope_display|default:'' }}"
-                      data-published="{% if service.published_at %}{{ service.published_at|date:'M d, Y g:i A' }}{% else %}May 10, 2026 9:30 AM{% endif %}"
+                      data-created="{{ service.published_at|date:'M d, Y g:i A' }}"
+                      data-updated="{{ service.updated_at|date:'M d, Y g:i A' }}"
+                      data-approved="{% if service.approved_at %}{{ service.approved_at|date:'M d, Y g:i A' }}{% endif %}"
                       data-admin-note="{{ service.admin_note|default:'' }}"
                       data-status="{{ service.status }}"
                       data-status-display="{{ service.get_status_display }}"
@@ -149,29 +151,34 @@
           <i class="fa-solid fa-arrow-left"></i> Back to Services
         </button>
 
-        <section class="panel" style="margin-bottom:18px;">
-          <div class="panel-body" style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;">
-            <div>
-              <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-                <i class="fa-solid fa-file-signature" id="detail-icon" style="color:var(--blue-600);font-size:18px;"></i>
-                <h2 style="margin:0;font-size:19px;" id="detail-name">Business Permit Application</h2>
-                <span class="badge badge-green" id="detail-status-badge">Published</span>
+        <section class="panel svc-head-panel" style="margin-bottom:18px;">
+          <div class="svc-head">
+            <div class="svc-head__top">
+              <span class="svc-head__icon"><i class="fa-solid fa-file-signature" id="detail-icon"></i></span>
+              <div class="svc-head__titles">
+                <div class="svc-head__title-row">
+                  <h2 id="detail-name">Service</h2>
+                  <span class="badge" id="detail-status-badge"></span>
+                </div>
+                <p class="svc-head__desc" id="detail-description"></p>
               </div>
-              <p style="margin:0;font-size:13px;color:var(--gray-500);max-width:620px;" id="detail-description">This service allows individuals or businesses to apply for a business permit to operate legally within the Municipality of Tunga.</p>
-              <div style="display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:10px;font-size:12.5px;color:var(--gray-600);" id="detail-meta-row">
-                <span><strong>Office/Division:</strong> <span id="detail-division">—</span></span>
-                <span><strong>Classification:</strong> <span id="detail-classification">—</span></span>
-                <span><strong>Type of Transaction:</strong> <span id="detail-transaction-type">—</span></span>
-                <span><strong>Who May Avail:</strong> <span id="detail-who-may-avail">—</span></span>
-                <span><strong>Service:</strong> <span id="detail-service-scope">—</span></span>
+              <div class="svc-head__actions">
+                <button type="button" class="btn btn-secondary" id="edit-service-btn"><i class="fa-regular fa-pen-to-square"></i> Edit</button>
+                <button type="button" class="btn btn-secondary" id="preview-service-btn"><i class="fa-regular fa-eye"></i> Preview</button>
+                <button type="button" class="btn btn-primary" id="save-changes-btn"><i class="fa-regular fa-floppy-disk"></i> Save Changes</button>
               </div>
             </div>
-            <div style="display:flex;gap:10px;align-items:center;flex-shrink:0;">
-              <span style="font-size:11.5px;color:var(--gray-400);">Published: <span id="detail-published">May 10, 2026 9:30 AM</span></span>
-              <button type="button" class="btn btn-secondary" id="edit-service-btn"><i class="fa-regular fa-pen-to-square"></i> Edit</button>
-              <button type="button" class="btn btn-secondary" id="preview-service-btn"><i class="fa-regular fa-eye"></i> Preview</button>
-              <button type="button" class="btn btn-primary" id="save-changes-btn"><i class="fa-regular fa-floppy-disk"></i> Save Changes</button>
+
+            <div class="svc-head__meta" id="detail-meta-row">
+              <div class="svc-meta"><span class="svc-meta__k">Office / Division</span><span class="svc-meta__v" id="detail-division">—</span></div>
+              <div class="svc-meta"><span class="svc-meta__k">Classification</span><span class="svc-meta__v" id="detail-classification">—</span></div>
+              <div class="svc-meta"><span class="svc-meta__k">Type of Transaction</span><span class="svc-meta__v" id="detail-transaction-type">—</span></div>
+              <div class="svc-meta"><span class="svc-meta__k">Who May Avail</span><span class="svc-meta__v" id="detail-who-may-avail">—</span></div>
+              <div class="svc-meta"><span class="svc-meta__k">Service</span><span class="svc-meta__v" id="detail-service-scope">—</span></div>
             </div>
+
+            <!-- Real dates for this service (filled in by showDetail) -->
+            <div class="svc-head__dates" id="detail-dates"></div>
           </div>
 
           <div class="subtabs">
@@ -1013,6 +1020,7 @@
       cells[1].textContent = s.title || '';
       cells[2].textContent = s.agency_action || '—';
       cells[3].textContent = s.fee || '—';
+      cells[3].className = 'svc-long-text';
       cells[4].textContent = s.processing_time || '—';
       cells[5].textContent = s.person_responsible || '—';
     });
@@ -1128,7 +1136,7 @@
       return '<tr>' +
         '<td>' + (i + 1) + '. ' + escapeHtml(s.title) + '</td>' +
         '<td>' + escapeHtml(s.agency_action || '—') + '</td>' +
-        '<td>' + escapeHtml(s.fee || '—') + '</td>' +
+        '<td class="svc-long-text">' + escapeHtml(s.fee || '—') + '</td>' +
         '<td>' + escapeHtml(s.processing_time || '—') + '</td>' +
         '<td>' + escapeHtml(s.person_responsible || '—') + '</td>' +
         '</tr>';
@@ -1283,7 +1291,7 @@
     document.getElementById('detail-transaction-type').textContent = data.transactionType || '—';
     document.getElementById('detail-who-may-avail').textContent = data.whoMayAvail || '—';
     document.getElementById('detail-service-scope').textContent = data.serviceScope || 'None';
-    document.getElementById('detail-published').textContent = data.published || '';
+    renderServiceDates(data);
 
     var noteBox = document.getElementById('detail-admin-note-box');
     var statusBadgeClass = {
@@ -1513,7 +1521,7 @@
       legalBasis: '',
       scheduleOfService: '',
       adminNote: '',
-      published: 'Not yet saved',
+      created: '', updated: '', approved: '',
     };
   }
 
@@ -1650,6 +1658,29 @@
     });
   }
 
+  /* ---- header dates: Created / Last updated / Published (real data) ---- */
+  function renderServiceDates(data) {
+    var host = document.getElementById('detail-dates');
+    if (!host) return;
+    var items = [];
+    function add(icon, label, value, cls) {
+      items.push('<span class="svc-date ' + (cls || '') + '"><i class="' + icon + '"></i> ' + label +
+                 (value ? ' <strong>' + escapeHtml(value) + '</strong>' : '') + '</span>');
+    }
+    if (!data.id) {
+      add('fa-regular fa-circle', 'Not saved yet');
+    } else {
+      if (data.status === 'published' && data.approved) add('fa-solid fa-circle-check', 'Published', data.approved, 'is-ok');
+      else if (data.status === 'pending') add('fa-regular fa-clock', 'Waiting for Super Admin approval', '', 'is-wait');
+      else if (data.status === 'returned') add('fa-solid fa-rotate-left', 'Returned for revision', '', 'is-warn');
+      else if (data.status === 'reject') add('fa-solid fa-circle-xmark', 'Rejected', '', 'is-warn');
+      else if (data.status === 'archive') add('fa-solid fa-box-archive', 'Archived');
+      if (data.created) add('fa-regular fa-calendar-plus', 'Created', data.created);
+      if (data.updated && data.updated !== data.created) add('fa-regular fa-pen-to-square', 'Last updated', data.updated);
+    }
+    host.innerHTML = items.join('');
+  }
+
   /* ---- step editor: cards with a number badge + minus-only remove ---- */
   function createStepRow(stepNumber, title, agencyAction, fee, processingTime, person) {
     var row = document.createElement('div');
@@ -1659,7 +1690,7 @@
         '<input class="form-input" type="number" min="0" step="any" name="step_number[]" placeholder="Client Step Number, e.g. 1.1" style="max-width:200px;">' +
         '<textarea class="form-input form-textarea" name="title[]" placeholder="Client Step Name, e.g. Submit Requirements" rows="2"></textarea>' +
         '<textarea class="form-input form-textarea" name="agency[]" placeholder="Agency Action" rows="2"></textarea>' +
-        '<input class="form-input" type="text" name="fee[]" placeholder="Fees to be Paid, e.g. None or ₱50.00">' +
+        '<textarea class="form-input form-textarea" name="fee[]" rows="2" placeholder="Fees to be Paid — any text, e.g. None, ₱50.00 per copy, or a full explanation of the fees"></textarea>' +
         '<input class="form-input" type="text" name="processing_time[]" placeholder="Processing Time, e.g. 5 minutes, 3-5 days, Same day">' +
         '<input class="form-input" type="text" name="person[]" placeholder="Person Responsible">' +
       '</div>' +
@@ -1667,7 +1698,7 @@
     row.querySelector('input[name="step_number[]"]').value = stepNumber || '';
     row.querySelector('textarea[name="title[]"]').value = title || '';
     row.querySelector('textarea[name="agency[]"]').value = agencyAction || '';
-    row.querySelector('input[name="fee[]"]').value = fee || '';
+    row.querySelector('[name="fee[]"]').value = fee || '';
     row.querySelector('input[name="processing_time[]"]').value = processingTime || '';
     row.querySelector('input[name="person[]"]').value = person || '';
     return row;
@@ -1700,7 +1731,7 @@
       row.querySelector('input[name="step_number[]"]').value = '';
       row.querySelector('textarea[name="title[]"]').value = '';
       row.querySelector('textarea[name="agency[]"]').value = '';
-      row.querySelector('input[name="fee[]"]').value = '';
+      row.querySelector('[name="fee[]"]').value = '';
       row.querySelector('input[name="processing_time[]"]').value = '';
       row.querySelector('input[name="person[]"]').value = '';
     }
@@ -1732,7 +1763,7 @@
         var stepNumberRaw = row.querySelector('input[name="step_number[]"]').value.trim();
         var title = row.querySelector('textarea[name="title[]"]').value.trim();
         var agencyAction = row.querySelector('textarea[name="agency[]"]').value.trim();
-        var fee = row.querySelector('input[name="fee[]"]').value.trim();
+        var fee = row.querySelector('[name="fee[]"]').value.trim();
         var processingTime = row.querySelector('input[name="processing_time[]"]').value.trim();
         var person = row.querySelector('input[name="person[]"]').value.trim();
         if (title) {
@@ -2078,6 +2109,50 @@
 .charter-table .charter-subhead { background: var(--blue-50, #eff6ff); font-weight: 700; text-align: center; }
 .charter-info-table th { background: var(--blue-100, #bfdbfe); width: 200px; }
 
+</style>
+
+<style>
+  /* ---- Service detail header ---- */
+  .svc-head { padding: 20px 22px 16px; }
+  .svc-head__top { display: flex; align-items: flex-start; gap: 14px; }
+  .svc-head__icon {
+    flex: none; width: 46px; height: 46px; border-radius: 12px;
+    display: grid; place-items: center; font-size: 19px;
+    background: var(--blue-50, #eff6ff); color: var(--blue-600, #2563eb);
+  }
+  .svc-head__titles { flex: 1; min-width: 0; }
+  .svc-head__title-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; }
+  .svc-head__title-row h2 { margin: 0; font-size: 19px; line-height: 1.3; overflow-wrap: anywhere; }
+  .svc-head__desc { margin: 6px 0 0; font-size: 13px; line-height: 1.55; color: var(--gray-500, #6b7280); max-width: 760px; overflow-wrap: anywhere; }
+  .svc-head__actions { flex: none; display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+
+  .svc-head__meta {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px;
+    margin-top: 16px; padding: 12px 14px; border-radius: 10px;
+    background: var(--gray-50, #f9fafb); border: 1px solid var(--gray-100, #f3f4f6);
+  }
+  .svc-meta { min-width: 0; }
+  .svc-meta__k { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--gray-400, #9ca3af); }
+  .svc-meta__v { display: block; margin-top: 2px; font-size: 13px; font-weight: 600; color: var(--gray-800, #1f2937); overflow-wrap: anywhere; }
+
+  .svc-head__dates { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 12px; font-size: 12px; color: var(--gray-500, #6b7280); }
+  .svc-date i { margin-right: 3px; color: var(--gray-400, #9ca3af); }
+  .svc-date strong { color: var(--gray-700, #374151); font-weight: 600; }
+  .svc-date.is-ok, .svc-date.is-ok i { color: #15803d; }
+  .svc-date.is-wait, .svc-date.is-wait i { color: #b45309; }
+  .svc-date.is-warn, .svc-date.is-warn i { color: #b91c1c; }
+
+  /* Long fees (or any long text) wrap inside their table cell, keeping line breaks */
+  .svc-long-text { white-space: pre-line; overflow-wrap: anywhere; min-width: 140px; }
+
+  @media (max-width: 900px) {
+    .svc-head__top { flex-wrap: wrap; }
+    .svc-head__actions { width: 100%; justify-content: flex-start; }
+  }
+  @media (max-width: 520px) {
+    .svc-head { padding: 16px; }
+    .svc-head__actions .btn { flex: 1 1 auto; justify-content: center; }
+  }
 </style>
 
 {% endblock %}

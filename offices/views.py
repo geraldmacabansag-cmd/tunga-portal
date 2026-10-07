@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.http import FileResponse, JsonResponse, Http404, HttpResponse
 from .pdf_serve import pdf_response
 from office_dashboard.form_fields import field_to_dict, to_json
+from office_dashboard.gallery_items import photo_items, content_items
 from django.urls import reverse
 from .models import Office
 from office_dashboard.models import (
@@ -124,7 +125,7 @@ def office_detail(request, slug):
             f.can_fill_online = len(f.fields.all()) > 0
 
     announcements = (
-        Announcement.objects.filter(representative=rep, status="published")
+        Announcement.public().filter(representative=rep)
         .order_by("-date_posted", "-created_at")[:3]
         if rep else []
     )
@@ -145,11 +146,13 @@ def office_detail(request, slug):
     # Every published photo from this office, newest first. The template shows
     # the first four in the Gallery panel and reveals the rest when the visitor
     # clicks "View more images about this office".
-    photos = (
-        Photo.objects.filter(representative=rep, status="published")
-        .order_by("-created_at")
-        if rep else []
-    )
+    # Gallery panel: this office's published photos plus the images of its
+    # published announcements, news and events — newest first.
+    photos = []
+    if rep:
+        photos = list(photo_items(Photo.objects.filter(representative=rep, status="published")))
+        photos += list(content_items(representative=rep))
+        photos.sort(key=lambda i: i["created"], reverse=True)
 
     return render(request, "offices/office_detail.html", {
         "office": office,

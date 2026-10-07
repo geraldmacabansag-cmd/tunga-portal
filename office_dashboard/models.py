@@ -1,4 +1,6 @@
 from django.db import models
+from django.db.models import Q
+from django.utils import timezone
 from django.contrib.auth.models import User
 from offices.models import Office
 
@@ -9,6 +11,14 @@ class OfficeRepresentative(models.Model):
     position = models.CharField(max_length=100, blank=True)
     mobile_number = models.CharField(max_length=20, blank=True)
     photo = models.ImageField(upload_to="rep_photos/", blank=True, null=True)   # ADD THIS LINE
+
+    # Notification preferences (My Account page). Account activated/
+    # deactivated notices are always sent and have no switch.
+    notify_approvals = models.BooleanField(default=True)        # submission approved / returned / rejected
+    notify_messages = models.BooleanField(default=True)         # new message from the Super Admin
+    notify_weekly_summary = models.BooleanField(default=False)  # weekly views & activity digest
+    notify_announcements = models.BooleanField(default=True)    # announcements posted by the LGU Super Admin
+    last_weekly_summary_at = models.DateTimeField(null=True, blank=True)
 
     @property
     def unread_notifications_count(self):
@@ -100,6 +110,14 @@ class Announcement(models.Model):
     # Set only by a Super Admin; shows this announcement in the "Pinned
     # Notice" box on the public Announcements tab, regardless of its date.
     is_pinned = models.BooleanField(default=False)
+
+    @classmethod
+    def public(cls):
+        """Announcements the public may see: published and not past their
+        expiration date (no expiration date = never expires)."""
+        return cls.objects.filter(status="published").filter(
+            Q(expiration_date__isnull=True) | Q(expiration_date__gt=timezone.now())
+        )
 
     views = models.PositiveIntegerField(
         default=0
@@ -336,7 +354,9 @@ class Service(models.Model):
     legal_basis = models.TextField(blank=True)  # Legal Basis (if applicable)
     schedule_of_service = models.CharField(max_length=255, blank=True)  # Schedule of Service (if applicable)
 
-    published_at = models.DateTimeField(auto_now_add=True)
+    published_at = models.DateTimeField(auto_now_add=True)  # when the service was created/submitted (used by the approval queue)
+    updated_at = models.DateTimeField(auto_now=True)  # last time the service was saved
+    approved_at = models.DateTimeField(null=True, blank=True)  # when the Super Admin approved/published it
 
     TRANSACTION_TYPE_LABELS = {
         "G2G": "G2G – Government to Government",
@@ -388,7 +408,7 @@ class ProcessStep(models.Model):
     description = models.TextField(blank=True)
 
     agency_action = models.TextField(blank=True)
-    fee = models.CharField(max_length=150, blank=True)  # Fees to be Paid
+    fee = models.TextField(blank=True)  # Fees to be Paid — any text, any length (e.g. "₱50.00 per copy; free for senior citizens")
     processing_time = models.CharField(max_length=150, blank=True)  # free text, e.g. "5 minutes", "3-5 days", "Same day"
     person_responsible = models.CharField(max_length=150, blank=True)
 

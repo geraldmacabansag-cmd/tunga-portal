@@ -7,14 +7,14 @@
 <title>Dashboard · Office Representative · Municipality of Tunga</title>
 <link rel="stylesheet" href="{% static 'css/office_rep_style.css' %}">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="icon" type="image/png" href="{% static 'images/tunga_leyte_logo.png' %}">
+  <link rel="icon" href="{% if site_contact.logo %}{{ site_contact.logo.url }}{% else %}{% static 'images/tunga_leyte_logo.png' %}{% endif %}">
 </head>
 
 <body data-page="{% block body_page %}dashboard{% endblock %}">
 <div class="app-shell">
   <aside class="sidebar sidebar--rep" id="sidebar">
     <div class="sidebar-brand">
-      <img src="{% static 'images/tunga_leyte_logo.png' %}" alt="Municipality of Tunga" class="sidebar-logo">
+      <img src="{% if site_contact.logo %}{{ site_contact.logo.url }}{% else %}{% static 'images/tunga_leyte_logo.png' %}{% endif %}" alt="Municipality of Tunga" class="sidebar-logo">
       <div class="sidebar-brand-text">
         <div class="muni">Municipality of</div>
         <div class="name">TUNGA</div>

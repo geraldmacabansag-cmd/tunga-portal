@@ -11,6 +11,7 @@ from django.contrib.auth.models import User
 from .models import CitizenProfile
 from office_dashboard.models import OfficeRepresentative, Announcement, NewsUpdate, Event, Photo, Album, Service, DownloadableForm, FormSubmission
 from django.db.models import Count, Q
+from office_dashboard.gallery_items import photo_items, content_items
 from admin_dashboard.models import SuperAdmin, EmergencyContact, QuickLink
 from django.utils import timezone
 from django.utils.text import slugify
@@ -151,7 +152,7 @@ def events_calendar_partial(request):
 # Create your views here.
 def home(request):
     home_announcements = list(
-        Announcement.objects.filter(status='published')
+        Announcement.public()
         .order_by('-date_posted', '-created_at')[:3]
     )
     for a in home_announcements:
@@ -194,7 +195,7 @@ def announcement(request):
         return qs.filter(representative__office=filter_office) if filter_office is not None else qs
 
     announcements = list(
-        only_office(Announcement.objects.filter(status='published'))
+        only_office(Announcement.public())
         .select_related('representative__office')
         .order_by('-date_posted', '-created_at')[:5]
     )
@@ -212,7 +213,7 @@ def announcement(request):
     # Full list for the "Announcements" tab — every published announcement,
     # newest first, with the extra display fields the card layout needs.
     all_announcements = list(
-        only_office(Announcement.objects.filter(status='published'))
+        only_office(Announcement.public())
         .select_related('representative__office')
         .order_by('-date_posted', '-created_at')
     )
@@ -399,7 +400,7 @@ def announcement(request):
     office_updates = []
     seen_office_ids = set()
     recent_office_anns = (
-        Announcement.objects.filter(status='published')
+        Announcement.public()
         .filter(representative__office__isnull=False, representative__office__is_visible=True)
         .exclude(representative__office__slug='lgu-super-admin')
         .select_related('representative__office')
@@ -443,7 +444,7 @@ def announcement(request):
     for office in active_offices:
         icon, color, _ = get_office_card_style(office)
         office_url = reverse('offices:office_detail', args=[office.slug])
-        office_anns = Announcement.objects.filter(status='published', representative__office=office)
+        office_anns = Announcement.public().filter(representative__office=office)
         latest = office_anns.order_by('-date_posted', '-created_at').first()
         office_directory.append({
             "office": office,
@@ -564,42 +565,49 @@ def get_office_card_style(office):
 
 
 def gallery(request):
-    # Every published photo regardless of who posted it — an office
-    # representative or the Super Admin (who posts through the same
-    # Photo/representative FK via a synthetic "LGU Super Admin" office/
-    # representative row) — so nothing needs excluding here, unlike the
-    # office directory queries that deliberately hide that internal record.
-    photos_qs = (
-        Photo.objects.filter(status='published')
-        .select_related('representative__office', 'album')
-        .order_by('-created_at')
-    )
-
-    total_photos = photos_qs.count()
+    """Public Gallery: every published image on the site in one place —
+    gallery photos plus the pictures attached to published announcements,
+    news and events (posters). Newest first, 16 per page."""
 
     current_category = request.GET.get('category', '').strip()
-    if current_category:
-        photos_qs = photos_qs.filter(category__iexact=current_category)
-
     current_album = request.GET.get('album', '').strip()
-    if current_album:
-        photos_qs = photos_qs.filter(album_id=current_album)
+    # "Show" filter: gallery photos only, or one kind of content image.
+    SOURCE_CHOICES = [("photo", "Gallery Photos"), ("announcement", "Announcements"),
+                      ("news", "News"), ("event", "Event Posters")]
+    current_source = request.GET.get('source', '').strip()
+    if current_source not in dict(SOURCE_CHOICES):
+        current_source = ""
+
+    items = []
+    if current_source in ("", "photo"):
+        photos = Photo.objects.filter(status='published')
+        if current_category:
+            photos = photos.filter(category__iexact=current_category)
+        if current_album:
+            photos = photos.filter(album_id=current_album)
+        items += list(photo_items(photos))
+    # A photo category or album filter is about gallery photos only.
+    if not current_category and not current_album and current_source != "photo":
+        items += list(content_items(only_kind=current_source))
+
+    total_photos = len(items)
 
     # Sort order: by date created or date modified, newest or oldest first.
-    # "-id"/"id" is a tie-breaker so the order (and pagination) stays stable.
     SORT_OPTIONS = {
-        "created_desc": ("Date created (newest first)", ("-created_at", "-id")),
-        "created_asc": ("Date created (oldest first)", ("created_at", "id")),
-        "modified_desc": ("Date modified (latest first)", ("-last_updated", "-id")),
-        "modified_asc": ("Date modified (oldest first)", ("last_updated", "id")),
+        "created_desc": ("Date created (newest first)", "created", True),
+        "created_asc": ("Date created (oldest first)", "created", False),
+        "modified_desc": ("Date modified (latest first)", "modified", True),
+        "modified_asc": ("Date modified (oldest first)", "modified", False),
     }
     current_sort = request.GET.get('sort', '').strip()
     if current_sort not in SORT_OPTIONS:
         current_sort = "created_desc"
-    photos_qs = photos_qs.order_by(*SORT_OPTIONS[current_sort][1])
+    _, sort_key, newest_first = SORT_OPTIONS[current_sort]
+    items.sort(key=lambda i: i[sort_key], reverse=newest_first)
     sort_qs = "" if current_sort == "created_desc" else f"&sort={current_sort}"
+    source_qs = f"&source={current_source}" if current_source else ""
 
-    paginator = Paginator(photos_qs, 16)
+    paginator = Paginator(items, 16)
     page_obj = paginator.get_page(request.GET.get('page'))
 
     # "Featured Albums" — set by the Super Admin (Album.is_featured), capped
@@ -625,6 +633,9 @@ def gallery(request):
         "sort_options": [(k, v[0]) for k, v in SORT_OPTIONS.items()],
         "current_sort": current_sort,
         "sort_qs": sort_qs,
+        "source_choices": SOURCE_CHOICES,
+        "current_source": current_source,
+        "source_qs": source_qs,
     })
 
 
@@ -910,7 +921,7 @@ def site_search(request):
             "url": f"{reverse('offices:office_detail', args=[s.office.slug])}#svc-{s.id}",
         })
 
-    anns = (Announcement.objects.filter(title__icontains=query, status='published')
+    anns = (Announcement.public().filter(title__icontains=query)
             .order_by('-date_posted', '-created_at')[:MAX_PER_TYPE])
     for a in anns:
         results.append({

@@ -53,7 +53,9 @@ urlpatterns = [
     path('office-page-settings/reorder-services', views.office_reorder_services, name='reorder_services'),
 
     path('office-account', views.my_account, name='account'),
+    path('office-account/notifications', views.save_notification_prefs, name='notification_prefs'),
     path('office-change-password', views.change_pass, name='change_pass'),
+    path('office-change-password/send-code', views.send_password_otp, name='send_password_otp'),
     path('office-notifications', views.notification, name='notification'),
     path('office-notifications/<int:pk>/read', views.mark_notification_read, name='mark_notification_read'),
     path('office-notifications/mark-all-read', views.mark_all_notifications_read, name='mark_all_notifications_read'),

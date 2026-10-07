@@ -159,8 +159,8 @@
 
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Category</label>
-          <select class="form-input" id="ann-category" name="category">
+          <label class="form-label">Category <span class="req">*</span></label>
+          <select class="form-input" id="ann-category" name="category" required>
             <option value="">Select Category</option>
             <option value="Community Engagement">Community Engagement</option>
             <option value="Public Notice">Public Notice</option>
@@ -193,8 +193,8 @@
       </div>
 
       <div class="form-group">
-        <label class="form-label">Content / Full Description</label>
-        <textarea class="form-input form-textarea" id="ann-content" name="content" rows="5" placeholder="Enter the complete announcement details..."></textarea>
+        <label class="form-label">Content / Full Description <span class="req">*</span></label>
+        <textarea class="form-input form-textarea" id="ann-content" name="content" rows="5" placeholder="Enter the complete announcement details..." required></textarea>
       </div>
 
       <div class="form-row">
@@ -210,6 +210,7 @@
         <div class="form-group">
           <label class="form-label">Expiration Date</label>
           <input class="form-input" type="datetime-local" id="ann-expiration" name="expiration_date">
+          <span class="form-help">Optional. Leave empty if it doesn't expire. After this date it is hidden from the public website.</span>
         </div>
         <div class="form-group">
           <label class="form-label">Priority Level</label>

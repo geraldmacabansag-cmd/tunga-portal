@@ -134,14 +134,16 @@
       {% if photos %}
       <div class="gallery-quad" id="officeGalleryGrid">
         {% for p in photos %}
-        <a href="{{ p.image.url }}" target="_blank" rel="noopener"
+        {# p = a gallery photo or an announcement / news / event image (office_dashboard/gallery_items.py) #}
+        <a href="{{ p.url }}" target="_blank" rel="noopener"
            class="gallery-item js-gallery-open{% if forloop.counter > 4 %} gallery-extra{% endif %}"{% if forloop.counter > 4 %} hidden{% endif %}
-           data-image="{{ p.image.url }}"
+           data-image="{{ p.url }}"
            data-title="{{ p.title }}"
            data-office="{{ office.name }}"
            data-category="{{ p.category }}"
-           data-date="{{ p.created_at|date:'F j, Y' }}">
-          <img src="{{ p.image.url }}" alt="{{ p.title }}" loading="lazy">
+           data-date="{{ p.created|date:'F j, Y' }}">
+          <img src="{{ p.url }}" alt="{{ p.title }}" loading="lazy">
+          {% if p.kind_label %}<span class="gallery-item__badge gallery-item__badge--{{ p.kind }}">{{ p.kind_label }}</span>{% endif %}
           <div class="gallery-item__overlay">
             <span class="gallery-item__title">{{ p.title }}</span>
             <span class="gallery-item__meta">{{ office.name }}</span>
@@ -378,7 +380,7 @@
         <tr>
           <td>{{ forloop.counter }}. {{ step.title }}</td>
           <td>{{ step.agency_action|default:"—" }}</td>
-          <td>{{ step.fee|default:"—" }}</td>
+          <td style="white-space:pre-line;overflow-wrap:anywhere;">{{ step.fee|default:"—" }}</td>
           <td>{{ step.processing_time|default:"—" }}</td>
           <td>{{ step.person_responsible|default:"—" }}</td>
         </tr>

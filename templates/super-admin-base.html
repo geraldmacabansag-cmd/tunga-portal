@@ -7,7 +7,7 @@
 <title>{% block page_title_tag %}Dashboard{% endblock %} · Super Admin · Municipality of Tunga</title>
 <link rel="stylesheet" href="{% static 'css/super_admin_style.css' %}">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="icon" type="image/png" href="{% static 'images/tunga_leyte_logo.png' %}">
+  <link rel="icon" href="{% if site_contact.logo %}{{ site_contact.logo.url }}{% else %}{% static 'images/tunga_leyte_logo.png' %}{% endif %}">
 </head>
 <body data-page="{% block body_page %}dashboard{% endblock %}" data-logout-url="{% url 'logout' %}" data-account-url="{% url 'admin_dashboard:admin_account' %}" data-changepass-url="{% url 'admin_dashboard:admin_change_pass' %}">
 <script>
@@ -29,7 +29,7 @@
 <div class="app-shell">
   <aside class="sidebar sidebar--sa" id="sidebar">
     <div class="sidebar-brand">
-      <img src="{% static 'images/tunga_leyte_logo.png' %}" alt="Municipality of Tunga" class="sidebar-logo">
+      <img src="{% if site_contact.logo %}{{ site_contact.logo.url }}{% else %}{% static 'images/tunga_leyte_logo.png' %}{% endif %}" alt="Municipality of Tunga" class="sidebar-logo">
       <div class="sidebar-brand-text">
         <div class="muni">Municipality of</div>
         <div class="name">TUNGA</div>
@@ -123,6 +123,69 @@
       <div class="sidebar-copy">&copy; 2026 Municipality of Tunga, Leyte.<br>All rights reserved.</div>
     </div>
   </aside>
+  <style>
+    /* Sidebar sections that can be hidden / shown with the ∨ ∧ button */
+    .sidebar--sa .nav-section-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; user-select: none; border-radius: 6px; transition: color .15s; }
+    .sidebar--sa .nav-section-title:hover { color: #fff; }
+    .nav-section-toggle {
+      flex: none; width: 22px; height: 22px; margin-right: -4px; padding: 0;
+      display: grid; place-items: center; border: none; border-radius: 6px;
+      background: transparent; color: inherit; font-size: 10px; cursor: pointer;
+      transition: background .15s, color .15s;
+    }
+    .nav-section-toggle:hover { background: rgba(255,255,255,.08); color: #fff; }
+    .nav-section-toggle:focus-visible { outline: 2px solid #6b8cff; outline-offset: 1px; }
+    .nav-section-toggle i { transition: transform .2s ease; }
+    .nav-section.is-collapsed .nav-section-toggle i { transform: rotate(180deg); }
+    .nav-section.is-collapsed > .nav-item { display: none; }
+  </style>
+  <script>
+    // Hide / show each sidebar section (Main, Content Management, …) by
+    // clicking its name or its ∨ ∧ button. Runs right here, before the page paints, so a hidden section
+    // never flashes open. The choice is remembered in this browser.
+    (function () {
+      var KEY = 'adminSidebarHiddenSections';
+      var hidden = {};
+      try { hidden = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) {}
+      function save() { try { localStorage.setItem(KEY, JSON.stringify(hidden)); } catch (e) {} }
+
+      var sidebar = document.getElementById('sidebar');
+      if (!sidebar) return;
+      sidebar.querySelectorAll('ul').forEach(function (list) {
+        var title = list.querySelector('.nav-section-title');
+        if (!title) return;
+        var name = title.textContent.trim();
+        list.classList.add('nav-section');
+
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'nav-section-toggle';
+        btn.innerHTML = '<i class="fa-solid fa-chevron-up" aria-hidden="true"></i>';
+        title.appendChild(btn);
+
+        function apply(collapsed) {
+          list.classList.toggle('is-collapsed', collapsed);
+          btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+          btn.setAttribute('aria-label', (collapsed ? 'Show ' : 'Hide ') + name + ' pages');
+          btn.title = collapsed ? 'Show pages' : 'Hide pages';
+        }
+        // The section holding the page you're on always starts open.
+        var holdsCurrentPage = !!list.querySelector('.nav-item.active');
+        apply(!!hidden[name] && !holdsCurrentPage);
+
+        function toggle(e) {
+          e.preventDefault(); e.stopPropagation();
+          var collapsed = !list.classList.contains('is-collapsed');
+          apply(collapsed);
+          if (collapsed) hidden[name] = true; else delete hidden[name];
+          save();
+        }
+        // Clicking the section name or its ∨ ∧ button both hide / show it.
+        btn.addEventListener('click', toggle);
+        title.addEventListener('click', toggle);
+      });
+    })();
+  </script>
   <script>
     // Restore the sidebar's scroll position as early as possible (right as
     // this element finishes parsing, before the rest of the page loads) so
@@ -169,6 +232,24 @@
 </div>
 
 <script src="{% static 'js/super_admin.js' %}"></script>
+<script>
+  // Page scrolling is locked (body.modal-open) only while a modal is open.
+  // Some close buttons just hide the modal, which used to leave the page
+  // unable to scroll until a refresh — this keeps the lock in sync no matter
+  // which button (✕, Cancel, outside click, Esc) opened or closed a modal.
+  (function () {
+    function sync() {
+      var anyOpen = !!document.querySelector('.modal-backdrop.open');
+      document.body.classList.toggle('modal-open', anyOpen);
+    }
+    new MutationObserver(function (changes) {
+      for (var i = 0; i < changes.length; i++) {
+        if (changes[i].target.classList && changes[i].target.classList.contains('modal-backdrop')) { sync(); return; }
+      }
+    }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'] });
+    sync();
+  })();
+</script>
 {% block extra_js %}{% endblock %}
 
 {% if messages %}

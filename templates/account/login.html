@@ -23,7 +23,7 @@ Home | Digital Governance Portal
   <div class="auth-panel">
     <div class="auth-card">
       <div class="auth-card__head">
-        <img src="{% static 'images/tunga_leyte_logo.png' %}" alt="Municipality of Tunga seal" class="auth-card__seal">
+        <img src="{% if site_contact.logo %}{{ site_contact.logo.url }}{% else %}{% static 'images/tunga_leyte_logo.png' %}{% endif %}" alt="Municipality of Tunga seal" class="auth-card__seal">
         <h1>Citizen Login</h1>
         <p>Welcome back! Please sign in to continue to your account.</p>
       </div>

@@ -8,6 +8,8 @@ from django.contrib.auth.models import User
 from django.db.models import Count, Sum, Q, F
 from django.utils import timezone
 from office_dashboard.models import Announcement, NewsUpdate, Event, DownloadableForm, FormField, Photo, Album, Service, OfficeRepresentative, Notification, ServiceEditSettings, ActivityLog, Message
+from office_dashboard.notifications import notify, notify_all_reps
+from office_dashboard.announcement_rules import clean_announcement
 from offices.models import Office
 from django.http import Http404, FileResponse, HttpResponse, JsonResponse
 from offices.pdf_serve import pdf_response
@@ -437,11 +439,14 @@ def _stamp_published_date(obj):
     of content. This is the ONLY place these fields are ever set — there is
     no manual date input anywhere for them anymore. Announcement uses
     date_posted, NewsUpdate uses date_published; anything else (Event, Form,
-    Gallery, Service) has no such field and is left alone."""
+    Gallery) has no such field and is left alone. Service records the exact
+    approval time in approved_at."""
     if isinstance(obj, Announcement):
         obj.date_posted = timezone.localdate()
     elif isinstance(obj, NewsUpdate):
         obj.date_published = timezone.localdate()
+    elif isinstance(obj, Service):
+        obj.approved_at = timezone.now()
 
 @super_admin_required
 def admin_approval_details(request, item_type, pk):
@@ -493,8 +498,8 @@ def admin_approval_details(request, item_type, pk):
             _stamp_published_date(obj)
             messages.success(request, f'"{display_name}" was approved and published.')
             if notify_rep:
-                Notification.objects.create(
-                    representative=notify_rep,
+                notify(
+                    notify_rep, 'approvals',
                     link_url=content_link_url,
                     title=f'"{display_name}" was approved',
                     description=f'Your {item_type.lower()} submission is now published on the public website.',
@@ -504,8 +509,8 @@ def admin_approval_details(request, item_type, pk):
             obj.status = 'returned'
             messages.success(request, f'"{display_name}" was returned for revision.')
             if notify_rep:
-                Notification.objects.create(
-                    representative=notify_rep,
+                notify(
+                    notify_rep, 'approvals',
                     link_url=content_link_url,
                     title=f'"{display_name}" was returned for revision',
                     description=note or f'Your {item_type.lower()} submission needs changes before it can be published. Check the admin note for details.',
@@ -515,8 +520,8 @@ def admin_approval_details(request, item_type, pk):
             obj.status = 'reject'
             messages.success(request, f'"{display_name}" was rejected.')
             if notify_rep:
-                Notification.objects.create(
-                    representative=notify_rep,
+                notify(
+                    notify_rep, 'approvals',
                     link_url=content_link_url,
                     title=f'"{display_name}" was rejected',
                     description=note or f'Your {item_type.lower()} submission was not approved.',
@@ -611,27 +616,33 @@ def admin_create_announcement(request):
             office = Office.objects.filter(pk=office_choice).select_related('representative').first() if office_choice else None
             rep = getattr(office, 'representative', None) if office else None
 
-        if not title:
-            messages.error(request, "Title is required.")
+        errors, data = clean_announcement(request.POST, is_new=True)
+        if errors:
+            for err in errors:
+                messages.error(request, err)
         elif not rep:
             messages.error(request, "Please select an office with an assigned representative.")
         else:
             Announcement.objects.create(
                 representative=rep,
-                title=title,
-                subtitle=request.POST.get('subtitle', '').strip(),
-                category=request.POST.get('category', '').strip(),
-                content=request.POST.get('content', '').strip(),
                 image=request.FILES.get('image'),
-                author=request.POST.get('author', '').strip(),
                 # Super Admin publishes this immediately, so "date posted" is
                 # simply today — never a manually-entered date.
                 date_posted=timezone.localdate(),
-                expiration_date=request.POST.get('expiration_date') or None,
-                priority=request.POST.get('priority', 'Normal'),
                 status='published',
+                **data,
             )
             messages.success(request, f'"{title}" was published.')
+            if office_choice == 'super_admin':
+                # An LGU-wide announcement: tell the office representatives
+                # who keep "System announcements" switched on.
+                notify_all_reps(
+                    'announcements',
+                    title=f'New LGU announcement: {title}'[:255],
+                    description=request.POST.get('subtitle', '').strip() or 'The Super Admin posted a new announcement on the public website.',
+                    level='info',
+                    link_url=reverse('announcement'),
+                )
 
     return redirect('admin_dashboard:ad_announcement')
 
@@ -649,24 +660,21 @@ def admin_edit_announcement(request, pk):
             office = Office.objects.filter(pk=office_choice).select_related('representative').first() if office_choice else None
             rep = getattr(office, 'representative', None) if office else None
 
-        if not title:
-            messages.error(request, "Title is required.")
+        errors, data = clean_announcement(request.POST, is_new=False, current_expiration=announcement.expiration_date)
+        if errors:
+            for err in errors:
+                messages.error(request, err)
         elif not rep:
             messages.error(request, "Please select an office with an assigned representative.")
         else:
             announcement.representative = rep
-            announcement.title = title
-            announcement.subtitle = request.POST.get('subtitle', '').strip()
-            announcement.category = request.POST.get('category', '').strip()
-            announcement.content = request.POST.get('content', '').strip()
+            for field, value in data.items():
+                setattr(announcement, field, value)
             if request.FILES.get('image'):
                 announcement.image = request.FILES.get('image')
-            announcement.author = request.POST.get('author', '').strip()
             # date_posted is intentionally left untouched here — it's only
             # ever set automatically, when the announcement is approved/
             # published (see admin_approval_details / _stamp_published_date).
-            announcement.expiration_date = request.POST.get('expiration_date') or None
-            announcement.priority = request.POST.get('priority', 'Normal')
             announcement.save()
             messages.success(request, f'"{title}" was updated.')
 
@@ -2015,6 +2023,9 @@ def admin_web_setting(request):
                 info.logo = request.FILES.get('logo')
             if request.FILES.get('hero_banner'):
                 info.hero_banner = request.FILES.get('hero_banner')
+            # Header tagline: empty (or "Reset to default") = the original tagline.
+            tagline = request.POST.get('site_tagline', '').strip()[:120]
+            info.site_tagline = tagline or SiteContactInfo.DEFAULT_TAGLINE
             info.save()
             messages.success(request, "Appearance settings were updated.")
         elif section == 'social':
@@ -2507,8 +2518,8 @@ def admin_messages_send(request):
     # doesn't pile up dozens of them.
     title = "New message from the Super Admin"
     if not Notification.objects.filter(representative=rep, title=title, is_read=False).exists():
-        Notification.objects.create(
-            representative=rep,
+        notify(
+            rep, 'messages',
             title=title,
             description=body[:120],
             level="info",

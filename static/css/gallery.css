@@ -375,3 +375,14 @@
 @media (max-width: 420px) {
   .gallery-masonry { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 }
+/* ---------- Gallery tiles from announcements / news / events ---------- */
+.gallery-item__badge {
+  position: absolute; top: 8px; left: 8px; z-index: 1;
+  padding: 3px 9px; border-radius: 999px;
+  font-size: 0.68rem; font-weight: 700; letter-spacing: .02em;
+  color: #fff; background: rgba(10, 20, 40, .72);
+  pointer-events: none;
+}
+.gallery-item__badge--announcement { background: rgba(29, 63, 166, .88); }
+.gallery-item__badge--news { background: rgba(180, 83, 9, .9); }
+.gallery-item__badge--event { background: rgba(21, 128, 61, .9); }

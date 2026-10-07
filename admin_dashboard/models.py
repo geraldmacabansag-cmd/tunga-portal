@@ -21,6 +21,8 @@ class SuperAdmin(models.Model):
         return self.user.get_full_name() or self.user.username
 
 class SiteContactInfo(models.Model):
+    DEFAULT_TAGLINE = "Abtik na serbisyo, masulong na bungto."
+
     phone = models.CharField(max_length=50, blank=True)
     phone_local = models.CharField(max_length=50, blank=True)
     email = models.EmailField(blank=True)
@@ -31,6 +33,8 @@ class SiteContactInfo(models.Model):
     office_hours = models.CharField(max_length=150, blank=True)
     logo = models.ImageField(upload_to="site/", blank=True, null=True)
     hero_banner = models.ImageField(upload_to="site/", blank=True, null=True)
+    # Shown under "MUNICIPALITY OF TUNGA" in the public site header (Website Settings → Appearance)
+    site_tagline = models.CharField(max_length=120, default=DEFAULT_TAGLINE, blank=True)
     social_facebook = models.URLField(blank=True)
     social_twitter = models.URLField(blank=True)
     social_instagram = models.URLField(blank=True)
@@ -60,6 +64,11 @@ class SiteContactInfo(models.Model):
             'office_hours': 'Monday – Friday, 8:00 AM – 5:00 PM',
         })
         return obj
+
+    @property
+    def tagline(self):
+        """The tagline to show — the default one if it was left empty."""
+        return (self.site_tagline or "").strip() or self.DEFAULT_TAGLINE
 
 class EmailProviderSettings(models.Model):
     email_address = models.EmailField(blank=True, help_text="The verified sender email in Brevo")

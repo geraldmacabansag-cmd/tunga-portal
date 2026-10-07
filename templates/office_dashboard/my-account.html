@@ -118,12 +118,13 @@
 
         <div class="stack">
           <section class="panel">
-            <div class="panel-header"><h2>Notification Preferences</h2></div>
-            <div class="panel-body">
-              <div class="toggle-row"><div><strong>Content approvals</strong><span class="d">When your submission is reviewed</span></div><label class="toggle"><input type="checkbox" checked><span class="slider"></span></label></div>
-              <div class="toggle-row"><div><strong>New messages</strong><span class="d">Direct messages from Super Admin</span></div><label class="toggle"><input type="checkbox" checked><span class="slider"></span></label></div>
-              <div class="toggle-row"><div><strong>Weekly summary</strong><span class="d">Views and activity digest</span></div><label class="toggle"><input type="checkbox"><span class="slider"></span></label></div>
-              <div class="toggle-row"><div><strong>System announcements</strong><span class="d">Platform updates and downtime</span></div><label class="toggle"><input type="checkbox" checked><span class="slider"></span></label></div>
+            <div class="panel-header"><h2>Notification Preferences</h2><span class="np-status" id="npStatus" aria-live="polite"></span></div>
+            <div class="panel-body" id="notifPrefs" data-url="{% url 'office_dashboard:notification_prefs' %}">
+              <div class="toggle-row"><div><strong>Content approvals</strong><span class="d">When the Super Admin approves, returns or rejects your submission</span></div><label class="toggle"><input type="checkbox" data-pref="approvals"{% if rep.notify_approvals %} checked{% endif %}><span class="slider"></span></label></div>
+              <div class="toggle-row"><div><strong>New messages</strong><span class="d">Direct messages from the Super Admin</span></div><label class="toggle"><input type="checkbox" data-pref="messages"{% if rep.notify_messages %} checked{% endif %}><span class="slider"></span></label></div>
+              <div class="toggle-row"><div><strong>Weekly summary</strong><span class="d">Once a week: your published, pending and returned content and total views</span></div><label class="toggle"><input type="checkbox" data-pref="weekly_summary"{% if rep.notify_weekly_summary %} checked{% endif %}><span class="slider"></span></label></div>
+              <div class="toggle-row"><div><strong>System announcements</strong><span class="d">When the LGU Super Admin posts a new announcement</span></div><label class="toggle"><input type="checkbox" data-pref="announcements"{% if rep.notify_announcements %} checked{% endif %}><span class="slider"></span></label></div>
+              <div class="toggle-row is-locked"><div><strong>Account notices</strong><span class="d">Account activated or deactivated — always on</span></div><label class="toggle"><input type="checkbox" checked disabled><span class="slider"></span></label></div>
             </div>
           </section>
 
@@ -143,5 +144,62 @@
   </div>
 </div>
 
+
+<style>
+  /* Notification Preferences switches */
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 11px 0; border-bottom: 1px solid var(--gray-100, #f3f4f6); }
+  .toggle-row:last-child { border-bottom: none; }
+  .toggle-row strong { display: block; font-size: 13px; color: var(--gray-900, #111827); }
+  .toggle-row .d { display: block; margin-top: 2px; font-size: 12px; color: var(--gray-500, #6b7280); line-height: 1.4; }
+  .toggle { position: relative; flex: none; width: 40px; height: 22px; cursor: pointer; }
+  .toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .toggle .slider { position: absolute; inset: 0; border-radius: 999px; background: var(--gray-300, #d1d5db); transition: background .15s; }
+  .toggle .slider::before { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: transform .15s; }
+  .toggle input:checked + .slider { background: var(--blue-600, #2563eb); }
+  .toggle input:checked + .slider::before { transform: translateX(18px); }
+  .toggle input:focus-visible + .slider { outline: 2px solid var(--blue-300, #93c5fd); outline-offset: 2px; }
+  .toggle input:disabled + .slider { opacity: .55; cursor: not-allowed; }
+  .toggle-row.is-saving .toggle { opacity: .6; pointer-events: none; }
+  .np-status { font-size: 12px; font-weight: 600; margin-left: auto; }
+  .np-status.ok { color: #15803d; } .np-status.err { color: #b91c1c; }
+</style>
+
+<script>
+// Notification Preferences: each switch saves right away.
+(function () {
+  var box = document.getElementById('notifPrefs');
+  if (!box) return;
+  var status = document.getElementById('npStatus');
+  var timer;
+  function show(text, cls) {
+    status.textContent = text; status.className = 'np-status ' + (cls || '');
+    clearTimeout(timer);
+    if (cls === 'ok') timer = setTimeout(function () { status.textContent = ''; }, 2000);
+  }
+  box.addEventListener('change', function (e) {
+    var input = e.target;
+    if (!input.dataset.pref) return;
+    var row = input.closest('.toggle-row');
+    var body = new FormData();
+    body.append('pref', input.dataset.pref);
+    body.append('enabled', input.checked ? '1' : '0');
+    body.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    row.classList.add('is-saving');
+    show('Saving…');
+    fetch(box.dataset.url, { method: 'POST', body: body, credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.success) throw new Error(data.error);
+        show(input.dataset.pref === 'weekly_summary' && input.checked
+          ? 'Saved — your first summary arrives in 7 days' : 'Saved', 'ok');
+      })
+      .catch(function () {
+        input.checked = !input.checked;   // put the switch back
+        show('Could not save. Please try again.', 'err');
+      })
+      .then(function () { row.classList.remove('is-saving'); });
+  });
+})();
+</script>
 
 {% endblock %}

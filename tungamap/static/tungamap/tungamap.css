@@ -165,3 +165,7 @@
   .tmap .tm-legend { top: 12px; bottom: auto; }
   .tmap .tm-grid2 { grid-template-columns: 1fr; }
 }
+
+/* Keep every map layer (Leaflet uses z-index 400-1000) INSIDE the map, so the
+   site's sidebar, menu button and dropdowns always stay on top of it. */
+.tmap { position: relative; z-index: 0; isolation: isolate; }

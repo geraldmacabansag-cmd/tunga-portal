@@ -214,7 +214,7 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="dash-ann-cat">Category</label>
+            <label class="form-label" for="dash-ann-cat">Category <span class="req">*</span></label>
             <select class="form-input" id="dash-ann-cat" name="category" required>
               <option value="">Select Category</option>
               <option value="Community Engagement">Community Engagement</option>
@@ -227,13 +227,14 @@
 
           <div class="form-group">
             <label class="form-label" for="dash-ann-desc">
-              Content / Full Description
+              Content / Full Description <span class="req">*</span>
             </label>
             <textarea
               class="form-input form-textarea"
               id="dash-ann-desc"
               name="content"
               rows="5"
+              required
               placeholder="Enter the complete announcement details..."
             ></textarea>
           </div>
@@ -277,7 +278,9 @@
               type="datetime-local"
               id="dash-ann-expiration"
               name="expiration_date"
+              min="{% now 'Y-m-d\TH:i' %}"
             >
+            <span class="form-help">Optional. Leave empty if it doesn't expire. After this date it is hidden from the public website.</span>
           </div>
 
           <div class="form-group">

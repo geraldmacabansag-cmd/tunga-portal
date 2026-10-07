@@ -93,10 +93,10 @@
                 <label class="form-label">Site logo</label>
                 <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
                   <img id="logo-preview" src="{% if info.logo %}{{ info.logo.url }}{% else %}{% static 'images/tunga_leyte_logo.png' %}{% endif %}" alt="" style="width:56px;height:56px;border-radius:10px;object-fit:cover;border:1px solid var(--gray-200);">
-                  <span class="form-help" id="logo-preview-label" style="margin:0;">{% if info.logo %}Current logo — shown in the site header and footer{% else %}Current logo (default) — shown in the site header and footer{% endif %}</span>
+                  <span class="form-help" id="logo-preview-label" style="margin:0;">{% if info.logo %}Current logo — shown on the public website, both dashboards and the browser tab{% else %}Current logo (default) — shown on the public website, both dashboards and the browser tab{% endif %}</span>
                 </div>
                 <input class="form-input file-input" type="file" name="logo" id="logo-input" accept="image/*">
-                <span class="form-help">Square image recommended, at least 256×256px. Replaces the logo shown in the site header and footer. The preview updates immediately, but nothing changes on the live site until you click Save Appearance.</span>
+                <span class="form-help">Square image recommended, at least 256×256px. Replaces the logo everywhere: the public site header and footer, the login and sign-up pages, the Office Representative and Super Admin dashboard sidebars, and the small icon in the browser tab. The preview updates immediately, but nothing changes on the live site until you click Save Appearance.</span>
               </div>
 
               <div class="form-group">
@@ -105,6 +105,25 @@
                 <span class="form-help" id="banner-preview-label" style="display:block;margin-bottom:8px;">{% if info.hero_banner %}Current banner{% else %}Current banner (default){% endif %}</span>
                 <input class="form-input file-input" type="file" name="hero_banner" id="banner-input" accept="image/*">
                 <span class="form-help">Shown as the background image at the top of the public homepage. Recommended size 1600×600px. The preview updates immediately, but nothing changes on the live site until you click Save Appearance.</span>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="tagline-input">Header tagline</label>
+                <div class="tagline-preview" aria-hidden="true">
+                  <img src="{% if info.logo %}{{ info.logo.url }}{% else %}{% static 'images/tunga_leyte_logo.png' %}{% endif %}" alt="">
+                  <div>
+                    <div class="tagline-preview__label">MUNICIPALITY OF</div>
+                    <div class="tagline-preview__name">TUNGA</div>
+                    <div class="tagline-preview__tagline" id="tagline-preview">{{ info.tagline }}</div>
+                  </div>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                  <input class="form-input" type="text" name="site_tagline" id="tagline-input" maxlength="120"
+                         value="{{ info.tagline }}" data-default="{{ info.DEFAULT_TAGLINE }}"
+                         placeholder="{{ info.DEFAULT_TAGLINE }}" style="flex:1 1 220px;min-width:0;">
+                  <button type="button" class="btn btn-secondary" id="tagline-reset" title="Use the original tagline"><i class="fa-solid fa-rotate-left"></i> Reset to default</button>
+                </div>
+                <span class="form-help"><span id="tagline-count">0</span>/120 characters. Shown under "MUNICIPALITY OF TUNGA" at the top of every public page. Default: <em>{{ info.DEFAULT_TAGLINE }}</em> — leaving it empty also uses the default. Nothing changes on the live site until you click Save Appearance.</span>
               </div>
 
               <div class="modal-actions" style="justify-content:flex-start;border-top:none;padding-top:4px;">
@@ -314,6 +333,23 @@
   }
 
   wireImagePreview('logo-input', 'logo-preview', 'logo-preview-label', 'New logo selected — not saved yet, click Save Appearance to apply it.');
+
+  // Header tagline: live preview, character count, reset to the default text
+  (function () {
+    var input = document.getElementById('tagline-input');
+    if (!input) return;
+    var preview = document.getElementById('tagline-preview');
+    var count = document.getElementById('tagline-count');
+    function update() {
+      preview.textContent = input.value.trim() || input.dataset.default;
+      count.textContent = input.value.length;
+    }
+    input.addEventListener('input', update);
+    document.getElementById('tagline-reset').addEventListener('click', function () {
+      input.value = input.dataset.default; update(); input.focus();
+    });
+    update();
+  })();
   wireImagePreview('banner-input', 'banner-preview', 'banner-preview-label', 'New banner selected — not saved yet, click Save Appearance to apply it.');
 
   document.querySelectorAll('.social-visibility-checkbox').forEach(function(box){
@@ -327,4 +363,12 @@
     });
   });
 </script>
+<style>
+  /* Website Settings → Appearance: header tagline preview (looks like the public header) */
+  .tagline-preview { display: flex; align-items: center; gap: 12px; max-width: 420px; padding: 12px 14px; margin-bottom: 10px; border-radius: 10px; background: #0b1f4d; color: #fff; }
+  .tagline-preview img { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; flex: none; background: #fff; }
+  .tagline-preview__label { font-size: 10px; font-weight: 700; letter-spacing: .12em; opacity: .8; }
+  .tagline-preview__name { font-size: 18px; font-weight: 800; letter-spacing: .04em; line-height: 1.1; }
+  .tagline-preview__tagline { font-size: 11.5px; font-style: italic; opacity: .9; margin-top: 2px; overflow-wrap: anywhere; }
+</style>
 {% endblock %}

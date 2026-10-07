@@ -5,6 +5,7 @@ from .models import OfficeRepresentative, Announcement, NewsUpdate, Event, Photo
 
 import json
 import io
+import re
 from decimal import Decimal, InvalidOperation
 from functools import wraps
 from django.contrib import messages
@@ -21,6 +22,10 @@ from django.db.models import Count, F, Sum
 from django.http import FileResponse, Http404, JsonResponse, HttpResponse
 from offices.pdf_serve import pdf_response
 from .form_fields import fields_json, save_fields
+from .notifications import maybe_send_weekly_summary, PREFERENCES as NOTIFY_PREFERENCES
+from .announcement_rules import clean_announcement
+from portal.models import EmailOTP
+from portal.otp_utils import send_password_reset_otp
 from django.template.defaultfilters import date as django_date_format
 
 from .models import (
@@ -46,6 +51,8 @@ def office_rep_required(view_func):
         if rep is None:
             messages.error(request, "Your account isn't linked to an Office Representative profile.")
             return redirect("home")
+        if request.method == "GET":
+            maybe_send_weekly_summary(rep)  # only if "Weekly summary" is switched on
         return view_func(request, rep, *args, **kwargs)
     return wrapper
 
@@ -53,25 +60,22 @@ def office_rep_required(view_func):
 def rep_announcement(request, rep):
     if request.method == "POST":
         is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
-        title = request.POST.get('title', '').strip()
-        if not title:
+        # Title, category and content are required (office_dashboard/announcement_rules.py).
+        errors, data = clean_announcement(request.POST, is_new=True)
+        title = data["title"]
+        if errors:
             if is_ajax:
-                return JsonResponse({"success": False, "error": "Announcement title is required."}, status=400)
-            messages.error(request, "Announcement title is required.")
+                return JsonResponse({"success": False, "error": " ".join(errors), "errors": errors}, status=400)
+            for err in errors:
+                messages.error(request, err)
         else:
             announcement = Announcement.objects.create(
                 representative=rep,
-                title=title,
-                subtitle=request.POST.get('subtitle', ''),
-                category=request.POST.get('category', ''),
-                content=request.POST.get('content', ''),
                 image=request.FILES.get('image'),
-                author=request.POST.get('author', ''),
                 # date_posted is intentionally left unset here — it's only
                 # ever set automatically once the Super Admin approves and
                 # publishes this announcement.
-                expiration_date=request.POST.get('expiration_date') or None,
-                priority=request.POST.get('priority', 'Normal'),
+                **data,
             )
             log_activity(rep, "Announcement submitted", f'Submitted "{title}" for approval', "content", "fa-solid fa-bullhorn", "var(--blue-600)")
             if is_ajax:
@@ -129,21 +133,18 @@ def edit_announcement(request, rep, pk):
 
 
     if request.method == "POST":
-        title = request.POST.get('title', '').strip()
-        if not title:
-            messages.error(request, "Title is required.")
+        errors, data = clean_announcement(request.POST, is_new=False, current_expiration=announcement.expiration_date)
+        title = data["title"]
+        if errors:
+            for err in errors:
+                messages.error(request, err)
         else:
-            announcement.title = title
-            announcement.subtitle = request.POST.get('subtitle', '')
-            announcement.category = request.POST.get('category', '')
-            announcement.content = request.POST.get('content', '')
+            for field, value in data.items():
+                setattr(announcement, field, value)
             if request.FILES.get('image'):
                 announcement.image = request.FILES.get('image')
-            announcement.author = request.POST.get('author', '')
             # date_posted is intentionally left untouched here — see the note
             # in rep_announcement() above.
-            announcement.expiration_date = request.POST.get('expiration_date') or None
-            announcement.priority = request.POST.get('priority', 'Normal')
             announcement.save()   # last_updated is stamped automatically here
             messages.success(request, f'"{title}" was updated.')
             log_activity(rep, "Announcement updated", f'Updated "{title}"', "content", "fa-regular fa-pen-to-square", "var(--blue-600)")
@@ -1398,33 +1399,115 @@ def my_account(request, rep):
 
     return render(request, "office_dashboard/my-account.html", {"rep": rep})
 
+
+@office_rep_required
+def save_notification_prefs(request, rep):
+    """Saves one switch from My Account -> Notification Preferences.
+    POST: pref=<approvals|messages|weekly_summary|announcements>, enabled=<1|0>"""
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "Invalid request."}, status=400)
+    field = NOTIFY_PREFERENCES.get(request.POST.get("pref", ""))
+    if field is None:
+        return JsonResponse({"success": False, "error": "Unknown preference."}, status=400)
+    enabled = request.POST.get("enabled") == "1"
+    setattr(rep, field, enabled)
+    update = [field]
+    if field == "notify_weekly_summary":
+        # Start counting the week from now (first summary arrives in 7 days).
+        rep.last_weekly_summary_at = timezone.now() if enabled else None
+        update.append("last_weekly_summary_at")
+    rep.save(update_fields=update)
+    return JsonResponse({"success": True, "pref": request.POST.get("pref"), "enabled": enabled})
+
+# Same rules as the "Password Requirements" list on the Change Password page
+# (checked live in the browser, and here again on the server).
+PASSWORD_RULES = [
+    (lambda p: len(p) >= 8, "Password must be at least 8 characters."),
+    (lambda p: re.search(r"[A-Z]", p), "Password must contain at least one uppercase letter."),
+    (lambda p: re.search(r"[0-9]", p), "Password must contain at least one number."),
+    (lambda p: re.search(r"[^A-Za-z0-9]", p), "Password must contain at least one special character (e.g. ! @ # $ %)."),
+]
+
+
+def password_problems(password, user):
+    """All the reasons a new password can't be used (empty list = OK)."""
+    problems = [msg for rule, msg in PASSWORD_RULES if not rule(password)]
+    try:
+        validate_password(password, user=user)   # Django's own checks (too common, too similar to your name…)
+    except ValidationError as e:
+        problems += [m for m in e.messages if m not in problems]
+    return problems
+
+
+def mask_email(email):
+    """juan.delacruz@gmail.com -> ju********@gmail.com"""
+    if not email or "@" not in email:
+        return ""
+    name, domain = email.split("@", 1)
+    return name[:2] + "*" * max(len(name) - 2, 3) + "@" + domain
+
+
 @office_rep_required
 def change_pass(request, rep):
+    """Change password with the current password, or — "Forgot your current
+    password?" — with a 6-digit code sent to the account's email."""
     if request.method == "POST":
+        mode = request.POST.get('mode', 'current')
         current_password = request.POST.get('current_password', '')
+        otp_code = request.POST.get('otp_code', '').strip()
         new_password = request.POST.get('new_password', '')
         confirm_password = request.POST.get('confirm_password', '')
+        email = request.user.email
 
-        if not request.user.check_password(current_password):
+        if mode == 'otp' and not email:
+            messages.error(request, "Your account has no email address. Ask the Super Admin to add one, then try again.")
+        elif mode != 'otp' and not request.user.check_password(current_password):
             messages.error(request, "Current password is incorrect.")
         elif new_password != confirm_password:
             messages.error(request, "New password and confirmation do not match.")
+        elif mode != 'otp' and new_password == current_password:
+            messages.error(request, "Your new password must be different from your current password.")
+        elif password_problems(new_password, request.user):
+            for err in password_problems(new_password, request.user):
+                messages.error(request, err)
+        # The code is checked last, so a typo in the new password doesn't use it up.
+        elif mode == 'otp' and not EmailOTP.verify(email, otp_code):
+            messages.error(request, "That verification code is incorrect or has expired. Please request a new one.")
         else:
-            try:
-                validate_password(new_password, user=request.user)
-            except ValidationError as e:
-                for err in e.messages:
-                    messages.error(request, err)
-            else:
-                request.user.set_password(new_password)
-                request.user.save()
-                update_session_auth_hash(request, request.user)  # keeps them logged in
-                messages.success(request, "Password updated successfully.")
-                log_activity(rep, "Password changed", "Account password was changed", "security", "fa-solid fa-lock", "var(--amber-600)")
+            request.user.set_password(new_password)
+            request.user.save()
+            update_session_auth_hash(request, request.user)  # keeps them logged in here, signs out other devices
+            messages.success(request, "Password updated successfully.")
+            how = "using an email verification code" if mode == 'otp' else "using the current password"
+            log_activity(rep, "Password changed", f"Account password was changed {how}", "security", "fa-solid fa-lock", "var(--amber-600)")
 
         return redirect('office_dashboard:change_pass')
 
-    return render(request, "office_dashboard/change-password.html", {"rep": rep})
+    return render(request, "office_dashboard/change-password.html", {
+        "rep": rep,
+        "masked_email": mask_email(request.user.email),
+    })
+
+
+@office_rep_required
+def send_password_otp(request, rep):
+    """Emails a 6-digit code to the logged-in representative (Forgot password)."""
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "Invalid request."}, status=400)
+    email = request.user.email
+    if not email:
+        return JsonResponse({"success": False, "error": "Your account has no email address. Ask the Super Admin to add one."}, status=400)
+
+    # One code per minute, so the button can't be used to flood the inbox.
+    recent = EmailOTP.objects.filter(email=email, created_at__gte=timezone.now() - timedelta(seconds=60)).order_by('-created_at').first()
+    if recent:
+        wait = 60 - int((timezone.now() - recent.created_at).total_seconds())
+        return JsonResponse({"success": False, "error": f"Please wait {max(wait, 1)} seconds before requesting a new code.", "wait": max(wait, 1)}, status=429)
+
+    ok, error = send_password_reset_otp(email)
+    if not ok:
+        return JsonResponse({"success": False, "error": error or "Could not send the code. Please try again."}, status=500)
+    return JsonResponse({"success": True, "email": mask_email(email)})
 
 @office_rep_required
 def notification(request, rep):

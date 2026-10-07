@@ -12,7 +12,7 @@ def is_super_admin(request):
 def ticker_announcements(request):
     from office_dashboard.models import Announcement
     announcements = list(
-        Announcement.objects.filter(status='published').order_by('-date_posted', '-created_at')[:5]
+        Announcement.public().order_by('-date_posted', '-created_at')[:5]
     )
     return {"ticker_announcements": announcements}
 
@@ -61,7 +61,7 @@ def public_notifications(request):
         except Exception:
             return ""
 
-    for a in (Announcement.objects.filter(status='published', created_at__gte=cutoff)
+    for a in (Announcement.public().filter(created_at__gte=cutoff)
               .select_related('representative__office').order_by('-created_at')[:10]):
         items.append({
             "key": f"a{a.pk}", "kind": "announcement", "label": "Announcement",
