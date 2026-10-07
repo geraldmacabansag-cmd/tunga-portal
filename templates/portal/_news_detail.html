@@ -9,7 +9,7 @@
 {% if n.summary %}<p class="ann-dlg-subtitle">{{ n.summary }}</p>{% endif %}
 {% if n.image %}<img src="{{ n.image.url }}" alt="{{ n.title }}" class="ann-dlg-image">{% endif %}
 <div class="ann-dlg-content">
-  {% if n.content %}{{ n.content|linebreaks }}{% else %}<p>No further details were provided for this story.</p>{% endif %}
+  {% if n.content %}{{ n.content|urlizetrunc:45|linebreaks }}{% else %}<p>No further details were provided for this story.</p>{% endif %}
 </div>
 <div class="ann-dlg-footer">
   <div><i class="fa-regular fa-building"></i> {{ n.representative.office.name|default:"—" }}</div>

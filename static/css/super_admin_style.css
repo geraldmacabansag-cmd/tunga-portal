@@ -1445,6 +1445,16 @@ body.modal-open{overflow:hidden;}
 .modal-view-row:last-child{border-bottom:none;}
 .modal-view-row .k{color:var(--gray-500); flex-shrink:0;}
 .modal-view-row .v{color:var(--gray-900); font-weight:700; text-align:right;}
+/* Long text (descriptions, links, words with no spaces) wraps instead of stretching the modal sideways */
+.modal-body{overflow-x:hidden;}
+.modal-view-row .v{min-width:0; overflow-wrap:anywhere; word-break:break-word;}
+/* Content / Description rows: label on top, text underneath, full width */
+.modal-view-row.is-stacked{flex-direction:column; gap:6px;}
+.modal-view-row.is-stacked .v{text-align:left; font-weight:400; color:var(--gray-700); line-height:1.6;}
+/* Super Admin view modals (announcement / news / event) */
+.field-grid > div{min-width:0;}
+.fl-value, #va-title, #vn-title, #ve-title, #va-subtitle, #vn-summary,
+#va-content, #vn-content, #ve-description{overflow-wrap:anywhere; word-break:break-word;}
 .modal-preview-img{width:100%; border-radius:10px; margin-bottom:14px; object-fit:cover; max-height:220px;}
 
 /* ---------- Dropdown panels (bell / user chip / row menu) ---------- */

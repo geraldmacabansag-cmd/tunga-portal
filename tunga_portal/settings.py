@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     'offices',
     'office_dashboard',
     'admin_dashboard',
+    'tungamap',
 ]
 
 SITE_ID = 1

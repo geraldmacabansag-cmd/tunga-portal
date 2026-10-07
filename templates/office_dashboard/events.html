@@ -205,7 +205,7 @@
 
       <div class="modal-view-row"><span class="k">Title</span><span class="v">{{ e.title }}</span></div>
       <div class="modal-view-row"><span class="k">Category</span><span class="v">{{ e.category|default:"—" }}</span></div>
-      <div class="modal-view-row"><span class="k">Description</span><span class="v">{{ e.description|default:"—"|linebreaksbr }}</span></div>
+      <div class="modal-view-row is-stacked"><span class="k">Description</span><span class="v">{{ e.description|default:"—"|linebreaksbr }}</span></div>
       <div class="modal-view-row"><span class="k">Event Date</span><span class="v">{{ e.event_date|date:"F j, Y"|default:"—" }}</span></div>
       <div class="modal-view-row"><span class="k">Start Time</span><span class="v">{{ e.start_time|time:"g:i A"|default:"—" }}</span></div>
       <div class="modal-view-row"><span class="k">End Time</span><span class="v">{{ e.end_time|time:"g:i A"|default:"—" }}</span></div>

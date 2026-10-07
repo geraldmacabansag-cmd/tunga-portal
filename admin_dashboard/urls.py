@@ -27,6 +27,7 @@ urlpatterns = [
     path('Admin-Downloadable-Forms/<int:pk>/delete/', views.admin_form_delete, name='admin_form_delete'),
     path('Admin-Downloadable-Forms/<int:pk>/download/', views.admin_download_form_file, name='admin_download_form_file'),
     path('Admin-Downloadable-Forms/<int:pk>/view/', views.admin_view_form_file, name='admin_view_form_file'),
+    path('Admin-Downloadable-Forms/<int:pk>/preview/', views.admin_preview_form, name='admin_preview_form'),
     path('Admin-Downloadable-Forms/<int:pk>/fields/', views.admin_form_fields_builder, name='admin_form_fields_builder'),
     path('Admin-Downloadable-Forms/<int:pk>/fields/save/', views.admin_save_form_fields, name='admin_save_form_fields'),
 

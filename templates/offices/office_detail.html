@@ -134,7 +134,19 @@
       {% if photos %}
       <div class="gallery-quad" id="officeGalleryGrid">
         {% for p in photos %}
-        <img src="{{ p.image.url }}" alt="{{ p.title }}" loading="lazy"{% if forloop.counter > 4 %} class="gallery-extra" hidden{% endif %}>
+        <a href="{{ p.image.url }}" target="_blank" rel="noopener"
+           class="gallery-item js-gallery-open{% if forloop.counter > 4 %} gallery-extra{% endif %}"{% if forloop.counter > 4 %} hidden{% endif %}
+           data-image="{{ p.image.url }}"
+           data-title="{{ p.title }}"
+           data-office="{{ office.name }}"
+           data-category="{{ p.category }}"
+           data-date="{{ p.created_at|date:'F j, Y' }}">
+          <img src="{{ p.image.url }}" alt="{{ p.title }}" loading="lazy">
+          <div class="gallery-item__overlay">
+            <span class="gallery-item__title">{{ p.title }}</span>
+            <span class="gallery-item__meta">{{ office.name }}</span>
+          </div>
+        </a>
         {% endfor %}
       </div>
       {% if photos|length > 4 %}
@@ -274,7 +286,7 @@
   {% if a.subtitle %}<p class="ann-dlg-subtitle">{{ a.subtitle }}</p>{% endif %}
   {% if a.image %}<img src="{{ a.image.url }}" alt="{{ a.title }}" class="ann-dlg-image">{% endif %}
   <div class="ann-dlg-content">
-    {% if a.content %}{{ a.content|linebreaks }}{% else %}<p>No further details were provided for this announcement.</p>{% endif %}
+    {% if a.content %}{{ a.content|urlizetrunc:45|linebreaks }}{% else %}<p>No further details were provided for this announcement.</p>{% endif %}
   </div>
   <div class="ann-dlg-footer">
     <div><i class="fa-regular fa-building"></i> {{ office.name }}</div>
@@ -293,7 +305,7 @@
   {% if n.summary %}<p class="ann-dlg-subtitle">{{ n.summary }}</p>{% endif %}
   {% if n.image %}<img src="{{ n.image.url }}" alt="{{ n.title }}" class="ann-dlg-image">{% endif %}
   <div class="ann-dlg-content">
-    {% if n.content %}{{ n.content|linebreaks }}{% else %}<p>No further details were provided for this story.</p>{% endif %}
+    {% if n.content %}{{ n.content|urlizetrunc:45|linebreaks }}{% else %}<p>No further details were provided for this story.</p>{% endif %}
   </div>
   <div class="ann-dlg-footer">
     <div><i class="fa-regular fa-building"></i> {{ office.name }}</div>
@@ -396,7 +408,7 @@
       <ul class="charter-forms__list">
         {% for form in s.charter_forms %}
         <li class="charter-forms__row">
-          <a class="charter-forms__file" href="{% url 'offices:view_pdf' form.pk %}" target="_blank" rel="noopener" title="Open the PDF in a new tab">
+          <a class="charter-forms__file" href="{% url 'offices:view_form' form.pk %}" title="View this form">
             <span class="charter-forms__icon"><i class="fa-solid fa-file-pdf"></i></span>
             <span class="charter-forms__name">{{ form.title }}</span>
           </a>
@@ -651,10 +663,12 @@
 /* Images scale with the panel instead of a fixed 140px height. */
 .gallery-panel .gallery-quad { grid-template-columns: repeat(4, 1fr); gap: 14px; }
 @media (max-width: 860px) { .gallery-panel .gallery-quad { grid-template-columns: repeat(2, 1fr); } }
-.gallery-panel .gallery-quad img {
-  display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover;
+/* Each photo is a .gallery-item tile (styles in gallery.css, same as the
+   Gallery page): title + office slide in on hover, click opens the lightbox. */
+.gallery-panel .gallery-quad .gallery-item[hidden] { display: none; }
+.gallery-panel .gallery-quad .gallery-item img {
+  width: 100%; height: 100%; object-fit: cover; border-radius: 0;
 }
-.gallery-panel .gallery-quad img[hidden] { display: none; }
 /* "View more images" button lives inside the panel, under the images. */
 .gallery-more-wrap { display: flex; justify-content: center; margin-top: 18px; }
 .gallery-more-btn__chev { font-size: .8rem; transition: transform .2s ease; }
@@ -663,7 +677,7 @@
   /* Keep a tidy 2x2 grid on phones (the shared stylesheet drops to 1 column),
      with smaller gaps so the thumbnails stay a good size. */
   .gallery-panel .gallery-quad { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  .gallery-panel .gallery-quad img { border-radius: 8px; }
+  .gallery-panel .gallery-quad .gallery-item { border-radius: 8px; }
   /* Full-width button; let a long label wrap instead of overflowing. */
   .gallery-more-wrap { margin-top: 14px; }
   .gallery-more-btn { width: 100%; white-space: normal; text-align: center; padding: 12px 16px; }
@@ -817,6 +831,8 @@
 })();
 </script>
 
+<script src="{% static 'js/tunga-pdf.js' %}?v=3"></script>
+<script src="{% static 'js/form-fill-fields.js' %}?v=1"></script>
 <script>
 // "Fill Out Online" popup: fetches the PDF-overlay fill fragment for the
 // clicked form via AJAX and injects it into fillDialog. Injected <script>
@@ -874,6 +890,48 @@
     document.body.classList.remove('lock');
     body.innerHTML = '<p style="text-align:center;color:#8a92ab;padding:30px 0;">Loading form…</p>';
   });
+})();
+</script>
+
+<!-- Photo lightbox: same as the Gallery page — click a photo to see it
+     full-size with its title, office, category and date. -->
+<dialog id="galleryLightbox" class="gallery-lightbox" aria-labelledby="galleryLightboxTitle">
+  <div class="gallery-lightbox__box">
+    <button type="button" class="gallery-lightbox__close" id="galleryLightboxClose" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    <img id="galleryLightboxImg" src="" alt="">
+    <div class="gallery-lightbox__caption">
+      <span class="gallery-lightbox__title" id="galleryLightboxTitle"></span>
+      <span class="gallery-lightbox__meta" id="galleryLightboxMeta"></span>
+    </div>
+  </div>
+</dialog>
+
+<script>
+(function () {
+  var lightbox = document.getElementById('galleryLightbox');
+  if (!lightbox) return;
+  var img = document.getElementById('galleryLightboxImg');
+  var title = document.getElementById('galleryLightboxTitle');
+  var meta = document.getElementById('galleryLightboxMeta');
+
+  function close() { lightbox.close(); }
+
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest('.js-gallery-open');
+    if (!t) return;
+    e.preventDefault();
+    var d = t.dataset;
+    img.src = d.image;
+    img.alt = d.title || '';
+    title.textContent = d.title || '';
+    meta.textContent = [d.office, d.category, d.date].filter(Boolean).join(' \u2022 ');
+    lightbox.showModal();
+    document.body.classList.add('lock');
+  });
+
+  document.getElementById('galleryLightboxClose').addEventListener('click', close);
+  lightbox.addEventListener('click', function (e) { if (e.target === lightbox) close(); });
+  lightbox.addEventListener('close', function () { document.body.classList.remove('lock'); });
 })();
 </script>
 

@@ -19,6 +19,8 @@ from django.core.exceptions import ValidationError
 from datetime import datetime
 from django.db.models import Count, F, Sum
 from django.http import FileResponse, Http404, JsonResponse, HttpResponse
+from offices.pdf_serve import pdf_response
+from .form_fields import fields_json, save_fields
 from django.template.defaultfilters import date as django_date_format
 
 from .models import (
@@ -791,85 +793,34 @@ def download_form(request, rep, pk):
 
 @office_rep_required
 def preview_form_pdf(request, rep, pk):
-    """Streams the form's PDF through our own server for the field-placement
-    builder's pdf.js preview, instead of pointing straight at the storage
-    backend's public URL. Cloudinary (and some other storage backends) block
-    unsigned/direct access to PDF files by default, which pdf.js sees as an
-    HTTP 401 when it tries to fetch the file itself — opening it through
-    Django's storage API here uses authenticated access instead, sidestepping
-    that restriction. No download_count bump here since this is just a
-    preview, not an actual download."""
+    """PDF for the office rep's field builder preview."""
     form = get_object_or_404(DownloadableForm, pk=pk, office=rep.office)
-
-    try:
-        form.file.open('rb')
-        data = form.file.read()
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return HttpResponse(
-            "Could not load the PDF from storage: %s: %s" % (type(e).__name__, e),
-            status=500,
-            content_type="text/plain",
-        )
-    finally:
-        try:
-            form.file.close()
-        except Exception:
-            pass
-
-    return FileResponse(io.BytesIO(data), content_type="application/pdf")
+    return pdf_response(request, form.file, filename="form.pdf")
 
 
 @office_rep_required
 def form_fields_builder(request, rep, pk):
     form = get_object_or_404(DownloadableForm, pk=pk, office=rep.office)
-    fields = list(form.fields.all().values(
-        'id', 'label', 'field_type', 'required', 'page_number', 'x', 'y', 'width', 'height', 'order'
-    ))
     return render(request, "office_dashboard/form-fields-builder.html", {
         "rep": rep,
         "form_obj": form,
-        "fields_json": json.dumps(fields),
+        "fields_json": fields_json(form),
     })
 
 
 @office_rep_required
 def save_form_fields(request, rep, pk):
     form = get_object_or_404(DownloadableForm, pk=pk, office=rep.office)
-
     if request.method != "POST":
         return JsonResponse({"success": False, "error": "Invalid request."}, status=400)
-
     try:
-        payload = json.loads(request.body)
-        incoming_fields = payload.get('fields', [])
+        incoming = json.loads(request.body).get("fields", [])
     except (json.JSONDecodeError, AttributeError):
         return JsonResponse({"success": False, "error": "Invalid data."}, status=400)
 
-    # Simplest correct approach: replace the whole field set each save,
-    # rather than trying to diff individual adds/edits/deletes.
-    form.fields.all().delete()
-
-    for i, f in enumerate(incoming_fields):
-        label = (f.get('label') or '').strip()
-        if not label:
-            continue
-        FormField.objects.create(
-            form=form,
-            label=label,
-            field_type=f.get('field_type', 'text'),
-            required=bool(f.get('required', True)),
-            page_number=int(f.get('page_number', 1)),
-            x=float(f.get('x', 0)),
-            y=float(f.get('y', 0)),
-            width=float(f.get('width', 0.2)),
-            height=float(f.get('height', 0.03)),
-            order=i,
-        )
-
-    messages.success(request, f'"{form.title}" is now fillable — fields were saved.' if incoming_fields else f'All fields were removed from "{form.title}".')
-    return JsonResponse({"success": True})
+    count = save_fields(form, incoming)
+    messages.success(request, f'"{form.title}" is now fillable — fields were saved.' if count else f'All fields were removed from "{form.title}".')
+    return JsonResponse({"success": True, "fields": json.loads(fields_json(form))})
 
 @office_rep_required
 def edit_form(request, rep, pk):

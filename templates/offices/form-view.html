@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ form_obj.title }} | Digital Governance Portal{% endblock %}
+
+{% block content %}
+
+<section class="page-hero">
+  <img src="{% static 'images/lgu_bldg.jpeg' %}" alt="Tunga Municipal Hall" class="page-hero__bg">
+  <div class="page-hero__scrim"></div>
+  <div class="page-hero__inner">
+    <div class="breadcrumb">
+      <a href="{% url 'home' %}">Home</a> <i class="fa-solid fa-chevron-right" style="font-size:.65rem"></i>
+      <a href="{% url 'offices:office_detail' office.slug %}">{{ office.name }}</a> <i class="fa-solid fa-chevron-right" style="font-size:.65rem"></i>
+      <span class="current">{{ form_obj.title }}</span>
+    </div>
+    <h1>{{ form_obj.title }}</h1>
+    <p>{{ office.name }}</p>
+  </div>
+</section>
+
+<section style="padding:32px 0 60px;">
+  <div class="container" style="max-width:900px;">
+    <div class="panel" style="padding:22px 24px;">
+
+      <div class="fv-bar">
+        <a class="btn btn-outline" href="{% url 'offices:office_detail' office.slug %}"><i class="fa-solid fa-arrow-left"></i> Back to office</a>
+        <div class="fv-bar__right">
+          {% if can_fill_online %}
+            {% if user.is_authenticated %}
+              <a class="btn btn-primary" href="{% url 'offices:fill_form' form_obj.pk %}"><i class="fa-solid fa-pen-to-square"></i> Fill Out Online</a>
+            {% else %}
+              <a class="btn btn-primary" href="{% url 'login' %}?next={{ request.path|urlencode }}" title="Log in to fill out this form online"><i class="fa-solid fa-pen-to-square"></i> Fill Out Online</a>
+            {% endif %}
+          {% endif %}
+          <a class="btn btn-secondary" href="{% url 'offices:view_pdf' form_obj.pk %}?download=1" download><i class="fa-solid fa-download"></i> Download</a>
+        </div>
+      </div>
+
+      <div id="fvStatus" class="fv-status">Loading form…</div>
+      <div id="fvPages" class="fv-pages"></div>
+
+      <p id="fvFallback" class="fv-fallback" hidden>
+        We couldn't display this form on your device. You can still
+        <a href="{% url 'offices:view_pdf' form_obj.pk %}?download=1" download><strong>download the PDF</strong></a>
+        and open it with any PDF app.
+      </p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .fv-bar { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+  .fv-bar__right { display:flex; gap:10px; flex-wrap:wrap; }
+  .fv-status { text-align:center; color:#6b7280; font-size:14px; padding:18px 0; }
+  .fv-pages { background:#eef0f5; border:1px solid #e5e7eb; border-radius:8px; padding:10px; }
+  .fv-pages:empty { display:none; }
+  .fv-page { display:block; width:100%; height:auto; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,.18); margin:0 auto 12px; }
+  .fv-page:last-child { margin-bottom:0; }
+  .fv-fallback { margin:16px 0 0; padding:12px 16px; border-radius:8px; background:#fff7e6; border:1px solid #f3d9a4; color:#7a4b00; font-size:14px; }
+  @media (max-width:600px) {
+    .fv-bar .btn, .fv-bar__right { width:100%; }
+    .fv-bar__right .btn { flex:1; justify-content:center; text-align:center; }
+  }
+</style>
+
+<script src="{% static 'js/tunga-pdf.js' %}?v=3"></script>
+<script>
+(function () {
+  var PDF_URL = "{% url 'offices:view_pdf' form_obj.pk %}";
+  var statusEl = document.getElementById('fvStatus');
+  var pagesEl = document.getElementById('fvPages');
+  var fallbackEl = document.getElementById('fvFallback');
+
+  function fail(err) {
+    if (window.console) console.error(err);
+    statusEl.style.display = 'none';
+    fallbackEl.hidden = false;
+    var detail = document.createElement('div');
+    detail.style.cssText = 'margin-top:6px;font-size:12px;opacity:.8;';
+    detail.textContent = (err && err.message) ? err.message : '';
+    fallbackEl.appendChild(detail);
+  }
+
+  function renderPage(doc, num) {
+    return doc.getPage(num).then(function (page) {
+      var natural = page.getViewport({ scale: 1 });
+      var cssWidth = Math.max(pagesEl.clientWidth - 20, 200);
+      // Sharp on phones/retina screens, but capped so a long form can't
+      // exhaust a phone's memory.
+      var ratio = Math.min(window.devicePixelRatio || 1, 2);
+      var scale = (cssWidth / natural.width) * ratio;
+      var vp = page.getViewport({ scale: scale });
+      var canvas = document.createElement('canvas');
+      canvas.className = 'fv-page';
+      canvas.width = Math.floor(vp.width);
+      canvas.height = Math.floor(vp.height);
+      pagesEl.appendChild(canvas);
+      return page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+    });
+  }
+
+  TungaPdf.open(PDF_URL).then(function (doc) {
+    statusEl.textContent = doc.numPages > 1 ? ('Loading ' + doc.numPages + ' pages…') : '';
+    var chain = Promise.resolve();
+    for (var n = 1; n <= doc.numPages; n++) {
+      (function (num) {
+        chain = chain.then(function () { return renderPage(doc, num); });
+      })(n);
+    }
+    return chain.then(function () { statusEl.style.display = 'none'; });
+  }).catch(fail);
+})();
+</script>
+
+{% endblock %}

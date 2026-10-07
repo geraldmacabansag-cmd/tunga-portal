@@ -41,7 +41,7 @@ Fill Out {{ form_obj.title }} | Digital Governance Portal
             We've filled in a couple of fields from your account where they matched — please check everything before downloading.
           </p>
         </div>
-        <a href="{% url 'offices:view_pdf' form_obj.pk %}" target="_blank" rel="noopener" class="btn btn-outline" style="white-space:nowrap;">
+        <a href="{% url 'offices:view_form' form_obj.pk %}" class="btn btn-outline" style="white-space:nowrap;">
           <i class="fa-regular fa-file-pdf"></i> Open Original PDF
         </a>
       </div>
@@ -125,10 +125,10 @@ Fill Out {{ form_obj.title }} | Digital Governance Portal
 </style>
 
 <script type="application/json" id="fillFieldsData">{{ fields_json|safe }}</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+<script src="{% static 'js/tunga-pdf.js' %}?v=3"></script>
+<script src="{% static 'js/form-fill-fields.js' %}?v=1"></script>
 <script>
 (function () {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js";
 
   var PDF_URL = "{% url 'offices:view_pdf' form_obj.pk %}";
   var fieldsData = JSON.parse(document.getElementById('fillFieldsData').textContent);
@@ -170,22 +170,7 @@ Fill Out {{ form_obj.title }} | Digital Governance Portal
   }
 
   function applyFieldScale(effectiveScale) {
-    var ratio = effectiveScale / BASE_SCALE;
-    // No "readable minimum" font-size here on purpose: at a small enough
-    // zoom-out, the field's own box (a fraction of the shrunk page) gets
-    // shorter than a fixed minimum font could ever fit inside, and a font
-    // that doesn't fit its box is exactly what caused the text to spill
-    // outside its line instead of sitting on it. Scaling all the way down
-    // with nothing but a tiny floor (just enough to keep the CSS value
-    // valid) keeps the text proportional to its box at every zoom level —
-    // it gets small to match, which is what "zoomed out" is supposed to
-    // look like; zooming back in is what makes it readable again.
-    fieldLayer.querySelectorAll('.fill-online-input').forEach(function (el) {
-      el.style.fontSize = Math.max(1, 13 * ratio).toFixed(2) + 'px';
-      el.style.padding = Math.max(0, 0.6 * ratio).toFixed(2) + 'px ' + Math.max(0, 2.2 * ratio).toFixed(2) + 'px';
-      el.style.borderRadius = Math.max(0, 3 * ratio).toFixed(2) + 'px';
-      el.style.lineHeight = 'normal';
-    });
+    TungaFill.scale(fieldLayer, effectiveScale);
   }
 
   function showError(text) {
@@ -193,64 +178,21 @@ Fill Out {{ form_obj.title }} | Digital Governance Portal
     msgs.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
   function clearError() { msgs.innerHTML = ''; }
+  function showSuccess(url, filename) {
+    msgs.innerHTML = '<div style="padding:12px 16px;border-radius:8px;margin-bottom:14px;background:#e8f7ee;color:#17693a;border:1px solid #b7e4c7;">' +
+      '<strong>Saved.</strong> Your filled form (' + (filename || 'PDF') + ') is downloading to your device. ' +
+      'If nothing happened, <a href="' + url + '" download style="color:#0b5d2e;font-weight:600;text-decoration:underline;">tap here to download it</a>.</div>';
+    msgs.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
 
   function buildInputs() {
-    fieldsData.forEach(function (f) {
-      var box = document.createElement('div');
-      box.className = 'fill-field-box';
-      box.dataset.page = f.page_number;
-      box.style.cssText = [
-        'position:absolute',
-        'left:' + (f.x * 100) + '%',
-        'top:' + (f.y * 100) + '%',
-        'width:' + (f.width * 100) + '%',
-        'height:' + (f.height * 100) + '%',
-        'box-sizing:border-box',
-      ].join(';');
-
-      var input;
-      if (f.field_type === 'checkbox') {
-        input = document.createElement('input');
-        input.type = 'checkbox';
-        input.name = 'field_' + f.id;
-        if (f.initial_value) input.checked = true;
-        input.style.cssText = 'display:block;width:100%;height:100%;margin:0;cursor:pointer;';
-      } else {
-        input = document.createElement('input');
-        input.type = (f.field_type === 'date') ? 'date' : (f.field_type === 'number' ? 'number' : 'text');
-        input.name = 'field_' + f.id;
-        input.value = f.initial_value || '';
-        input.title = f.label || '';
-        input.className = 'fill-online-input';
-        input.style.cssText = [
-          // display:block is the fix, not decoration: an <input> is an
-          // inline-level element by default, so without this it sits on
-          // its surrounding text's baseline — which (via the box's
-          // inherited line-height) left a few pixels of invisible gap
-          // above it and pushed it that same amount below its own
-          // .fill-field-box. Barely visible at full desktop size, but a
-          // 2-3px sink is a huge share of a field that's only 10-15px tall
-          // once the page is shrunk for a phone or zoomed out, so the
-          // input's text ended up overlapping the printed line below its
-          // assigned slot instead of sitting on it — looking exactly like
-          // the field had "moved," at any zoom level, including 100%.
-          'display:block',
-          'width:100%', 'height:100%', 'box-sizing:border-box',
-          'border:1px solid transparent', 'background:transparent',
-          'border-radius:3px', 'font-size:13px', 'padding:1px 3px', 'color:#111827',
-          'outline:none',
-        ].join(';');
-      }
-      input.dataset.fieldId = f.id;
-      box.appendChild(input);
-      fieldLayer.appendChild(box);
-    });
+    TungaFill.build(fieldsData, fieldLayer);
     syncVisibility();
   }
 
   function syncVisibility() {
     fieldLayer.querySelectorAll('.fill-field-box').forEach(function (box) {
-      box.style.display = (parseInt(box.dataset.page, 10) === currentPage) ? 'block' : 'none';
+      box.style.display = (parseInt(box.dataset.page, 10) === currentPage) ? 'flex' : 'none';
     });
   }
 
@@ -306,7 +248,7 @@ Fill Out {{ form_obj.title }} | Digital Governance Portal
     loadPage(currentPage, true);
   }
 
-  pdfjsLib.getDocument(PDF_URL).promise.then(function (doc) {
+  TungaPdf.open(PDF_URL).then(function (doc) {
     pdfDoc = doc;
     totalPages = doc.numPages;
     // Only the prev/next page group hides itself on a single-page form — the
@@ -366,31 +308,34 @@ Fill Out {{ form_obj.title }} | Digital Governance Portal
     submitBtn.disabled = true;
     submitBtn.innerHTML = 'Generating…';
 
-    fetch(form.action, {
-      method: 'POST',
-      body: new FormData(form),
-      headers: { 'X-Requested-With': 'XMLHttpRequest' },
-    }).then(function (res) {
-      var contentType = res.headers.get('Content-Type') || '';
-      if (contentType.indexOf('application/pdf') !== -1) {
-        return res.blob().then(function (blob) {
-          var disposition = res.headers.get('Content-Disposition') || '';
-          var match = disposition.match(/filename="?([^"]+)"?/);
-          var filename = match ? match[1] : 'filled-form.pdf';
-          var url = window.URL.createObjectURL(blob);
-          var a = document.createElement('a');
-          a.href = url;
-          a.download = filename;
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-          window.URL.revokeObjectURL(url);
+fetch(form.action, {
+        method: 'POST',
+        body: new FormData(form),
+        credentials: 'same-origin',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      }).then(function (res) {
+        return res.json().then(function (data) {
+          if (!res.ok || !data.ok) {
+            throw new Error(data.error || 'Something went wrong. Please try again.');
+          }
+          return data;
+        }, function () {
+          throw new Error('Your session may have expired. Please log in again and retry.');
         });
-      }
-      return res.json().then(function (data) {
-        throw new Error(data.error || 'Something went wrong. Please try again.');
-      });
-    }).catch(function (err) {
+      }).then(function (data) {
+        // A plain link click to a server URL that answers with an attachment:
+        // the browser saves it to the device's Downloads folder / file
+        // manager (no JavaScript blob involved, which mobile and in-app
+        // browsers often drop).
+        var a = document.createElement('a');
+        a.href = data.download_url;
+        a.setAttribute('download', data.filename || 'filled-form.pdf');
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function () { a.remove(); }, 1500);
+        showSuccess(data.download_url, data.filename);
+      }).catch(function (err) {
       showError(err.message || 'Something went wrong. Please try again.');
     }).finally(function () {
       submitBtn.disabled = false;

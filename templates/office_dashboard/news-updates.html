@@ -222,8 +222,8 @@
 
       <div class="modal-view-row"><span class="k">Headline</span><span class="v">{{ n.title }}</span></div>
       <div class="modal-view-row"><span class="k">Category</span><span class="v">{{ n.category|default:"—" }}</span></div>
-      <div class="modal-view-row"><span class="k">Summary</span><span class="v">{{ n.summary|default:"—" }}</span></div>
-      <div class="modal-view-row"><span class="k">Content</span><span class="v">{{ n.content|default:"—"|linebreaksbr }}</span></div>
+      <div class="modal-view-row is-stacked"><span class="k">Summary</span><span class="v">{{ n.summary|default:"—" }}</span></div>
+      <div class="modal-view-row is-stacked"><span class="k">Content</span><span class="v">{{ n.content|default:"—"|linebreaksbr }}</span></div>
       <div class="modal-view-row"><span class="k">Author</span><span class="v">{{ n.author|default:"—" }}</span></div>
       <div class="modal-view-row"><span class="k">Date Published</span><span class="v">{{ n.date_published|date:"F j, Y"|default:"—" }}</span></div>
       <div class="modal-view-row"><span class="k">Last Updated</span><span class="v">{{ n.last_updated|date:"F j, Y, g:i A" }}</span></div>

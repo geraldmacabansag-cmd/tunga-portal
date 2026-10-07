@@ -18,6 +18,13 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from tungamap import views as tungamap_views
+
+# Tunga Map data API (used by the map on the Super Admin "Interactive Map" page).
+tungamap_api = ([
+    path('api/places/', tungamap_views.places, name='places'),
+    path('api/places/<int:pk>/', tungamap_views.place_detail, name='place_detail'),
+], 'tungamap')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -26,6 +33,7 @@ urlpatterns = [
     path('office-dashboard/', include('office_dashboard.urls')),
     path('super-admin/', include('admin_dashboard.urls')),
     path('accounts/', include('allauth.urls')),
+    path('map/', include(tungamap_api)),
 ]
 
 if settings.DEBUG:

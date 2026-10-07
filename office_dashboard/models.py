@@ -465,6 +465,18 @@ class FormField(models.Model):
 
     order = models.PositiveIntegerField(default=0)
 
+    # ---- How the typed answer looks (set in the Make Fillable builder) ----
+    ALIGN_CHOICES = [("left", "Left"), ("center", "Center"), ("right", "Right")]
+    V_ALIGN_CHOICES = [("bottom", "Bottom"), ("middle", "Middle"), ("top", "Top")]
+
+    text_align = models.CharField(max_length=10, choices=ALIGN_CHOICES, default="left")
+    v_align = models.CharField(max_length=10, choices=V_ALIGN_CHOICES, default="bottom")
+    font_size = models.PositiveSmallIntegerField(default=0)  # points; 0 = auto-fit the box
+    bold = models.BooleanField(default=False)
+    text_color = models.CharField(max_length=7, default="#000000")
+    uppercase = models.BooleanField(default=False)
+    placeholder = models.CharField(max_length=100, blank=True, default="")
+
     class Meta:
         ordering = ["page_number", "order", "id"]
 

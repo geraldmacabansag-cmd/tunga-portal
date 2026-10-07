@@ -2,6 +2,9 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import FileResponse, JsonResponse, Http404, HttpResponse
+from .pdf_serve import pdf_response
+from office_dashboard.form_fields import field_to_dict, to_json
+from django.urls import reverse
 from .models import Office
 from office_dashboard.models import (
     Announcement, DownloadableForm, NewsUpdate, Photo, Service,
@@ -12,42 +15,31 @@ import io
 import json
 
 def serve_form_pdf(request, pk):
-    """Streams a published form's original PDF through our own server instead
-    of linking straight to the storage backend's public URL. Some storage
-    providers (Cloudinary in particular) block unsigned/direct access to
-    PDF and ZIP files by default and return a 401 — opening the file through
-    Django's storage API (as this does) uses authenticated access instead,
-    so it works regardless of that setting. Used for the "View/Open Original
-    PDF" links, the plain Download button, and as the source pdf.js loads
-    for the online fill-out popup."""
+    """Original PDF of a published form (View / Download links and the
+    pdf.js preview in Fill Out Online)."""
     form_obj = get_object_or_404(DownloadableForm, pk=pk, status="published")
-
-    try:
-        form_obj.file.open("rb")
-        data = form_obj.file.read()
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return HttpResponse(
-            "Could not load the PDF from storage: %s: %s" % (type(e).__name__, e),
-            status=500,
-            content_type="text/plain",
-        )
-    finally:
-        try:
-            form_obj.file.close()
-        except Exception:
-            pass
-
-    filename = form_obj.file.name.rsplit("/", 1)[-1]
-    as_attachment = request.GET.get("download") == "1"
-
-    return FileResponse(
-        io.BytesIO(data),
-        as_attachment=as_attachment,
-        filename=filename,
-        content_type="application/pdf",
+    return pdf_response(
+        request, form_obj.file,
+        filename=_pdf_filename(form_obj.title, ""),
+        as_attachment=request.GET.get("download") == "1",
     )
+
+def _pdf_filename(title, suffix="_filled"):
+    safe_title = re.sub(r"[^A-Za-z0-9_-]+", "_", (title or "").strip()).strip("_") or "form"
+    return f"{safe_title}{suffix}.pdf"
+
+
+def view_form(request, pk):
+    """Our own PDF viewer page. It draws the form with pdf.js on a canvas
+    instead of relying on the visitor's browser to display a PDF — Android
+    Chrome, many in-app browsers and some older phones can't show a PDF
+    inline and just fail or force a download."""
+    form_obj = get_object_or_404(DownloadableForm, pk=pk, status="published")
+    return render(request, "offices/form-view.html", {
+        "form_obj": form_obj,
+        "office": form_obj.office,
+        "can_fill_online": form_obj.fields.exists(),
+    })
 
 
 def _parse_leading_number(text):
@@ -203,21 +195,8 @@ def fill_form(request, pk):
 
     pages = sorted(set(f.page_number for f in fields))
 
-    fields_json = json.dumps([
-        {
-            "id": f.id,
-            "label": f.label,
-            "field_type": f.field_type,
-            "required": f.required,
-            "page_number": f.page_number,
-            "x": f.x,
-            "y": f.y,
-            "width": f.width,
-            "height": f.height,
-            "initial_value": f.initial_value,
-        }
-        for f in fields
-    ])
+    # Position + text style of every field (same data the builder saves).
+    fields_json = to_json([dict(field_to_dict(f), initial_value=f.initial_value) for f in fields])
 
     template = "offices/_form_fill_fragment.html" if _is_ajax(request) else "offices/form-fill.html"
 
@@ -263,35 +242,69 @@ def submit_form(request, pk):
         for f in fields
     ])
 
+    download_url = reverse("offices:download_filled", args=[submission.pk])
+
+    # The page's script asks for JSON and then points the browser at the
+    # download URL. That is a plain, native file download (the same as
+    # tapping a Download link), so the phone saves it straight into its
+    # Downloads folder — unlike a JavaScript "blob" download, which several
+    # mobile and in-app browsers silently drop.
+    if _is_ajax(request):
+        return JsonResponse({
+            "ok": True,
+            "download_url": download_url,
+            "filename": _pdf_filename(form_obj.title),
+        })
+
+    return redirect(download_url)
+
+
+@login_required
+def download_filled(request, pk):
+    """Sends the person's own saved answers, written onto the office's PDF,
+    as a file download. Only the citizen who filled it in can fetch it."""
+    submission = get_object_or_404(
+        FormSubmission.objects.select_related("form", "form__office"),
+        pk=pk, user=request.user, form__status="published",
+    )
+    form_obj = submission.form
+
+    values_by_field = {
+        v.field_id: v.value
+        for v in submission.values.all()
+    }
+    fields = list(form_obj.fields.all().order_by("page_number", "order", "id"))
+
     try:
         pdf_bytes = _stamp_pdf(form_obj, fields, values_by_field)
     except Exception:
         import traceback
         traceback.print_exc()
-        error_text = "Your responses were saved, but the filled PDF couldn't be generated. Please try downloading again or contact the office."
-        if _is_ajax(request):
-            return JsonResponse({"error": error_text}, status=500)
-        messages.error(request, error_text)
-        return redirect("offices:fill_form", pk=pk)
+        return HttpResponse(
+            "Your responses were saved, but the filled PDF couldn't be generated. "
+            "Please go back and try again, or contact the office.",
+            status=500,
+            content_type="text/plain",
+        )
 
-    safe_title = re.sub(r"[^A-Za-z0-9_-]+", "_", form_obj.title.strip()) or "form"
-    filename = f"{safe_title}_filled.pdf"
-
-    return FileResponse(
+    response = FileResponse(
         io.BytesIO(pdf_bytes),
         as_attachment=True,
-        filename=filename,
+        filename=_pdf_filename(form_obj.title),
         content_type="application/pdf",
     )
+    response["Content-Length"] = str(len(pdf_bytes))
+    response["Cache-Control"] = "no-store"
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
 
 
 def _stamp_pdf(form_obj, fields, values_by_field):
-    """Stamps the citizen's typed answers directly onto a copy of the
-    office's original PDF, at the exact positions the office representative
-    placed each field in the form builder (x/y/width/height are fractions
-    of the page size, with y measured from the top)."""
-    from pypdf import PdfReader, PdfWriter
-    from pypdf.annotations import FreeText
+    """Writes the citizen's answers onto a copy of the office's original PDF
+    at the positions the office representative placed each field (see
+    offices/pdf_stamp.py — the text is part of the page, not an annotation,
+    so every PDF viewer, including phone ones, shows it)."""
+    from .pdf_stamp import stamp_pdf
 
     form_obj.file.open("rb")
     try:
@@ -299,52 +312,4 @@ def _stamp_pdf(form_obj, fields, values_by_field):
     finally:
         form_obj.file.close()
 
-    reader = PdfReader(io.BytesIO(source_bytes))
-    writer = PdfWriter()
-    writer.append(reader)
-
-    fields_by_page = {}
-    for f in fields:
-        fields_by_page.setdefault(f.page_number, []).append(f)
-
-    for page_number, page_fields in fields_by_page.items():
-        page_index = page_number - 1
-        if page_index < 0 or page_index >= len(writer.pages):
-            continue
-
-        page = writer.pages[page_index]
-        mediabox = page.mediabox
-        page_width = float(mediabox.width)
-        page_height = float(mediabox.height)
-
-        for f in page_fields:
-            value = values_by_field.get(f.id, "")
-            text = "X" if f.field_type == "checkbox" else value
-            if not text:
-                continue
-
-            x0 = f.x * page_width
-            x1 = (f.x + f.width) * page_width
-            y1 = page_height * (1 - f.y)
-            y0 = page_height * (1 - f.y - f.height)
-            if x1 <= x0:
-                x1 = x0 + 10
-            if y1 <= y0:
-                y1 = y0 + 10
-
-            font_size = max(8, min(14, (y1 - y0) * 0.65))
-
-            annotation = FreeText(
-                text=str(text),
-                rect=(x0, y0, x1, y1),
-                font="Helvetica",
-                font_size=f"{font_size:.0f}pt",
-                font_color="000000",
-                border_color=None,
-                background_color=None,
-            )
-            writer.add_annotation(page_number=page_index, annotation=annotation)
-
-    output = io.BytesIO()
-    writer.write(output)
-    return output.getvalue()
+    return stamp_pdf(source_bytes, fields, values_by_field)

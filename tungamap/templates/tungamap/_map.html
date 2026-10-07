@@ -1,0 +1,131 @@
+{% load static %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="{% static 'tungamap/tungamap.css' %}?v=2">
+
+<section class="tmap" style="--tmap-height: {{ height }}"
+     data-api="{{ api_url }}"
+     data-csrf="{{ csrf_token }}"
+     data-can-edit="{{ can_edit|yesno:'1,0' }}"
+     data-barangays="{{ barangays|join:'|' }}"
+     aria-label="Map of Tunga, Leyte">
+
+  <aside class="tm-panel" data-el="panel">
+    <button type="button" class="tm-grab" data-el="grab" aria-label="Expand or collapse the list"></button>
+
+    <header class="tm-brand">
+      <div>
+        <p class="tm-eyebrow">Municipality of Tunga · Leyte</p>
+        <h2 class="tm-title">Tunga Map</h2>
+      </div>
+      {% if show_signin %}<a class="tm-btn tm-ghost tm-small" href="{{ login_url }}"><i class="fa-solid fa-lock"></i> Staff sign in</a>{% endif %}
+    </header>
+
+    <div class="tm-search">
+      <div class="tm-mode" role="tablist" aria-label="Search type">
+        <button type="button" role="tab" class="on" data-mode="est">Establishments</button>
+        <button type="button" role="tab" data-mode="loc">Places &amp; streets</button>
+      </div>
+      <form class="tm-searchbox" data-el="searchForm" role="search">
+        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+        <input data-el="q" type="search" autocomplete="off" aria-label="Search the map" placeholder="Search school, health center, market…">
+        <button class="tm-btn" type="submit">Search</button>
+      </form>
+      <label class="tm-osm-toggle" data-el="osmToggleWrap">
+        <input type="checkbox" data-el="osmToggle" checked>
+        Also show matches already mapped on OpenStreetMap
+      </label>
+    </div>
+
+    <div class="tm-chips" data-el="chips" aria-label="Browse by type"></div>
+
+    <div class="tm-results-head">
+      <span data-el="resultsLabel">All infrastructure</span>
+      <button type="button" class="tm-link" data-el="clearBtn" hidden>Clear</button>
+    </div>
+    <ul class="tm-results" data-el="results"></ul>
+
+    {% if can_edit %}
+    <footer class="tm-admin-bar">
+      <span><i class="fa-solid fa-user-shield"></i> You can edit this map</span>
+      <button type="button" class="tm-btn" data-el="addBtn"><i class="fa-solid fa-plus"></i> Add infrastructure</button>
+    </footer>
+    {% endif %}
+  </aside>
+
+  <div class="tm-mapwrap">
+    <div class="tm-map" data-el="map"></div>
+    <div class="tm-hint" data-el="hint" hidden></div>
+    <div class="tm-legend" data-el="legend" hidden>
+      <span><i class="tm-dot own"></i> Added by the municipality</span>
+      <span><i class="tm-dot osm"></i> From OpenStreetMap</span>
+    </div>
+  </div>
+
+  {% if can_edit %}
+  <dialog class="tm-dialog tm-wide" data-el="placeDlg">
+    <form class="tm-dlg" data-el="placeForm">
+      <h3 data-el="placeTitle">Add infrastructure</h3>
+      <div class="tm-grid2">
+        <div class="tm-field tm-full">
+          <label for="tm-name">Name</label>
+          <input id="tm-name" data-el="pName" required maxlength="120" placeholder="e.g. Tunga Central School">
+        </div>
+        <div class="tm-field">
+          <label for="tm-cat">Type</label>
+          <select id="tm-cat" data-el="pCat"></select>
+        </div>
+        <div class="tm-field">
+          <label for="tm-brgy">Barangay</label>
+          <select id="tm-brgy" data-el="pBrgy"></select>
+        </div>
+        <div class="tm-field tm-full">
+          <label for="tm-desc">Description</label>
+          <textarea id="tm-desc" data-el="pDesc" rows="3" placeholder="Services, office hours, condition, year built…"></textarea>
+        </div>
+        <div class="tm-field">
+          <label for="tm-contact">Contact (optional)</label>
+          <input id="tm-contact" data-el="pContact" maxlength="120" placeholder="Phone or email">
+        </div>
+        <div class="tm-field">
+          <span class="tm-label">Location</span>
+          <div class="tm-row"><span class="tm-coords" data-el="pCoords">—</span><button type="button" class="tm-link" data-el="movePin">Move pin</button></div>
+        </div>
+        <div class="tm-field tm-full">
+          <label for="tm-imgs">Photos (up to 6, max 8 MB each)</label>
+          <input id="tm-imgs" data-el="pImgs" type="file" accept="image/jpeg,image/png,image/webp" multiple>
+          <div class="tm-thumbs" data-el="pThumbs"></div>
+        </div>
+        <label class="tm-check tm-full"><input type="checkbox" data-el="pPublished" checked> Show this place to the public</label>
+      </div>
+      <p class="tm-error" data-el="placeErr" hidden></p>
+      <div class="tm-row tm-end">
+        <button type="button" class="tm-btn tm-ghost" data-close>Cancel</button>
+        <button type="submit" class="tm-btn" data-el="placeSave">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="tm-dialog" data-el="delDlg">
+    <form method="dialog" class="tm-dlg">
+      <h3>Delete this place?</h3>
+      <p data-el="delName"></p>
+      <p class="tm-muted">Its photos are deleted too. This can't be undone.</p>
+      <div class="tm-row tm-end">
+        <button class="tm-btn tm-ghost" value="no">Keep it</button>
+        <button class="tm-btn tm-danger" value="yes">Delete</button>
+      </div>
+    </form>
+  </dialog>
+  {% endif %}
+
+  <dialog class="tm-dialog tm-photo" data-el="photoDlg">
+    <button type="button" class="tm-close" data-close aria-label="Close photo"><i class="fa-solid fa-xmark"></i></button>
+    <img data-el="photoImg" alt="">
+  </dialog>
+
+  <div class="tm-toast" data-el="toast" role="status" hidden></div>
+</section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="{% static 'tungamap/tungamap.js' %}?v=2" defer></script>

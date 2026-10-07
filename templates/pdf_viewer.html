@@ -1,0 +1,56 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }}</title>
+  <style>
+    body { margin:0; background:#eef0f4; font-family:system-ui, Arial, sans-serif; }
+    .bar { position:sticky; top:0; display:flex; gap:10px; align-items:center; justify-content:space-between;
+           padding:10px 16px; background:#fff; border-bottom:1px solid #dde1e8; }
+    .bar h1 { font-size:16px; margin:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .bar a { flex:none; padding:8px 14px; border-radius:6px; background:#1d4ed8; color:#fff; text-decoration:none; font-size:14px; }
+    #pages { max-width:900px; margin:16px auto; padding:0 10px; }
+    #pages canvas { display:block; width:100%; margin:0 auto 14px; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,.15); }
+    #msg { text-align:center; color:#555; padding:30px 10px; }
+  </style>
+</head>
+<body>
+  <div class="bar">
+    <h1>{{ title }}</h1>
+    <a href="{{ download_url }}">Download</a>
+  </div>
+  <div id="msg">Loading PDF…</div>
+  <div id="pages"></div>
+
+  <script src="{% static 'js/tunga-pdf.js' %}?v=3"></script>
+  <script>
+    var pagesEl = document.getElementById('pages');
+    var msg = document.getElementById('msg');
+
+    function renderPage(doc, num) {
+      return doc.getPage(num).then(function (page) {
+        var ratio = Math.min(window.devicePixelRatio || 1, 2);
+        var width = Math.max(pagesEl.clientWidth - 20, 200);
+        var vp = page.getViewport({ scale: (width / page.getViewport({ scale: 1 }).width) * ratio });
+        var canvas = document.createElement('canvas');
+        canvas.width = Math.floor(vp.width);
+        canvas.height = Math.floor(vp.height);
+        pagesEl.appendChild(canvas);
+        return page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+      });
+    }
+
+    TungaPdf.open("{{ pdf_url }}").then(function (doc) {
+      var chain = Promise.resolve();
+      for (var n = 1; n <= doc.numPages; n++) {
+        chain = chain.then(renderPage.bind(null, doc, n));
+      }
+      return chain.then(function () { msg.style.display = 'none'; });
+    }).catch(function (err) {
+      msg.style.color = '#c0392b';
+      msg.textContent = 'Could not show the PDF: ' + err.message + ' — use the Download button instead.';
+    });
+  </script>
+</body>
+</html>

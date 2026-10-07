@@ -1,0 +1,85 @@
+/* "Make Fillable" builder (Office Representative + Super Admin) */
+
+/* Toolbar above the PDF */
+.fb-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+.fb-toolbar .form-builder-pager { margin: 0; }
+.fb-zoom { display: flex; align-items: center; gap: 6px; }
+.fb-zoom .btn { padding: 6px 10px; }
+#zoomLevel { min-width: 44px; text-align: center; font-size: 12.5px; color: var(--gray-600, #4b5563); }
+.fb-sample { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--gray-600, #4b5563); cursor: pointer; }
+
+/* Field boxes on the PDF */
+.fb-box {
+  position: absolute; display: flex; box-sizing: border-box; overflow: hidden;
+  padding: 0 2px; border: 1.5px dashed #2f5bea; border-radius: 3px;
+  background: rgba(47, 91, 234, .10); cursor: move; user-select: none;
+  touch-action: none;   /* a finger drags the field instead of scrolling the page */
+}
+.fb-box:hover { background: rgba(47, 91, 234, .16); }
+.fb-box.is-selected { border-style: solid; border-color: #f59e0b; background: rgba(245, 158, 11, .14); z-index: 2; }
+.fb-text { white-space: nowrap; overflow: hidden; text-overflow: clip; line-height: 1.1; pointer-events: none; max-width: 100%; }
+.fb-handle {
+  position: absolute; right: -4px; bottom: -4px; width: 11px; height: 11px; border-radius: 50%;
+  background: #2f5bea; border: 2px solid #fff; box-shadow: 0 0 2px rgba(0, 0, 0, .4); cursor: nwse-resize;
+}
+.fb-box.is-selected .fb-handle { background: #f59e0b; }
+
+/* Field list */
+.fb-row {
+  display: flex; align-items: center; gap: 8px; width: 100%; margin: 0 0 6px; padding: 8px 10px;
+  border: 1px solid var(--gray-200, #e5e7eb); border-radius: 8px; background: #fff;
+  font: inherit; font-size: 12.5px; text-align: left; cursor: pointer;
+}
+.fb-row:hover { border-color: #93a8f4; }
+.fb-row.is-selected { border-color: #f59e0b; background: #fffbeb; }
+.fb-row__num { flex: none; width: 20px; height: 20px; border-radius: 50%; background: #eef2ff; color: #2f5bea; font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+.fb-row__label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--gray-900, #111827); }
+.fb-row__page { flex: none; font-size: 11px; color: var(--gray-400, #9ca3af); }
+
+/* Edit panel */
+#field-editor { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--gray-200, #e5e7eb); }
+.fb-ed-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 13.5px; }
+.fb-lbl { display: block; margin: 10px 0 4px; font-size: 11.5px; font-weight: 700; color: var(--gray-600, #4b5563); }
+.fb-in { width: 100%; font-size: 12.5px !important; padding: 6px 8px !important; box-sizing: border-box; }
+.fb-two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: end; }
+.fb-check { display: flex; align-items: center; gap: 6px; font-size: 12.5px; padding-bottom: 7px; }
+.fb-muted { font-size: 12px; color: var(--gray-400, #9ca3af); margin: 0; }
+.fb-tip { margin-top: 10px; }
+
+.fb-seg { display: flex; border: 1px solid var(--gray-200, #e5e7eb); border-radius: 8px; overflow: hidden; }
+.fb-seg button {
+  flex: 1; padding: 7px 4px; border: none; border-right: 1px solid var(--gray-200, #e5e7eb);
+  background: #fff; font: inherit; font-size: 12px; color: var(--gray-700, #374151); cursor: pointer;
+}
+.fb-seg button:last-child { border-right: none; }
+.fb-seg button:hover { background: #f3f4f6; }
+.fb-seg button.on { background: #2f5bea; color: #fff; }
+.fb-toggles { margin-top: 10px; }
+
+.fb-colors { display: flex; align-items: center; gap: 6px; height: 31px; }
+.fb-swatch { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px #d1d5db; cursor: pointer; padding: 0; }
+.fb-swatch.on { box-shadow: 0 0 0 2px #2f5bea; }
+#fe-color { width: 28px; height: 26px; padding: 0; border: none; background: none; cursor: pointer; }
+
+.fb-wide { width: 100%; margin-top: 12px; font-size: 12.5px; }
+.fb-actions { margin-top: 10px; }
+.fb-actions .btn { font-size: 12.5px; }
+.fb-danger { color: #c0392b !important; }
+
+/* The PDF area scrolls (both ways) when zoomed in, instead of stretching the page */
+.form-builder-stage-wrap { overflow: auto; max-height: 78vh; -webkit-overflow-scrolling: touch; }
+.fb-handle { width: 14px; height: 14px; right: 0; bottom: 0; }  /* fully visible, easier to grab with a finger */
+
+/* One-column layout on tablets/phones: keep the PDF area as wide as the
+   screen, so zooming in scrolls inside it instead of cutting it off. */
+@media (max-width: 900px) {
+  .form-builder-layout { align-items: stretch; }
+  .form-builder-main { width: 100%; max-width: 100%; }
+}
+
+@media (max-width: 600px) {
+  .fb-toolbar { gap: 8px; }
+  .fb-toolbar .form-builder-pager, .fb-zoom { flex: 1 1 auto; justify-content: center; }
+  .fb-sample { width: 100%; justify-content: center; }
+  .form-builder-stage-wrap { max-height: 65vh; }
+}

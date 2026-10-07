@@ -10,6 +10,8 @@ from django.utils import timezone
 from office_dashboard.models import Announcement, NewsUpdate, Event, DownloadableForm, FormField, Photo, Album, Service, OfficeRepresentative, Notification, ServiceEditSettings, ActivityLog, Message
 from offices.models import Office
 from django.http import Http404, FileResponse, HttpResponse, JsonResponse
+from offices.pdf_serve import pdf_response
+from office_dashboard.form_fields import fields_json, save_fields
 from datetime import timedelta
 import csv
 import io
@@ -997,83 +999,45 @@ def admin_download_form_file(request, pk):
 
 @super_admin_required
 def admin_view_form_file(request, pk):
-    """Streams a form's PDF through our own server (for the 'View Details'
-    modal and the approval-details Attachment link) instead of linking
-    straight to the storage backend's public URL. Cloudinary blocks
-    unsigned/direct access to PDF and ZIP files by default and returns a
-    401 — opening the file through Django's storage API here uses
-    authenticated access instead, so it works regardless of that setting.
-    No download_count bump here since this is just viewing, not downloading."""
+    """PDF for the Super Admin's View File link and field builder preview."""
     form = get_object_or_404(DownloadableForm, pk=pk)
+    return pdf_response(request, form.file, filename="form.pdf")
 
-    try:
-        form.file.open('rb')
-        data = form.file.read()
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return HttpResponse(
-            "Could not load the PDF from storage: %s: %s" % (type(e).__name__, e),
-            status=500,
-            content_type="text/plain",
-        )
-    finally:
-        try:
-            form.file.close()
-        except Exception:
-            pass
 
-    return FileResponse(io.BytesIO(data), content_type="application/pdf")
+@super_admin_required
+def admin_preview_form(request, pk):
+    """Page that shows the PDF with pdf.js (works even when Chrome is set to
+    download PDFs or a download-manager extension grabs them)."""
+    form = get_object_or_404(DownloadableForm, pk=pk)
+    return render(request, "pdf_viewer.html", {
+        "title": form.title,
+        "pdf_url": reverse("admin_dashboard:admin_view_form_file", args=[form.pk]),
+        "download_url": reverse("admin_dashboard:admin_download_form_file", args=[form.pk]),
+    })
 
 
 @super_admin_required
 def admin_form_fields_builder(request, pk):
     form = get_object_or_404(DownloadableForm, pk=pk)
-    fields = list(form.fields.all().values(
-        'id', 'label', 'field_type', 'required', 'page_number', 'x', 'y', 'width', 'height', 'order'
-    ))
     return render(request, "admin_dashboard/super-admin-form-fields-builder.html", {
         "form_obj": form,
-        "fields_json": json.dumps(fields),
+        "fields_json": fields_json(form),
     })
 
 
 @super_admin_required
 def admin_save_form_fields(request, pk):
     form = get_object_or_404(DownloadableForm, pk=pk)
-
     if request.method != "POST":
         return JsonResponse({"success": False, "error": "Invalid request."}, status=400)
-
     try:
-        payload = json.loads(request.body)
-        incoming_fields = payload.get('fields', [])
+        incoming = json.loads(request.body).get("fields", [])
     except (json.JSONDecodeError, AttributeError):
         return JsonResponse({"success": False, "error": "Invalid data."}, status=400)
 
-    # Simplest correct approach: replace the whole field set each save,
-    # rather than trying to diff individual adds/edits/deletes.
-    form.fields.all().delete()
-
-    for i, f in enumerate(incoming_fields):
-        label = (f.get('label') or '').strip()
-        if not label:
-            continue
-        FormField.objects.create(
-            form=form,
-            label=label,
-            field_type=f.get('field_type', 'text'),
-            required=bool(f.get('required', True)),
-            page_number=int(f.get('page_number', 1)),
-            x=float(f.get('x', 0)),
-            y=float(f.get('y', 0)),
-            width=float(f.get('width', 0.2)),
-            height=float(f.get('height', 0.03)),
-            order=i,
-        )
-
-    messages.success(request, f'"{form.title}" is now fillable — fields were saved.' if incoming_fields else f'All fields were removed from "{form.title}".')
-    return JsonResponse({"success": True})
+    count = save_fields(form, incoming)
+    messages.success(request, f'"{form.title}" is now fillable — fields were saved.' if count else f'All fields were removed from "{form.title}".')
+    return JsonResponse({"success": True, "fields": json.loads(fields_json(form))})
 
 
 @super_admin_required

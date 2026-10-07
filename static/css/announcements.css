@@ -1561,7 +1561,7 @@ button.cal-day--event,
 }
 
 /* ==========================================================================
-   ANNOUNCEMENT DETAILS MODAL
+   ANNOUNCEMENT / NEWS / EVENT DETAILS MODAL (public website)
    ========================================================================== */
 
 body.lock { overflow: hidden; }
@@ -1573,151 +1573,146 @@ body.lock { overflow: hidden; }
   transform: translate(-50%, -50%);
   margin: 0;
   border: none;
-  border-radius: 14px;
+  border-radius: 16px;
   padding: 0;
-  width: min(640px, 92vw);
-  max-height: 85vh;
-  box-shadow: 0 20px 60px rgba(10, 20, 40, 0.3);
+  width: min(680px, calc(100vw - 32px));
+  max-height: 88vh;
+  overflow: hidden;
+  box-shadow: 0 24px 70px rgba(10, 20, 40, 0.35);
 }
 
-/* Some browsers only center a <dialog> via UA-stylesheet margin:auto, which
-   the rule above overrides on purpose (explicit centering is more reliable
-   across screen sizes) — this keeps the same centering while the dialog is
-   open, in case a browser still applies its own default positioning too. */
-.ann-dialog[open] {
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
-
-.ann-dialog::backdrop {
-  background: rgba(10, 20, 40, 0.55);
-}
+.ann-dialog[open] { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+.ann-dialog::backdrop { background: rgba(10, 20, 40, 0.6); }
 
 .ann-dlg {
   display: flex;
   flex-direction: column;
-  max-height: 85vh;
+  max-height: 88vh;
+  min-width: 0;
 }
 
-@media (max-width: 600px) {
-  .ann-dialog {
-    width: 94vw;
-    max-height: 90vh;
-    border-radius: 12px;
-  }
-  .ann-dlg {
-    max-height: 90vh;
-  }
-  .ann-dlg-head {
-    padding: 16px 18px;
-  }
-  .ann-dlg-head h2 {
-    font-size: 1.05rem;
-  }
-  .ann-dlg-body {
-    padding: 16px 18px 20px;
-  }
-  .ann-dlg-image {
-    max-height: 200px;
-  }
-  .ann-dlg-content {
-    font-size: 0.88rem;
-  }
-  .ann-dlg-footer {
-    gap: 10px 16px;
-    font-size: 0.78rem;
-  }
-}
-
+/* Header: office + title on the left, close button on the right */
 .ann-dlg-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  padding: 22px 26px;
+  padding: 20px 24px;
   border-bottom: 1px solid var(--border-light);
   flex-shrink: 0;
 }
-
+.ann-dlg-head > div { min-width: 0; }
 .ann-dlg-head small {
   display: block;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   color: var(--text-muted);
   margin-bottom: 4px;
 }
-
 .ann-dlg-head h2 {
   margin: 0;
-  font-size: 1.2rem;
+  font-size: 1.25rem;
   font-weight: 800;
   color: var(--navy);
   line-height: 1.35;
+  overflow-wrap: anywhere;
 }
-
 .ann-dlg-close {
   flex-shrink: 0;
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   border: none;
   background: var(--bg-light);
   color: var(--text-body);
-  font-size: 0.9rem;
+  font-size: 1rem;
   cursor: pointer;
 }
-
 .ann-dlg-close:hover { background: var(--border-light); }
 
+/* Body scrolls up/down only — never sideways */
 .ann-dlg-body {
-  padding: 22px 26px 26px;
+  padding: 20px 24px 24px;
   overflow-y: auto;
+  overflow-x: hidden;
+  overflow-wrap: anywhere;   /* long links / words with no spaces wrap */
+  word-break: break-word;
 }
 
 .ann-dlg-badges {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 14px;
 }
 
 .ann-dlg-subtitle {
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--text-body);
-  margin: 0 0 14px;
+  line-height: 1.5;
+  margin: 0 0 16px;
 }
 
+/* Show the whole image / poster, never cropped */
 .ann-dlg-image {
+  display: block;
   width: 100%;
-  max-height: 320px;
-  object-fit: cover;
-  border-radius: 10px;
-  margin-bottom: 16px;
+  height: auto;
+  max-height: 420px;
+  object-fit: contain;
+  background: var(--bg-light);
+  border-radius: 12px;
+  margin-bottom: 18px;
 }
 
 .ann-dlg-content {
-  font-size: 0.92rem;
+  font-size: 0.95rem;
   color: var(--text-body);
-  line-height: 1.7;
+  line-height: 1.75;
   margin-bottom: 20px;
 }
-
 .ann-dlg-content p { margin: 0 0 12px; }
 .ann-dlg-content p:last-child { margin-bottom: 0; }
+.ann-dlg-content a { color: var(--navy); font-weight: 600; text-decoration: underline; }
 
+/* Details (date, time, place, office…) as a neat list in a soft box */
 .ann-dlg-footer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 20px;
+  padding: 16px 18px;
+  background: var(--bg-light);
+  border-radius: 12px;
+  font-size: 0.85rem;
+  color: var(--text-body);
+}
+.ann-dlg-footer > div {
   display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  padding-top: 16px;
-  border-top: 1px dashed var(--border-light);
-  font-size: 0.82rem;
-  color: var(--text-muted);
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  line-height: 1.45;
+}
+.ann-dlg-footer i {
+  flex: none;
+  width: 18px;
+  margin: 2px 0 0;
+  text-align: center;
+  color: var(--navy);
 }
 
-.ann-dlg-footer i {
-  color: var(--navy);
-  margin-right: 6px;
+@media (max-width: 600px) {
+  .ann-dialog { width: calc(100vw - 20px); max-height: 92vh; border-radius: 14px; }
+  .ann-dlg { max-height: 92vh; }
+  .ann-dlg-head { padding: 16px 18px; }
+  .ann-dlg-head h2 { font-size: 1.08rem; }
+  .ann-dlg-body { padding: 16px 18px 20px; }
+  .ann-dlg-image { max-height: 300px; }
+  .ann-dlg-content { font-size: 0.9rem; }
+  .ann-dlg-footer { grid-template-columns: 1fr; gap: 10px; padding: 14px; font-size: 0.82rem; }
 }
 
 /* Responsive */

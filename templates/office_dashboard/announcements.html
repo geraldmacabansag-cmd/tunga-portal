@@ -406,9 +406,9 @@
       {% endif %}
 
       <div class="modal-view-row"><span class="k">Title</span><span class="v">{{ a.title }}</span></div>
-      <div class="modal-view-row"><span class="k">Subtitle</span><span class="v">{{ a.subtitle|default:"—" }}</span></div>
+      <div class="modal-view-row is-stacked"><span class="k">Subtitle</span><span class="v">{{ a.subtitle|default:"—" }}</span></div>
       <div class="modal-view-row"><span class="k">Category</span><span class="v">{{ a.category|default:"—" }}</span></div>
-      <div class="modal-view-row"><span class="k">Content</span><span class="v">{{ a.content|default:"—"|linebreaksbr }}</span></div>
+      <div class="modal-view-row is-stacked"><span class="k">Content</span><span class="v">{{ a.content|default:"—"|linebreaksbr }}</span></div>
       <div class="modal-view-row"><span class="k">Author</span><span class="v">{{ a.author|default:"—" }}</span></div>
       <div class="modal-view-row"><span class="k">Date Posted</span><span class="v">{{ a.date_posted|date:"F j, Y"|default:"—" }}</span></div>
       <div class="modal-view-row"><span class="k">Expiration Date</span><span class="v">{{ a.expiration_date|date:"F j, Y, g:i A"|default:"—" }}</span></div>
