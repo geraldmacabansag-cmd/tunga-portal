@@ -1,0 +1,53 @@
+{% extends "super-admin-base.html" %}
+{% load static %}
+
+{% block page_title_tag %}Organizational Chart{% endblock %}
+{% block body_page %}org-chart{% endblock %}
+{% block page_title %}Organizational Chart{% endblock %}
+{% block page_subtitle %}Build the LGU's organizational chart, and view or edit the chart of any office{% endblock %}
+
+{% block breadcrumbs %}<span>Dashboard</span><span class="sep">›</span><span>Office Management</span><span class="sep">›</span><span class="current">Organizational Chart{% if picker_office %} · {{ picker_office.name }}{% endif %}</span>{% endblock %}
+
+{% block content %}
+  {# Which chart: the LGU's own (shown on About Us) or an office's #}
+  <div class="panel org-picker">
+    <div class="org-picker__row">
+      <label class="org-picker__label" for="orgChartPicker"><i class="fa-solid fa-sitemap"></i> Chart</label>
+      <select class="form-input org-picker__select" id="orgChartPicker" onchange="if (this.value) window.location.href = this.value;">
+        {% url 'admin_dashboard:ad_org_chart' as lgu_chart_url %}
+        <option value="{{ lgu_chart_url }}"{% if not picker_office %} selected{% endif %}>Municipality of Tunga — LGU chart (About Us page) · {{ lgu_box_count }} box{{ lgu_box_count|pluralize:"es" }}</option>
+        {# only the offices that have already made a chart #}
+        <optgroup label="Offices with an organizational chart">
+          {% for o in picker_offices %}{% if o.org_box_count or picker_office.id == o.id %}
+            <option value="{% url 'admin_dashboard:ad_office_org_chart' o.id %}"{% if picker_office and picker_office.id == o.id %} selected{% endif %}>{{ o.name }} · {{ o.org_box_count }} box{{ o.org_box_count|pluralize:"es" }}</option>
+          {% endif %}{% empty %}{% endfor %}
+          {% if not picker_has_charts %}<option disabled>No office has made a chart yet</option>{% endif %}
+        </optgroup>
+      </select>
+    </div>
+    <p class="org-picker__note">
+      {% if picker_office %}
+        <i class="fa-solid fa-circle-info"></i> You're editing the chart of <b>{{ picker_office.name }}</b>. It's the same chart the office's representative sees in their dashboard, so your changes show there too.
+      {% else %}
+        <i class="fa-solid fa-circle-info"></i> This is the LGU's own chart. Turn on <b>Show on About Us page</b> and it takes the place of the officials' photos in the "Our Officials" part of the About Us page (show-only; a person's box grows when visitors point at it).
+      {% endif %}
+    </p>
+  </div>
+
+  {# Same builder as the Office Representative's (office_dashboard/_org_chart_builder.html). #}
+  {% include "office_dashboard/_org_chart_builder.html" %}
+
+  <style>
+    .org-picker { margin-bottom: 16px; padding: 14px 18px; }
+    .org-picker__row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .org-picker__label { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 800; color: var(--gray-800, #1f2937); }
+    .org-picker__select { flex: 1; min-width: 0; max-width: 560px; }
+    .org-picker__note { margin: 10px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--gray-500, #6b7280); }
+    .org-picker__note i { color: #2563eb; margin-right: 4px; }
+    @media (max-width: 700px) {
+      .org-picker { padding: 12px 14px; }
+      .org-picker__label { width: 100%; }
+      .org-picker__select { max-width: none; width: 100%; }
+    }
+  </style>
+{% endblock %}

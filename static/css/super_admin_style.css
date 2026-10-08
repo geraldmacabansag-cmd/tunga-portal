@@ -2090,3 +2090,8 @@ input[type="date"].form-input::-webkit-calendar-picker-indicator:hover {
 }
 .sidebar--sa .nav-item .badge--msg::before{display:none;}
 .sidebar--sa .nav-item.active .badge--msg{background:#dc3030;}
+
+/* Keep the sidebar in place while the page scrolls: nothing inside the page
+   (a hidden input, a tooltip…) may stick out below the dashboard and make the
+   page taller than the sidebar's area — that's what made it scroll away. */
+.app-shell{overflow-y:clip;}

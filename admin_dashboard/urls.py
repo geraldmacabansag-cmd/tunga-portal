@@ -82,6 +82,8 @@ urlpatterns = [
 
 
     path('Admin-Interactive-Map/', views.admin_interactive_map, name='ad_map'),
+    path('Admin-Org-Chart/', views.admin_org_chart, name='ad_org_chart'),
+    path('Admin-Org-Chart/office/<int:office_id>/', views.admin_org_chart, name='ad_office_org_chart'),
 
     path('Admin-Emergency-Contact/', views.admin_emergency_contact, name='ad_emergency_contact'),
     path('Admin-Emergency-Contact/<int:pk>/save/', views.admin_contact_save, name='admin_contact_save'),

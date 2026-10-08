@@ -663,7 +663,15 @@ def about(request):
     barangays_poblacion = list(Barangay.objects.filter(group="poblacion"))
     barangays_rural = list(Barangay.objects.filter(group="rural"))
 
+    # The LGU's Organizational Chart (built by the Super Admin), shown in
+    # "Our Officials" once "Show on About Us page" is turned on.
+    from office_dashboard.models import OrgChartNode, OrgChartSettings
+    org_nodes = []
+    if OrgChartSettings.objects.filter(office__slug="lgu-super-admin", show_on_office_page=True).exists():
+        org_nodes = list(OrgChartNode.objects.filter(office__slug="lgu-super-admin").order_by("order", "id"))
+
     return render(request, "portal/about.html", {
+        "org_nodes": org_nodes,
         "about_content": about_content,
         "core_values": about_content.core_values_list(),
         "history_paragraphs": about_content.history_intro_paragraphs(),

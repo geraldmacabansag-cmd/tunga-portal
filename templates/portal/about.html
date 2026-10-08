@@ -96,11 +96,19 @@ Home | Digital Governance Portal
 </section>
 {% endif %}
 
-{% if about_officials %}
+{% if about_officials or org_nodes %}
 <section class="officials-wrap" id="officials">
   <div class="container">
     <div class="panel officials-panel">
       <h2 class="section-title">Our Officials</h2>
+      {% if org_nodes %}
+      {% comment %}The LGU's Organizational Chart (built by the Super Admin) takes the place
+         of the officials' photos once "Show on About Us page" is turned on.
+         Show-only: no buttons; a person's box grows when the mouse is over it.{% endcomment %}
+      <div class="org-officials" id="org-chart">
+        {% include "office_dashboard/_org_chart_public.html" with org_plain=True %}
+      </div>
+      {% elif about_officials %}
       <div class="officials-strip" id="officialsStrip">
         {% for o in about_officials %}
         <div class="official-card{% if forloop.counter > 4 %} official-card--extra{% endif %}">
@@ -114,6 +122,7 @@ Home | Digital Governance Portal
       <div class="officials-panel__cta">
         <button type="button" class="btn btn-outline" id="officialsToggleBtn" onclick="toggleAllOfficials()"><i class="fa-solid fa-chevron-down"></i> View All Officials</button>
       </div>
+      {% endif %}
       {% endif %}
     </div>
   </div>

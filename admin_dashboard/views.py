@@ -18,6 +18,9 @@ from datetime import timedelta
 import csv
 import io
 from office_dashboard.views import FORM_CATEGORY_CHOICES, serialize_chat_message, MESSAGE_MAX_LENGTH
+from office_dashboard.views import org_chart_page
+from office_dashboard.models import OrgChartNode
+from django.db.models import Count
 from django.utils.text import slugify
 import secrets
 import json
@@ -1970,6 +1973,47 @@ def admin_about_reset_defaults(request):
 @super_admin_required
 def admin_interactive_map(request):
     return render(request, "admin_dashboard/super-admin-interactive-map.html")
+
+@super_admin_required
+def admin_org_chart(request, office_id=None):
+    """Organizational Chart builder in the Super Admin dashboard, with the same
+    features as the Office Representative's builder.
+      /Admin-Org-Chart/                  -> the LGU's own chart (Municipality of
+                                            Tunga), shown in "Our Officials" on
+                                            the About Us page when turned on
+      /Admin-Org-Chart/office/<id>/      -> any office's chart: view and edit it,
+                                            and show/hide it on that office's page
+    """
+    actor = get_or_create_lgu_rep(request.user)   # recorded as the one who made the changes
+    offices = list(Office.objects.exclude(slug=LGU_SUPER_ADMIN_SLUG).order_by("display_order", "name"))
+    counts = dict(
+        OrgChartNode.objects.exclude(office__slug=LGU_SUPER_ADMIN_SLUG)
+        .values("office_id").annotate(n=Count("id")).values_list("office_id", "n")
+    )
+    for o in offices:
+        o.org_box_count = counts.get(o.id, 0)
+
+    if office_id is None:
+        office = actor.office
+        extra = {
+            "chart_title": "Municipality of Tunga",
+            "publish_place": "the About Us page (Our Officials)",
+            "publish_view_url": reverse("about") + "#org-chart",
+            "publish_show_label": "Show on About Us page",
+            "publish_hide_label": "Hide from About Us page",
+        }
+    else:
+        office = get_object_or_404(Office.objects.exclude(slug=LGU_SUPER_ADMIN_SLUG), pk=office_id)
+        extra = {
+            "chart_title": office.name,
+            "publish_place": "the office's public page",
+            "publish_view_url": (reverse("offices:office_detail", args=[office.slug]) + "#org-chart") if office.slug else "",
+        }
+    extra.update({"super_admin_page": True, "picker_offices": offices, "picker_office": None if office_id is None else office,
+                  "picker_has_charts": any(o.org_box_count for o in offices),
+                  "lgu_box_count": OrgChartNode.objects.filter(office__slug=LGU_SUPER_ADMIN_SLUG).count()})
+    return org_chart_page(request, actor, "admin_dashboard/super-admin-org-chart.html",
+                          can_publish=True, extra=extra, office=office)
 
 @super_admin_required
 def admin_emergency_contact(request):

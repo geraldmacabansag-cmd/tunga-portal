@@ -71,6 +71,8 @@
       <li class="nav-item{% if request.path == office_rep_url %} active{% endif %}"><a href="{{ office_rep_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-address-book"></i></span> Office Representatives</a></li>
       {% url 'admin_dashboard:ad_services' as services_url %}
       <li class="nav-item{% if request.path == services_url %} active{% endif %}"><a href="{{ services_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-list-check"></i></span> Services</a></li>
+      {% url 'admin_dashboard:ad_org_chart' as org_chart_url %}
+      <li class="nav-item{% if org_chart_url in request.path %} active{% endif %}"><a href="{{ org_chart_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-sitemap"></i></span> Organizational Chart</a></li>
     </ul>
 
     <ul>

@@ -1657,7 +1657,25 @@ ORG_PHOTO_MAX_MB = 5
 
 @office_rep_required
 def org_chart(request, rep):
-    office = rep.office
+    view_url = reverse("offices:office_detail", args=[rep.office.slug]) + "#org-chart" if rep.office.slug else ""
+    return org_chart_page(request, rep, "office_dashboard/org-chart.html", can_publish=True,
+                          extra={"publish_place": "your office page", "publish_view_url": view_url})
+
+
+def org_chart_page(request, rep, template, can_publish=False, extra=None, office=None):
+    """The Organizational Chart builder. Shared by the Office Representative
+    dashboard and the Super Admin dashboard (admin_dashboard.views.admin_org_chart).
+    rep    = who is working on it (activity log); office = whose chart it is
+             (default: the rep's own office; the Super Admin can open any office's).
+    extra  = more template context; extra["publish_place"] is how the public
+             page is named in messages (e.g. "your office page").
+    Every redirect goes back to the page it was opened from (request.path)."""
+    office = office or rep.office
+    here = request.path
+    extra = extra or {}
+    place = extra.get("publish_place", "your office page")
+    # when the Super Admin edits an office's chart, the log says which office
+    where = "" if office.pk == rep.office_id else f" of {office.name}"
 
     if request.method == "POST":
         action = request.POST.get("action")
@@ -1666,7 +1684,7 @@ def org_chart(request, rep):
             node = OrgChartNode.objects.filter(pk=request.POST.get("id"), office=office).first()
             if node is None:
                 messages.error(request, "That box no longer exists.")
-                return redirect("office_dashboard:org_chart")
+                return redirect(here)
 
         if action == "delete" and node:
             # People under the deleted box move up to its own parent, so
@@ -1677,8 +1695,8 @@ def org_chart(request, rep):
                 node.photo.delete(save=False)
             node.delete()
             messages.success(request, f'"{name}" was removed from the chart.')
-            log_activity(rep, "Org chart updated", f'Removed "{name}" from the organizational chart', "content", "fa-solid fa-sitemap", "var(--red-600)")
-            return redirect("office_dashboard:org_chart")
+            log_activity(rep, "Org chart updated", f'Removed "{name}" from the organizational chart{where}', "content", "fa-solid fa-sitemap", "var(--red-600)")
+            return redirect(here)
 
         if action == "position" and node:
             # A box was dragged to a new spot on the chart (saved in the
@@ -1701,26 +1719,26 @@ def org_chart(request, rep):
             node.save(update_fields=["style", "updated_at"])
             return JsonResponse({"ok": True, "w": w})
 
-        if action == "publish":
+        if action == "publish" and can_publish:
             # "Show on office page" button: display the chart at the bottom of
             # the office's public page (or take it off again).
             settings_obj = OrgChartSettings.for_office(office)
             settings_obj.show_on_office_page = request.POST.get("show") == "1"
             settings_obj.save()
             if settings_obj.show_on_office_page:
-                messages.success(request, "The organizational chart is now shown on your office page.")
-                log_activity(rep, "Org chart published", "Showed the organizational chart on the office page", "content", "fa-solid fa-sitemap", "var(--green-600)")
+                messages.success(request, f"The organizational chart is now shown on {place}.")
+                log_activity(rep, "Org chart published", f"Showed the organizational chart{where} on {place}", "content", "fa-solid fa-sitemap", "var(--green-600)")
             else:
-                messages.success(request, "The organizational chart is no longer shown on your office page.")
-                log_activity(rep, "Org chart hidden", "Removed the organizational chart from the office page", "content", "fa-solid fa-sitemap", "var(--gray-500)")
+                messages.success(request, f"The organizational chart is no longer shown on {place}.")
+                log_activity(rep, "Org chart hidden", f"Removed the organizational chart{where} from {place}", "content", "fa-solid fa-sitemap", "var(--gray-500)")
             back = request.POST.get("back") or ""
-            return redirect(reverse("office_dashboard:org_chart") + (back if back.startswith("?") else ""))
+            return redirect(here + (back if back.startswith("?") else ""))
 
         if action == "auto_layout":
             OrgChartNode.objects.filter(office=office).update(pos_x=None, pos_y=None)
             messages.success(request, "Every box was put back in its automatic place.")
-            log_activity(rep, "Org chart updated", "Auto-arranged the organizational chart", "content", "fa-solid fa-sitemap", "var(--blue-600)")
-            return redirect("office_dashboard:org_chart")
+            log_activity(rep, "Org chart updated", f"Auto-arranged the organizational chart{where}", "content", "fa-solid fa-sitemap", "var(--blue-600)")
+            return redirect(here)
 
         if action == "save":
             kind = request.POST.get("kind")
@@ -1756,7 +1774,7 @@ def org_chart(request, rep):
                 for err in errors:
                     messages.error(request, err)
                 back = f"?edit={node.pk}" if node else (f"?add_under={parent_id}" if parent_id else "")
-                return redirect(reverse("office_dashboard:org_chart") + back)
+                return redirect(here + back)
 
             is_new = node is None
             if is_new:
@@ -1792,17 +1810,20 @@ def org_chart(request, rep):
             messages.success(request, f'"{name}" was {"added to" if is_new else "updated on"} the chart.'
                              + (" The style was also applied to everyone under it." if scope == "below" else "")
                              + (" The style was also applied to the whole chart." if scope == "all" else ""))
-            log_activity(rep, "Org chart updated", f'{"Added" if is_new else "Updated"} "{name}" on the organizational chart', "content", "fa-solid fa-sitemap", "var(--blue-600)")
-            return redirect(reverse("office_dashboard:org_chart") + f"?edit={node.pk}")
+            log_activity(rep, "Org chart updated", f'{"Added" if is_new else "Updated"} "{name}" on the organizational chart{where}', "content", "fa-solid fa-sitemap", "var(--blue-600)")
+            return redirect(here + f"?edit={node.pk}")
 
-        return redirect("office_dashboard:org_chart")
+        return redirect(here)
 
     roots, nodes = build_org_tree(office)
     by_id = {n.id: n for n in nodes}
     editing = by_id.get(_int_or_none(request.GET.get("edit")))
     add_under = by_id.get(_int_or_none(request.GET.get("add_under")))
-    return render(request, "office_dashboard/org-chart.html", {
+    return render(request, template, {
+        **extra,
+        "publish_place": place,
         "rep": rep,
+        "can_publish": can_publish,
         "nodes": nodes,
         "org_settings": OrgChartSettings.for_office(office),
         "node_count": len(nodes),

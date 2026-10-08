@@ -11,6 +11,11 @@
    ========================================================================== */
 (function () {
   var PAD = 30, GAP_X = 24, GAP_Y = 56;
+  // Every box is placed so its CENTRE sits on a 10px grid line, and the bends
+  // of the lines are on grid lines too — so two boxes on the same grid line are
+  // joined by a perfectly straight line, whatever their sizes.
+  var GRID = 10;
+  function snap(v) { return Math.round(v / GRID) * GRID; }
   var HEX = /^#[0-9a-fA-F]{6}$/;
   var DASH = { dashed: '7 5', dotted: '1 5' };
 
@@ -67,21 +72,58 @@
         else { n.bx = n.ax; n.by = n.ay; }
         n.x = n.bx + (n.slotW - n.w) / 2; n.y = n.by;   // a resized box stays centred on its slot
       }
+      // centre on the grid (the box's own spot / slot stays as it is)
+      n.x = snap(n.x + n.w / 2) - n.w / 2;
+      n.y = snap(n.y + n.h / 2) - n.h / 2;
       n.kids.forEach(function (k) { resolve(k, n); });
     }
+    // The line between a box (n) and the box above it (p) joins the sides that
+    // face each other, wherever the rep placed them:
+    //   n lower than p  -> bottom of p  to top of n      (the usual tree line)
+    //   n higher than p -> top of p     to bottom of n
+    //   side by side    -> right/left side of p to the facing side of n
+    function connector(p, n, sx, sy) {
+      var GAP = 6;
+      var pL = p.x + sx, pR = pL + p.w, pT = p.y + sy, pB = pT + p.h, pCx = pL + p.w / 2, pCy = pT + p.h / 2;
+      var nL = n.x + sx, nR = nL + n.w, nT = n.y + sy, nB = nT + n.h, nCx = nL + n.w / 2, nCy = nT + n.h / 2;
+      var mid;
+      // bends on grid lines too (the board is shifted by sx / sy)
+      function gy(v, lo, hi) { var s = snap(v - sy) + sy; return (s > lo && s < hi) ? s : v; }
+      function gx(v, lo, hi) { var s = snap(v - sx) + sx; return (s > lo && s < hi) ? s : v; }
+      if (nT >= pB + GAP) {                       // below
+        mid = pB + Math.max(14, (nT - pB) / 2);
+        if (mid > nT) mid = (pB + nT) / 2;
+        mid = gy(mid, pB, nT);
+        return 'M' + pCx + ',' + pB + 'V' + mid + 'H' + nCx + 'V' + nT;
+      }
+      if (nB <= pT - GAP) {                       // above
+        mid = pT - Math.max(14, (pT - nB) / 2);
+        if (mid < nB) mid = (pT + nB) / 2;
+        mid = gy(mid, nB, pT);
+        return 'M' + pCx + ',' + pT + 'V' + mid + 'H' + nCx + 'V' + nB;
+      }
+      if (nL >= pR + GAP) {                       // to the right
+        mid = gx((pR + nL) / 2, pR, nL);
+        return 'M' + pR + ',' + pCy + 'H' + mid + 'V' + nCy + 'H' + nL;
+      }
+      if (nR <= pL - GAP) {                       // to the left
+        mid = gx((pL + nR) / 2, nR, pL);
+        return 'M' + pL + ',' + pCy + 'H' + mid + 'V' + nCy + 'H' + nR;
+      }
+      return '';                                  // the boxes overlap: no line until they're apart
+    }
+
     function drawLines() {
       // solid lines first, so a dashed / dotted line still shows where it's on its own
       var solid = '', other = '', sx = api.shiftX, sy = api.shiftY;
       api.nodes.forEach(function (n) {
         var p = n.parent && api.byId[n.parent];
         if (!p) return;
-        var x1 = p.x + p.w / 2 + sx, y1 = p.y + p.h + sy;
-        var x2 = n.x + n.w / 2 + sx, y2 = n.y + sy;
-        var mid = y1 + Math.max(14, (y2 - y1) / 2);
-        if (y2 < y1) mid = (y1 + y2) / 2;
+        var d = connector(p, n, sx, sy);
+        if (!d) return;
         var color = HEX.test(n.el.dataset.line || '') ? n.el.dataset.line : '';
         var ls = n.el.dataset.lineStyle;
-        var path = '<path d="M' + x1 + ',' + y1 + 'V' + mid + 'H' + x2 + 'V' + y2 + '"'
+        var path = '<path d="' + d + '"'
                  + (color ? ' style="stroke:' + color + '"' : '')
                  + (DASH[ls] ? ' stroke-dasharray="' + DASH[ls] + '" class="is-' + ls + '"' : '') + '/>';
         if (DASH[ls]) other += path; else solid += path;
@@ -95,7 +137,7 @@
       if (resize) {
         var minX = Infinity, minY = Infinity, maxX = 0, maxY = 0;
         api.nodes.forEach(function (n) { minX = Math.min(minX, n.x); minY = Math.min(minY, n.y); });
-        api.shiftX = PAD - minX; api.shiftY = PAD - minY;
+        api.shiftX = Math.round(PAD - minX); api.shiftY = Math.round(PAD - minY);
         api.nodes.forEach(function (n) {
           maxX = Math.max(maxX, n.x + n.w + api.shiftX); maxY = Math.max(maxY, n.y + n.h + api.shiftY);
         });
@@ -121,8 +163,10 @@
     return api;
   }
 
-  // Zoom buttons + "fit": 100% = the whole chart fits the width of its frame
-  function zoomer(viewport, canvas, label, minFit) {
+  // Zoom buttons + "fit": 100% = the whole chart fits the width of its frame.
+  // minFit: never smaller than this (wider charts scroll sideways instead);
+  // maxFit: how much a small chart may grow to fill the frame (1 = never grow).
+  function zoomer(viewport, canvas, label, minFit, maxFit) {
     var z = { zoom: 1, fit: 1 };
     z.apply = function () {
       canvas.style.zoom = (z.fit * z.zoom).toFixed(3);
@@ -130,7 +174,13 @@
     };
     z.computeFit = function () {
       canvas.style.zoom = 1;
-      z.fit = Math.max(minFit || 0, Math.min(1, (viewport.clientWidth - 2) / canvas.scrollWidth));
+      // the chart's own width (the frame itself is always at least as wide as the panel)
+      var board = canvas.querySelector('.org-board'), cs = getComputedStyle(canvas);
+      var natural = (board ? board.offsetWidth : canvas.scrollWidth)
+                  + parseFloat(cs.paddingLeft || 0) + parseFloat(cs.paddingRight || 0);
+      var ratio = Math.min(maxFit || 1, (viewport.clientWidth - 2) / natural);
+      z.fits = ratio >= (minFit || 0);          // false = it's wider than the frame even at the smallest size
+      z.fit = Math.max(minFit || 0, ratio);
       z.apply();
     };
     z.zoomIn = function () { z.zoom = Math.min(3, z.zoom + 0.25); z.apply(); };
