@@ -493,12 +493,29 @@
   // on desktop widths, the same button also collapses/expands the sidebar
   // (sidebar starts open by default on desktop, closed by default on mobile
   // — both are just the normal CSS defaults, no JS needed to set them).
+  // The hidden/shown choice is remembered (localStorage) so it survives a
+  // refresh and page changes; it only changes when the burger is clicked.
+  var REP_SIDEBAR_KEY = 'repSidebarCollapsed';
+
   function wireSidebarCollapse() {
+    var sidebar = document.getElementById('sidebar');
+    if (sidebar && window.innerWidth >= 861) {
+      try {
+        if (localStorage.getItem(REP_SIDEBAR_KEY) === '1') sidebar.classList.add('collapsed');
+      } catch (e) {}
+    }
+    // hand over from the pre-paint style in representative_dashboard_base.html
+    document.documentElement.classList.remove('rep-sidebar-preload-collapsed');
+
     document.addEventListener('click', function (e) {
       if (!e.target.closest('.menu-btn')) return;
       if (window.innerWidth < 861) return;
       var sidebar = document.getElementById('sidebar');
-      if (sidebar) sidebar.classList.toggle('collapsed');
+      if (!sidebar) return;
+      sidebar.classList.toggle('collapsed');
+      try {
+        localStorage.setItem(REP_SIDEBAR_KEY, sidebar.classList.contains('collapsed') ? '1' : '0');
+      } catch (e) {}
     });
   }
 

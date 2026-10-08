@@ -50,6 +50,7 @@ urlpatterns = [
 
     path('office-location', views.office_location, name='location'),
     path('office-page-settings', views.office_page_settings, name='page_settings'),
+    path('office-org-chart', views.org_chart, name='org_chart'),
     path('office-page-settings/reorder-services', views.office_reorder_services, name='reorder_services'),
 
     path('office-account', views.my_account, name='account'),

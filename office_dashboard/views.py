@@ -24,6 +24,11 @@ from offices.pdf_serve import pdf_response
 from .form_fields import fields_json, save_fields
 from .notifications import maybe_send_weekly_summary, PREFERENCES as NOTIFY_PREFERENCES
 from .announcement_rules import clean_announcement
+from .org_chart import build_tree as build_org_tree, descendant_ids as org_descendant_ids, parent_choices as org_parent_choices, next_order as next_org_order
+from .org_chart import clean_width as clean_org_width
+from .org_chart import clean_style as clean_org_style, style_for as org_style_for, DEFAULT_COLORS as ORG_DEFAULT_COLORS, DEFAULT_LINE as ORG_DEFAULT_LINE, STYLE_DEFAULTS as ORG_STYLE_DEFAULTS
+from .models import OrgChartNode, OrgChartSettings
+from django import forms as dj_forms
 from portal.models import EmailOTP
 from portal.otp_utils import send_password_reset_otp
 from django.template.defaultfilters import date as django_date_format
@@ -1642,3 +1647,175 @@ def rep_messages_send(request, rep):
 
     msg = Message.objects.create(representative=rep, sender=Message.SENDER_REP, body=body)
     return JsonResponse({"success": True, "message": serialize_chat_message(msg)})
+
+
+# ---------------------------------------------------------------------------
+# Organizational Chart: people and sections in a tree, built by the office rep
+# ---------------------------------------------------------------------------
+ORG_PHOTO_MAX_MB = 5
+
+
+@office_rep_required
+def org_chart(request, rep):
+    office = rep.office
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        node = None
+        if request.POST.get("id"):
+            node = OrgChartNode.objects.filter(pk=request.POST.get("id"), office=office).first()
+            if node is None:
+                messages.error(request, "That box no longer exists.")
+                return redirect("office_dashboard:org_chart")
+
+        if action == "delete" and node:
+            # People under the deleted box move up to its own parent, so
+            # nobody disappears from the chart by accident.
+            OrgChartNode.objects.filter(office=office, parent=node).update(parent=node.parent)
+            name = node.name
+            if node.photo:
+                node.photo.delete(save=False)
+            node.delete()
+            messages.success(request, f'"{name}" was removed from the chart.')
+            log_activity(rep, "Org chart updated", f'Removed "{name}" from the organizational chart', "content", "fa-solid fa-sitemap", "var(--red-600)")
+            return redirect("office_dashboard:org_chart")
+
+        if action == "position" and node:
+            # A box was dragged to a new spot on the chart (saved in the
+            # background, the page doesn't reload).
+            try:
+                x = max(-20000, min(20000, int(float(request.POST.get("x")))))
+                y = max(-20000, min(20000, int(float(request.POST.get("y")))))
+            except (TypeError, ValueError):
+                return JsonResponse({"ok": False, "error": "Bad position."}, status=400)
+            OrgChartNode.objects.filter(pk=node.pk).update(pos_x=x, pos_y=y)
+            return JsonResponse({"ok": True})
+
+        if action == "resize" and node:
+            # The box's corner was dragged on the chart (saved in the background).
+            w = clean_org_width(request.POST.get("w"))
+            if not w:
+                return JsonResponse({"ok": False, "error": "Bad size."}, status=400)
+            node.style = {**(node.style or {}), "w": w}
+            node.style.pop("size", None)
+            node.save(update_fields=["style", "updated_at"])
+            return JsonResponse({"ok": True, "w": w})
+
+        if action == "publish":
+            # "Show on office page" button: display the chart at the bottom of
+            # the office's public page (or take it off again).
+            settings_obj = OrgChartSettings.for_office(office)
+            settings_obj.show_on_office_page = request.POST.get("show") == "1"
+            settings_obj.save()
+            if settings_obj.show_on_office_page:
+                messages.success(request, "The organizational chart is now shown on your office page.")
+                log_activity(rep, "Org chart published", "Showed the organizational chart on the office page", "content", "fa-solid fa-sitemap", "var(--green-600)")
+            else:
+                messages.success(request, "The organizational chart is no longer shown on your office page.")
+                log_activity(rep, "Org chart hidden", "Removed the organizational chart from the office page", "content", "fa-solid fa-sitemap", "var(--gray-500)")
+            back = request.POST.get("back") or ""
+            return redirect(reverse("office_dashboard:org_chart") + (back if back.startswith("?") else ""))
+
+        if action == "auto_layout":
+            OrgChartNode.objects.filter(office=office).update(pos_x=None, pos_y=None)
+            messages.success(request, "Every box was put back in its automatic place.")
+            log_activity(rep, "Org chart updated", "Auto-arranged the organizational chart", "content", "fa-solid fa-sitemap", "var(--blue-600)")
+            return redirect("office_dashboard:org_chart")
+
+        if action == "save":
+            kind = request.POST.get("kind")
+            kind = kind if kind in dict(OrgChartNode.KIND_CHOICES) else OrgChartNode.KIND_PERSON
+            name = request.POST.get("name", "").strip()[:150]
+            position = request.POST.get("position", "").strip()[:200]
+            photo = request.FILES.get("photo")
+
+            parent = None
+            parent_id = request.POST.get("parent") or ""
+            if parent_id:
+                parent = OrgChartNode.objects.filter(pk=parent_id, office=office).first()
+
+            errors = []
+            if not name:
+                errors.append("Name is required." if kind == OrgChartNode.KIND_PERSON else "Section title is required.")
+            if parent_id and parent is None:
+                errors.append("The box it reports to no longer exists.")
+            if node and parent:
+                _, all_nodes = build_org_tree(office)
+                if parent.pk == node.pk or parent.pk in org_descendant_ids(node, all_nodes):
+                    errors.append("A box can't report to itself or to someone under it.")
+            if photo:
+                if photo.size > ORG_PHOTO_MAX_MB * 1024 * 1024:
+                    errors.append(f"The photo is larger than {ORG_PHOTO_MAX_MB} MB.")
+                else:
+                    try:
+                        dj_forms.ImageField().clean(photo)
+                    except ValidationError:
+                        errors.append("The photo must be a JPG, PNG or WEBP image.")
+
+            if errors:
+                for err in errors:
+                    messages.error(request, err)
+                back = f"?edit={node.pk}" if node else (f"?add_under={parent_id}" if parent_id else "")
+                return redirect(reverse("office_dashboard:org_chart") + back)
+
+            is_new = node is None
+            if is_new:
+                node = OrgChartNode(office=office, order=next_org_order(office, parent.pk if parent else None))
+            elif node.parent_id != (parent.pk if parent else None):
+                node.order = next_org_order(office, parent.pk if parent else None)   # moved: goes to the end of its new row
+                node.pos_x = node.pos_y = None                                       # and takes its automatic place under the new box
+            node.kind, node.name, node.parent = kind, name, parent
+            node.style = clean_org_style(request.POST, kind)
+            node.position = position if kind == OrgChartNode.KIND_PERSON else ""
+            if kind == OrgChartNode.KIND_SECTION or request.POST.get("remove_photo") == "1":
+                if node.photo:
+                    node.photo.delete(save=False)
+                node.photo = None
+            if photo and kind == OrgChartNode.KIND_PERSON:
+                if node.photo:
+                    node.photo.delete(save=False)
+                node.photo = photo
+            node.save()
+
+            # "Apply this style to…": everyone under this box, or the whole chart
+            scope = request.POST.get("style_scope")
+            if scope in ("below", "all"):
+                _, all_nodes = build_org_tree(office)
+                if scope == "below":
+                    ids = org_descendant_ids(node, all_nodes)
+                    targets = [n for n in all_nodes if n.pk in ids]
+                else:
+                    targets = [n for n in all_nodes if n.pk != node.pk]
+                for other in targets:
+                    OrgChartNode.objects.filter(pk=other.pk).update(style=org_style_for(other, node.style, kind))
+
+            messages.success(request, f'"{name}" was {"added to" if is_new else "updated on"} the chart.'
+                             + (" The style was also applied to everyone under it." if scope == "below" else "")
+                             + (" The style was also applied to the whole chart." if scope == "all" else ""))
+            log_activity(rep, "Org chart updated", f'{"Added" if is_new else "Updated"} "{name}" on the organizational chart', "content", "fa-solid fa-sitemap", "var(--blue-600)")
+            return redirect(reverse("office_dashboard:org_chart") + f"?edit={node.pk}")
+
+        return redirect("office_dashboard:org_chart")
+
+    roots, nodes = build_org_tree(office)
+    by_id = {n.id: n for n in nodes}
+    editing = by_id.get(_int_or_none(request.GET.get("edit")))
+    add_under = by_id.get(_int_or_none(request.GET.get("add_under")))
+    return render(request, "office_dashboard/org-chart.html", {
+        "rep": rep,
+        "nodes": nodes,
+        "org_settings": OrgChartSettings.for_office(office),
+        "node_count": len(nodes),
+        "editing": editing,
+        "add_under": add_under,
+        "parent_choices": org_parent_choices(nodes, exclude=editing),
+        "form_kind": editing.kind if editing else ("section" if request.GET.get("kind") == "section" else "person"),
+        "style_defaults": {"colors": ORG_DEFAULT_COLORS, "line": ORG_DEFAULT_LINE, **ORG_STYLE_DEFAULTS},
+    })
+
+
+def _int_or_none(value):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None

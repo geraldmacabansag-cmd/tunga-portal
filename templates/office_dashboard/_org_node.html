@@ -1,0 +1,25 @@
+{% comment %}One box on the Organizational Chart — used by the builder and
+(with public=True) by the public office page.
+static/js/org-chart.js places it: data-x / data-y = where the rep dragged it
+(empty = automatic place), data-parent = the box above it (the line is drawn
+in data-line color / data-line-style). Colors and width come from n.style
+(data-border / data-fill / data-text / data-w); empty = the default look.{% endcomment %}
+<div class="org-box {% if n.kind == 'section' %}org-section{% else %}org-person shape-{{ n.style.shape|default:'circle' }}{% endif %} case-{{ n.style.case|default:'upper' }}{% if editing and editing.id == n.id %} is-selected{% endif %}"
+     {% if not public %}role="button" tabindex="0" title="Click to edit · drag to move"{% endif %}
+     data-id="{{ n.id }}" data-parent="{{ n.parent_id|default_if_none:'' }}"
+     data-x="{{ n.pos_x|default_if_none:'' }}" data-y="{{ n.pos_y|default_if_none:'' }}"
+     data-border="{{ n.style.border|default:'' }}" data-fill="{{ n.style.fill|default:'' }}" data-text="{{ n.style.text|default:'' }}" data-w="{{ n.style.w|default:'' }}"
+     data-line="{{ n.style.line|default:'' }}" data-line-style="{{ n.style.line_style|default:'solid' }}">
+  {% if n.kind == "section" %}
+    <span class="org-section-text">{{ n.name }}</span>
+  {% else %}
+    <span class="org-photo">
+      {% if n.photo %}<img src="{{ n.photo.url }}" alt="{{ n.name }}" draggable="false">{% else %}<span class="org-initials">{{ n.initials }}</span>{% endif %}
+    </span>
+    <span class="org-label">
+      <span class="org-name">{{ n.name }}</span>
+      {% if n.position %}<span class="org-position">{{ n.position }}</span>{% endif %}
+    </span>
+  {% endif %}
+  {% if not public %}<span class="org-resize" title="Drag to resize"></span>{% endif %}
+</div>

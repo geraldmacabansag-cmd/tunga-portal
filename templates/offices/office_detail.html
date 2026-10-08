@@ -260,6 +260,56 @@
   </div>
 </section>
 
+{% if org_nodes %}
+<!-- Organizational Chart (built by the office rep; shown when they turned on
+     "Show on office page"). Look: static/css/org-chart.css, layout: static/js/org-chart.js -->
+<link rel="stylesheet" href="{% static 'css/org-chart.css' %}?v=1">
+<section class="about-office-wrap org-public-wrap" id="org-chart">
+  <div class="container">
+    <div class="panel org-public-panel" id="orgPublicPanel">
+      <div class="org-public-head">
+        <h2 class="section-title" style="margin:0;padding:0;">Organizational Chart</h2>
+        <div class="org-public-tools">
+          <button type="button" id="orgPubZoomOut" title="Zoom out" aria-label="Zoom out"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+          <span class="org-zoom-level" id="orgPubZoomLevel">100%</span>
+          <button type="button" id="orgPubZoomIn" title="Zoom in" aria-label="Zoom in"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+          <button type="button" id="orgPubFit" title="Fit the whole chart" aria-label="Fit the whole chart"><i class="fa-solid fa-arrows-to-dot"></i></button>
+          <button type="button" id="orgPubFullscreen" title="Full screen" aria-pressed="false"><i class="fa-solid fa-expand"></i> <span class="org-fs-label">Full screen</span></button>
+        </div>
+      </div>
+      <div class="org-public-viewport org-fs-viewport" id="orgPubViewport">
+        <div class="org-public-canvas" id="orgPubCanvas">
+          <div class="org-board" id="orgPubBoard">
+            <svg class="org-lines" id="orgPubLines" aria-hidden="true"></svg>
+            {% for n in org_nodes %}{% include "office_dashboard/_org_node.html" with n=n public=True %}{% endfor %}
+          </div>
+        </div>
+      </div>
+      <p class="org-public-hint"><i class="fa-regular fa-hand-pointer"></i> Use the + and − buttons to zoom in or out, or open the chart in full screen. Drag sideways to see more.</p>
+    </div>
+  </div>
+</section>
+<script src="{% static 'js/org-chart.js' %}?v=1"></script>
+<script>
+(function () {
+  var OC = window.TungaOrgChart, board = document.getElementById('orgPubBoard');
+  if (!OC || !board) return;
+  var viewport = document.getElementById('orgPubViewport'), canvas = document.getElementById('orgPubCanvas');
+  var chart = OC.setup(board, document.getElementById('orgPubLines'), canvas);
+  var zoom = OC.zoomer(viewport, canvas, document.getElementById('orgPubZoomLevel'), 0.3);
+  function refresh() { chart.layout(); zoom.computeFit(); }
+  document.getElementById('orgPubZoomIn').onclick = zoom.zoomIn;
+  document.getElementById('orgPubZoomOut').onclick = zoom.zoomOut;
+  document.getElementById('orgPubFit').onclick = zoom.reset;
+  OC.fullscreen(document.getElementById('orgPublicPanel'), document.getElementById('orgPubFullscreen'), function () { setTimeout(zoom.computeFit, 30); });
+  window.addEventListener('resize', zoom.computeFit);
+  refresh();
+  // photos change a box's size once they load
+  board.querySelectorAll('img').forEach(function (img) { if (!img.complete) img.addEventListener('load', refresh); });
+})();
+</script>
+{% endif %}
+
 
 <!-- "Fill Out Online" popup: fetches the form-fill fragment for the clicked
      form via AJAX and injects it here, so the citizen never leaves this

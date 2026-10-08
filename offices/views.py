@@ -10,6 +10,7 @@ from .models import Office
 from office_dashboard.models import (
     Announcement, DownloadableForm, NewsUpdate, Photo, Service,
     FormField, FormSubmission, FormSubmissionValue,
+    OrgChartNode, OrgChartSettings,
 )
 import re
 import io
@@ -154,8 +155,15 @@ def office_detail(request, slug):
         photos += list(content_items(representative=rep))
         photos.sort(key=lambda i: i["created"], reverse=True)
 
+    # The office's Organizational Chart, shown at the bottom of the page once
+    # the rep clicked "Show on office page" in the chart builder.
+    org_nodes = []
+    if OrgChartSettings.objects.filter(office=office, show_on_office_page=True).exists():
+        org_nodes = list(OrgChartNode.objects.filter(office=office).order_by("order", "id"))
+
     return render(request, "offices/office_detail.html", {
         "office": office,
+        "org_nodes": org_nodes,
         "rep": rep,
         "services": services,
         "announcements": announcements,

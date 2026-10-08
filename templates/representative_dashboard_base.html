@@ -11,6 +11,21 @@
 </head>
 
 <body data-page="{% block body_page %}dashboard{% endblock %}">
+<script>
+  // If the rep hid the sidebar, keep it hidden after a refresh or when
+  // opening another page (desktop widths only; on phones it always starts
+  // closed). Runs before the sidebar paints, so it doesn't flash open.
+  (function () {
+    try {
+      if (window.innerWidth >= 861 && localStorage.getItem('repSidebarCollapsed') === '1') {
+        document.documentElement.classList.add('rep-sidebar-preload-collapsed');
+      }
+    } catch (e) {}
+  })();
+</script>
+<style>
+  .rep-sidebar-preload-collapsed #sidebar{width:0;padding-left:0;padding-right:0;opacity:0;overflow:hidden;}
+</style>
 <div class="app-shell">
   <aside class="sidebar sidebar--rep" id="sidebar">
     <div class="sidebar-brand">
@@ -63,6 +78,8 @@
       <li class="nav-item{% if request.path == location_url %} active{% endif %}"><a href="{{ location_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-location-dot"></i></span> Office Location</a></li>
       {% url 'office_dashboard:page_settings' as page_settings_url %}
       <li class="nav-item{% if request.path == page_settings_url %} active{% endif %}"><a href="{{ page_settings_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-image"></i></span> Page Settings</a></li>
+      {% url 'office_dashboard:org_chart' as org_chart_url %}
+      <li class="nav-item{% if request.path == org_chart_url %} active{% endif %}"><a href="{{ org_chart_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-sitemap"></i></span> Organizational Chart</a></li>
     </ul>
 
 

@@ -1,0 +1,785 @@
+{% extends "representative_dashboard_base.html" %}
+{% load static %}
+{% block body_page %}org-chart{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/org-chart.css' %}?v=1">
+
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')"><i class="fa-solid fa-bars"></i></button>
+        <div class="page-heading">
+          <h1>Organizational Chart</h1>
+          <p>Build your office's organizational chart — people, positions, photos and sections</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button class="icon-button" id="notifBellBtn" type="button" aria-haspopup="true" aria-expanded="false"><i class="fa-regular fa-bell"></i>{% if rep.unread_notifications_count > 0 %}<span class="dot">{{ rep.unread_notifications_count }}</span>{% endif %}</button>
+        <div class="user-chip">
+          <img src="{% if rep.photo %}{{ rep.photo.url }}{% else %}{% static 'images/icon/profile_logo.jpeg' %}{% endif %}" alt="">
+          <div class="who"><div class="name">{{ rep.user.get_full_name|default:rep.user.username }}</div><div class="role">{{ rep.position|default:"Office Representative" }}</div></div>
+          <i class="fa-solid fa-chevron-down chev"></i>
+        </div>
+      </div>
+    </header>
+
+    <nav class="breadcrumbs">
+      <span>Dashboard</span><span class="sep">›</span><span>Office Management</span><span class="sep">›</span><span class="current">Organizational Chart</span>
+    </nav>
+
+    <main class="content">
+
+      <div class="org-toasts" id="orgToasts">
+      {% for message in messages %}
+        <div class="org-msg org-msg--{% if message.tags == 'error' %}err{% else %}ok{% endif %}">
+          <i class="fa-solid {% if message.tags == 'error' %}fa-circle-exclamation{% else %}fa-circle-check{% endif %}"></i> {{ message }}
+        </div>
+      {% endfor %}
+      </div>
+
+      <div class="org-layout">
+
+        <!-- ===================== The chart ===================== -->
+        <section class="panel org-chart-panel" id="orgChartPanel">
+          <div class="panel-header org-head">
+            <h2>{{ rep.office.name }} <span class="org-count">{{ node_count }} box{{ node_count|pluralize:"es" }}</span></h2>
+            <div class="org-tools">
+              <button type="button" class="btn btn-secondary" id="orgZoomOut" title="Zoom out" aria-label="Zoom out"><i class="fa-solid fa-magnifying-glass-minus"></i></button>
+              <span class="org-zoom-level" id="orgZoomLevel">100%</span>
+              <button type="button" class="btn btn-secondary" id="orgZoomIn" title="Zoom in" aria-label="Zoom in"><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+              <button type="button" class="btn btn-secondary" id="orgZoomFit" title="Fit the whole chart" aria-label="Fit the whole chart"><i class="fa-solid fa-arrows-to-dot"></i></button>
+              {% if node_count %}
+              <button type="button" class="btn btn-secondary" id="orgFullscreen" title="Full screen" aria-pressed="false"><i class="fa-solid fa-expand"></i> <span class="org-fs-label org-btn-text">Full screen</span></button>
+              <button type="submit" form="orgAutoForm" class="btn btn-secondary" title="Put every box back in its automatic place"><i class="fa-solid fa-wand-magic-sparkles"></i> <span class="org-btn-text">Auto-arrange</span></button>
+              <button type="button" class="btn btn-secondary" id="orgPrint" title="Print or save as PDF"><i class="fa-solid fa-print"></i> <span class="org-btn-text">Print</span></button>
+              <span class="org-save-state" id="orgSaveState"></span>
+              {% endif %}
+            </div>
+          </div>
+
+          {% if node_count %}
+          <div class="org-publish{% if org_settings.show_on_office_page %} is-on{% endif %}">
+            <div class="org-publish__state">
+              <span class="org-publish__dot"></span>
+              {% if org_settings.show_on_office_page %}
+                <span><b>Shown on your office page</b> — visitors see it at the bottom of the page.</span>
+              {% else %}
+                <span><b>Not shown on your office page</b> — only you can see it here.</span>
+              {% endif %}
+            </div>
+            <div class="org-publish__actions">
+              {% if org_settings.show_on_office_page and rep.office.slug %}
+                <a class="btn btn-secondary" href="{% url 'offices:office_detail' rep.office.slug %}#org-chart" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i> View</a>
+              {% endif %}
+              <form method="post">
+                {% csrf_token %}<input type="hidden" name="action" value="publish">
+                <input type="hidden" name="back" value="{% if editing %}?edit={{ editing.id }}{% endif %}">
+                {% if org_settings.show_on_office_page %}
+                  <input type="hidden" name="show" value="0">
+                  <button type="submit" class="btn btn-secondary"><i class="fa-regular fa-eye-slash"></i> Hide from office page</button>
+                {% else %}
+                  <input type="hidden" name="show" value="1">
+                  <button type="submit" class="btn btn-primary"><i class="fa-solid fa-globe"></i> Show on office page</button>
+                {% endif %}
+              </form>
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="org-viewport org-fs-viewport" id="orgViewport">
+            {% if nodes %}
+              <div class="org-canvas" id="orgCanvas">
+                <div class="org-print-title">{{ rep.office.name }} — Organizational Chart</div>
+                <div class="org-board" id="orgBoard">
+                  <svg class="org-lines" id="orgLines" aria-hidden="true"></svg>
+                  {% for n in nodes %}{% include "office_dashboard/_org_node.html" with n=n %}{% endfor %}
+                </div>
+              </div>
+            {% else %}
+              <div class="org-empty">
+                <i class="fa-solid fa-sitemap"></i>
+                <h3>No organizational chart yet</h3>
+                <p>Start with the head of your office (for example, the Municipal Mayor or Department Head) using the form on the right. Then add the people and sections under them.</p>
+              </div>
+            {% endif %}
+          </div>
+          <p class="org-hint"><i class="fa-regular fa-hand-pointer"></i> Click a box to edit it. Drag a box to move it, or drag its blue corner to resize it — changes are saved right away. <span class="org-hint-touch">On a phone: press and hold a box, then drag.</span></p>
+          <form method="post" id="orgAutoForm" hidden onsubmit="return confirm('Put every box back in its automatic place? Positions you dragged will be cleared.');">
+            {% csrf_token %}<input type="hidden" name="action" value="auto_layout">
+          </form>
+        </section>
+
+        <!-- ===================== The editor ===================== -->
+        <section class="panel org-editor">
+          <div class="panel-header">
+            <h2>
+              {% if editing %}Edit box
+              {% elif add_under %}Add under “{{ add_under.name }}”
+              {% else %}Add to the chart{% endif %}
+            </h2>
+            {% if editing or add_under %}<a href="{% url 'office_dashboard:org_chart' %}" class="org-link">+ New box</a>{% endif %}
+          </div>
+          <div class="panel-body">
+            {% with kind=form_kind %}
+            <form method="post" enctype="multipart/form-data" id="orgForm">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="save">
+              {% if editing %}<input type="hidden" name="id" value="{{ editing.id }}">{% endif %}
+
+              <div class="form-group">
+                <label class="form-label">Type</label>
+                <div class="org-seg">
+                  <label><input type="radio" name="kind" value="person"{% if kind != "section" %} checked{% endif %}> <i class="fa-solid fa-user"></i> Person</label>
+                  <label><input type="radio" name="kind" value="section"{% if kind == "section" %} checked{% endif %}> <i class="fa-regular fa-square"></i> Section / Unit</label>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="org-name"><span class="only-person">Full name</span><span class="only-section">Section title</span> <span class="req">*</span></label>
+                <input class="form-input" type="text" id="org-name" name="name" maxlength="150" required
+                       value="{{ editing.name|default:'' }}" data-ph-person="e.g. Philip A. Pichay" data-ph-section="e.g. Personal Staff Section">
+              </div>
+
+              <div class="form-group only-person">
+                <label class="form-label" for="org-position">Position / Designation</label>
+                <input class="form-input" type="text" id="org-position" name="position" maxlength="200"
+                       value="{{ editing.position|default:'' }}" placeholder="e.g. Municipal Administrator">
+              </div>
+
+              <div class="form-group only-person">
+                <label class="form-label" for="org-photo">Photo</label>
+                <div class="org-photo-row">
+                  <span class="org-photo org-photo--sm" id="orgPhotoPreview">
+                    {% if editing.photo %}<img src="{{ editing.photo.url }}" alt="">{% else %}<span class="org-initials">{% if editing %}{{ editing.initials }}{% else %}<i class="fa-solid fa-user"></i>{% endif %}</span>{% endif %}
+                  </span>
+                  <input class="form-input file-input" type="file" id="org-photo" name="photo" accept="image/jpeg,image/png,image/webp">
+                </div>
+                <span class="form-help">JPG, PNG or WEBP, up to 5 MB. A square, head-and-shoulders photo looks best. No photo shows the person's initials.</span>
+                {% if editing.photo %}
+                  <label class="org-check"><input type="checkbox" name="remove_photo" value="1"> Remove current photo</label>
+                {% endif %}
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="org-parent">Reports to</label>
+                <select class="form-input" id="org-parent" name="parent">
+                  <option value="">— Top of the chart (no one above) —</option>
+                  {% for value, label in parent_choices %}
+                    <option value="{{ value }}"{% if editing and editing.parent_id == value %} selected{% elif not editing and add_under and add_under.id == value %} selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+                <span class="form-help">The person or section directly above this box on the chart.</span>
+              </div>
+
+              <details class="org-style" open>
+                <summary><i class="fa-solid fa-palette"></i> Style <span>{% if editing %}— changes show on the chart right away{% endif %}</span></summary>
+
+                <div class="form-group only-person">
+                  <label class="form-label">Photo shape</label>
+                  <div class="org-seg org-seg--sm org-seg--grid">
+                    <label title="Circle"><input type="radio" name="style_shape" value="circle"> <span class="org-shape-ico is-circle"></span> Circle</label>
+                    <label title="Rounded square"><input type="radio" name="style_shape" value="rounded"> <span class="org-shape-ico is-rounded"></span> Rounded</label>
+                    <label title="Square"><input type="radio" name="style_shape" value="square"> <span class="org-shape-ico"></span> Square</label>
+                    <label title="Name only, no photo"><input type="radio" name="style_shape" value="none"> No photo</label>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Colors</label>
+                  <div class="org-colors">
+                    <label class="org-color"><input type="color" name="style_border"><span><span class="only-person">Photo border</span><span class="only-section">Border</span></span></label>
+                    <label class="org-color"><input type="color" name="style_fill"><span><span class="only-person">Name box</span><span class="only-section">Box color</span></span></label>
+                    <label class="org-color"><input type="color" name="style_text"><span>Text</span></label>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Line to the box above</label>
+                  <div class="org-line-row">
+                    <label class="org-color org-color--inline"><input type="color" name="style_line"><span>Color</span></label>
+                    <select class="form-input" name="style_line_style" aria-label="Line style">
+                      <option value="solid">━━ Solid</option>
+                      <option value="dashed">╍╍ Dashed (advisory / coordination)</option>
+                      <option value="dotted">┈┈ Dotted</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Name letters</label>
+                  <div class="org-seg org-seg--sm">
+                    <label><input type="radio" name="style_case" value="upper"> ABC (all capitals)</label>
+                    <label><input type="radio" name="style_case" value="normal"> Abc (normal)</label>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Box size</label>
+                  <p class="org-size-tip"><span class="org-resize-ico"></span> Drag the blue corner at the bottom-right of the box on the chart to make it bigger or smaller. The photo and text grow with it.</p>
+                  <input type="hidden" name="style_w" value="">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="org-scope">Use this style for</label>
+                  <select class="form-input" id="org-scope" name="style_scope">
+                    <option value="this">This box only</option>
+                    {% if editing %}<option value="below">This box and everyone under it</option>{% endif %}
+                    <option value="all">Every box on the chart</option>
+                  </select>
+                </div>
+                <button type="button" class="btn btn-secondary org-wide" id="orgStyleReset"><i class="fa-solid fa-rotate-left"></i> Reset to default look</button>
+              </details>
+
+              <button type="submit" class="btn btn-primary org-wide"><i class="fa-solid fa-check"></i> {% if editing %}Save changes{% else %}Add to chart{% endif %}</button>
+            </form>
+            {% endwith %}
+            {{ style_defaults|json_script:"orgStyleDefaults" }}
+            {% if editing %}{{ editing.style|json_script:"orgEditStyle" }}{% endif %}
+
+            {% if editing %}
+              <div class="org-actions">
+                <div class="org-actions__title">Add under “{{ editing.name }}”</div>
+                <div class="org-actions__row">
+                  <a class="btn btn-secondary" href="?add_under={{ editing.id }}&kind=person"><i class="fa-solid fa-user-plus"></i> Person</a>
+                  <a class="btn btn-secondary" href="?add_under={{ editing.id }}&kind=section"><i class="fa-regular fa-square-plus"></i> Section</a>
+                </div>
+
+                <div class="org-actions__title">Move it</div>
+                <p class="org-drag-tip"><i class="fa-solid fa-up-down-left-right"></i> Drag the box anywhere on the chart; the line to the box above it follows. Boxes under it that you haven't moved yourself come along. To change who it reports to, use <b>Reports to</b> above.</p>
+
+                <form method="post" onsubmit="return confirm('Remove “{{ editing.name|escapejs }}” from the chart? Anyone under it moves up one level.');">
+                  {% csrf_token %}<input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{ editing.id }}">
+                  <button type="submit" class="btn btn-secondary org-wide org-danger"><i class="fa-regular fa-trash-can"></i> Remove from chart</button>
+                </form>
+              </div>
+            {% endif %}
+          </div>
+        </section>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<style>
+  /* ---------------- layout ---------------- */
+  .org-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: start; }
+  @media (max-width: 1100px) { .org-layout { grid-template-columns: minmax(0, 1fr); } }
+  .org-layout > .panel { min-width: 0; }
+  .org-toasts { position: fixed; top: 16px; right: 16px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; max-width: min(380px, calc(100vw - 32px)); }
+  .org-msg { padding: 11px 14px; border-radius: 10px; font-size: 13px; box-shadow: 0 10px 28px rgba(15, 23, 42, .16); cursor: pointer; animation: orgToast 5s ease forwards; }
+  .org-msg--err { animation-duration: 9s; }
+  @keyframes orgToast { 0% { opacity: 0; transform: translateY(-8px); } 6%, 85% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-8px); visibility: hidden; } }
+  .org-msg--ok { background: #e8f7ee; color: #17693a; border: 1px solid #b7e4c7; }
+  .org-msg--err { background: #fdecea; color: #a12a20; border: 1px solid #f5c6c1; }
+  .org-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .org-count { margin-left: 6px; font-size: 12px; font-weight: 600; color: var(--gray-400, #9ca3af); }
+  .org-tools { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .org-tools .btn { padding: 6px 10px; }
+  .org-viewport { overflow: auto; max-height: 75vh; min-height: 260px; background: #fff; border-top: 1px solid var(--gray-100, #f3f4f6); -webkit-overflow-scrolling: touch; }
+  .org-canvas { display: inline-block; min-width: 100%; padding: 28px 24px 34px; box-sizing: border-box; }
+  .org-print-title { display: none; }
+  .org-hint { margin: 0; padding: 10px 18px 14px; font-size: 12px; color: var(--gray-400, #9ca3af); }
+  .org-empty { padding: 50px 24px; text-align: center; color: var(--gray-500, #6b7280); }
+  .org-empty i { font-size: 34px; color: var(--gray-300, #d1d5db); }
+  .org-empty h3 { margin: 12px 0 6px; font-size: 16px; color: var(--gray-800, #1f2937); }
+  .org-empty p { max-width: 420px; margin: 0 auto; font-size: 13px; line-height: 1.6; }
+
+  /* ---------------- the chart: builder-only bits (its look is in static/css/org-chart.css) ---------------- */
+  #orgBoard .org-box { cursor: grab; touch-action: manipulation; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; outline: none; }
+  #orgBoard .org-box:hover { box-shadow: 0 6px 18px rgba(15, 23, 42, .12); }
+  #orgBoard .org-box:focus-visible { box-shadow: 0 0 0 3px #93c5fd; }
+  #orgBoard .org-box.is-selected { box-shadow: 0 0 0 3px #f59e0b; }
+  #orgBoard .org-box.is-dragging { z-index: 5; box-shadow: 0 14px 34px rgba(15, 23, 42, .28); cursor: grabbing; }
+  body.org-dragging, body.org-dragging * { cursor: grabbing !important; -webkit-user-select: none; user-select: none; }
+  .org-save-state { font-size: 12px; color: var(--gray-400, #9ca3af); margin-left: 2px; }
+  .org-save-state.is-error { color: #c0392b; font-weight: 600; }
+
+  /* the resize handle (bottom-right corner) */
+  .org-resize { position: absolute; right: -7px; bottom: -7px; z-index: 3; width: 15px; height: 15px; border: 2px solid #fff; border-radius: 4px; background: #2563eb; box-shadow: 0 1px 4px rgba(15, 23, 42, .35); cursor: nwse-resize; opacity: 0; touch-action: none; transition: opacity .12s; }
+  #orgBoard .org-box:hover .org-resize, #orgBoard .org-box.is-selected .org-resize, #orgBoard .org-box.is-resizing .org-resize { opacity: 1; }
+  @media (hover: none) { #orgBoard .org-resize { opacity: 1; width: 20px; height: 20px; right: -9px; bottom: -9px; } }
+  body.org-resizing, body.org-resizing * { cursor: nwse-resize !important; -webkit-user-select: none; user-select: none; }
+  .org-size-tip { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 9px 11px; border-radius: 8px; background: #f3f6fb; font-size: 12px; line-height: 1.5; color: var(--gray-600, #4b5563); }
+  .org-resize-ico { flex: none; width: 13px; height: 13px; margin-top: 2px; border: 2px solid #fff; border-radius: 3px; background: #2563eb; box-shadow: 0 0 0 1px #2563eb; }
+
+  /* "Show on office page" bar */
+  .org-publish { display: flex; align-items: center; justify-content: space-between; gap: 10px 14px; flex-wrap: wrap; padding: 10px 18px; background: #f8fafc; border-bottom: 1px solid var(--gray-100, #f3f4f6); font-size: 12.5px; color: var(--gray-600, #4b5563); }
+  .org-publish__state { display: flex; align-items: center; gap: 8px; }
+  .org-publish__dot { flex: none; width: 9px; height: 9px; border-radius: 50%; background: #9ca3af; }
+  .org-publish.is-on .org-publish__dot { background: #16a34a; box-shadow: 0 0 0 3px #dcfce7; }
+  .org-publish__actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .org-publish__actions form { margin: 0; }
+  .org-publish .btn { padding: 6px 12px; font-size: 12.5px; }
+
+  /* full screen (mainly for phones) */
+  .org-chart-panel.org-is-fullscreen .org-publish, .org-chart-panel.org-is-fullscreen .org-hint { display: none; }
+  .org-chart-panel.org-is-fullscreen .org-head { padding: 10px 14px; }
+
+  .org-hint-touch { display: none; }
+  @media (hover: none) { .org-hint-touch { display: inline; } }
+
+  /* ---------------- editor ---------------- */
+  .org-style { margin: 4px 0 16px; padding: 0 12px 4px; border: 1px solid var(--gray-200, #e5e7eb); border-radius: 10px; }
+  .org-style summary { padding: 11px 0; font-size: 13px; font-weight: 700; cursor: pointer; }
+  .org-style summary span { font-weight: 500; font-size: 11.5px; color: var(--gray-400, #9ca3af); }
+  .org-style[open] summary { margin-bottom: 4px; border-bottom: 1px solid var(--gray-100, #f3f4f6); }
+  .org-seg--sm label { padding: 7px 4px; font-size: 12px; gap: 5px; }
+  .org-seg.org-seg--grid { display: grid; grid-template-columns: 1fr 1fr; }
+  .org-seg.org-seg--grid label { border-right: 1px solid var(--gray-200, #e5e7eb); border-bottom: 1px solid var(--gray-200, #e5e7eb); }
+  .org-seg.org-seg--grid label:nth-child(2n) { border-right: 0; }
+  .org-seg.org-seg--grid label:nth-child(n+3) { border-bottom: 0; }
+  .org-shape-ico { width: 12px; height: 12px; border: 2px solid currentColor; }
+  .org-shape-ico.is-circle { border-radius: 50%; }
+  .org-shape-ico.is-rounded { border-radius: 4px; }
+  .org-colors { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .org-color { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11.5px; color: var(--gray-600, #4b5563); cursor: pointer; text-align: center; }
+  .org-color input { width: 100%; height: 34px; padding: 2px; border: 1px solid var(--gray-200, #e5e7eb); border-radius: 8px; background: #fff; cursor: pointer; }
+  .org-color--inline { flex: 0 0 72px; }
+  .org-line-row { display: flex; align-items: flex-start; gap: 8px; }
+  .org-line-row select { flex: 1; min-width: 0; }
+  .org-two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (min-width: 1101px) {
+    /* the editor stays in view and scrolls by itself, so the chart doesn't move */
+    .org-editor { position: sticky; top: 16px; display: flex; flex-direction: column; max-height: calc(100vh - 32px); }
+    .org-editor .panel-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+  }
+  .org-viewport { overscroll-behavior: contain; }
+  .org-editor.is-loading .panel-body { opacity: .5; pointer-events: none; transition: opacity .1s; }
+  .org-editor .form-group { margin-bottom: 14px; }
+  .org-editor .form-help { display: block; margin-top: 5px; }
+  .org-editor .panel-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .org-link { font-size: 12.5px; font-weight: 700; color: var(--blue-600, #2563eb); white-space: nowrap; }
+  .org-seg { display: flex; border: 1px solid var(--gray-200, #e5e7eb); border-radius: 8px; overflow: hidden; }
+  .org-seg label { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px; font-size: 12.5px; cursor: pointer; border-right: 1px solid var(--gray-200, #e5e7eb); }
+  .org-seg label:last-child { border-right: 0; }
+  .org-seg input { position: absolute; opacity: 0; pointer-events: none; }
+  .org-seg label:has(input:checked) { background: #2563eb; color: #fff; }
+  .org-photo-row { display: flex; align-items: center; gap: 10px; }
+  .org-photo--sm { width: 52px; height: 52px; border-width: 2px; }
+  .org-photo--sm .org-initials { font-size: 16px; }
+  .org-check { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 12.5px; }
+  .org-wide { width: 100%; justify-content: center; }
+  .org-actions { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--gray-100, #f3f4f6); }
+  .org-actions__title { margin: 0 0 6px; font-size: 11.5px; font-weight: 700; color: var(--gray-500, #6b7280); }
+  .org-actions__row { display: flex; gap: 8px; margin-bottom: 12px; }
+  .org-actions__row > * { flex: 1; }
+  .org-actions__row .btn { width: 100%; justify-content: center; font-size: 12.5px; }
+  .org-danger { color: #c0392b !important; }
+  .org-drag-tip { margin: 0 0 14px; padding: 10px 12px; border-radius: 8px; background: #f3f6fb; font-size: 12.5px; line-height: 1.55; color: var(--gray-600, #4b5563); }
+  #orgForm[data-kind="section"] .only-person, #orgForm[data-kind="person"] .only-section { display: none; }
+
+  /* ---------------- small screens ---------------- */
+  @media (max-width: 700px) {
+    .org-head { flex-direction: column; align-items: stretch; gap: 8px; }
+    .org-head h2 { font-size: 15px; }
+    .org-tools { gap: 5px; }
+    .org-tools .btn { flex: 1 1 0; min-width: 38px; justify-content: center; padding: 7px 6px; }
+    .org-tools .org-btn-text { display: none; }
+    .org-tools .org-zoom-level { flex: 0 0 auto; min-width: 38px; }
+    .org-save-state { flex-basis: 100%; text-align: right; }
+    .org-save-state:empty { display: none; }
+    .org-publish { padding: 10px 14px; }
+    .org-publish__actions { width: 100%; }
+    .org-publish__actions > * { flex: 1; }
+    .org-publish__actions .btn { width: 100%; justify-content: center; }
+    .org-viewport { max-height: 62vh; min-height: 300px; }
+    .org-canvas { padding: 16px 10px 22px; }
+    .org-hint { padding: 8px 14px 12px; }
+    .org-empty { padding: 34px 16px; }
+    .org-colors { gap: 6px; }
+    .org-seg--sm label { font-size: 11.5px; padding: 8px 3px; }
+    .org-line-row { flex-wrap: wrap; }
+    .org-actions__row .btn { padding: 9px 6px; }
+  }
+
+  /* ---------------- print: only the chart, on white ---------------- */
+  @media print {
+    @page { size: landscape; margin: 10mm; }
+    body * { visibility: hidden !important; }
+    #orgCanvas, #orgCanvas * { visibility: visible !important; }
+    #orgCanvas { position: absolute; left: 0; top: 0; padding: 0; }
+    .org-print-title { display: block; margin-bottom: 18px; font-size: 18px; font-weight: 800; color: #1f2a44; }
+    #orgBoard .org-box.is-selected { box-shadow: none; }
+    .org-hint, .org-resize { display: none !important; }
+    #orgBoard .org-box:hover { box-shadow: none; }
+  }
+</style>
+
+<script src="{% static 'js/org-chart.js' %}?v=1"></script>
+<script>
+(function () {
+  var viewport = document.getElementById('orgViewport'), canvas = document.getElementById('orgCanvas');
+  var board = document.getElementById('orgBoard'), svg = document.getElementById('orgLines');
+  var saveState = document.getElementById('orgSaveState');
+  var panel = document.getElementById('orgChartPanel');
+  var OC = window.TungaOrgChart, GRID = 10, W_MIN = 80, W_MAX = 420;
+  var smallScreen = function () { return window.innerWidth <= 1100; };
+
+  // ---------- Layout (static/js/org-chart.js): tidy tree, dragged spots, lines ----------
+  var chart = board ? OC.setup(board, svg, canvas) : null;
+  var byId = chart ? chart.byId : {};
+  function layout(keepBoard) { if (chart) chart.layout(keepBoard); }
+  function paint(resize) { if (chart) chart.paint(resize); }
+  var setWidth = OC.setWidth;
+
+  // ---------- Zoom (handy for big charts and small screens). 100% = fit the width ----------
+  var zoomer = canvas ? OC.zoomer(viewport, canvas, document.getElementById('orgZoomLevel'), 0.3) : null;
+  document.getElementById('orgZoomIn').onclick = function () { if (zoomer) zoomer.zoomIn(); };
+  document.getElementById('orgZoomOut').onclick = function () { if (zoomer) zoomer.zoomOut(); };
+  document.getElementById('orgZoomFit').onclick = function () { if (zoomer) zoomer.reset(); };
+  function computeFit() { if (zoomer) zoomer.computeFit(); }
+  window.addEventListener('resize', computeFit);
+  layout();
+  computeFit();
+  // photos change a box's size once they load
+  if (board) board.querySelectorAll('img').forEach(function (img) { if (!img.complete) img.addEventListener('load', function () { layout(); computeFit(); }); });
+
+  // Full screen (mainly for phones)
+  var fs = OC.fullscreen(panel, document.getElementById('orgFullscreen'), function () { setTimeout(computeFit, 30); });
+
+  // Bring the selected box into view (scrolls only the chart, never the page)
+  function centerOn(el) {
+    var r = el.getBoundingClientRect(), v = viewport.getBoundingClientRect();
+    viewport.scrollLeft += (r.left + r.width / 2) - (v.left + v.width / 2);
+    viewport.scrollTop += (r.top + r.height / 2) - (v.top + v.height / 2);
+  }
+  // After saving, the page comes back where it was (see "Keep the scroll
+  // position" below); otherwise bring the selected box into view.
+  var savedScroll = null;
+  try { savedScroll = JSON.parse(sessionStorage.getItem('orgChartScroll') || 'null'); sessionStorage.removeItem('orgChartScroll'); } catch (e) {}
+  if (savedScroll && savedScroll.path === location.pathname) {
+    window.scrollTo(0, savedScroll.y);
+    viewport.scrollLeft = savedScroll.vx; viewport.scrollTop = savedScroll.vy;
+  } else {
+    var sel = document.querySelector('#orgBoard .org-box.is-selected');
+    if (sel) centerOn(sel);
+  }
+
+  // ---------- Drag a box anywhere on the chart / resize it from its corner ----------
+  // Mouse: just drag. Touch: press and hold a moment, then drag (a quick
+  // swipe still scrolls the chart). Changes are saved right away.
+  var csrf = document.querySelector('#orgAutoForm [name="csrfmiddlewaretoken"]');
+  if (board) {
+    var drag = null, holdTimer = null, raf = null, suppressClick = false;
+
+    function z() { return parseFloat(canvas.style.zoom) || 1; }
+    function stop() {
+      clearTimeout(holdTimer); cancelAnimationFrame(raf);
+      if (drag && drag.started) {
+        drag.n.el.classList.remove('is-dragging', 'is-resizing');
+        document.body.classList.remove('org-dragging', 'org-resizing');
+      }
+      drag = null;
+    }
+    function post(fields) {
+      saveState.className = 'org-save-state'; saveState.textContent = 'Saving…';
+      var body = new FormData();
+      body.append('csrfmiddlewaretoken', csrf.value);
+      Object.keys(fields).forEach(function (k) { body.append(k, fields[k]); });
+      return fetch(window.location.pathname, { method: 'POST', body: body, headers: { 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
+        .then(function (r) { if (!r.ok) throw new Error(); saveState.textContent = 'Saved ✓'; })
+        .catch(function () { saveState.className = 'org-save-state is-error'; saveState.textContent = "Couldn't save — please reload the page"; });
+    }
+    function save(n) { return post({ action: 'position', id: n.id, x: n.sx, y: n.sy }); }
+    // keeps the board from jumping when it grows/shrinks after a change
+    function relayoutKeepingView() {
+      var keepL = viewport.scrollLeft, keepT = viewport.scrollTop, oldX = chart.shiftX, oldY = chart.shiftY;
+      layout();
+      viewport.scrollLeft = keepL + (chart.shiftX - oldX) * z();
+      viewport.scrollTop = keepT + (chart.shiftY - oldY) * z();
+    }
+
+    // Resizing: the box grows / shrinks around its own centre (top edge stays),
+    // so the boxes around it and under it don't move.
+    function resizeTo(x) {
+      var w = Math.round(Math.max(W_MIN, Math.min(W_MAX, drag.startW + 2 * (x - drag.x) / z())));
+      if (w === drag.w) return;
+      drag.w = w;
+      setWidth(drag.n.el, w);
+      // a box in its automatic place stays centred on it by itself; a box the
+      // rep placed by hand keeps the same centre
+      if (drag.oldX !== null) { drag.n.sx = Math.round(drag.cx - w / 2); drag.n.sy = drag.top; }
+      layout(true);
+    }
+    function endResize(d) {
+      if (!d.w || d.w === d.startW) {             // only clicked the handle: nothing changes
+        d.n.sx = d.oldX; d.n.sy = d.oldY;
+        if (d.w) setWidth(d.n.el, d.startWasSet ? d.startW : 0);
+        layout(true);
+        return;
+      }
+      relayoutKeepingView();
+      post({ action: 'resize', id: d.n.id, w: d.w });
+      if (d.oldX !== null) save(d.n);
+      // keep the edit box in step if this box is open in it
+      if (d.n.el === selected) {
+        var input = document.querySelector('#orgForm [name="style_w"]');
+        if (input) input.value = d.w;
+        if (selectedBefore) { selectedBefore.cls = selected.className; selectedBefore.style = selected.getAttribute('style') || ''; }
+      }
+    }
+    function begin() {
+      drag.started = true;
+      drag.n.el.classList.add('is-dragging');
+      document.body.classList.add('org-dragging');
+      if (navigator.vibrate && drag.touch) navigator.vibrate(15);
+      autoScroll();
+    }
+    function follow(x, y) {
+      drag.lastX = x; drag.lastY = y;
+      var dx = (x - drag.x) / z() + (viewport.scrollLeft - drag.scrollL) / z();
+      var dy = (y - drag.y) / z() + (viewport.scrollTop - drag.scrollT) / z();
+      drag.n.sx = Math.round((drag.ox + dx) / GRID) * GRID;   // snaps to a 10px grid so rows line up easily
+      drag.n.sy = Math.round((drag.oy + dy) / GRID) * GRID;
+      paint(false);
+    }
+    function autoScroll() {                    // scroll the chart when the box is held near its edges
+      if (!drag || !drag.started) return;
+      var r = viewport.getBoundingClientRect(), edge = 40, sx = 0, sy = 0;
+      if (drag.lastX < r.left + edge) sx = -12; else if (drag.lastX > r.right - edge) sx = 12;
+      if (drag.lastY < r.top + edge) sy = -12; else if (drag.lastY > r.bottom - edge) sy = 12;
+      if (sx || sy) { viewport.scrollBy(sx, sy); follow(drag.lastX, drag.lastY); }
+      raf = requestAnimationFrame(autoScroll);
+    }
+
+    board.addEventListener('pointerdown', function (e) {
+      var el = e.target.closest('.org-box');
+      if (!el || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      stop();
+      var n = byId[el.dataset.id];
+      if (e.target.closest('.org-resize')) {
+        e.preventDefault();
+        drag = { mode: 'resize', n: n, x: e.clientX, startW: n.w, startWasSet: el.classList.contains('has-w'),
+                 cx: n.x + n.w / 2, top: n.y, oldX: n.sx, oldY: n.sy, w: 0, started: true };
+        el.classList.add('is-resizing');
+        document.body.classList.add('org-resizing');
+        return;
+      }
+      drag = { n: n, x: e.clientX, y: e.clientY, lastX: e.clientX, lastY: e.clientY, ox: n.x, oy: n.y,
+               oldX: n.sx, oldY: n.sy, scrollL: viewport.scrollLeft, scrollT: viewport.scrollTop,
+               started: false, touch: e.pointerType !== 'mouse' };
+      if (drag.touch) holdTimer = setTimeout(function () { if (drag && !drag.started) begin(); }, 350);
+    });
+    document.addEventListener('pointermove', function (e) {
+      if (!drag) return;
+      if (drag.mode === 'resize') { e.preventDefault(); resizeTo(e.clientX); return; }
+      var dx = e.clientX - drag.x, dy = e.clientY - drag.y, moved = dx * dx + dy * dy > 36;
+      if (!drag.started) {
+        if (drag.touch) { if (moved) stop(); return; }   // swiped before holding: it's a scroll
+        if (!moved) return;                              // tiny wobble: still a click
+        begin();
+      }
+      e.preventDefault();
+      follow(e.clientX, e.clientY);
+    });
+    document.addEventListener('pointerup', function () {
+      if (!drag) return;
+      var d = drag, started = d.started;
+      stop();
+      if (d.mode === 'resize') {
+        suppressClick = true; setTimeout(function () { suppressClick = false; }, 60);
+        endResize(d);
+        return;
+      }
+      if (!started) return;                              // plain click: open the editor as usual
+      suppressClick = true; setTimeout(function () { suppressClick = false; }, 60);
+      if (d.n.sx === d.oldX && d.n.sy === d.oldY) return;
+      relayoutKeepingView();                             // grow / shrink the board to fit
+      save(d.n);
+    });
+    document.addEventListener('pointercancel', function () {
+      if (drag && drag.mode === 'resize') { var d = drag; stop(); endResize(d); return; }
+      if (drag && drag.started) { drag.n.sx = drag.oldX; drag.n.sy = drag.oldY; paint(false); }
+      stop();
+    });
+    // While dragging with a finger, don't let the page scroll instead
+    viewport.addEventListener('touchmove', function (e) { if (drag && drag.started) e.preventDefault(); }, { passive: false });
+    board.addEventListener('contextmenu', function (e) { if (drag) e.preventDefault(); });
+    board.addEventListener('click', function (e) { if (suppressClick) { e.preventDefault(); e.stopPropagation(); } }, true);
+    board.addEventListener('dragstart', function (e) { e.preventDefault(); });
+  }
+
+  // ---------- The edit box (bound again each time another box is opened) ----------
+  var editor = document.querySelector('.org-editor');
+  var defs = JSON.parse(document.getElementById('orgStyleDefaults').textContent);
+  var selected = null, selectedBefore = null;
+
+  // Put the previous box back the way it was saved if its style was only previewed
+  function restoreSelected() {
+    if (!selected || !selectedBefore) return;
+    selected.className = selectedBefore.cls;
+    selected.setAttribute('style', selectedBefore.style);
+    selected.dataset.line = selectedBefore.line;
+    selected.dataset.lineStyle = selectedBefore.lineStyle;
+  }
+
+  function bindEditor() {
+    var form = document.getElementById('orgForm');
+    var F = form.elements;
+    var nameInput = document.getElementById('org-name');
+    var editData = document.getElementById('orgEditStyle');
+    var startStyle = editData ? JSON.parse(editData.textContent) : {};
+    var editingId = (new URLSearchParams(location.search)).get('edit');
+
+    selected = editingId && board ? board.querySelector('.org-box[data-id="' + editingId + '"]') : null;
+    // the "Show on office page" button comes back to this same box
+    var back = document.querySelector('.org-publish [name="back"]');
+    if (back) back.value = editingId ? '?edit=' + editingId : '';
+    if (board) board.querySelectorAll('.org-box.is-selected').forEach(function (b) { b.classList.remove('is-selected'); });
+    if (selected) {
+      selected.classList.add('is-selected');
+      selectedBefore = { cls: selected.className, style: selected.getAttribute('style') || '',
+                         line: selected.dataset.line || '', lineStyle: selected.dataset.lineStyle || '' };
+    } else selectedBefore = null;
+
+    // Person / Section switch: show the right fields and placeholder
+    function syncKind() {
+      var kind = form.querySelector('input[name="kind"]:checked').value;
+      form.dataset.kind = kind;
+      nameInput.placeholder = kind === 'section' ? nameInput.dataset.phSection : nameInput.dataset.phPerson;
+    }
+    syncKind();
+    var lastKind = form.dataset.kind;
+
+    // Photo preview before saving
+    var photo = document.getElementById('org-photo'), photoPreview = document.getElementById('orgPhotoPreview');
+    photo.addEventListener('change', function () {
+      var f = photo.files && photo.files[0];
+      if (!f) return;
+      var img = document.createElement('img');
+      img.src = URL.createObjectURL(f);
+      photoPreview.innerHTML = ''; photoPreview.appendChild(img);
+    });
+
+    // Style controls (shape, colors, line, size, letters)
+    function setRadio(name, value) {
+      form.querySelectorAll('input[name="' + name + '"]').forEach(function (r) { r.checked = r.value === value; });
+    }
+    function radio(name) { var r = form.querySelector('input[name="' + name + '"]:checked'); return r ? r.value : ''; }
+    function fillControls(st) {
+      var c = defs.colors[form.dataset.kind];
+      F.style_border.value = st.border || c.border;
+      F.style_fill.value = st.fill || c.fill;
+      F.style_text.value = st.text || c.text;
+      F.style_line.value = st.line || defs.line;
+      F.style_line_style.value = st.line_style || defs.line_style;
+      setRadio('style_shape', st.shape || defs.shape);
+      F.style_w.value = st.w || '';
+      setRadio('style_case', st.case || defs.case);
+    }
+    // Show the chosen look on the box being edited, right away (saved with "Save changes")
+    function previewStyle() {
+      if (!selected) return;
+      var s = selected.style;
+      s.setProperty('--b', F.style_border.value);
+      s.setProperty('--bg', F.style_fill.value);
+      s.setProperty('--fg', F.style_text.value);
+      selected.className = selected.className
+        .replace(/\bshape-\w+/g, '').replace(/\bsize-\w+/g, '').replace(/\bcase-\w+/g, '').replace(/\s+/g, ' ').trim()
+        + (selected.classList.contains('org-person') ? ' shape-' + radio('style_shape') : '')
+        + ' case-' + radio('style_case');
+      setWidth(selected, +F.style_w.value || 0);
+      selected.dataset.line = F.style_line.value;
+      selected.dataset.lineStyle = F.style_line_style.value;
+      layout();                                  // size changes move the lines
+    }
+    fillControls(startStyle);
+
+    form.addEventListener('input', function (e) { if (e.target.name && e.target.name.indexOf('style_') === 0) previewStyle(); });
+    form.addEventListener('change', function (e) {
+      if (e.target.name === 'kind') {
+        syncKind();
+        if (form.dataset.kind !== lastKind) {
+          // switching Person <-> Section: colors still on the old default take the new default
+          var oldC = defs.colors[lastKind], newC = defs.colors[form.dataset.kind];
+          ['border', 'fill', 'text'].forEach(function (k) {
+            if (F['style_' + k].value.toLowerCase() === oldC[k]) F['style_' + k].value = newC[k];
+          });
+          lastKind = form.dataset.kind;
+        }
+      }
+      if (e.target.name && e.target.name.indexOf('style_') === 0) previewStyle();
+    });
+    document.getElementById('orgStyleReset').onclick = function () { fillControls({}); previewStyle(); };
+  }
+  bindEditor();
+
+  // ---------- Open a box in the edit box without reloading the page ----------
+  function openEditor(url, push) {
+    editor.classList.add('is-loading');
+    fetch(url, { credentials: 'same-origin' })
+      .then(function (r) { if (!r.ok) throw new Error(); return r.text(); })
+      .then(function (html) {
+        var fresh = new DOMParser().parseFromString(html, 'text/html').querySelector('.org-editor');
+        if (!fresh) throw new Error();
+        restoreSelected();
+        if (push) history.pushState(null, '', url);
+        editor.innerHTML = fresh.innerHTML;
+        editor.classList.remove('is-loading');
+        var body = editor.querySelector('.panel-body'); if (body) body.scrollTop = 0;
+        bindEditor();
+        layout();
+        // on phones / tablets the edit box is under the chart: bring it into view
+        if (smallScreen()) editor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      })
+      .catch(function () { location.href = url; });   // fall back to a normal page load
+  }
+  function isEditorLink(a) {
+    if (!a || a.target || a.hasAttribute('download')) return false;
+    var u = new URL(a.href, location.href);
+    return u.origin === location.origin && u.pathname === location.pathname;
+  }
+  // Click (or Enter / Space) on a box: open it in the edit box
+  function openBox(el) {
+    if (fs.isOn()) fs.set(false);              // the edit box isn't visible in full screen
+    openEditor(location.pathname + '?edit=' + el.dataset.id, true);
+  }
+  if (board) {
+    board.addEventListener('click', function (e) {
+      var el = e.target.closest('.org-box');
+      if (!el || e.defaultPrevented) return;
+      openBox(el);
+    });
+    board.addEventListener('keydown', function (e) {
+      var el = e.target.closest('.org-box');
+      if (el && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openBox(el); }
+    });
+  }
+  editor.addEventListener('click', function (e) {
+    var a = e.target.closest('a[href]');
+    if (!isEditorLink(a) || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    e.preventDefault();
+    openEditor(a.href, true);
+  });
+  window.addEventListener('popstate', function () { openEditor(location.href, false); });
+
+  // ---------- Keep the scroll position when a form is saved ----------
+  document.addEventListener('submit', function (e) {
+    if (!e.target.closest('.content')) return;
+    try {
+      sessionStorage.setItem('orgChartScroll', JSON.stringify({
+        path: location.pathname, y: window.scrollY,
+        vx: viewport ? viewport.scrollLeft : 0, vy: viewport ? viewport.scrollTop : 0 }));
+    } catch (err) {}
+  });
+
+  // Click a message to close it
+  document.getElementById('orgToasts').addEventListener('click', function (e) {
+    var m = e.target.closest('.org-msg'); if (m) m.remove();
+  });
+
+  // Print (or "Save as PDF" in the print dialog) — only the chart, sized to fit the page
+  var printBtn = document.getElementById('orgPrint');
+  if (printBtn) printBtn.onclick = function () {
+    if (fs.isOn()) fs.set(false);
+    var before = canvas.style.zoom;
+    canvas.style.zoom = Math.min(1, 1000 / board.offsetWidth, 680 / board.offsetHeight);
+    window.print();
+    canvas.style.zoom = before;
+  };
+})();
+</script>
+
+{% endblock %}

@@ -659,3 +659,57 @@ class Message(models.Model):
 
     def __str__(self):
         return f"{self.get_sender_display()} -> {self.representative.office}: {self.body[:40]}"
+
+class OrgChartNode(models.Model):
+    """One box on an office's Organizational Chart: a person (name, position,
+    photo) or a section/unit title (e.g. "Personal Staff Section"). `parent`
+    is the box it reports to — no parent means it's at the top of the chart."""
+
+    KIND_PERSON = "person"
+    KIND_SECTION = "section"
+    KIND_CHOICES = [(KIND_PERSON, "Person"), (KIND_SECTION, "Section / Unit")]
+
+    office = models.ForeignKey(Office, on_delete=models.CASCADE, related_name="org_chart_nodes")
+    parent = models.ForeignKey("self", on_delete=models.SET_NULL, null=True, blank=True, related_name="children")
+    kind = models.CharField(max_length=10, choices=KIND_CHOICES, default=KIND_PERSON)
+    name = models.CharField(max_length=150)                # person's name, or the section title
+    position = models.CharField(max_length=200, blank=True)  # e.g. "Municipal Administrator"
+    photo = models.ImageField(upload_to="org_chart/", blank=True, null=True)
+    order = models.PositiveIntegerField(default=0)         # left-to-right among boxes with the same parent
+    # Where the rep dragged the box on the chart (pixels). Empty = automatic
+    # place (it follows the box above it in the tidy tree layout).
+    pos_x = models.IntegerField(null=True, blank=True)
+    pos_y = models.IntegerField(null=True, blank=True)
+    # Look of the box, chosen in the editor. Missing keys = default look.
+    # shape (circle/rounded/square/none), border, fill, text (#rrggbb colors),
+    # line (#rrggbb), line_style (solid/dashed/dotted), size (s/m/l), case (upper/normal)
+    style = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["order", "id"]
+
+    def __str__(self):
+        return f"{self.name} ({self.office})"
+
+    @property
+    def initials(self):
+        parts = [p for p in self.name.replace(".", " ").split() if p[:1].isalpha()]
+        return ((parts[0][0] + (parts[-1][0] if len(parts) > 1 else "")) if parts else "?").upper()
+
+
+class OrgChartSettings(models.Model):
+    """Per-office settings of the Organizational Chart. show_on_office_page:
+    the rep chose to display the chart at the bottom of the public office page."""
+    office = models.OneToOneField(Office, on_delete=models.CASCADE, related_name="org_chart_settings")
+    show_on_office_page = models.BooleanField(default=False)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Org chart settings · {self.office}"
+
+    @classmethod
+    def for_office(cls, office):
+        obj, _ = cls.objects.get_or_create(office=office)
+        return obj
