@@ -30,6 +30,15 @@ from django.core.paginator import Paginator
 # whole page (which was resetting the scroll position back to the top).
 # ---------------------------------------------------------------------------
 
+# News badge colors are only defined (in announcements.css) for these known
+# slugs — anything else (a category typed differently, or left blank)
+# falls back to a plain gray "general" badge rather than an unstyled one.
+KNOWN_NEWS_CATEGORY_SLUGS = {
+    "governance", "technology", "sports",
+    "environment", "education", "infrastructure",
+}
+
+
 def _get_office_filter(request):
     """The office picked with ?office=<slug> (used by the office page's "View
     All" links so the Announcements page can show just that office's posts),
@@ -44,8 +53,9 @@ def _get_featured_event(today, office=None):
     """The event the Events tab's calendar should mark as "featured" (red)
     for whichever month it falls in — same selection rule used for the big
     "Featured Event" hero on the main Events tab: an explicitly
-    Super-Admin-featured event if there is one, else the soonest upcoming
-    published event, else None."""
+    Super-Admin-featured event (soonest first), else None. An event only
+    shows as "Featured" when it was marked "Featured" — the next upcoming
+    event is no longer used as a stand-in."""
     event_base = Event.objects.filter(status='published')
     if office is not None:
         event_base = event_base.filter(representative__office=office)
@@ -65,8 +75,6 @@ def _get_featured_event(today, office=None):
 
     if featured_candidates:
         return featured_candidates[0]
-    if upcoming_qs:
-        return upcoming_qs[0]
     return None
 
 
@@ -151,31 +159,64 @@ def events_calendar_partial(request):
 
 # Create your views here.
 def home(request):
+    # The home page always shows the most recent content: newest published
+    # first. Things published on the same day are ordered by when they were
+    # last saved (which is when the Super Admin approved / published them).
     home_announcements = list(
         Announcement.public()
-        .order_by('-date_posted', '-created_at')[:3]
+        .select_related('representative__office')
+        .order_by('-date_posted', '-last_updated', '-created_at')[:3]
     )
     for a in home_announcements:
         a.display_date = a.date_posted or a.created_at.date()
 
+    # "Upcoming Events": the most recently posted event that hasn't happened
+    # yet (or has no date yet).
     upcoming_event = (
-        Event.objects.filter(status='published', event_date__gte=timezone.localdate())
-        .order_by('event_date')
+        Event.objects.filter(status='published')
+        .filter(Q(event_date__gte=timezone.localdate()) | Q(event_date__isnull=True))
+        .select_related('representative__office')
+        .order_by('-last_updated', '-created_at')
         .first()
     )
 
     latest_news = (
         NewsUpdate.objects.filter(status='published')
         .select_related('representative__office')
-        .order_by('-date_published', '-created_at')
+        .order_by('-date_published', '-last_updated', '-created_at')
         .first()
     )
 
-    gallery_photos = list(
-        Photo.objects.filter(status='published')
-        .select_related('representative__office')
-        .order_by('-created_at')[:16]
-    )
+    # "Photo Gallery" strip: every published photo, newest first — gallery
+    # photos plus the pictures of published announcements, news and events
+    # (incl. "More photos"). The arrows slide through all of them.
+    gallery_photos = list(photo_items(Photo.objects.filter(status='published')))
+    gallery_photos += list(content_items())
+    gallery_photos.sort(key=lambda i: i["created"], reverse=True)
+
+    # Clicking a photo of an announcement / news / event opens that item's
+    # details pop-up (like on the Announcements page) — so the page needs the
+    # details of each of those items.
+    wanted = {"announcement": set(), "news": set(), "event": set()}
+    for item in gallery_photos:
+        if item["kind"] in wanted:
+            wanted[item["kind"]].add(item["id"])
+    detail_announcements = list(Announcement.objects.filter(pk__in=wanted["announcement"]).select_related('representative__office'))
+    for a in detail_announcements:
+        a.display_date = a.date_posted or a.created_at.date()
+        a.category_label = a.category or "General"
+        a.category_slug = slugify(a.category_label) or "general"
+        a.is_new = False
+        a.is_expired = bool(a.expiration_date and a.expiration_date <= timezone.now())
+    detail_news = list(NewsUpdate.objects.filter(pk__in=wanted["news"]).select_related('representative__office'))
+    for n in detail_news:
+        n.display_date = n.date_published or n.created_at.date()
+        n.category_label = n.category or "General"
+        slug = slugify(n.category_label) or "general"
+        n.category_slug = slug if slug in KNOWN_NEWS_CATEGORY_SLUGS else "general"
+    detail_events = list(Event.objects.filter(pk__in=wanted["event"]).select_related('representative__office'))
+    for e in detail_events:
+        e.category_label = e.category or "General"
 
     return render(request, "portal/home.html", {
         "emergency_contacts": EmergencyContact.objects.all(),
@@ -183,6 +224,9 @@ def home(request):
         "upcoming_event": upcoming_event,
         "latest_news": latest_news,
         "gallery_photos": gallery_photos,
+        "detail_announcements": detail_announcements,
+        "detail_news": detail_news,
+        "detail_events": detail_events,
         "quick_links": QuickLink.objects.filter(is_active=True),
     })
 
@@ -197,7 +241,7 @@ def announcement(request):
     announcements = list(
         only_office(Announcement.public())
         .select_related('representative__office')
-        .order_by('-date_posted', '-created_at')[:5]
+        .order_by('-date_posted', '-last_updated', '-created_at')[:5]
     )
     for a in announcements:
         a.display_date = a.date_posted or a.created_at.date()
@@ -205,7 +249,7 @@ def announcement(request):
     news_items = list(
         only_office(NewsUpdate.objects.filter(status='published'))
         .select_related('representative__office')
-        .order_by('-date_published', '-created_at')[:5]
+        .order_by('-date_published', '-last_updated', '-created_at')[:5]
     )
     for n in news_items:
         n.display_date = n.date_published or n.created_at.date()
@@ -215,7 +259,7 @@ def announcement(request):
     all_announcements = list(
         only_office(Announcement.public())
         .select_related('representative__office')
-        .order_by('-date_posted', '-created_at')
+        .order_by('-date_posted', '-last_updated', '-created_at')
     )
 
     new_cutoff = timezone.now() - timezone.timedelta(days=3)
@@ -242,6 +286,21 @@ def announcement(request):
         a.category_slug = slugify(a.category_label) or "general"
         category_counts[a.category_label] = category_counts.get(a.category_label, 0) + 1
 
+    # "Expired Announcements" panel (Announcements tab): published
+    # announcements whose expiration date has passed — most recently expired
+    # first. They're no longer in the lists above, only here.
+    expired_announcements = list(
+        only_office(Announcement.objects.filter(
+            status='published', expiration_date__isnull=False, expiration_date__lte=timezone.now()))
+        .select_related('representative__office')
+        .order_by('-expiration_date', '-last_updated')
+    )
+    for a in expired_announcements:
+        a.display_date = a.date_posted or a.created_at.date()
+        a.is_new = False
+        a.category_label = a.category or "General"
+        a.category_slug = slugify(a.category_label) or "general"
+
     # Only categories that actually have at least one published announcement
     # show up as filter pills / in the sidebar — no empty categories.
     known_names = [name for name in CATEGORY_ORDER if name in category_counts]
@@ -266,16 +325,8 @@ def announcement(request):
     all_news = list(
         only_office(NewsUpdate.objects.filter(status='published'))
         .select_related('representative__office')
-        .order_by('-date_published', '-created_at')
+        .order_by('-date_published', '-last_updated', '-created_at')
     )
-
-    # Badge colors are only defined (in announcements.css) for these known
-    # slugs — anything else (a category typed differently, or left blank)
-    # falls back to a plain gray "general" badge rather than an unstyled one.
-    KNOWN_NEWS_CATEGORY_SLUGS = {
-        "governance", "technology", "sports",
-        "environment", "education", "infrastructure",
-    }
 
     for n in all_news:
         n.display_date = n.date_published or n.created_at.date()
@@ -353,12 +404,10 @@ def announcement(request):
     featured_undated = [e for e in undated_upcoming if e.is_featured]
     featured_candidates = featured_dated + featured_undated
 
-    if featured_candidates:
-        featured_event = featured_candidates[0]
-    elif upcoming_qs:
-        featured_event = upcoming_qs[0]
-    else:
-        featured_event = None
+    # Only an event marked "Featured" goes in the big Featured Event panel —
+    # if none is marked, the panel is simply not shown (every upcoming event
+    # is still listed under Upcoming Events).
+    featured_event = featured_candidates[0] if featured_candidates else None
 
     upcoming_events = [e for e in upcoming_qs if e != featured_event][:6]
     past_events = past_qs
@@ -404,7 +453,7 @@ def announcement(request):
         .filter(representative__office__isnull=False, representative__office__is_visible=True)
         .exclude(representative__office__slug='lgu-super-admin')
         .select_related('representative__office')
-        .order_by('-date_posted', '-created_at')
+        .order_by('-date_posted', '-last_updated', '-created_at')
     )
     for a in recent_office_anns:
         office = a.representative.office
@@ -445,7 +494,7 @@ def announcement(request):
         icon, color, _ = get_office_card_style(office)
         office_url = reverse('offices:office_detail', args=[office.slug])
         office_anns = Announcement.public().filter(representative__office=office)
-        latest = office_anns.order_by('-date_posted', '-created_at').first()
+        latest = office_anns.order_by('-date_posted', '-last_updated', '-created_at').first()
         office_directory.append({
             "office": office,
             "url": office_url,
@@ -467,6 +516,7 @@ def announcement(request):
         "news_items": news_items,
         "news_items_extra": news_items_extra,
         "all_announcements": all_announcements,
+        "expired_announcements": expired_announcements,
         "announcement_categories": announcement_categories,
         "pinned_announcement": pinned_announcement,
         "news_main_story": news_main_story,
@@ -930,7 +980,7 @@ def site_search(request):
         })
 
     anns = (Announcement.public().filter(title__icontains=query)
-            .order_by('-date_posted', '-created_at')[:MAX_PER_TYPE])
+            .order_by('-date_posted', '-last_updated', '-created_at')[:MAX_PER_TYPE])
     for a in anns:
         results.append({
             "label": a.title,
@@ -940,7 +990,7 @@ def site_search(request):
         })
 
     news_items = (NewsUpdate.objects.filter(title__icontains=query, status='published')
-                  .order_by('-date_published', '-created_at')[:MAX_PER_TYPE])
+                  .order_by('-date_published', '-last_updated', '-created_at')[:MAX_PER_TYPE])
     for n in news_items:
         results.append({
             "label": n.title,

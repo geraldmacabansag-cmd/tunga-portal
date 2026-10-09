@@ -235,6 +235,7 @@
         Accepted formats: JPG, PNG, or WEBP.
       </small>
     </div>
+        {% include "office_dashboard/_more_photos_field.html" %}
 
     <!-- Author -->
     <div class="form-group">
@@ -355,6 +356,7 @@
           <input class="form-input file-input" type="file" id="ann-image-{{ a.id }}" name="image" accept="image/*">
           <small class="form-help">Leave empty to keep the current image.</small>
         </div>
+        {% include "office_dashboard/_more_photos_field.html" with obj=a %}
 
         <div class="form-group">
           <label class="form-label" for="ann-auth-{{ a.id }}">Author / Posted By</label>

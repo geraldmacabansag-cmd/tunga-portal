@@ -19,6 +19,7 @@ import csv
 import io
 from office_dashboard.views import FORM_CATEGORY_CHOICES, serialize_chat_message, MESSAGE_MAX_LENGTH
 from office_dashboard.views import org_chart_page
+from office_dashboard.content_photos import save_content_photos
 from office_dashboard.models import OrgChartNode
 from django.db.models import Count
 from django.utils.text import slugify
@@ -626,7 +627,7 @@ def admin_create_announcement(request):
         elif not rep:
             messages.error(request, "Please select an office with an assigned representative.")
         else:
-            Announcement.objects.create(
+            ann = Announcement.objects.create(
                 representative=rep,
                 image=request.FILES.get('image'),
                 # Super Admin publishes this immediately, so "date posted" is
@@ -635,6 +636,8 @@ def admin_create_announcement(request):
                 status='published',
                 **data,
             )
+            for problem in save_content_photos(request, ann):   # "More photos"
+                messages.warning(request, problem)
             messages.success(request, f'"{title}" was published.')
             if office_choice == 'super_admin':
                 # An LGU-wide announcement: tell the office representatives
@@ -679,6 +682,8 @@ def admin_edit_announcement(request, pk):
             # ever set automatically, when the announcement is approved/
             # published (see admin_approval_details / _stamp_published_date).
             announcement.save()
+            for problem in save_content_photos(request, announcement):   # "More photos": add / remove
+                messages.warning(request, problem)
             messages.success(request, f'"{title}" was updated.')
 
     return redirect('admin_dashboard:ad_announcement')
@@ -793,6 +798,8 @@ def admin_news_save(request, pk):
         n.image = image
 
     n.save()
+    for problem in save_content_photos(request, n):   # "More photos": add / remove
+        messages.warning(request, problem)
     messages.success(request, f'"{title}" was published.')
     return redirect('admin_dashboard:ad_news_update')
 
@@ -898,6 +905,8 @@ def admin_event_save(request, pk):
         e.poster = poster
 
     e.save()
+    for problem in save_content_photos(request, e):   # "More photos": add / remove
+        messages.warning(request, problem)
     messages.success(request, f'"{title}" was published.')
     return redirect('admin_dashboard:ad_events')
 

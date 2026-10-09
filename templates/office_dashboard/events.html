@@ -180,6 +180,7 @@
           <label class="form-label" for="ev-poster">Event Poster / Image</label>
           <input class="form-input" type="file" id="ev-poster" name="poster" accept="image/*">
         </div>
+        {% include "office_dashboard/_more_photos_field.html" %}
 
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
@@ -289,6 +290,7 @@
           <input class="form-input" type="file" id="ev-poster-{{ e.id }}" name="poster" accept="image/*">
           <small class="form-help">Leave empty to keep the current poster.</small>
         </div>
+        {% include "office_dashboard/_more_photos_field.html" with obj=e %}
 
         <!-- Last Updated intentionally not here — set automatically by the server on save -->
 

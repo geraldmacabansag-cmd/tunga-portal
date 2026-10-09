@@ -1,0 +1,32 @@
+{% load static %}
+{% comment %}
+"More photos" field for announcements, news and events (Office Representative
+and Super Admin add / edit forms). Sends photos (several files) and, when
+editing, remove_photos (ids of photos to delete) — saved by
+office_dashboard/content_photos.py::save_content_photos.
+Pass obj=<the item> in a server-drawn edit form to list its current photos.
+On the Super Admin pages the one shared form is filled by
+static/js/content-photos.js from the Edit button's data-photos.
+{% endcomment %}
+<link rel="stylesheet" href="{% static 'css/content-photos.css' %}?v=1">
+<div class="form-group cp-field" data-cp>
+  <label class="form-label">More photos <span class="cp-optional">(optional)</span></label>
+  <div class="cp-grid cp-existing" data-cp-existing>
+    {% if obj %}{% for p in obj.gallery_photos %}{% if p.id %}
+      <label class="cp-thumb" title="Click to remove this photo when you save">
+        <img src="{{ p.url }}" alt="">
+        <input type="checkbox" name="remove_photos" value="{{ p.id }}">
+        <span class="cp-x" aria-hidden="true">×</span>
+        <span class="cp-gone">Will be removed</span>
+      </label>
+    {% endif %}{% endfor %}{% endif %}
+  </div>
+  <label class="cp-drop">
+    <input type="file" name="photos" class="cp-input" accept="image/jpeg,image/png,image/webp" multiple>
+    <i class="fa-regular fa-images"></i>
+    <span><b>Choose photos</b> <small>— you can pick several at once</small></span>
+  </label>
+  <div class="cp-grid cp-new" data-cp-new></div>
+  <small class="form-help">Shown as a photo collage on the public website, after the main image (up to 30 photos, 5 MB each). Click a photo's ✕ to remove it.</small>
+</div>
+<script src="{% static 'js/content-photos.js' %}?v=1" defer></script>

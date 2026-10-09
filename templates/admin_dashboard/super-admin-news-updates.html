@@ -18,7 +18,7 @@
           <h2 style="margin:0;font-size:16px;font-weight:800;color:var(--gray-900);">News &amp; Updates</h2>
           <p style="margin:3px 0 0;font-size:12.5px;color:var(--gray-500);">Feature stories and progress updates published to the municipality's website</p>
         </div>
-        <button type="button" class="btn btn-primary" id="newsCreateBtn"><i class="fa-solid fa-plus"></i> Post News</button>
+        <button type="button" class="btn btn-primary" id="newsCreateBtn" data-photos="[]" data-photos-form="newsForm"><i class="fa-solid fa-plus"></i> Post News</button>
       </div>
 
       <div class="stat-grid stat-grid--2">
@@ -96,7 +96,7 @@
                       data-created="{{ n.created_at|date:'F j, Y g:i A' }}"
                       data-details-url="{% url 'admin_dashboard:approval_details' 'News' n.pk %}"
                     ><i class="fa-regular fa-eye"></i></button>
-                    <button type="button" class="ic news-edit-btn" title="Edit"
+                    <button type="button" class="ic news-edit-btn" title="Edit" data-photos="{{ n.extra_photos_json }}" data-photos-form="newsForm"
                       data-id="{{ n.pk }}"
                       data-title="{{ n.title }}"
                       data-category="{{ n.category }}"
@@ -167,6 +167,7 @@
             <input class="form-input file-input" type="file" accept="image/*" name="image" id="newsImageFile">
             <span class="form-help" id="newsImageHelp">JPG or PNG. Leave empty to keep the current image when editing.</span>
           </div>
+        {% include "office_dashboard/_more_photos_field.html" %}
 
           <div class="form-group">
             <label class="form-label">Short summary</label>

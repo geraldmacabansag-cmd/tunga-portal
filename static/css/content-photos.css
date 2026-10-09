@@ -1,0 +1,23 @@
+/* "More photos" field (announcements / news / events forms) */
+.cp-optional { font-weight: 500; color: #9ca3af; font-size: 12px; }
+.cp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; }
+.cp-grid:empty { display: none; }
+.cp-existing { margin-bottom: 8px; }
+.cp-new { margin-top: 8px; }
+.cp-thumb { position: relative; display: block; aspect-ratio: 1 / 1; border-radius: 10px; overflow: hidden; background: #eef1f6; border: 2px solid transparent; cursor: pointer; }
+.cp-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cp-thumb input { position: absolute; opacity: 0; pointer-events: none; width: 1px; height: 1px; }
+.cp-x { position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; background: rgba(15, 23, 42, .72); color: #fff; font-size: 15px; line-height: 1; border: 0; cursor: pointer; padding: 0; }
+.cp-thumb:hover .cp-x { background: #c0392b; }
+.cp-gone { position: absolute; inset: auto 0 0 0; padding: 3px 4px; background: rgba(192, 57, 43, .9); color: #fff; font-size: 10px; font-weight: 700; text-align: center; display: none; }
+.cp-thumb:has(input:checked) { border-color: #c0392b; }
+.cp-thumb:has(input:checked) img { opacity: .35; filter: grayscale(1); }
+.cp-thumb:has(input:checked) .cp-gone { display: block; }
+.cp-thumb:has(input:checked) .cp-x { background: #c0392b; }
+.cp-thumb.is-new::after { content: "New"; position: absolute; left: 4px; top: 4px; padding: 1px 6px; border-radius: 999px; background: #2563eb; color: #fff; font-size: 10px; font-weight: 700; }
+.cp-drop { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 1.5px dashed #c7d0e0; border-radius: 10px; background: #f8fafc; color: #374151; font-size: 13px; cursor: pointer; transition: border-color .15s, background .15s; }
+.cp-drop:hover, .cp-drop.is-over { border-color: #2563eb; background: #eff6ff; }
+.cp-drop i { font-size: 18px; color: #2563eb; }
+.cp-drop small { color: #6b7280; font-weight: 400; }
+.cp-drop input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.cp-field { position: relative; }

@@ -14,7 +14,7 @@
       <h2 style="margin:0;font-size:16px;font-weight:800;color:var(--gray-900);">Announcements</h2>
       <p style="margin:3px 0 0;font-size:12.5px;color:var(--gray-500);">Public notices published to the municipality's website</p>
     </div>
-    <button type="button" id="createAnnBtn" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Create Announcement</button>
+    <button type="button" id="createAnnBtn" data-photos="[]" data-photos-form="annForm" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Create Announcement</button>
   </div>
 
   <div class="stat-grid">
@@ -98,7 +98,7 @@
                   data-created="{{ a.created_at|date:'F j, Y g:i A' }}"
                   data-details-url="{% url 'admin_dashboard:approval_details' 'Announcement' a.pk %}"
                 ><i class="fa-regular fa-eye"></i></button>
-                <button type="button" class="ic edit-ann-btn" title="Edit"
+                <button type="button" class="ic edit-ann-btn" title="Edit" data-photos="{{ a.extra_photos_json }}" data-photos-form="annForm"
                   data-pk="{{ a.pk }}"
                   data-title="{{ a.title }}"
                   data-subtitle="{{ a.subtitle }}"
@@ -186,6 +186,7 @@
         <input class="form-input file-input" type="file" id="ann-image" name="image" accept="image/*">
         <span class="form-help" id="ann-image-help">Accepted formats: JPG, PNG, or WEBP.</span>
       </div>
+        {% include "office_dashboard/_more_photos_field.html" %}
 
       <div class="form-group">
         <label class="form-label">Subtitle / Short Description</label>

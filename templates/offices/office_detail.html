@@ -59,6 +59,7 @@
             <a href="{% url 'announcement' %}?office={{ office.slug }}&open_announcement={{ a.pk }}#announcements" class="update-item__title">{{ a.title }}</a>
             <p>{{ a.subtitle|default:a.content|truncatewords:24 }}</p>
           </div>
+          {% if a.gallery_photos|length > 1 %}{% include "portal/_card_collage.html" with item=a title=a.title cls="pcc--thumb" %}{% elif a.image %}<img src="{{ a.image.url }}" alt="{{ a.title }}" class="pcc-single">{% endif %}
         </li>
         {% empty %}
         <li class="update-item"><div class="update-item__body"><p>No announcements from this office yet.</p></div></li>
@@ -80,6 +81,7 @@
             <a href="{% url 'announcement' %}?office={{ office.slug }}&open_news={{ n.pk }}#news" class="update-item__title">{{ n.title }}</a>
             <p>{{ n.summary|default:n.content|truncatechars:110 }}</p>
           </div>
+          {% if n.gallery_photos|length > 1 %}{% include "portal/_card_collage.html" with item=n title=n.title cls="pcc--thumb" %}{% elif n.image %}<img src="{{ n.image.url }}" alt="{{ n.title }}" class="pcc-single">{% endif %}
         </li>
         {% empty %}
         <li class="update-item"><div class="update-item__body"><p>No news from this office yet.</p></div></li>
@@ -302,7 +304,7 @@
     <span class="ann-badge ann-badge--{{ a.category|default:'General'|slugify }}">{{ a.category|default:"General"|upper }}</span>
   </div>
   {% if a.subtitle %}<p class="ann-dlg-subtitle">{{ a.subtitle }}</p>{% endif %}
-  {% if a.image %}<img src="{{ a.image.url }}" alt="{{ a.title }}" class="ann-dlg-image">{% endif %}
+  {% include "portal/_photo_collage.html" with item=a title=a.title %}
   <div class="ann-dlg-content">
     {% if a.content %}{{ a.content|urlizetrunc:45|linebreaks }}{% else %}<p>No further details were provided for this announcement.</p>{% endif %}
   </div>
@@ -321,7 +323,7 @@
     <span class="ann-badge ann-badge--general">{{ n.category|default:"General"|upper }}</span>
   </div>
   {% if n.summary %}<p class="ann-dlg-subtitle">{{ n.summary }}</p>{% endif %}
-  {% if n.image %}<img src="{{ n.image.url }}" alt="{{ n.title }}" class="ann-dlg-image">{% endif %}
+  {% include "portal/_photo_collage.html" with item=n title=n.title %}
   <div class="ann-dlg-content">
     {% if n.content %}{{ n.content|urlizetrunc:45|linebreaks }}{% else %}<p>No further details were provided for this story.</p>{% endif %}
   </div>

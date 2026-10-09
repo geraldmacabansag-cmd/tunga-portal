@@ -2079,3 +2079,22 @@ body.lock { overflow: hidden; }
 .office-filter-banner__clear { font-weight: 700; color: var(--navy); white-space: nowrap; }
 .office-filter-banner__clear:hover { text-decoration: underline; }
 .office-filter-banner__clear i { color: inherit; margin-right: 4px; }
+
+/* ---------- Expired Announcements panel (Announcements tab) ---------- */
+.ann-expired { margin-top: 24px; }
+.ann-expired__head { display: flex; align-items: center; gap: 10px; }
+.ann-expired__count {
+  min-width: 26px; padding: 2px 9px; border-radius: 999px;
+  background: #eceef3; color: #5b6275; font-size: 13px; font-weight: 700; text-align: center;
+}
+.ann-expired__note { margin: 6px 0 12px; color: #6b7286; font-size: 13.5px; }
+.ann-expired__list { max-height: 560px; overflow-y: auto; }   /* long lists scroll inside the panel */
+.ann-expired__item { opacity: .82; }
+.ann-expired__item:hover, .ann-expired__item:focus-visible { opacity: 1; }
+.ann-expired__item .update-item__date { filter: grayscale(1); }
+.ann-expired__item .ann-badge { margin-bottom: 4px; }
+.ann-badge--expired { background: #e5e7eb; color: #4b5263; }
+
+/* Lets the Announcements column shrink to the screen on phones
+   (a grid column otherwise grows to fit its widest content). */
+.announcements-main { min-width: 0; }

@@ -1,0 +1,70 @@
+{% comment %}
+  Details pop-ups for announcements, news and events — the same look as on
+  the Announcements page. Used by the Home page gallery strip.
+  Any element with class "js-content-open" and
+    data-kind="announcement|news|event"  data-id="ID"
+    data-title="..."  data-office="..."
+  opens the pop-up filled from <template id="tpl-ann-ID" / "tpl-news-ID" / "tpl-event-ID">.
+{% endcomment %}
+<dialog id="annDialog" aria-labelledby="annDlgTitle" class="ann-dialog">
+  <div class="ann-dlg">
+    <div class="ann-dlg-head">
+      <div><small id="annDlgOffice"></small><h2 id="annDlgTitle"></h2></div>
+      <button type="button" class="ann-dlg-close" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="ann-dlg-body" id="annDlgBody"></div>
+  </div>
+</dialog>
+<dialog id="newsDialog" aria-labelledby="newsDlgTitle" class="ann-dialog">
+  <div class="ann-dlg">
+    <div class="ann-dlg-head">
+      <div><small id="newsDlgOffice"></small><h2 id="newsDlgTitle"></h2></div>
+      <button type="button" class="ann-dlg-close" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="ann-dlg-body" id="newsDlgBody"></div>
+  </div>
+</dialog>
+<dialog id="eventDialog" aria-labelledby="eventDlgTitle" class="ann-dialog">
+  <div class="ann-dlg">
+    <div class="ann-dlg-head">
+      <div><small id="eventDlgOffice"></small><h2 id="eventDlgTitle"></h2></div>
+      <button type="button" class="ann-dlg-close" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="ann-dlg-body" id="eventDlgBody"></div>
+  </div>
+</dialog>
+
+<script>
+(function () {
+  // kind -> [dialog id prefix, template id prefix]
+  var KINDS = { announcement: 'ann', news: 'news', event: 'event' };
+
+  function open(el) {
+    var p = KINDS[el.dataset.kind];
+    var tpl = p && document.getElementById('tpl-' + p + '-' + el.dataset.id);
+    if (!tpl) return false;
+    var dlg = document.getElementById(p + 'Dialog');
+    var body = document.getElementById(p + 'DlgBody');
+    document.getElementById(p + 'DlgTitle').textContent = el.dataset.title || '';
+    document.getElementById(p + 'DlgOffice').textContent = el.dataset.office || '';
+    body.innerHTML = '';
+    body.appendChild(tpl.content.cloneNode(true));
+    body.scrollTop = 0;
+    if (!dlg.open) dlg.showModal();
+    document.body.classList.add('lock');
+    return true;
+  }
+
+  document.addEventListener('click', function (e) {
+    var el = e.target.closest('.js-content-open');
+    if (el && open(el)) e.preventDefault();
+  });
+
+  ['annDialog', 'newsDialog', 'eventDialog'].forEach(function (id) {
+    var dlg = document.getElementById(id);
+    dlg.querySelector('.ann-dlg-close').addEventListener('click', function () { dlg.close(); });
+    dlg.addEventListener('click', function (e) { if (e.target === dlg) dlg.close(); });
+    dlg.addEventListener('close', function () { document.body.classList.remove('lock'); });
+  });
+})();
+</script>

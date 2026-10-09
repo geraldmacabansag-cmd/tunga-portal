@@ -12,7 +12,7 @@ def is_super_admin(request):
 def ticker_announcements(request):
     from office_dashboard.models import Announcement
     announcements = list(
-        Announcement.public().order_by('-date_posted', '-created_at')[:5]
+        Announcement.public().order_by('-date_posted', '-last_updated', '-created_at')[:5]
     )
     return {"ticker_announcements": announcements}
 

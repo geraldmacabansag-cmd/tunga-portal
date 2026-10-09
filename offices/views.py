@@ -127,7 +127,7 @@ def office_detail(request, slug):
 
     announcements = (
         Announcement.public().filter(representative=rep)
-        .order_by("-date_posted", "-created_at")[:3]
+        .order_by("-date_posted", "-last_updated", "-created_at")[:3]
         if rep else []
     )
 
@@ -139,7 +139,7 @@ def office_detail(request, slug):
     # This office's latest published news, for the "News and Updates" panel.
     news_items = list(
         NewsUpdate.objects.filter(representative=rep, status="published")
-        .order_by("-date_published", "-created_at")[:3]
+        .order_by("-date_published", "-last_updated", "-created_at")[:3]
     ) if rep else []
     for n in news_items:
         n.display_date = n.date_published or n.created_at.date()

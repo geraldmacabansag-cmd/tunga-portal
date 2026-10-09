@@ -7,7 +7,7 @@
   <span class="news-badge news-badge--{{ n.category_slug }}">{{ n.category_label|upper }}</span>
 </div>
 {% if n.summary %}<p class="ann-dlg-subtitle">{{ n.summary }}</p>{% endif %}
-{% if n.image %}<img src="{{ n.image.url }}" alt="{{ n.title }}" class="ann-dlg-image">{% endif %}
+{% include "portal/_photo_collage.html" with item=n title=n.title %}
 <div class="ann-dlg-content">
   {% if n.content %}{{ n.content|urlizetrunc:45|linebreaks }}{% else %}<p>No further details were provided for this story.</p>{% endif %}
 </div>

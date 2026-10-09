@@ -31,7 +31,38 @@ class OfficeRepresentative(models.Model):
     def __str__(self):
         return f"{self.user.get_full_name() or self.user.username} — {self.office}"
 
-class Announcement(models.Model):
+class PhotoGalleryMixin:
+    """For Announcement / NewsUpdate / Event: all of the item's photos — the
+    main image (cover) first, then the extra photos (ContentPhoto). Used for
+    the collage + slider on the public site."""
+    cover_field = "image"
+
+    @property
+    def gallery_photos(self):
+        photos = []
+        cover = getattr(self, self.cover_field, None)
+        if cover:
+            photos.append({"id": None, "url": cover.url})
+        if self.pk:
+            for p in self.extra_photos.all():
+                if p.image:
+                    photos.append({"id": p.id, "url": p.image.url})
+        return photos
+
+    @property
+    def gallery_urls_json(self):
+        """Every photo's address as JSON, for the slider on the public site."""
+        import json
+        return json.dumps([p["url"] for p in self.gallery_photos])
+
+    @property
+    def extra_photos_json(self):
+        """The extra photos as JSON, for the edit forms ([{"id":…, "url":…}])."""
+        import json
+        return json.dumps([p for p in self.gallery_photos if p["id"]])
+
+
+class Announcement(PhotoGalleryMixin, models.Model):
 
     STATUS_CHOICES = [
         ("pending", "Pending Approval"),
@@ -130,7 +161,7 @@ class Announcement(models.Model):
     def __str__(self):
         return self.title
 
-class NewsUpdate(models.Model):
+class NewsUpdate(PhotoGalleryMixin, models.Model):
 
     STATUS_CHOICES = [
         ("pending", "Pending Approval"),
@@ -165,7 +196,9 @@ class NewsUpdate(models.Model):
     def __str__(self):
         return self.title
 
-class Event(models.Model):
+class Event(PhotoGalleryMixin, models.Model):
+    cover_field = "poster"
+
 
     STATUS_CHOICES = [
         ("pending", "Pending Approval"),
@@ -713,3 +746,20 @@ class OrgChartSettings(models.Model):
     def for_office(cls, office):
         obj, _ = cls.objects.get_or_create(office=office)
         return obj
+
+
+class ContentPhoto(models.Model):
+    """An extra photo of an announcement, a news post or an event (on top of
+    its main image / poster). Exactly one of the three links is set."""
+    announcement = models.ForeignKey(Announcement, on_delete=models.CASCADE, null=True, blank=True, related_name="extra_photos")
+    news = models.ForeignKey(NewsUpdate, on_delete=models.CASCADE, null=True, blank=True, related_name="extra_photos")
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, null=True, blank=True, related_name="extra_photos")
+    image = models.ImageField(upload_to="content_photos/")
+    order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["order", "id"]
+
+    def __str__(self):
+        return f"Photo #{self.pk}"

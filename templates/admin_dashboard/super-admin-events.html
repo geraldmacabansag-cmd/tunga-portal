@@ -14,7 +14,7 @@
           <h2 style="margin:0;font-size:16px;font-weight:800;color:var(--gray-900);">Events</h2>
           <p style="margin:3px 0 0;font-size:12.5px;color:var(--gray-500);">Municipal events published to the community</p>
         </div>
-        <button type="button" class="btn btn-primary" id="eventCreateBtn"><i class="fa-solid fa-plus"></i> Add Event</button>
+        <button type="button" class="btn btn-primary" id="eventCreateBtn" data-photos="[]" data-photos-form="eventForm"><i class="fa-solid fa-plus"></i> Add Event</button>
       </div>
 
       <div class="stat-grid stat-grid--2">
@@ -105,7 +105,7 @@
                       data-created="{{ e.created_at|date:'F j, Y g:i A' }}"
                       data-details-url="{% url 'admin_dashboard:approval_details' 'Event' e.pk %}"
                     ><i class="fa-regular fa-eye"></i></button>
-                    <button type="button" class="ic event-edit-btn" title="Edit"
+                    <button type="button" class="ic event-edit-btn" title="Edit" data-photos="{{ e.extra_photos_json }}" data-photos-form="eventForm"
                       data-id="{{ e.pk }}"
                       data-title="{{ e.title }}"
                       data-category="{{ e.category }}"
@@ -214,6 +214,7 @@
           <input class="form-input file-input" type="file" name="poster" id="eventPosterFile" accept="image/*">
           <span class="form-help" id="eventPosterHelp">JPG or PNG. Leave empty to keep the current poster when editing.</span>
         </div>
+        {% include "office_dashboard/_more_photos_field.html" %}
 
         <div class="form-group">
           <label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;">

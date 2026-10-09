@@ -1,0 +1,25 @@
+{% comment %}
+Details of one announcement for its pop-up (copied into #annDialog when it
+opens). Used by the Announcements page cards, the "Expired Announcements"
+panel (expired=True) and the home page's photo gallery strip.
+Needs on a: display_date, category_label, category_slug (is_new optional).
+{% endcomment %}
+<template id="tpl-ann-{{ a.id }}">
+<div class="ann-dlg-badges">
+  {% if a.is_new %}<span class="ann-badge ann-badge--new">NEW</span>{% endif %}
+  {% if expired %}<span class="ann-badge ann-badge--expired">EXPIRED</span>{% endif %}
+  <span class="ann-badge ann-badge--{{ a.category_slug }}">{{ a.category_label|upper }}</span>
+</div>
+{% if a.subtitle %}<p class="ann-dlg-subtitle">{{ a.subtitle }}</p>{% endif %}
+{% include "portal/_photo_collage.html" with item=a title=a.title %}
+<div class="ann-dlg-content">
+  {% if a.content %}{{ a.content|urlizetrunc:45|linebreaks }}{% else %}<p>No further details were provided for this announcement.</p>{% endif %}
+</div>
+<div class="ann-dlg-footer">
+  <div><i class="fa-regular fa-building"></i> {{ a.representative.office.name|default:"—" }}</div>
+  <div><i class="fa-regular fa-calendar"></i> {{ a.display_date|date:"F d, Y" }}</div>
+  {% if expired and a.expiration_date %}<div><i class="fa-regular fa-calendar-xmark"></i> Expired {{ a.expiration_date|date:"F d, Y g:i A" }}</div>{% endif %}
+  {% if a.author %}<div><i class="fa-regular fa-user"></i> {{ a.author }}</div>{% endif %}
+  {% if a.priority and a.priority != "Normal" %}<div><i class="fa-solid fa-circle-exclamation"></i> {{ a.priority }} priority</div>{% endif %}
+</div>
+</template>

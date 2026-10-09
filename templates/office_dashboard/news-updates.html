@@ -182,6 +182,7 @@
           <label class="form-label" for="news-image">Featured Image</label>
           <input class="form-input" type="file" id="news-image" name="image" accept="image/*">
         </div>
+        {% include "office_dashboard/_more_photos_field.html" %}
         <div class="form-group">
           <label class="form-label" for="news-author">Author / Reporter</label>
           <input class="form-input" type="text" id="news-author" name="author" placeholder="e.g. Juan Dela Cruz">
@@ -283,6 +284,7 @@
           <input class="form-input" type="file" id="news-image-{{ n.id }}" name="image" accept="image/*">
           <small class="form-help">Leave empty to keep the current image.</small>
         </div>
+        {% include "office_dashboard/_more_photos_field.html" with obj=n %}
         <div class="form-group">
           <label class="form-label" for="news-author-{{ n.id }}">Author / Reporter</label>
           <input class="form-input" type="text" id="news-author-{{ n.id }}" name="author" value="{{ n.author }}">

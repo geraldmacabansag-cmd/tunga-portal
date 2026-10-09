@@ -26,6 +26,7 @@ from .notifications import maybe_send_weekly_summary, PREFERENCES as NOTIFY_PREF
 from .announcement_rules import clean_announcement
 from .org_chart import build_tree as build_org_tree, descendant_ids as org_descendant_ids, parent_choices as org_parent_choices, next_order as next_org_order
 from .org_chart import clean_width as clean_org_width
+from .content_photos import save_content_photos
 from .org_chart import clean_style as clean_org_style, style_for as org_style_for, DEFAULT_COLORS as ORG_DEFAULT_COLORS, DEFAULT_LINE as ORG_DEFAULT_LINE, STYLE_DEFAULTS as ORG_STYLE_DEFAULTS
 from .models import OrgChartNode, OrgChartSettings
 from django import forms as dj_forms
@@ -82,6 +83,8 @@ def rep_announcement(request, rep):
                 # publishes this announcement.
                 **data,
             )
+            for problem in save_content_photos(request, announcement):   # "More photos"
+                messages.warning(request, problem)
             log_activity(rep, "Announcement submitted", f'Submitted "{title}" for approval', "content", "fa-solid fa-bullhorn", "var(--blue-600)")
             if is_ajax:
                 return JsonResponse({
@@ -151,6 +154,8 @@ def edit_announcement(request, rep, pk):
             # date_posted is intentionally left untouched here — see the note
             # in rep_announcement() above.
             announcement.save()   # last_updated is stamped automatically here
+            for problem in save_content_photos(request, announcement):   # "More photos": add / remove
+                messages.warning(request, problem)
             messages.success(request, f'"{title}" was updated.')
             log_activity(rep, "Announcement updated", f'Updated "{title}"', "content", "fa-regular fa-pen-to-square", "var(--blue-600)")
         return redirect('office_dashboard:rep_announce')
@@ -265,6 +270,8 @@ def news_update(request, rep):
                 source=request.POST.get('source', ''),
                 tags=request.POST.get('tags', ''),
             )
+            for problem in save_content_photos(request, news):   # "More photos"
+                messages.warning(request, problem)
             log_activity(rep, "News published", f'Added "{title}"', "content", "fa-regular fa-newspaper", "#12b3c4")
             if is_ajax:
                 return JsonResponse({
@@ -336,6 +343,8 @@ def edit_news(request, rep, pk):
             news.source = request.POST.get('source', '')
             news.tags = request.POST.get('tags', '')
             news.save()   # last_updated is stamped automatically here
+            for problem in save_content_photos(request, news):   # "More photos": add / remove
+                messages.warning(request, problem)
             messages.success(request, f'"{title}" was updated.')
             log_activity(rep, "News updated", f'Updated "{title}"', "content", "fa-regular fa-pen-to-square", "#12b3c4")
         return redirect('office_dashboard:news_update')
@@ -394,6 +403,8 @@ def events(request, rep):
                 contact_info=request.POST.get('contact_info', ''),
                 poster=request.FILES.get('poster'),
             )
+            for problem in save_content_photos(request, event):   # "More photos"
+                messages.warning(request, problem)
             log_activity(rep, "Event submitted", f'Submitted "{title}" for approval', "content", "fa-solid fa-calendar-days", "#7c4fe0")
             if is_ajax:
                 return JsonResponse({
@@ -473,6 +484,8 @@ def edit_event(request, rep, pk):
             if request.FILES.get('poster'):
                 event.poster = request.FILES.get('poster')
             event.save()   # last_updated is stamped automatically here
+            for problem in save_content_photos(request, event):   # "More photos": add / remove
+                messages.warning(request, problem)
             messages.success(request, f'"{title}" was updated.')
             log_activity(rep, "Event updated", f'Updated "{title}"', "content", "fa-regular fa-pen-to-square", "#7c4fe0")
         return redirect('office_dashboard:event')

@@ -5,7 +5,7 @@
 <div class="ann-dlg-badges">
   <span class="event-tag event-tag--general">{{ e.category_label|upper }}</span>
 </div>
-{% if e.poster %}<img src="{{ e.poster.url }}" alt="{{ e.title }}" class="ann-dlg-image">{% endif %}
+{% include "portal/_photo_collage.html" with item=e title=e.title %}
 <div class="ann-dlg-content">
   {% if e.description %}{{ e.description|urlizetrunc:45|linebreaks }}{% else %}<p>No further details were provided for this event.</p>{% endif %}
 </div>
