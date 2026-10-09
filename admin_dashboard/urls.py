@@ -89,6 +89,7 @@ urlpatterns = [
     path('Admin-Emergency-Contact/<int:pk>/save/', views.admin_contact_save, name='admin_contact_save'),
     path('Admin-Emergency-Contact/create/save/', lambda request: views.admin_contact_save(request, pk=0), name='admin_contact_create'),
     path('Admin-Emergency-Contact/<int:pk>/delete/', views.admin_contact_delete, name='admin_contact_delete'),
+    path('Admin-Emergency-Contact/reset-default/', views.admin_contact_reset, name='admin_contact_reset'),
 
     path('Admin-Website-setting/', views.admin_web_setting, name='ad_web_setting'),
     path('Admin-Analytics-Reports/', views.admin_analytics, name='ad_analytics'),

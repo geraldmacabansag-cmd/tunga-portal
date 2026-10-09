@@ -231,6 +231,60 @@
   width: 100%;
 }
 
+/* "Our Location" live map */
+.loc-map {
+  width: 100%;
+  height: 340px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  background: #e9eef5;
+  z-index: 0;
+}
+.loc-map__recenter {
+  position: absolute;
+  right: 12px;
+  bottom: 28px;
+  z-index: 500;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid var(--border-light);
+  background: #fff;
+  color: var(--navy);
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.loc-map__recenter:hover { background: var(--bg-light); }
+.loc-map__noscript { padding: 20px; text-align: center; color: var(--text-muted); }
+.loc-pin { background: none; border: none; }
+.loc-pin__dot {
+  width: 40px;
+  height: 40px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  background: var(--navy);
+  border: 3px solid var(--gold);
+  box-shadow: 0 6px 14px rgba(10, 47, 110, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.loc-pin__dot i { transform: rotate(45deg); color: #fff; font-size: 0.95rem; }
+.loc-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+.loc-actions__btn { display: inline-flex; align-items: center; gap: 8px; }
+@media (max-width: 600px) {
+  .loc-map { height: 280px; }
+  .loc-actions__btn { flex: 1 1 100%; justify-content: center; }
+}
+
 .map-callout {
   position: absolute;
   top: 16px;

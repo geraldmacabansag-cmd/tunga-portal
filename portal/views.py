@@ -180,13 +180,6 @@ def home(request):
         .first()
     )
 
-    latest_news = (
-        NewsUpdate.objects.filter(status='published')
-        .select_related('representative__office')
-        .order_by('-date_published', '-last_updated', '-created_at')
-        .first()
-    )
-
     # "Photo Gallery" strip: every published photo, newest first — gallery
     # photos plus the pictures of published announcements, news and events
     # (incl. "More photos"). The arrows slide through all of them.
@@ -194,39 +187,34 @@ def home(request):
     gallery_photos += list(content_items())
     gallery_photos.sort(key=lambda i: i["created"], reverse=True)
 
-    # Clicking a photo of an announcement / news / event opens that item's
-    # details pop-up (like on the Announcements page) — so the page needs the
-    # details of each of those items.
-    wanted = {"announcement": set(), "news": set(), "event": set()}
-    for item in gallery_photos:
-        if item["kind"] in wanted:
-            wanted[item["kind"]].add(item["id"])
-    detail_announcements = list(Announcement.objects.filter(pk__in=wanted["announcement"]).select_related('representative__office'))
-    for a in detail_announcements:
-        a.display_date = a.date_posted or a.created_at.date()
+    # Fields the details pop-ups need (clicking a card's title opens them).
+    for a in home_announcements:
         a.category_label = a.category or "General"
         a.category_slug = slugify(a.category_label) or "general"
         a.is_new = False
-        a.is_expired = bool(a.expiration_date and a.expiration_date <= timezone.now())
-    detail_news = list(NewsUpdate.objects.filter(pk__in=wanted["news"]).select_related('representative__office'))
-    for n in detail_news:
+    if upcoming_event:
+        upcoming_event.category_label = upcoming_event.category or "General"
+    # Home page News slider: the 6 newest published stories (newest first).
+    news_slides = list(
+        NewsUpdate.objects.filter(status='published')
+        .select_related('representative__office')
+        .prefetch_related('extra_photos')
+        .order_by('-date_published', '-last_updated', '-created_at')[:6]
+    )
+    for n in news_slides:
         n.display_date = n.date_published or n.created_at.date()
         n.category_label = n.category or "General"
         slug = slugify(n.category_label) or "general"
         n.category_slug = slug if slug in KNOWN_NEWS_CATEGORY_SLUGS else "general"
-    detail_events = list(Event.objects.filter(pk__in=wanted["event"]).select_related('representative__office'))
-    for e in detail_events:
-        e.category_label = e.category or "General"
+    latest_news = news_slides[0] if news_slides else None
 
     return render(request, "portal/home.html", {
         "emergency_contacts": EmergencyContact.objects.all(),
         "home_announcements": home_announcements,
         "upcoming_event": upcoming_event,
         "latest_news": latest_news,
+        "news_slides": news_slides,
         "gallery_photos": gallery_photos,
-        "detail_announcements": detail_announcements,
-        "detail_news": detail_news,
-        "detail_events": detail_events,
         "quick_links": QuickLink.objects.filter(is_active=True),
     })
 
@@ -1059,6 +1047,25 @@ def account_update(request):
             profile, _ = CitizenProfile.objects.get_or_create(user=request.user)
             profile.mobile_number = mobile_number
             profile.save()
+
+            # Profile picture: saved on the dashboard account for office reps
+            # and the Super Admin, so both places show the same picture.
+            from .profile_photo import photo_owner, check_photo
+            new_photo = request.FILES.get('photo')
+            if new_photo or request.POST.get('remove_photo') == '1':
+                owner = photo_owner(request.user)
+                problem = check_photo(new_photo) if new_photo else None
+                if problem:
+                    messages.error(request, problem)
+                    return redirect(next_url)
+                old = owner.photo.name if owner.photo else None
+                owner.photo = new_photo if new_photo else None
+                owner.save()
+                if old and old != (owner.photo.name if owner.photo else None):
+                    try:
+                        type(owner)._meta.get_field('photo').storage.delete(old)
+                    except Exception:
+                        pass
 
             messages.success(request, "Account details updated.")
 

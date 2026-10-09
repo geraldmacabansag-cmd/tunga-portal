@@ -106,18 +106,35 @@ Home | Digital Governance Portal
       <a href="{% url 'offices' %}" class="view-all directory-viewall">View All Offices <i class="fa-solid fa-arrow-right"></i></a>
     </div>
 
+    {% comment %}
+      "Our Location": live OpenStreetMap map (Leaflet — same map as the Tunga Map).
+      The pin's place and name are set by the Super Admin in Website Settings → General.
+      Places added to the Tunga Map show as small dots too.
+    {% endcomment %}
+    {% with place=site_contact.map_place_name|default:"Municipal Hall of Tunga" lat=site_contact.map_lat lng=site_contact.map_lng %}
     <div class="panel location-panel">
       <h2 class="section-title">Our Location</h2>
-      <p class="directory-panel__lead">Visit us at the Municipal Hall, Tunga, Leyte.</p>
+      <p class="directory-panel__lead">Visit us at the {{ place }}{% if site_contact.address %} — {{ site_contact.address }}{% else %}, Tunga, Leyte{% endif %}.</p>
       <div class="map-box">
-        <img src="images/map-placeholder.svg" alt="Map showing the location of the Municipal Hall of Tunga">
-        <div class="map-callout">
-          <strong>Municipal Hall of Tunga</strong>
-          <p>2nd Floor, Municipal Hall<br>Tunga, Leyte</p>
-          <a href="#">View larger map</a>
-        </div>
+        <div class="loc-map" id="locMap" role="region" aria-label="Map showing the location of the {{ place }}"
+             data-lat="{{ lat|stringformat:'.6f' }}" data-lng="{{ lng|stringformat:'.6f' }}"
+             data-name="{{ place }}" data-address="{{ site_contact.address|default:'Tunga, Leyte' }}"
+             data-places="{% url 'tungamap:places' %}"></div>
+        <button type="button" class="loc-map__recenter" id="locRecenter" title="Back to the {{ place }}" aria-label="Back to the {{ place }}"><i class="fa-solid fa-location-crosshairs"></i></button>
+        <noscript><p class="loc-map__noscript">Turn on JavaScript to see the map.</p></noscript>
+      </div>
+      <div class="loc-actions">
+        <a class="btn btn-primary loc-actions__btn" target="_blank" rel="noopener"
+           href="https://www.google.com/maps/dir/?api=1&amp;destination={{ lat|stringformat:'.6f' }},{{ lng|stringformat:'.6f' }}">
+          <i class="fa-solid fa-diamond-turn-right"></i> Get directions
+        </a>
+        <a class="btn btn-outline loc-actions__btn" target="_blank" rel="noopener"
+           href="https://www.openstreetmap.org/?mlat={{ lat|stringformat:'.6f' }}&amp;mlon={{ lng|stringformat:'.6f' }}#map=18/{{ lat|stringformat:'.6f' }}/{{ lng|stringformat:'.6f' }}">
+          <i class="fa-solid fa-up-right-from-square"></i> View larger map
+        </a>
       </div>
     </div>
+    {% endwith %}
 
   </div>
 </section>
@@ -199,4 +216,56 @@ Home | Digital Governance Portal
 })();
 </script>
 
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+(function () {
+  var el = document.getElementById('locMap');
+  if (!el || !window.L) return;
+  var here = [parseFloat(el.dataset.lat), parseFloat(el.dataset.lng)];
+  // page scroll is not hijacked: the wheel zooms only after the map is clicked
+  var map = L.map(el, { scrollWheelZoom: false, zoomControl: true }).setView(here, 17);
+  // OpenStreetMap only serves map images to sites that say who they are, so
+  // send our site address with these requests (Django hides it by default) —
+  // same as the Tunga Map. Without this the tiles show "Access blocked".
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    referrerPolicy: 'strict-origin-when-cross-origin',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  }).addTo(map);
+  map.on('click', function () { map.scrollWheelZoom.enable(); });
+  map.on('mouseout', function () { map.scrollWheelZoom.disable(); });
+
+  function esc(s) { return String(s || '').replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  // the Municipal Hall pin (navy + gold, like the website)
+  var hallIcon = L.divIcon({
+    className: 'loc-pin',
+    html: '<span class="loc-pin__dot"><i class="fa-solid fa-landmark"></i></span>',
+    iconSize: [40, 48], iconAnchor: [20, 46], popupAnchor: [0, -42]
+  });
+  var hall = L.marker(here, { icon: hallIcon, title: el.dataset.name, zIndexOffset: 1000 }).addTo(map);
+  hall.bindPopup('<strong>' + esc(el.dataset.name) + '</strong><br>' + esc(el.dataset.address)).openPopup();
+
+  document.getElementById('locRecenter').addEventListener('click', function () {
+    map.setView(here, 17); hall.openPopup();
+  });
+
+  // other places already added to the Tunga Map (schools, health centers, …)
+  fetch(el.dataset.places, { headers: { 'Accept': 'application/json' } })
+    .then(function (r) { return r.ok ? r.json() : { places: [] }; })
+    .then(function (data) {
+      (data.places || []).forEach(function (p) {
+        if (typeof p.lat !== 'number' || typeof p.lng !== 'number') return;
+        L.circleMarker([p.lat, p.lng], { radius: 6, weight: 2, color: '#0d3a86', fillColor: '#f4c531', fillOpacity: 0.9 })
+          .addTo(map)
+          .bindPopup('<strong>' + esc(p.name) + '</strong>' + (p.barangay ? '<br>Brgy. ' + esc(p.barangay) : ''));
+      });
+    })
+    .catch(function () {});
+
+  // the panel can change size (e.g. on phones) — keep the tiles filled
+  window.addEventListener('resize', function () { map.invalidateSize(); });
+})();
+</script>
 {% endblock %}

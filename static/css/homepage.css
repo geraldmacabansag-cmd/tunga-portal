@@ -128,10 +128,17 @@
   margin-right: 8px;
 }
 
+/* Flex (not grid) so the cards stay centered whatever their number —
+   one, two, three or a last row that isn't full. 4 per row on desktop. */
 .emergency__grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 20px;
+}
+.emergency__grid > .emergency__card {
+  flex: 0 1 calc((100% - 60px) / 4);
+  min-width: 0;
 }
 
 .emergency__card {
@@ -438,8 +445,8 @@
   .hero__card {
     max-width: 100%;
   }
-  .emergency__grid {
-    grid-template-columns: repeat(2, 1fr);
+  .emergency__grid > .emergency__card {
+    flex-basis: calc((100% - 20px) / 2);
   }
   .home-feed__grid {
     grid-template-columns: 1fr;
@@ -504,8 +511,10 @@
   }
 
   .emergency__grid {
-    grid-template-columns: 1fr;
     gap: 10px;
+  }
+  .emergency__grid > .emergency__card {
+    flex-basis: 100%;
   }
 
   .emergency__card {
@@ -684,3 +693,134 @@
 .feed-item__desc { -webkit-line-clamp: 2; line-clamp: 2; }
 .event-highlight__desc { -webkit-line-clamp: 2; line-clamp: 2; font-size: 0.82rem; color: var(--text-body); margin-top: 6px; }
 .news-item__excerpt { -webkit-line-clamp: 3; line-clamp: 3; } 
+/* Home cards: photos open the Gallery-style viewer, titles open the details pop-up */
+.home-feed .js-gallery-open { cursor: zoom-in; }
+.home-feed .js-content-open { cursor: pointer; }
+.event-highlight__title a { color: inherit; text-decoration: none; }
+.event-highlight__title a:hover { text-decoration: underline; }
+
+/* ==========================================================================
+   Home page — News slider
+   ========================================================================== */
+.news-slider { position: relative; margin-top: 16px; padding: 0 26px; outline: none; }
+.news-slider:focus-visible .news-slider__viewport { box-shadow: 0 0 0 3px rgba(13, 58, 134, 0.3); }
+.news-slider__viewport {
+  position: relative;
+  overflow: hidden;
+  overflow: clip;      /* can't be scrolled sideways by the browser (that showed the next story) */
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-card);
+  transition: height 0.4s ease;
+}
+/* each story keeps its own height; the box resizes to the one shown (script) */
+.news-slider__track { display: flex; align-items: flex-start; transition: transform 0.6s cubic-bezier(.2, .8, .2, 1); will-change: transform; }
+@media (prefers-reduced-motion: reduce) { .news-slider__track, .news-slider__viewport { transition: none; } }
+
+.news-slide {
+  flex: 0 0 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 52%) minmax(0, 1fr);
+  min-height: 320px;
+}
+.news-slide__media {
+  position: relative;
+  min-height: 260px;
+  background: linear-gradient(135deg, var(--navy-deep), var(--navy-light));
+  overflow: hidden;
+}
+.news-slide__media .pcc { border-radius: 0; }
+.news-slide__media .pcc img { transition: transform 0.6s ease; }
+.news-slide.is-active .news-slide__media:hover .pcc img { transform: scale(1.03); }
+/* soft shade at the bottom so the dots stay visible on any photo */
+.news-slide__media::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 70px; z-index: 1;
+  background: linear-gradient(to top, rgba(10, 47, 110, 0.45), transparent);
+  pointer-events: none;
+}
+.news-slide__noimg {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: rgba(255, 255, 255, 0.4); font-size: 3.4rem;
+}
+.news-slide__body {
+  display: flex; flex-direction: column; justify-content: center; align-items: flex-start;
+  gap: 12px; padding: 30px 40px 30px 34px; min-width: 0;
+  border-left: 4px solid var(--gold);
+}
+.news-slide__badge {
+  padding: 4px 12px; border-radius: 999px;
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+}
+.news-slide__title { margin: 0; font-family: var(--font-display); font-size: 1.5rem; line-height: 1.28; }
+.news-slide__title a { color: var(--navy-deep); text-decoration: none; overflow-wrap: anywhere; }
+.news-slide__title a:hover { color: var(--navy-light); }
+.news-slide__meta {
+  display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0;
+  font-size: 0.82rem; color: var(--text-muted);
+}
+.news-slide__meta i { margin-right: 5px; color: var(--gold-dark); }
+.news-slide__excerpt {
+  margin: 0; color: var(--text-body); font-size: 0.95rem; line-height: 1.65; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.news-slide__more {
+  margin-top: 4px;
+  display: inline-flex; align-items: center; gap: 8px;
+  color: var(--navy); font-weight: 700; font-size: 0.9rem; text-decoration: none;
+  border-bottom: 2px solid var(--gold); padding-bottom: 2px;
+  transition: gap 0.15s ease, color 0.15s ease;
+}
+.news-slide__more:hover { gap: 12px; color: var(--navy-light); }
+
+/* arrows on the left and right edges of the card */
+.news-slider__arrow {
+  position: absolute; top: 50%; transform: translateY(-50%); z-index: 3;
+  width: 48px; height: 48px; border-radius: 50%;
+  border: 1px solid var(--border-light); background: #fff; color: var(--navy);
+  font-size: 1rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 6px 18px rgba(10, 47, 110, 0.18);
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+.news-slider__arrow--prev { left: 2px; }
+.news-slider__arrow--next { right: 2px; }
+.news-slider__arrow:hover, .news-slider__arrow:focus-visible { background: var(--navy); color: #fff; outline: none; }
+.news-slider__arrow:active { transform: translateY(-50%) scale(0.94); }
+
+/* dots on the picture (bottom-left); the current one fills up until the next story */
+.news-slider__dots {
+  position: absolute; left: 18px; bottom: 16px; z-index: 2;
+  display: flex; align-items: center; gap: 7px;
+}
+.news-slider__dot {
+  position: relative; width: 9px; height: 9px; padding: 0; overflow: hidden;
+  border: none; border-radius: 999px; cursor: pointer;
+  background: rgba(255, 255, 255, 0.55);
+  transition: width 0.3s ease, background 0.3s ease;
+}
+.news-slider__dot:hover { background: rgba(255, 255, 255, 0.85); }
+.news-slider__dot.is-active { width: 34px; background: rgba(255, 255, 255, 0.4); }
+.news-slider__dot span { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--gold); border-radius: inherit; }
+.news-slider__dot.is-active span { width: 100%; }           /* filled while paused */
+.news-slider:not(.is-paused) .news-slider__dot.is-active span { width: 0; }   /* script animates it */
+.news-slider__dot:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+/* tablets and phones: picture on top, text below; arrows sit on the picture */
+@media (max-width: 760px) {
+  .news-slider { padding: 0; }
+  .news-slide { grid-template-columns: 1fr; min-height: 0; }
+  .news-slide__media { min-height: 0; aspect-ratio: 16 / 10; }
+  .news-slide__body { padding: 18px 18px 22px; gap: 9px; border-left: none; border-top: 4px solid var(--gold); justify-content: flex-start; }
+  .news-slide__title { font-size: 1.15rem; }
+  .news-slide__excerpt { font-size: 0.9rem; }
+  .news-slider__arrow { top: 0; transform: none; margin-top: calc((100% * 10 / 16) / 2 - 20px); width: 40px; height: 40px; font-size: 0.9rem; background: rgba(255, 255, 255, 0.92); }
+  .news-slider__arrow:active { transform: scale(0.94); }
+  .news-slider__arrow--prev { left: 10px; }
+  .news-slider__arrow--next { right: 10px; }
+  /* the picture is 16:10 of the slider's width, so place the dots by width */
+  .news-slider__viewport { container-type: inline-size; }
+  .news-slider__dots { left: 50%; transform: translateX(-50%); bottom: auto; top: calc(62.5cqw - 26px); }
+}

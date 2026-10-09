@@ -1,16 +1,21 @@
 {% comment %}
 Small photo collage for a card or list row (announcement / news / event) —
 shown where people see the item first. Only drawn when the item has more
-than one photo (a single photo keeps the card's normal picture). Up to 4
+than one photo (a single photo keeps the card's normal picture), unless
+single=True is passed: then one photo is drawn too, as one tile, so it
+also opens the photo viewer (Announcements page). Up to 4
 tiles; the last one says "+N" when there are more. Clicking a photo opens
-the photo slider (static/js/photo-collage.js); clicking elsewhere on the
-card still opens the item's details.
+the photo viewer (portal/_photo_viewer.html) with arrows and all of the
+item's photos in a row below; clicking elsewhere on the card still opens
+the item's details.
 Pass: item, title, and cls:
   "pcc--fill"  → fills a picture box (the box's badges / text stay on top)
   "pcc--thumb" → a small thumbnail (list rows)
+Optional pv_office, pv_category, pv_date for the viewer's details line
+(otherwise they are taken from the item).
 {% endcomment %}
-{% with photos=item.gallery_photos %}{% if photos|length > 1 %}
-<span class="pcc pcc--n{% if photos|length > 4 %}4{% else %}{{ photos|length }}{% endif %} {{ cls }}" data-pc-photos="{{ item.gallery_urls_json }}" data-pc-title="{{ title }}">
-  {% for p in photos|slice:":4" %}<span class="pc-tile" role="button" tabindex="0" data-pc-index="{{ forloop.counter0 }}" aria-label="View photo {{ forloop.counter }} of {{ photos|length }}"><img src="{{ p.url }}" alt="" loading="lazy">{% if forloop.last and photos|length > 4 %}<span class="pc-more">+{{ photos|length|add:"-4" }}</span>{% endif %}</span>{% endfor %}
+{% with photos=item.gallery_photos %}{% if photos|length > 1 or single %}{% if photos %}
+<span class="pcc pcc--n{% if photos|length > 4 %}4{% else %}{{ photos|length }}{% endif %} {{ cls }}" data-gv-photos="{{ item.gallery_urls_json }}">
+  {% for p in photos|slice:":4" %}<span class="pc-tile js-gallery-open" role="button" tabindex="0" data-pc-index="{{ forloop.counter0 }}" data-image="{{ p.url }}" data-title="{{ title }}" data-office="{% firstof pv_office item.representative.office.name %}" data-category="{% firstof pv_category item.category %}" data-date="{% if pv_date %}{{ pv_date }}{% else %}{% if item.display_date %}{{ item.display_date|date:'F j, Y' }}{% else %}{{ item.event_date|date:'F j, Y' }}{% endif %}{% endif %}" aria-label="View photo {{ forloop.counter }} of {{ photos|length }}"><img src="{{ p.url }}" alt="" loading="lazy">{% if forloop.last and photos|length > 4 %}<span class="pc-more">+{{ photos|length|add:"-4" }}</span>{% endif %}</span>{% endfor %}
 </span>
-{% endif %}{% endwith %}
+{% endif %}{% endif %}{% endwith %}

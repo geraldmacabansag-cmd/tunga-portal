@@ -1,14 +1,17 @@
 {% comment %}
 Photo collage of an announcement / news post / event on the public site
 (Facebook style): 1–5 tiles; with more than 5 photos the last tile shows
-"+N". Clicking a tile opens the photo slider (static/js/photo-collage.js).
-Pass: item (Announcement / NewsUpdate / Event), title (text for the slider).
+"+N". Clicking a tile opens the photo viewer (portal/_photo_viewer.html) with
+arrows and all the photos in a row below it.
+Pass: item (Announcement / NewsUpdate / Event), title.
 {% endcomment %}
 {% with photos=item.gallery_photos %}{% if photos %}
 <div class="pc pc--n{% if photos|length > 5 %}5{% else %}{{ photos|length }}{% endif %}{% if photos|length > 1 %} pc--multi{% endif %}"
-     data-pc-photos="{{ item.gallery_urls_json }}" data-pc-title="{{ title }}">
+     data-gv-photos="{{ item.gallery_urls_json }}">
   {% for p in photos|slice:":5" %}
-    <button type="button" class="pc-tile" data-pc-index="{{ forloop.counter0 }}" aria-label="View photo {{ forloop.counter }} of {{ photos|length }}">
+    <button type="button" class="pc-tile js-gallery-open" data-pc-index="{{ forloop.counter0 }}"
+            data-image="{{ p.url }}" data-title="{{ title }}" data-office="{{ item.representative.office.name|default:'' }}" data-category="{{ item.category|default:'' }}"
+            data-date="{% if item.display_date %}{{ item.display_date|date:'F j, Y' }}{% else %}{{ item.event_date|date:'F j, Y' }}{% endif %}" aria-label="View photo {{ forloop.counter }} of {{ photos|length }}">
       <img src="{{ p.url }}" alt="{% if forloop.first %}{{ title }}{% endif %}" loading="lazy">
       {% if forloop.last and photos|length > 5 %}<span class="pc-more">+{{ photos|length|add:"-5" }}</span>{% endif %}
     </button>

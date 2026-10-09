@@ -1,0 +1,133 @@
+{% comment %}
+  Photo viewer (Gallery-page look): the photo, sized to the photo itself,
+  with its title, office, category and date on the lower-left.
+  Loaded once on every public page (base.html).
+
+  Opened by any element with class "js-gallery-open" and
+  data-image / data-title / data-office / data-category / data-date.
+
+  When that element is inside a collage ([data-gv-photos] — the small card
+  collages and the big collage in a details pop-up) the viewer also shows
+  arrows, a "2 / 10" counter and a row of all the photos below it; click a
+  small photo to jump to it.
+{% endcomment %}
+<dialog id="galleryLightbox" class="gallery-lightbox" aria-labelledby="galleryLightboxTitle">
+  <div class="gallery-lightbox__box">
+    <button type="button" class="gallery-lightbox__close" id="galleryLightboxClose" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    <img id="galleryLightboxImg" src="" alt="">
+    <button type="button" class="gallery-lightbox__nav gallery-lightbox__nav--prev" id="galleryLightboxPrev" aria-label="Previous photo" hidden><i class="fa-solid fa-chevron-left"></i></button>
+    <button type="button" class="gallery-lightbox__nav gallery-lightbox__nav--next" id="galleryLightboxNext" aria-label="Next photo" hidden><i class="fa-solid fa-chevron-right"></i></button>
+    <span class="gallery-lightbox__count" id="galleryLightboxCount" hidden></span>
+    <div class="gallery-lightbox__caption">
+      <span class="gallery-lightbox__title" id="galleryLightboxTitle"></span>
+      <span class="gallery-lightbox__meta" id="galleryLightboxMeta"></span>
+    </div>
+  </div>
+  <div class="gallery-lightbox__thumbs" id="galleryLightboxThumbs" hidden></div>
+</dialog>
+
+<script>
+(function () {
+  var lightbox = document.getElementById('galleryLightbox');
+  if (!lightbox) return;
+  var img = document.getElementById('galleryLightboxImg');
+  var titleEl = document.getElementById('galleryLightboxTitle');
+  var metaEl = document.getElementById('galleryLightboxMeta');
+  var prevBtn = document.getElementById('galleryLightboxPrev');
+  var nextBtn = document.getElementById('galleryLightboxNext');
+  var countEl = document.getElementById('galleryLightboxCount');
+  var thumbsEl = document.getElementById('galleryLightboxThumbs');
+
+  // Photos of the collage that was clicked (empty for a single photo).
+  var photos = [], at = 0;
+
+  function show(i) {
+    at = (i + photos.length) % photos.length;   // wraps around
+    img.src = photos[at];
+    countEl.textContent = (at + 1) + ' / ' + photos.length;
+    var thumbs = thumbsEl.children;
+    for (var k = 0; k < thumbs.length; k++) {
+      thumbs[k].classList.toggle('is-active', k === at);
+    }
+    if (thumbs[at]) thumbs[at].scrollIntoView({ block: 'nearest', inline: 'center' });
+  }
+
+  function buildThumbs() {
+    thumbsEl.innerHTML = '';
+    photos.forEach(function (url, i) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'gallery-lightbox__thumb';
+      b.setAttribute('aria-label', 'Photo ' + (i + 1) + ' of ' + photos.length);
+      b.innerHTML = '<img src="' + url + '" alt="" loading="lazy">';
+      b.addEventListener('click', function () { show(i); });
+      thumbsEl.appendChild(b);
+    });
+  }
+
+  function openLightbox(trigger) {
+    var d = trigger.dataset;
+    photos = [];
+    var box = trigger.closest('[data-gv-photos]');
+    if (box) { try { photos = JSON.parse(box.getAttribute('data-gv-photos') || '[]'); } catch (err) {} }
+    var many = photos.length > 1;
+    prevBtn.hidden = nextBtn.hidden = countEl.hidden = thumbsEl.hidden = !many;
+    lightbox.classList.toggle('gallery-lightbox--multi', many);
+
+    img.alt = d.title || '';
+    titleEl.textContent = d.title || '';
+    var metaParts = [];
+    if (d.office) metaParts.push(d.office);
+    if (d.category) metaParts.push(d.category);
+    if (d.date) metaParts.push(d.date);
+    metaEl.textContent = metaParts.join(' • ');
+
+    if (!lightbox.open) lightbox.showModal();
+    document.body.classList.add('lock');
+    if (many) { buildThumbs(); show(+trigger.getAttribute('data-pc-index') || 0); }
+    else { img.src = d.image; thumbsEl.innerHTML = ''; }
+  }
+
+  // Capture phase (the "true" at the end): runs before a card's own click
+  // handler, so clicking a photo inside a clickable card opens this viewer
+  // instead of the card's details pop-up.
+  document.addEventListener('click', function (e) {
+    var trigger = e.target.closest && e.target.closest('.js-gallery-open');
+    if (!trigger) return;
+    e.preventDefault();
+    e.stopPropagation();
+    openLightbox(trigger);
+  }, true);
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    var trigger = e.target.closest && e.target.closest('.js-gallery-open');
+    if (!trigger || trigger.tagName === 'A') return;
+    e.preventDefault();
+    e.stopPropagation();
+    openLightbox(trigger);
+  }, true);
+
+  document.getElementById('galleryLightboxClose').addEventListener('click', function () { lightbox.close(); });
+  prevBtn.addEventListener('click', function () { show(at - 1); });
+  nextBtn.addEventListener('click', function () { show(at + 1); });
+  lightbox.addEventListener('keydown', function (e) {
+    if (photos.length < 2) return;
+    if (e.key === 'ArrowLeft') { e.preventDefault(); show(at - 1); }
+    if (e.key === 'ArrowRight') { e.preventDefault(); show(at + 1); }
+  });
+  // Swipe left / right on phones
+  var sx = null;
+  img.addEventListener('touchstart', function (e) { sx = e.touches[0].clientX; }, { passive: true });
+  img.addEventListener('touchend', function (e) {
+    if (sx === null || photos.length < 2) return;
+    var dx = e.changedTouches[0].clientX - sx; sx = null;
+    if (Math.abs(dx) > 40) show(dx < 0 ? at + 1 : at - 1);
+  });
+  // Clicking the dark backdrop closes it.
+  lightbox.addEventListener('click', function (e) { if (e.target === lightbox) lightbox.close(); });
+  lightbox.addEventListener('close', function () {
+    // Keep the page locked if a details pop-up is still open underneath.
+    if (!document.querySelector('dialog[open]')) document.body.classList.remove('lock');
+  });
+})();
+</script>

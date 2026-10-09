@@ -8,6 +8,8 @@
 {% block breadcrumbs %}<span>Dashboard</span><span class="sep">›</span><span>Website Management</span><span class="sep">›</span><span class="current">Website Settings</span>{% endblock %}
 
 {% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 
       <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;">
         <div>
@@ -77,7 +79,24 @@
                 <input class="form-input" type="text" name="office_hours" value="{{ info.office_hours }}" placeholder="e.g. Monday – Friday, 8:00 AM – 5:00 PM">
               </div>
 
-              <div class="modal-actions" style="justify-content:flex-start;border-top:none;padding-top:4px;">
+                            {% comment %}"Our Location" map on the Contact Us page: drag the pin (or click the map)
+                 to the exact spot. Same OpenStreetMap map as the Tunga Map.{% endcomment %}
+              <div class="form-group">
+                <label class="form-label">Map location (Contact Us → Our Location)</label>
+                <div class="form-row" style="margin-bottom:8px;">
+                  <div class="form-group" style="margin:0;">
+                    <input class="form-input" type="text" name="map_place_name" maxlength="120" value="{{ info.map_place_name|default:'Municipal Hall of Tunga' }}" placeholder="Municipal Hall of Tunga" aria-label="Name shown on the pin">
+                  </div>
+                  <div class="form-group" style="margin:0;display:flex;gap:8px;">
+                    <input class="form-input" type="number" step="0.000001" name="map_latitude" id="mapLatInput" value="{{ info.map_lat|stringformat:'.6f' }}" aria-label="Latitude" title="Latitude">
+                    <input class="form-input" type="number" step="0.000001" name="map_longitude" id="mapLngInput" value="{{ info.map_lng|stringformat:'.6f' }}" aria-label="Longitude" title="Longitude">
+                  </div>
+                </div>
+                <div id="mapPicker" style="height:320px;border:1px solid var(--gray-200,#e5e7eb);border-radius:10px;z-index:0;"></div>
+                <span class="form-help">Drag the pin (or click on the map) to the exact spot of the Municipal Hall, then click Save Contact Information. This is the pin people see on the Contact Us page and where "Get directions" leads.</span>
+              </div>
+
+<div class="modal-actions" style="justify-content:flex-start;border-top:none;padding-top:4px;">
                 <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Contact Information</button>
               </div>
             </form>
@@ -104,6 +123,11 @@
                 <img id="banner-preview" src="{% if info.hero_banner %}{{ info.hero_banner.url }}{% else %}{% static 'images/lgu_bldg.jpeg' %}{% endif %}" alt="" style="width:100%;max-width:420px;height:130px;border-radius:10px;object-fit:cover;border:1px solid var(--gray-200);margin-bottom:8px;display:block;">
                 <span class="form-help" id="banner-preview-label" style="display:block;margin-bottom:8px;">{% if info.hero_banner %}Current banner{% else %}Current banner (default){% endif %}</span>
                 <input class="form-input file-input" type="file" name="hero_banner" id="banner-input" accept="image/*">
+                {% if info.hero_banner %}
+                {% comment %}Removes the uploaded banner so the homepage goes back to the default LGU building photo (static/images/lgu_bldg.jpeg).{% endcomment %}
+                <input type="hidden" name="reset_hero_banner" id="banner-reset-flag" value="">
+                <button type="button" class="btn btn-secondary" id="banner-reset" data-default="{% static 'images/lgu_bldg.jpeg' %}" style="margin-top:8px;"><i class="fa-solid fa-rotate-left"></i> Use default banner (LGU building)</button>
+                {% endif %}
                 <span class="form-help">Shown as the background image at the top of the public homepage. Recommended size 1600×600px. The preview updates immediately, but nothing changes on the live site until you click Save Appearance.</span>
               </div>
 
@@ -124,6 +148,32 @@
                   <button type="button" class="btn btn-secondary" id="tagline-reset" title="Use the original tagline"><i class="fa-solid fa-rotate-left"></i> Reset to default</button>
                 </div>
                 <span class="form-help"><span id="tagline-count">0</span>/120 characters. Shown under "MUNICIPALITY OF TUNGA" at the top of every public page. Default: <em>{{ info.DEFAULT_TAGLINE }}</em> — leaving it empty also uses the default. Nothing changes on the live site until you click Save Appearance.</span>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="ticker-value">Announcement bar speed</label>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                  <span style="font-size:13px;color:var(--gray-600,#4b5563);">Show each announcement for</span>
+                  <input class="form-input" type="number" name="ticker_interval_value" id="ticker-value" min="1" max="3600" step="1" required
+                         value="{{ info.ticker_interval_value }}" style="width:96px;">
+                  <select class="form-input" name="ticker_interval_unit" id="ticker-unit" style="width:auto;">
+                    <option value="seconds" {% if info.ticker_interval_unit == "seconds" %}selected{% endif %}>seconds</option>
+                    <option value="minutes" {% if info.ticker_interval_unit == "minutes" %}selected{% endif %}>minutes</option>
+                  </select>
+                  <button type="button" class="btn btn-secondary" id="ticker-reset" title="Use the original speed (2 seconds)"><i class="fa-solid fa-rotate-left"></i> Reset to default</button>
+                </div>
+                <span class="form-help">How long each announcement stays in the bar at the very top of the public website before the next one slides in. Default: 2 seconds. Allowed: 1 second up to 60 minutes. Nothing changes on the live site until you click Save Appearance.</span>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="news-slider-secs">Home page News slider speed</label>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                  <span style="font-size:13px;color:var(--gray-600,#4b5563);">Show each news story for</span>
+                  <input class="form-input" type="number" name="news_slider_seconds" id="news-slider-secs" min="3" max="120" step="1" required
+                         value="{{ info.news_slider_seconds|default:6 }}" style="width:96px;">
+                  <span style="font-size:13px;color:var(--gray-600,#4b5563);">seconds</span>
+                </div>
+                <span class="form-help">How long each story stays in the News slider on the home page before the next one slides in (3 to 120 seconds, default 6). The slider pauses while a visitor points at it.</span>
               </div>
 
               <div class="modal-actions" style="justify-content:flex-start;border-top:none;padding-top:4px;">
@@ -350,7 +400,69 @@
     });
     update();
   })();
+  // Map location picker (General → Map location)
+  (function () {
+    var box = document.getElementById('mapPicker');
+    if (!box) return;
+    var latIn = document.getElementById('mapLatInput'), lngIn = document.getElementById('mapLngInput');
+    function start() {
+      if (!window.L || box._map) return;
+      var pos = [parseFloat(latIn.value) || 11.2483, parseFloat(lngIn.value) || 124.7524];
+      var map = L.map(box, { scrollWheelZoom: false }).setView(pos, 17);
+      box._map = map;
+      // OpenStreetMap needs to know our site address, or the tiles say "Access blocked"
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19, referrerPolicy: 'strict-origin-when-cross-origin', attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+      var pin = L.marker(pos, { draggable: true }).addTo(map);
+      function setInputs(ll) { latIn.value = ll.lat.toFixed(6); lngIn.value = ll.lng.toFixed(6); }
+      pin.on('dragend', function () { setInputs(pin.getLatLng()); });
+      map.on('click', function (e) { pin.setLatLng(e.latlng); setInputs(e.latlng); map.scrollWheelZoom.enable(); });
+      function fromInputs() {
+        var la = parseFloat(latIn.value), ln = parseFloat(lngIn.value);
+        if (!isNaN(la) && !isNaN(ln)) { pin.setLatLng([la, ln]); map.panTo([la, ln]); }
+      }
+      latIn.addEventListener('change', fromInputs);
+      lngIn.addEventListener('change', fromInputs);
+    }
+    // the General tab can be hidden at first — draw the map once it is visible
+    function whenVisible() {
+      if (box.offsetParent !== null) { start(); if (box._map) box._map.invalidateSize(); }
+    }
+    document.querySelectorAll('.subtab').forEach(function (tab) { tab.addEventListener('click', function () { setTimeout(whenVisible, 30); }); });
+    whenVisible();
+  })();
+
   wireImagePreview('banner-input', 'banner-preview', 'banner-preview-label', 'New banner selected — not saved yet, click Save Appearance to apply it.');
+
+  // Announcement bar speed: the number box allows up to 60 minutes / 3600 seconds
+  (function () {
+    var val = document.getElementById('ticker-value'), unit = document.getElementById('ticker-unit');
+    if (!val || !unit) return;
+    function limits() { val.max = unit.value === 'minutes' ? 60 : 3600; }
+    unit.addEventListener('change', limits);
+    limits();
+    document.getElementById('ticker-reset').addEventListener('click', function () {
+      val.value = 2; unit.value = 'seconds'; limits(); val.focus();
+    });
+  })();
+
+  // "Use default banner": shows the LGU building photo in the preview and
+  // tells the server to remove the uploaded banner when Save Appearance is clicked.
+  (function () {
+    var btn = document.getElementById('banner-reset');
+    if (!btn) return;
+    var flag = document.getElementById('banner-reset-flag');
+    var input = document.getElementById('banner-input');
+    btn.addEventListener('click', function () {
+      flag.value = '1';
+      input.value = '';
+      document.getElementById('banner-preview').src = btn.dataset.default;
+      document.getElementById('banner-preview-label').textContent = 'Default banner (LGU building) — not saved yet, click Save Appearance to apply it.';
+    });
+    // Picking a new photo after clicking the button cancels the reset.
+    input.addEventListener('change', function () { if (input.files.length) flag.value = ''; });
+  })();
 
   document.querySelectorAll('.social-visibility-checkbox').forEach(function(box){
     box.addEventListener('change', function(){

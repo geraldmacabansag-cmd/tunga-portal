@@ -2048,6 +2048,10 @@ def admin_contact_save(request, pk):
             contact.extra_detail = request.POST.get('extra_detail', '')
             contact.icon = request.POST.get('icon', 'fa-phone')
             contact.color = request.POST.get('color', 'gray')
+            if not contact.pk:
+                # New contacts go to the end, after the default hotlines.
+                last = EmergencyContact.objects.order_by('-order').first()
+                contact.order = (last.order + 1) if last else 0
             contact.save()
             
             messages.success(request, f'"{name}" was saved.')
@@ -2064,6 +2068,15 @@ def admin_contact_delete(request, pk):
         messages.success(request, f'"{name}" was removed.')
     return redirect('admin_dashboard:ad_emergency_contact')
 
+
+@super_admin_required
+def admin_contact_reset(request):
+    """"Reset to default" button: restores the BFP, PNP and MDRRMO hotlines first."""
+    if request.method == "POST":
+        EmergencyContact.reset_defaults()
+        messages.success(request, "Emergency contacts were reset to the defaults: BFP, PNP and MDRRMO.")
+    return redirect('admin_dashboard:ad_emergency_contact')
+
 @super_admin_required
 def admin_web_setting(request):
     info = SiteContactInfo.get_solo()
@@ -2076,9 +2089,34 @@ def admin_web_setting(request):
                 info.logo = request.FILES.get('logo')
             if request.FILES.get('hero_banner'):
                 info.hero_banner = request.FILES.get('hero_banner')
+            elif request.POST.get('reset_hero_banner') == '1' and info.hero_banner:
+                # Back to the default LGU building photo: delete the uploaded file
+                # (from Cloudinary / media) and clear the field.
+                try:
+                    info.hero_banner.delete(save=False)
+                except Exception:
+                    pass  # file already gone — just clear the field
+                info.hero_banner = None
             # Header tagline: empty (or "Reset to default") = the original tagline.
             tagline = request.POST.get('site_tagline', '').strip()[:120]
             info.site_tagline = tagline or SiteContactInfo.DEFAULT_TAGLINE
+            # Announcement bar speed: a number + "seconds" / "minutes",
+            # kept between 1 second and 60 minutes.
+            try:
+                amount = int(request.POST.get('ticker_interval_value', '') or 0)
+            except ValueError:
+                amount = 0
+            if amount > 0:
+                unit = request.POST.get('ticker_interval_unit', 'seconds')
+                seconds = amount * 60 if unit == 'minutes' else amount
+                info.ticker_interval_seconds = max(1, min(seconds, 3600))
+            # Home page News slider speed (seconds per story, 3 to 120)
+            try:
+                news_secs = int(request.POST.get('news_slider_seconds', '') or 0)
+            except ValueError:
+                news_secs = 0
+            if news_secs > 0:
+                info.news_slider_seconds = max(3, min(news_secs, 120))
             info.save()
             messages.success(request, "Appearance settings were updated.")
         elif section == 'social':
@@ -2101,6 +2139,18 @@ def admin_web_setting(request):
             info.facebook_name = request.POST.get('facebook_name', '').strip()
             info.facebook_url = request.POST.get('facebook_url', '').strip()
             info.office_hours = request.POST.get('office_hours', '').strip()
+            # "Our Location" map pin (Contact Us page). Kept inside a box
+            # around Leyte so a slip of the mouse can't put it at sea.
+            info.map_place_name = request.POST.get('map_place_name', '').strip()[:120] or "Municipal Hall of Tunga"
+            try:
+                lat = float(request.POST.get('map_latitude', ''))
+                lng = float(request.POST.get('map_longitude', ''))
+                if 9.8 <= lat <= 12.6 and 124.0 <= lng <= 125.9:
+                    info.map_latitude, info.map_longitude = round(lat, 6), round(lng, 6)
+                else:
+                    messages.error(request, "The map pin must be inside Leyte. The old location was kept.")
+            except (TypeError, ValueError):
+                pass
             info.save()
             messages.success(request, "Contact information was updated.")
 

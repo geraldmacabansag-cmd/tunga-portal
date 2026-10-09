@@ -6,8 +6,15 @@ def site_contact_info(request):
 
 def is_super_admin(request):
     if not request.user.is_authenticated:
-        return {"is_super_admin": False}
-    return {"is_super_admin": SuperAdmin.objects.filter(user=request.user).exists()}
+        return {"is_super_admin": False, "user_photo_url": ""}
+    from portal.profile_photo import photo_url
+    return {
+        "is_super_admin": SuperAdmin.objects.filter(user=request.user).exists(),
+        # the person's profile picture (same as their dashboard picture for
+        # office reps and the Super Admin) — shown in the public site header
+        # and side panel; "" = show their initial instead
+        "user_photo_url": photo_url(request.user),
+    }
 
 def ticker_announcements(request):
     from office_dashboard.models import Announcement

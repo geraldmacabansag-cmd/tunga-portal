@@ -19,12 +19,14 @@ Home | Digital Governance Portal
 
 <section class="offices-search-wrap">
   <div class="container">
+    {% comment %}Search: hides the office cards that don't match as you type
+       (name or description). The old "All Offices" filter did nothing, so it was removed.{% endcomment %}
     <div class="panel offices-search">
-      <div class="search-input">
+      <label class="search-input" for="officeSearch">
         <i class="fa-solid fa-magnifying-glass"></i>
-        <input type="text" placeholder="Search offices...">
-      </div>
-      <button class="btn btn-outline filter-btn"><i class="fa-solid fa-filter"></i> All Offices <i class="fa-solid fa-chevron-down" style="font-size:.7rem"></i></button>
+        <input type="search" id="officeSearch" placeholder="Search offices by name or service..." autocomplete="off" aria-label="Search offices">
+      </label>
+      <span class="offices-search__count" id="officeSearchCount" aria-live="polite"></span>
     </div>
   </div>
 </section>
@@ -33,7 +35,7 @@ Home | Digital Governance Portal
   <div class="container offices-grid">
 
     {% for office in office_list %}
-    <a href="{% url 'offices:office_detail' office.slug %}" class="office-card office-card--{{ office.card_color }}">
+    <a href="{% url 'offices:office_detail' office.slug %}" class="office-card office-card--{{ office.card_color }}" data-search="{{ office.name|lower }} {{ office.about|default:''|lower }}">
       {% if office.logo %}
         <img src="{{ office.logo.url }}" alt="{{ office.name }}" class="office-card__icon office-card__icon--img" loading="lazy">
       {% elif office.card_image %}
@@ -50,6 +52,7 @@ Home | Digital Governance Portal
     {% empty %}
     <p style="grid-column:1/-1;text-align:center;color:var(--gray-400,#8a92ab);padding:24px 0;">No offices to show right now.</p>
     {% endfor %}
+    <p class="offices-noresults" id="officeNoResults" hidden>No office matches "<span id="officeNoResultsText"></span>".</p>
 
   </div>
 
@@ -64,5 +67,27 @@ Home | Digital Governance Portal
     </div>
   </div>
 </section>
+
+<script>
+(function () {
+  var input = document.getElementById('officeSearch');
+  if (!input) return;
+  var cards = document.querySelectorAll('.offices-grid .office-card');
+  var count = document.getElementById('officeSearchCount');
+  var none = document.getElementById('officeNoResults');
+  function run() {
+    var q = input.value.trim().toLowerCase(), shown = 0;
+    cards.forEach(function (card) {
+      var ok = !q || (card.getAttribute('data-search') || '').indexOf(q) !== -1;
+      card.style.display = ok ? '' : 'none';
+      if (ok) shown++;
+    });
+    count.textContent = q ? shown + ' of ' + cards.length + ' offices' : '';
+    none.hidden = !(q && shown === 0);
+    document.getElementById('officeNoResultsText').textContent = input.value.trim();
+  }
+  input.addEventListener('input', run);
+})();
+</script>
 
 {% endblock %}

@@ -12,7 +12,10 @@
 <section class="emergency-panel">
   <div class="panel-header">
     <h2><i class="fa-solid fa-phone" style="color:var(--red-600);margin-right:8px;"></i>Emergency Contact Information</h2>
-    <span class="ic" data-view-target="add-contact-modal" onclick="document.getElementById('add-contact-modal').classList.add('open')" style="background:var(--blue-600);color:#fff;padding:8px 14px;border-radius:8px;cursor:pointer;"><i class="fa-solid fa-plus"></i> Add Emergency Contact</span>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <span class="ic" onclick="document.getElementById('reset-contacts-modal').classList.add('open')" style="background:#fff;color:var(--gray-700,#374151);border:1px solid var(--gray-200,#e5e7eb);padding:8px 14px;border-radius:8px;cursor:pointer;" title="Keep only the BFP, PNP and MDRRMO hotlines"><i class="fa-solid fa-rotate-left"></i> Reset to Default</span>
+      <span class="ic" data-view-target="add-contact-modal" onclick="document.getElementById('add-contact-modal').classList.add('open')" style="background:var(--blue-600);color:#fff;padding:8px 14px;border-radius:8px;cursor:pointer;"><i class="fa-solid fa-plus"></i> Add Emergency Contact</span>
+    </div>
   </div>
 
   <div class="ec-grid">
@@ -26,7 +29,7 @@
         <i class="fa-solid {{ c.icon }}"></i>
       </div>
       <div class="cc-title">{{ c.name }}</div>
-      <div class="cc-detail">{{ c.carrier_label }}: {{ c.phone_number }}</div>
+      <div class="cc-detail">{% if c.carrier_label %}{{ c.carrier_label }}: {% endif %}{{ c.phone_number }}</div>
       {% if c.extra_detail %}<div class="cc-detail">{{ c.extra_detail }}</div>{% endif %}
       <a href="tel:{{ c.phone_number|cut:' ' }}" class="cc-call cc-call-{{ c.color }}" style="text-decoration:none;text-align:center;">CALL</a>
     </div>
@@ -35,6 +38,30 @@
     {% endfor %}
   </div>
 </section>
+
+<!-- Reset to default modal -->
+<div class="modal-backdrop" id="reset-contacts-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Reset to default</h3>
+      <button type="button" class="modal-x" onclick="document.getElementById('reset-contacts-modal').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <p class="confirm-msg">This resets the list to only the official hotlines:<br>
+        <strong>BFP – Fire Emergency</strong> 09856193119<br>
+        <strong>PNP – Police Emergency</strong> 09062863422<br>
+        <strong>MDRRMO – Disaster Management</strong> 09815519256<br>
+        <span style="color:var(--red-600,#dc2626);">All other emergency contacts will be removed.</span> Deleted hotlines are added back and any changes to them are undone.</p>
+      <form method="post" action="{% url 'admin_dashboard:admin_contact_reset' %}">
+        {% csrf_token %}
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('reset-contacts-modal').classList.remove('open')">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-rotate-left"></i> Reset to Default</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 
 <!-- Add modal -->
 <div class="modal-backdrop" id="add-contact-modal">
@@ -162,5 +189,3 @@
 {% endfor %}
 
 {% endblock %}
-
-

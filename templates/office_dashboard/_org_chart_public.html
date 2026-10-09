@@ -4,13 +4,15 @@ Read-only Organizational Chart for the public site (zoom, fit, full screen).
 Used by offices/office_detail.html (an office's chart) and portal/about.html
 (the LGU chart, in place of "Our Officials"). Both use org_plain=True. Pass: org_nodes, and optionally
 org_title (heading text) and org_heading ("h2" or "h3").
-org_plain=True: show-only — no heading, no buttons, no hint; the chart is shown
-at its normal size, made smaller only to fit the panel's width and about 70% of
-the screen's height, and a box (photo + name box, or a section box) grows when
-the mouse is over it.
+org_plain=True: show-only — no heading, no buttons; the chart is shown at its
+normal size, made smaller only to fit the panel's width and about 70% of the
+screen's height, and a box (photo + name box, or a section box) grows when the
+mouse is over it. On phones / small tablets a big chart (one that would have
+to shrink below 60%) is kept at 80% so names stay readable: it can then be
+swiped sideways, starts centered, and a small "swipe" hint shows under it.
 Look: static/css/org-chart.css · layout: static/js/org-chart.js
 {% endcomment %}
-<link rel="stylesheet" href="{% static 'css/org-chart.css' %}?v=4">
+<link rel="stylesheet" href="{% static 'css/org-chart.css' %}?v=5">
 <div class="org-public{% if org_plain %} org-public--plain{% endif %}" id="orgPublicPanel">
   {% if not org_plain %}
   <div class="org-public-head">
@@ -36,6 +38,7 @@ Look: static/css/org-chart.css · layout: static/js/org-chart.js
       </div>
     </div>
   </div>
+  {% if org_plain %}<p class="org-public-swipe" id="orgPubSwipe" hidden><i class="fa-solid fa-arrows-left-right"></i> Swipe sideways to see the whole chart</p>{% endif %}
   {% if not org_plain %}<p class="org-public-hint"><i class="fa-regular fa-hand-pointer"></i> Use the + and − buttons to zoom in or out, or open the chart in full screen. Drag sideways to see more.</p>{% endif %}
 </div>
 <script src="{% static 'js/org-chart.js' %}?v=5"></script>
@@ -48,6 +51,8 @@ Look: static/css/org-chart.css · layout: static/js/org-chart.js
   var plain = document.getElementById('orgPublicPanel').classList.contains('org-public--plain');
   // show-only chart: shown at its normal size, made smaller only when it's
   // too wide for the panel or too tall for the screen (never bigger)
+  var panel = document.getElementById('orgPublicPanel'), swipeHint = document.getElementById('orgPubSwipe');
+  function smallScreen() { return window.innerWidth < 900; }
   var zoom = plain ? OC.zoomer(viewport, canvas, null, 0, 1)
                    : OC.zoomer(viewport, canvas, document.getElementById('orgPubZoomLevel'), 0.3);
   // show-only chart: how much a person's box grows on hover, so it's easy to
@@ -56,13 +61,25 @@ Look: static/css/org-chart.css · layout: static/js/org-chart.js
     var z = zoom.current();
     board.style.setProperty('--org-hover', Math.max(1.25, Math.min(2.4, 1.15 / z)).toFixed(2));
   }
+  // Phones / small tablets: a chart that nearly fits (needs 60% or more) is just
+  // made a bit smaller; a big chart is kept at 80% so names stay readable and
+  // can be swiped sideways instead.
+  var NEARLY_FITS = 0.6, MIN_SMALL = 0.8;
   function fit() {
     zoom.computeFit();
     if (!plain) return;
+    var min = (smallScreen() && zoom.fit < NEARLY_FITS) ? MIN_SMALL : 0;
     var cs = getComputedStyle(canvas);
     var natural = board.offsetHeight + parseFloat(cs.paddingTop || 0) + parseFloat(cs.paddingBottom || 0);
     var limit = Math.min(window.innerHeight * 0.7, 620);
-    if (natural * zoom.fit > limit) { zoom.fit = limit / natural; zoom.apply(); }
+    if (natural * zoom.fit > limit) zoom.fit = limit / natural;
+    if (zoom.fit < min) zoom.fit = min;
+    zoom.apply();
+    // wider than the panel → swipe sideways (starts centered), with a hint
+    var scroll = canvas.scrollWidth * zoom.current() > viewport.clientWidth + 2;
+    panel.classList.toggle('org-public--scroll', scroll);
+    if (swipeHint) swipeHint.hidden = !scroll;
+    if (scroll) viewport.scrollLeft = (viewport.scrollWidth - viewport.clientWidth) / 2;
     hoverScale();
   }
   function refresh() { chart.layout(); fit(); }

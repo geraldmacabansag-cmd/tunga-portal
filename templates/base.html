@@ -30,7 +30,7 @@
   <header class="top-bar">
   <div class="container">
     <span class="top-bar__tag"><i class="fa-solid fa-bullhorn top-bar__tag-icon"></i><span class="top-bar__tag-text">Announcement</span></span>
-    <span class="top-bar__msg-wrap">
+    <span class="top-bar__msg-wrap" data-interval="{{ site_contact.ticker_interval_seconds|default:2 }}">
       {% for a in ticker_announcements %}
         <span class="top-bar__msg{% if forloop.first %} top-bar__msg--active{% endif %}">{{ a.title }} — {{ a.subtitle|default:a.content|truncatewords:20 }}</span>
       {% empty %}
@@ -42,8 +42,8 @@
             <span class="top-bar__welcome">Welcome, {{ user.first_name|default:user.username }}</span>
             <span class="top-bar__divider">|</span>
             <div class="user-menu">
-              <button type="button" class="user-menu__avatar" aria-label="Account menu">
-                {{ user.first_name|default:user.username|slice:":1"|upper }}
+              <button type="button" class="user-menu__avatar{% if user_photo_url %} has-photo{% endif %}" aria-label="Account menu">
+                {% if user_photo_url %}<img src="{{ user_photo_url }}" alt="">{% else %}{{ user.first_name|default:user.username|slice:":1"|upper }}{% endif %}
                 <span class="notif-dot" id="notifDot" hidden></span>
               </button>
             </div>
@@ -59,33 +59,56 @@
 
 {% if user.is_authenticated %}
 <div class="side-panel-overlay"></div>
-<aside class="side-panel">
+<aside class="side-panel" aria-label="Account menu">
+  {% comment %}Account menu for signed-in users (opened by the round button in the header).
+     Navy header with the person's initial, name, email and role · dashboard shortcut ·
+     grouped menu · Log Out pinned at the bottom. Styles: static/css/base.css ("Side panel").{% endcomment %}
   <div class="side-panel__head">
-    <div class="side-panel__avatar">{{ user.first_name|default:user.username|slice:":1"|upper }}</div>
-    <div>
-      <div class="side-panel__name">{{ user.first_name }} {{ user.last_name }}</div>
-      <div class="side-panel__email">{{ user.email }}</div>
-    </div>
-    <button type="button" class="side-panel__close" aria-label="Close menu">
-      <i class="fa-solid fa-xmark"></i>
+    <button type="button" class="side-panel__close" aria-label="Close menu"><i class="fa-solid fa-xmark"></i></button>
+    <button type="button" class="side-panel__avatar{% if user_photo_url %} has-photo{% endif %}" id="sidePanelPhotoBtn" title="Change profile picture" aria-label="Change profile picture">
+      {% if user_photo_url %}<img src="{{ user_photo_url }}" alt="">{% else %}{{ user.first_name|default:user.username|slice:":1"|upper }}{% endif %}
+      <span class="side-panel__avatar-cam"><i class="fa-solid fa-camera"></i></span>
     </button>
+    <div class="side-panel__who">
+      <div class="side-panel__name">{% if user.first_name or user.last_name %}{{ user.first_name }} {{ user.last_name }}{% else %}{{ user.username }}{% endif %}</div>
+      <div class="side-panel__email">{{ user.email }}</div>
+      <span class="side-panel__role">
+        {% if is_super_admin %}<i class="fa-solid fa-crown"></i> Super Admin
+        {% elif user.office_rep %}<i class="fa-solid fa-building-user"></i> Office Representative
+        {% else %}<i class="fa-solid fa-user"></i> Citizen{% endif %}
+      </span>
+    </div>
   </div>
 
   <div class="side-panel__links">
-      {% if user.office_rep and not is_super_admin %}
-      <a href="{% url 'office_dashboard:dashboard' %}" style="font-weight:600;">
-        <i class="fa-solid fa-user-shield"></i> Switch to Office Dashboard
-      </a>
-      {% endif %}
-      {% if is_super_admin %}
-      <a href="{% url 'admin_dashboard:admin_dash' %}" style="font-weight:600;">
-        <i class="fa-solid fa-user-shield"></i> Switch to Admin Dashboard
-      </a>
-      {% endif %}
-    <button type="button" class="side-panel__link-btn" id="openAccountModalBtn"><i class="fa-regular fa-id-card"></i> Account</button>
-    <button type="button" class="side-panel__link-btn" id="openSettingsModalBtn"><i class="fa-solid fa-gear"></i> Settings</button>
-    <button type="button" class="side-panel__link-btn notif-toggle" id="notifToggle" aria-expanded="false" aria-controls="notifList">
-      <i class="fa-regular fa-bell"></i> Notifications
+    {% if is_super_admin %}
+    <a href="{% url 'admin_dashboard:admin_dash' %}" class="side-panel__switch">
+      <span class="sp-icon"><i class="fa-solid fa-gauge-high"></i></span>
+      <span class="sp-text"><strong>Admin Dashboard</strong><small>Manage the whole website</small></span>
+      <i class="fa-solid fa-arrow-right sp-arrow"></i>
+    </a>
+    {% elif user.office_rep %}
+    <a href="{% url 'office_dashboard:dashboard' %}" class="side-panel__switch">
+      <span class="sp-icon"><i class="fa-solid fa-gauge-high"></i></span>
+      <span class="sp-text"><strong>Office Dashboard</strong><small>Post and manage your office's content</small></span>
+      <i class="fa-solid fa-arrow-right sp-arrow"></i>
+    </a>
+    {% endif %}
+
+    <div class="side-panel__group">My account</div>
+    <button type="button" class="side-panel__link-btn sp-item" id="openAccountModalBtn">
+      <span class="sp-icon"><i class="fa-regular fa-id-card"></i></span>
+      <span class="sp-text">Account<small>Profile and your submitted forms</small></span>
+      <i class="fa-solid fa-chevron-right sp-chev"></i>
+    </button>
+    <button type="button" class="side-panel__link-btn sp-item" id="openSettingsModalBtn">
+      <span class="sp-icon"><i class="fa-solid fa-gear"></i></span>
+      <span class="sp-text">Settings<small>Password and preferences</small></span>
+      <i class="fa-solid fa-chevron-right sp-chev"></i>
+    </button>
+    <button type="button" class="side-panel__link-btn sp-item notif-toggle" id="notifToggle" aria-expanded="false" aria-controls="notifList">
+      <span class="sp-icon"><i class="fa-regular fa-bell"></i></span>
+      <span class="sp-text">Notifications<small>Updates from the municipality</small></span>
       <span class="notif-badge" id="notifBadge" hidden>0</span>
       <i class="fa-solid fa-chevron-down notif-toggle__chev"></i>
     </button>
@@ -117,8 +140,16 @@
       <p class="notif-empty">No new updates in the last 30 days.</p>
       {% endif %}
     </div>
-    <a href="#"><i class="fa-regular fa-circle-question"></i> Help &amp; Support</a>
-    <hr class="side-panel__sep">
+
+    <div class="side-panel__group">Help</div>
+    <a href="{% url 'contact' %}" class="sp-item">
+      <span class="sp-icon"><i class="fa-regular fa-circle-question"></i></span>
+      <span class="sp-text">Help &amp; Support<small>Contact the municipality</small></span>
+      <i class="fa-solid fa-chevron-right sp-chev"></i>
+    </a>
+  </div>
+
+  <div class="side-panel__foot">
     <a href="{% url 'logout' %}" class="side-panel__logout">
       <i class="fa-solid fa-right-from-bracket"></i> Log Out
     </a>
@@ -133,9 +164,28 @@
     <button type="button" class="account-modal__close" id="accountModalClose" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
     <h2 id="accountModalTitle" class="account-modal__title">My Account</h2>
 
-    <form method="post" action="{% url 'account_update' %}">
+    <form method="post" action="{% url 'account_update' %}" enctype="multipart/form-data" id="accountForm">
       {% csrf_token %}
       <input type="hidden" name="next" value="{{ request.path }}">
+
+      {% comment %}Profile picture. For office reps and the Super Admin this is the same
+         picture as on their dashboard (portal/profile_photo.py).{% endcomment %}
+      <div class="account-photo">
+        <div class="account-photo__pic{% if user_photo_url %} has-photo{% endif %}" id="accountPhotoPic" data-initial="{{ user.first_name|default:user.username|slice:":1"|upper }}">
+          {% if user_photo_url %}<img src="{{ user_photo_url }}" alt="Your profile picture" id="accountPhotoImg">{% else %}<span id="accountPhotoInitial">{{ user.first_name|default:user.username|slice:":1"|upper }}</span>{% endif %}
+        </div>
+        <div class="account-photo__side">
+          <strong>Profile picture</strong>
+          <small id="accountPhotoNote">{% if is_super_admin or user.office_rep %}Also shown on your dashboard.{% else %}JPG, PNG or WEBP, up to 5 MB.{% endif %}</small>
+          <div class="account-photo__btns">
+            <label class="btn btn-outline account-photo__change" for="accountPhotoInput"><i class="fa-solid fa-camera"></i> {% if user_photo_url %}Change photo{% else %}Upload photo{% endif %}</label>
+            <button type="button" class="account-photo__remove" id="accountPhotoRemove"{% if not user_photo_url %} hidden{% endif %}>Remove</button>
+          </div>
+        </div>
+        <input type="file" name="photo" id="accountPhotoInput" accept="image/*" hidden>
+        <input type="hidden" name="remove_photo" id="accountPhotoRemoveFlag" value="">
+      </div>
+
       <div class="account-modal__field">
         <label for="account-full-name">Full Name</label>
         <input type="text" id="account-full-name" name="full_name" value="{{ user.get_full_name }}" required>
@@ -265,7 +315,7 @@
 <footer class="site-footer">
   <div class="footer-main container">
     <div class="footer-brand">
-      <img src="{% if site_contact.logo %}{{ site_contact.logo.url }}{% else %}{% static 'images/seal.svg' %}{% endif %}" alt="Municipality of Tunga seal" class="footer-brand__seal">
+      <img src="{% if site_contact.logo %}{{ site_contact.logo.url }}{% else %}{% static 'images/tunga_leyte_logo.png' %}{% endif %}" alt="Municipality of Tunga seal" class="footer-brand__seal">
       <div>
           <h4>Municipality of Tunga</h4>
           <p>Tunga, Leyte Philippines</p>
@@ -426,7 +476,11 @@
       function openPanel() {
         panel.classList.add('open');
         overlay.classList.add('open');
+        if (closeBtn) closeBtn.focus({ preventScroll: true });
       }
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && panel.classList.contains('open') && !document.querySelector('dialog[open]')) closePanel();
+      });
       function closePanel() {
         panel.classList.remove('open');
         overlay.classList.remove('open');
@@ -453,8 +507,50 @@
         if (overlay) overlay.classList.remove('open');
       }
 
+      // Profile picture in the Account popup: preview right away, "Remove"
+      (function () {
+        var input = document.getElementById('accountPhotoInput');
+        if (!input) return;
+        var pic = document.getElementById('accountPhotoPic');
+        var removeBtn = document.getElementById('accountPhotoRemove');
+        var flag = document.getElementById('accountPhotoRemoveFlag');
+        var note = document.getElementById('accountPhotoNote');
+        var noteText = note.textContent;
+        function showImg(src) {
+          pic.innerHTML = '<img src="' + src + '" alt="Your profile picture">';
+          pic.classList.add('has-photo');
+        }
+        input.addEventListener('change', function () {
+          var f = input.files && input.files[0];
+          if (!f) return;
+          if (!/^image\//.test(f.type)) { note.textContent = 'Please choose a picture (JPG, PNG or WEBP).'; input.value = ''; return; }
+          if (f.size > 5 * 1024 * 1024) { note.textContent = 'That picture is over 5 MB. Please choose a smaller one.'; input.value = ''; return; }
+          var r = new FileReader();
+          r.onload = function () { showImg(r.result); };
+          r.readAsDataURL(f);
+          flag.value = '';
+          removeBtn.hidden = false;
+          note.textContent = 'New picture — click Save Changes to keep it.';
+        });
+        removeBtn.addEventListener('click', function () {
+          input.value = '';
+          flag.value = '1';
+          pic.classList.remove('has-photo');
+          pic.innerHTML = '<span>' + pic.getAttribute('data-initial') + '</span>';
+          removeBtn.hidden = true;
+          note.textContent = 'Picture will be removed when you click Save Changes.';
+        });
+      })();
+
       var accountSubmissionsLoaded = false;
       var openAccountBtn = document.getElementById('openAccountModalBtn');
+      var sidePhotoBtn = document.getElementById('sidePanelPhotoBtn');
+      if (sidePhotoBtn && openAccountBtn) {
+        sidePhotoBtn.addEventListener('click', function () {
+          openAccountBtn.click();
+          setTimeout(function () { var l = document.querySelector('.account-photo__change'); if (l) l.focus(); }, 60);
+        });
+      }
       if (openAccountBtn && accountModal) {
         openAccountBtn.addEventListener('click', function () {
           closeSidePanel();
@@ -682,12 +778,16 @@
     var messages = document.querySelectorAll('.top-bar__msg-wrap .top-bar__msg');
     if (messages.length <= 1) return;
 
+    // Seconds per announcement — set in Super Admin → Website Settings → Appearance
+    var wrap = document.querySelector('.top-bar__msg-wrap');
+    var seconds = parseInt(wrap && wrap.getAttribute('data-interval'), 10) || 2;
+
     var current = 0;
     setInterval(function () {
       messages[current].classList.remove('top-bar__msg--active');
       current = (current + 1) % messages.length;
       messages[current].classList.add('top-bar__msg--active');
-    }, 2000);
+    }, seconds * 1000);
   })();
 
   /* -------------------------------------------------------------- */
@@ -772,6 +872,7 @@
   })();
 </script>
 
+{% include "portal/_photo_viewer.html" %}
 <script src="{% static 'js/photo-collage.js' %}?v=1"></script>
 {% block extra_js %}{% endblock %}
 

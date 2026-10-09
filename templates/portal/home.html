@@ -42,7 +42,7 @@ Home | Digital Governance Portal
         <i class="fa-solid {{ c.icon }}"></i>
         <div class="emergency__info">
           <h3>{{ c.name }}</h3>
-          <p>{{ c.carrier_label }}: {{ c.phone_number }}{% if c.extra_detail %}<br>{{ c.extra_detail }}{% endif %}</p>
+          <p>{% if c.carrier_label %}{{ c.carrier_label }}: {% endif %}{{ c.phone_number }}{% if c.extra_detail %}<br>{{ c.extra_detail }}{% endif %}</p>
         </div>
         <a href="tel:{{ c.phone_number|cut:' ' }}" class="btn emergency__btn emergency__btn--{{ c.color }}">CALL</a>
       </div>
@@ -63,12 +63,14 @@ Home | Digital Governance Portal
         {% for a in home_announcements %}
         <li class="feed-item">
           <div class="feed-item__date">{{ a.display_date|date:"M"|upper }}<strong>{{ a.display_date|date:"d" }}</strong>{{ a.display_date|date:"Y" }}</div>
-          {% if a.gallery_photos|length > 1 %}{% include "portal/_card_collage.html" with item=a title=a.title cls="pcc--thumb" %}{% elif a.image %}<img src="{{ a.image.url }}" alt="{{ a.title }}" class="feed-item__thumb">{% endif %}
+          {% with office=a.representative.office.name|default:"—" adate=a.display_date|date:"F j, Y" %}
+          {% if a.gallery_photos|length > 1 %}{% include "portal/_card_collage.html" with item=a title=a.title cls="pcc--thumb" pv_office=office pv_category=a.category pv_date=adate %}{% elif a.image %}<img src="{{ a.image.url }}" alt="{{ a.title }}" class="feed-item__thumb js-gallery-open" role="button" tabindex="0" data-image="{{ a.image.url }}" data-title="{{ a.title }}" data-office="{{ office }}" data-category="{{ a.category }}" data-date="{{ adate }}">{% endif %}
           <div class="feed-item__body">
             {% if forloop.first %}<span class="badge-new">NEW</span>{% endif %}
-            <a href="{% url 'announcement' %}" class="feed-item__title">{{ a.title }}</a>
+            <a href="{% url 'announcement' %}" class="feed-item__title js-content-open" data-kind="announcement" data-id="{{ a.id }}" data-title="{{ a.title }}" data-office="{{ office }}">{{ a.title }}</a>
             <p class="feed-item__desc">{{ a.content|truncatewords:18 }}</p>
           </div>
+          {% endwith %}
         </li>
         {% empty %}
         <li class="feed-item"><div class="feed-item__body"><p>No announcements published yet.</p></div></li>
@@ -86,12 +88,14 @@ Home | Digital Governance Portal
         <div class="event-highlight__date">
           <div class="event-highlight__daterange">{{ upcoming_event.event_date|date:"M"|upper }}<br>{{ upcoming_event.event_date|date:"d" }}<br>{{ upcoming_event.event_date|date:"Y" }}</div>
           <div>
-            <p class="event-highlight__title">{{ upcoming_event.title }}</p>
+            <p class="event-highlight__title"><a href="{% url 'announcement' %}#events" class="js-content-open" data-kind="event" data-id="{{ upcoming_event.id }}" data-title="{{ upcoming_event.title }}" data-office="{{ upcoming_event.representative.office.name|default:'—' }}">{{ upcoming_event.title }}</a></p>
             <p class="event-highlight__meta"><i class="fa-regular fa-clock"></i> {{ upcoming_event.start_time|time:"g:i A"|default:"TBA" }} &nbsp; <i class="fa-solid fa-location-dot"></i> {{ upcoming_event.location|default:"—" }}</p>
             {% if upcoming_event.description %}<p class="event-highlight__desc">{{ upcoming_event.description|truncatewords:18 }}</p>{% endif %}
           </div>
         </div>
-        {% if upcoming_event.gallery_photos|length > 1 %}{% include "portal/_card_collage.html" with item=upcoming_event title=upcoming_event.title cls="pcc--thumb" %}{% elif upcoming_event.poster %}<img src="{{ upcoming_event.poster.url }}" alt="{{ upcoming_event.title }}" class="event-highlight__img">{% endif %}
+        {% with office=upcoming_event.representative.office.name|default:"—" edate=upcoming_event.event_date|date:"F j, Y" %}
+        {% if upcoming_event.gallery_photos|length > 1 %}{% include "portal/_card_collage.html" with item=upcoming_event title=upcoming_event.title cls="pcc--thumb" pv_office=office pv_category=upcoming_event.category pv_date=edate %}{% elif upcoming_event.poster %}<img src="{{ upcoming_event.poster.url }}" alt="{{ upcoming_event.title }}" class="event-highlight__img js-gallery-open" role="button" tabindex="0" data-image="{{ upcoming_event.poster.url }}" data-title="{{ upcoming_event.title }}" data-office="{{ office }}" data-category="{{ upcoming_event.category }}" data-date="{{ edate }}">{% endif %}
+        {% endwith %}
         {% else %}
         <p style="padding:12px 0;color:var(--gray-500,#6b7286);">No upcoming events at this time.</p>
         {% endif %}
@@ -103,18 +107,55 @@ Home | Digital Governance Portal
         <h2 class="section-title" style="margin-bottom:0;padding-bottom:0;">News</h2>
         <a href="{% url 'announcement' %}#news" class="view-all">View All</a>
       </div>
-      <div class="news-item">
-        {% if latest_news %}
-        {% if latest_news.gallery_photos|length > 1 %}{% include "portal/_card_collage.html" with item=latest_news title=latest_news.title cls="pcc--thumb" %}{% elif latest_news.image %}<img src="{{ latest_news.image.url }}" alt="{{ latest_news.title }}">{% endif %}
-        <div>
-          <p class="news-item__date">Published on: {{ latest_news.date_published|default:latest_news.created_at|date:"F j, Y" }}</p>
-          <a href="{% url 'announcement' %}" class="news-item__title">{{ latest_news.title }}</a>
-          <p class="news-item__excerpt">{{ latest_news.summary|default:latest_news.content|truncatewords:22 }}</p>
+      {% comment %}
+        News slider: the 6 newest stories, one at a time. Moves on by itself every
+        few seconds (Website Settings → Appearance → "Home page News slider speed")
+        and pauses while the mouse is over it. Arrows on the left / right, dots on
+        the picture, ← → keys or a swipe move it by hand. Title / "Read more" open
+        the story's details; the picture opens the photo viewer.
+      {% endcomment %}
+      {% if news_slides %}
+      <div class="news-slider" id="newsSlider" data-interval="{{ site_contact.news_slider_seconds|default:6 }}"
+           role="region" aria-roledescription="carousel" aria-label="Latest news" tabindex="0">
+        <div class="news-slider__viewport">
+          <div class="news-slider__track">
+            {% for n in news_slides %}
+            {% with office=n.representative.office.name|default:"—" ndate=n.display_date|date:"F j, Y" %}
+            <article class="news-slide{% if forloop.first %} is-active{% endif %}" role="group" aria-roledescription="slide" aria-label="{{ forloop.counter }} of {{ news_slides|length }}"{% if not forloop.first %} aria-hidden="true" inert{% endif %}>
+              <div class="news-slide__media{% if n.gallery_photos %} pcc-host{% endif %}">
+                {% if n.gallery_photos %}
+                  {% include "portal/_card_collage.html" with item=n title=n.title cls="pcc--fill" single=True pv_office=office pv_category=n.category pv_date=ndate %}
+                {% else %}
+                  <span class="news-slide__noimg"><i class="fa-regular fa-newspaper"></i></span>
+                {% endif %}
+              </div>
+              <div class="news-slide__body">
+                <span class="news-slide__badge news-badge--{{ n.category_slug }}">{{ n.category_label }}</span>
+                <h3 class="news-slide__title">
+                  <a href="{% url 'announcement' %}#news" class="js-content-open" data-kind="news" data-id="{{ n.id }}" data-title="{{ n.title }}" data-office="{{ office }}">{{ n.title }}</a>
+                </h3>
+                <p class="news-slide__meta"><span><i class="fa-regular fa-calendar"></i> {{ ndate }}</span><span><i class="fa-regular fa-building"></i> {{ office }}</span></p>
+                <p class="news-slide__excerpt">{{ n.summary|default:n.content|truncatewords:40 }}</p>
+                <a href="{% url 'announcement' %}#news" class="news-slide__more js-content-open" data-kind="news" data-id="{{ n.id }}" data-title="{{ n.title }}" data-office="{{ office }}">Read the full story <i class="fa-solid fa-arrow-right"></i></a>
+              </div>
+            </article>
+            {% endwith %}
+            {% endfor %}
+          </div>
+          {% if news_slides|length > 1 %}
+          <div class="news-slider__dots" aria-label="Choose a news story">
+            {% for n in news_slides %}<button type="button" class="news-slider__dot{% if forloop.first %} is-active{% endif %}" data-go="{{ forloop.counter0 }}" aria-label="News {{ forloop.counter }}: {{ n.title }}"><span></span></button>{% endfor %}
+          </div>
+          {% endif %}
         </div>
-        {% else %}
-        <p style="padding:12px 0;color:var(--gray-500,#6b7286);">No news posted yet.</p>
+        {% if news_slides|length > 1 %}
+        <button type="button" class="news-slider__arrow news-slider__arrow--prev" data-dir="-1" aria-label="Previous news"><i class="fa-solid fa-chevron-left"></i></button>
+        <button type="button" class="news-slider__arrow news-slider__arrow--next" data-dir="1" aria-label="Next news"><i class="fa-solid fa-chevron-right"></i></button>
         {% endif %}
       </div>
+      {% else %}
+      <p style="padding:12px 0;color:var(--gray-500,#6b7286);">No news posted yet.</p>
+      {% endif %}
     </div>
 
   </div>
@@ -131,9 +172,7 @@ Home | Digital Governance Portal
       <button class="gallery-nav gallery-nav--prev" aria-label="Previous photos"><i class="fa-solid fa-arrow-left"></i></button>
       <div class="gallery-strip__track">
         {% for p in gallery_photos %}
-        {% comment %}Photos of an announcement / news / event open that item's details pop-up; gallery photos open the photo viewer.{% endcomment %}
-        <a href="{{ p.url }}" target="_blank" rel="noopener" class="home-gallery-item {% if p.kind == 'photo' %}js-gallery-open{% else %}js-content-open{% endif %}"
-           data-kind="{{ p.kind }}" data-id="{{ p.id }}"
+        <a href="{{ p.url }}" target="_blank" rel="noopener" class="home-gallery-item js-gallery-open"
            data-image="{{ p.url }}"
            data-title="{{ p.title }}"
            data-office="{{ p.office }}"
@@ -155,67 +194,90 @@ Home | Digital Governance Portal
   </div>
 </section>
 
-{% if gallery_photos %}
-<!-- Details of the announcements / news / events whose photos are in the strip. -->
-{% for a in detail_announcements %}{% include "portal/_ann_detail.html" with expired=a.is_expired %}{% endfor %}
-{% for n in detail_news %}<template id="tpl-news-{{ n.id }}">{% include "portal/_news_detail.html" %}</template>{% endfor %}
-{% for e in detail_events %}<template id="tpl-event-{{ e.id }}">{% include "portal/_event_detail.html" %}</template>{% endfor %}
+<!-- Details pop-ups for the Latest Announcements, Upcoming Event and News
+     above (clicking a title opens them, like on the Announcements page). -->
+{% for a in home_announcements %}{% include "portal/_ann_detail.html" %}{% endfor %}
+{% if upcoming_event %}<template id="tpl-event-{{ upcoming_event.id }}">{% include "portal/_event_detail.html" with e=upcoming_event %}</template>{% endif %}
+{% for n in news_slides %}<template id="tpl-news-{{ n.id }}">{% include "portal/_news_detail.html" %}</template>{% endfor %}
 {% include "portal/_content_dialogs.html" %}
 
-<!-- Same lightbox as the Gallery page: full-size photo with its details on the lower-left. -->
-<dialog id="galleryLightbox" class="gallery-lightbox" aria-labelledby="galleryLightboxTitle">
-  <div class="gallery-lightbox__box">
-    <button type="button" class="gallery-lightbox__close" id="galleryLightboxClose" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
-    <img id="galleryLightboxImg" src="" alt="">
-    <div class="gallery-lightbox__caption">
-      <span class="gallery-lightbox__title" id="galleryLightboxTitle"></span>
-      <span class="gallery-lightbox__meta" id="galleryLightboxMeta"></span>
-    </div>
-  </div>
-</dialog>
 
 <script>
 (function () {
-  var lightbox = document.getElementById('galleryLightbox');
-  var lightboxImg = document.getElementById('galleryLightboxImg');
-  var lightboxTitle = document.getElementById('galleryLightboxTitle');
-  var lightboxMeta = document.getElementById('galleryLightboxMeta');
-  var closeBtn = document.getElementById('galleryLightboxClose');
-  if (!lightbox) return;
+  var root = document.getElementById('newsSlider');
+  if (!root) return;
+  var viewport = root.querySelector('.news-slider__viewport');
+  var track = root.querySelector('.news-slider__track');
+  var slides = root.querySelectorAll('.news-slide');
+  var dots = root.querySelectorAll('.news-slider__dot');
+  var n = slides.length, at = 0, timer = null, hovered = false, keyFocus = false;
+  var ms = Math.max(3, parseInt(root.getAttribute('data-interval'), 10) || 6) * 1000;
 
-  function openLightbox(trigger) {
-    var d = trigger.dataset;
-    lightboxImg.src = d.image;
-    lightboxImg.alt = d.title || '';
-    lightboxTitle.textContent = d.title || '';
-    var metaParts = [];
-    if (d.office) metaParts.push(d.office);
-    if (d.category) metaParts.push(d.category);
-    if (d.date) metaParts.push(d.date);
-    lightboxMeta.textContent = metaParts.join(' \u2022 ');
-    lightbox.showModal();
-    document.body.classList.add('lock');
-  }
-  function closeLightbox() {
-    lightbox.close();
-    document.body.classList.remove('lock');
+  // older browsers without "overflow: clip": undo any sideways scroll of the box
+  viewport.addEventListener('scroll', function () { viewport.scrollLeft = 0; viewport.scrollTop = 0; });
+  // the box takes the height of the story being shown (stories differ in length)
+  function fitHeight() { if (slides[at]) viewport.style.height = slides[at].offsetHeight + 'px'; }
+  window.addEventListener('resize', fitHeight);
+  root.querySelectorAll('img').forEach(function (im) { if (!im.complete) im.addEventListener('load', fitHeight); });
+  if (n < 2) { fitHeight(); return; }
+
+  function go(i) {
+    at = (i + n) % n;
+    track.style.transform = 'translateX(' + (-100 * at) + '%)';
+    slides.forEach(function (s, k) {
+      s.classList.toggle('is-active', k === at);
+      // hidden stories can't be reached with Tab (inert)
+      if (k === at) { s.removeAttribute('aria-hidden'); s.removeAttribute('inert'); }
+      else { s.setAttribute('aria-hidden', 'true'); s.setAttribute('inert', ''); }
+    });
+    dots.forEach(function (d, k) { d.classList.toggle('is-active', k === at); });
+    fitHeight();
+    restart();
   }
 
-  document.addEventListener('click', function (e) {
-    var trigger = e.target.closest('.js-gallery-open');
-    if (!trigger) return;
-    e.preventDefault();
-    openLightbox(trigger);
+  // Auto-play: next story every few seconds. It only waits while the mouse is
+  // over the slider, or while someone moves through it with the keyboard —
+  // a click on an arrow or dot does NOT stop it.
+  function restart() {
+    clearTimeout(timer);
+    var running = !hovered && !keyFocus && !document.hidden;
+    root.classList.toggle('is-paused', !running);
+    dots.forEach(function (d) { var s = d.firstElementChild; s.style.transition = 'none'; s.style.width = '0%'; });
+    if (!running) return;
+    var bar = dots[at] && dots[at].firstElementChild;
+    if (bar) { void bar.offsetWidth; bar.style.transition = 'width ' + ms + 'ms linear'; bar.style.width = '100%'; }
+    timer = setTimeout(function () { go(at + 1); }, ms);
+  }
+
+  root.querySelectorAll('.news-slider__arrow').forEach(function (b) {
+    b.addEventListener('click', function () { go(at + parseInt(b.getAttribute('data-dir'), 10)); });
   });
-  closeBtn.addEventListener('click', closeLightbox);
-  lightbox.addEventListener('click', function (e) {
-    if (e.target === lightbox) closeLightbox();
+  dots.forEach(function (d) { d.addEventListener('click', function () { go(parseInt(d.getAttribute('data-go'), 10)); }); });
+  root.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowLeft') { e.preventDefault(); go(at - 1); }
+    if (e.key === 'ArrowRight') { e.preventDefault(); go(at + 1); }
   });
-  lightbox.addEventListener('close', function () {
-    document.body.classList.remove('lock');
+  root.addEventListener('mouseenter', function () { hovered = true; restart(); });
+  root.addEventListener('mouseleave', function () { hovered = false; restart(); });
+  root.addEventListener('focusin', function (e) {
+    var kb = false; try { kb = e.target.matches(':focus-visible'); } catch (err) {}
+    if (kb !== keyFocus) { keyFocus = kb; restart(); }
   });
+  root.addEventListener('focusout', function () {
+    setTimeout(function () { if (!root.contains(document.activeElement) && keyFocus) { keyFocus = false; restart(); } }, 0);
+  });
+  document.addEventListener('visibilitychange', restart);
+  // swipe on phones
+  var sx = null, sy = null;
+  root.addEventListener('touchstart', function (e) { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+  root.addEventListener('touchend', function (e) {
+    if (sx === null) return;
+    var dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+    sx = null;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) go(dx < 0 ? at + 1 : at - 1);
+  });
+  go(0);
 })();
 </script>
-{% endif %}
 
 {% endblock %}

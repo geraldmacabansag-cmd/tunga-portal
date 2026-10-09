@@ -631,6 +631,46 @@
 .about-office-meta__item--facebook i { color: #1877f2; }
 .about-office-meta__item--facebook:hover { text-decoration: underline; }
 
+/* "About the Office" details (Office Hours, Location, Email, Telephone):
+   equal boxes in a neat row, each with its icon in a circle, that wrap to
+   2 per row on tablets and 1 per row on phones. */
+.about-office-panel .about-office-meta {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+  padding-bottom: 0;
+  border-bottom: none;
+  margin-bottom: 0;
+}
+.about-office-panel .about-office-meta > div:not(.about-office-socials) {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px 16px;
+  background: #f4f6fb;
+  border: 1px solid #e3e7f1;
+  border-radius: 12px;
+}
+.about-office-panel .about-office-meta > div:not(.about-office-socials) > i {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid #e3e7f1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+.about-office-panel .about-office-meta > div:not(.about-office-socials) > div { min-width: 0; }
+.about-office-panel .about-office-meta span { display: block; overflow-wrap: anywhere; line-height: 1.4; }
+@media (max-width: 600px) {
+  .about-office-panel .about-office-meta { grid-template-columns: 1fr; gap: 10px; }
+}
+
 /* Social media links in "About the Office": icon + name inside ONE clickable pill.
    The ".about-office-meta" prefix beats the generic ".about-office-meta i / span"
    rules in mayorsoffice.css (which would otherwise shrink and recolor them). */

@@ -73,6 +73,7 @@
    ========================================================================== */
 .pcc { display: grid; gap: 2px; overflow: hidden; background: #fff; }
 .pcc .pc-tile { cursor: zoom-in; }
+.pcc--n1 { grid-template-columns: 1fr; }   /* a single photo (Announcements page) */
 .pcc--n2 { grid-template-columns: 1fr 1fr; }
 .pcc--n3 { grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr; }
 .pcc--n3 .pc-tile:first-child { grid-row: 1 / 3; }

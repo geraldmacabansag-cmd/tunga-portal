@@ -35,6 +35,19 @@ class SiteContactInfo(models.Model):
     hero_banner = models.ImageField(upload_to="site/", blank=True, null=True)
     # Shown under "MUNICIPALITY OF TUNGA" in the public site header (Website Settings → Appearance)
     site_tagline = models.CharField(max_length=120, default=DEFAULT_TAGLINE, blank=True)
+    # How long each announcement stays in the bar at the very top of the public
+    # site before the next one shows (Website Settings → Appearance). In seconds.
+    ticker_interval_seconds = models.PositiveIntegerField(default=2)
+    # Home page News slider: seconds before the next news story slides in
+    # (Website Settings → Appearance).
+    news_slider_seconds = models.PositiveIntegerField(default=6)
+    # "Our Location" map on the Contact Us page (Website Settings → General):
+    # where the pin goes. Empty = the town center of Tunga.
+    DEFAULT_MAP_LAT = 11.2483
+    DEFAULT_MAP_LNG = 124.7524
+    map_place_name = models.CharField(max_length=120, blank=True, default="Municipal Hall of Tunga")
+    map_latitude = models.FloatField(null=True, blank=True)
+    map_longitude = models.FloatField(null=True, blank=True)
     social_facebook = models.URLField(blank=True)
     social_twitter = models.URLField(blank=True)
     social_instagram = models.URLField(blank=True)
@@ -51,6 +64,25 @@ class SiteContactInfo(models.Model):
 
     def __str__(self):
         return "Site Contact Information"
+
+    @property
+    def map_lat(self):
+        return self.map_latitude if self.map_latitude is not None else self.DEFAULT_MAP_LAT
+
+    @property
+    def map_lng(self):
+        return self.map_longitude if self.map_longitude is not None else self.DEFAULT_MAP_LNG
+
+    @property
+    def ticker_interval_unit(self):
+        """'minutes' when the interval is a whole number of minutes, else 'seconds'."""
+        s = self.ticker_interval_seconds or 2
+        return "minutes" if s >= 60 and s % 60 == 0 else "seconds"
+
+    @property
+    def ticker_interval_value(self):
+        s = self.ticker_interval_seconds or 2
+        return s // 60 if self.ticker_interval_unit == "minutes" else s
 
     @classmethod
     def get_solo(cls):
@@ -138,11 +170,42 @@ class EmergencyContact(models.Model):
     extra_detail = models.CharField(max_length=255, blank=True)
     order = models.PositiveIntegerField(default=0)
 
+    # The official Tunga hotlines. "Reset to default" on the Super Admin
+    # Emergency Contacts page restores these and puts them first.
+    # (name, category, icon, color, phone number, detail)
+    DEFAULT_CONTACTS = [
+        ("BFP – Fire Emergency", "Fire", "fa-fire", "red",
+         "09856193119", "Bureau of Fire Protection"),
+        ("PNP – Police Emergency", "Police", "fa-user-shield", "navy",
+         "09062863422", "Philippine National Police"),
+        ("MDRRMO – Disaster Management", "Medical / Rescue", "fa-life-ring", "red",
+         "09815519256", "Municipal Disaster Risk Reduction and Management Office"),
+    ]
+
     class Meta:
         ordering = ["order", "id"]
 
     def __str__(self):
         return self.name
+
+    @classmethod
+    def reset_defaults(cls):
+        """Leaves only the default hotlines (BFP, PNP, MDRRMO): every other
+        contact is removed, deleted ones are added back and edits are undone."""
+        numbers = [c[4] for c in cls.DEFAULT_CONTACTS]
+        cls.objects.exclude(phone_number__in=numbers).delete()
+        for position, (name, category, icon, color, phone, detail) in enumerate(cls.DEFAULT_CONTACTS):
+            same_number = cls.objects.filter(phone_number=phone)
+            contact = same_number.first() or cls(phone_number=phone)
+            same_number.exclude(pk=contact.pk).delete()   # no duplicates
+            contact.name = name
+            contact.category = category
+            contact.icon = icon
+            contact.color = color
+            contact.carrier_label = ""
+            contact.extra_detail = detail
+            contact.order = position
+            contact.save()
 
 class QuickLink(models.Model):
     """A shortcut tile shown in the "services strip" near the top of the
