@@ -2,12 +2,14 @@ from functools import wraps
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from .models import AdminNotification
 from .models import SuperAdmin, SiteContactInfo, EmergencyContact, EmailProviderSettings, QuickLink, AboutPageContent, HistoryMilestone, AboutOfficial, Barangay
 from django.core.paginator import Paginator
 from django.contrib.auth.models import User
 from django.db.models import Count, Sum, Q, F
 from django.utils import timezone
 from office_dashboard.models import Announcement, NewsUpdate, Event, DownloadableForm, FormField, Photo, Album, Service, OfficeRepresentative, Notification, ServiceEditSettings, ActivityLog, Message
+from office_dashboard.models import log_activity
 from office_dashboard.notifications import notify, notify_all_reps
 from office_dashboard.announcement_rules import clean_announcement
 from offices.models import Office
@@ -87,8 +89,123 @@ def super_admin_required(view_func):
         if not SuperAdmin.objects.filter(user=request.user).exists():
             messages.error(request, "You don't have access to the Super Admin dashboard.")
             return redirect("home")
-        return view_func(request, *args, **kwargs)
+        if request.method != "POST":
+            # Automatic daily backup: starts in the background when it's due.
+            from .backup import maybe_start_auto_backup
+            maybe_start_auto_backup()
+            return view_func(request, *args, **kwargs)
+
+        # Activity log: every Super Admin action already ends with a
+        # messages.success(...) line ("X was approved and published.").
+        # After the view runs, each new success message is saved to the
+        # Activity Logs, so no view needs its own log_activity() call.
+        before_msgs = len(_queued_messages(request))
+        last_log = ActivityLog.objects.order_by("-id").values_list("id", flat=True).first() or 0
+        response = view_func(request, *args, **kwargs)
+        try:
+            new_msgs = _queued_messages(request)[before_msgs:]
+            already_logged = ActivityLog.objects.filter(id__gt=last_log).exists()
+            texts = [str(m.message) for m in new_msgs if m.level == messages.SUCCESS]
+            if texts and not already_logged:
+                rep = get_or_create_lgu_rep(request.user)
+                for text in texts:
+                    _log_admin_action(rep, view_func.__name__, text)
+        except Exception:
+            pass  # logging must never break the action itself
+        return response
     return wrapper
+
+
+def _queued_messages(request):
+    storage = getattr(request, "_messages", None)
+    return list(getattr(storage, "_queued_messages", []) or [])
+
+
+# Which part of the dashboard a view belongs to, checked in this order
+# (first word found in the view's name wins):
+# (word, area title, category, icon, color)
+ADMIN_LOG_AREAS = [
+    ("backup", "Backup & Restore", "security", "fa-solid fa-database", "var(--blue-600)"),
+    ("approval", "Approval Center", "content", "fa-solid fa-square-check", "var(--green-600)"),
+    ("password", "Password changed", "security", "fa-solid fa-lock", "var(--amber-600)"),
+    ("my_account", "Account updated", "account", "fa-solid fa-user", "var(--gray-500)"),
+    ("system_setting", "System settings", "security", "fa-solid fa-gear", "var(--gray-500)"),
+    ("admin_archive", "Archive", "content", "fa-solid fa-box-archive", "var(--amber-600)"),
+    ("photo", "Gallery", "content", "fa-regular fa-image", "#12b3c4"),
+    ("album", "Gallery", "content", "fa-regular fa-image", "#12b3c4"),
+    ("announcement", "Announcements", "content", "fa-solid fa-bullhorn", "var(--blue-600)"),
+    ("news", "News", "content", "fa-regular fa-newspaper", "#12b3c4"),
+    ("event", "Events", "content", "fa-solid fa-calendar-days", "#7c4fe0"),
+    ("form", "Downloadable forms", "content", "fa-solid fa-file-arrow-down", "var(--blue-600)"),
+    ("rep", "Representatives", "account", "fa-solid fa-user-tie", "var(--blue-600)"),
+    ("office", "Offices", "content", "fa-solid fa-building", "var(--blue-600)"),
+    ("service", "Services", "content", "fa-solid fa-list-check", "var(--blue-600)"),
+    ("user", "Users", "account", "fa-solid fa-users", "var(--blue-600)"),
+    ("role", "Users", "account", "fa-solid fa-users", "var(--blue-600)"),
+    ("quicklink", "Homepage", "content", "fa-solid fa-house", "var(--blue-600)"),
+    ("homepage", "Homepage", "content", "fa-solid fa-house", "var(--blue-600)"),
+    ("about", "About page", "content", "fa-solid fa-landmark", "var(--blue-600)"),
+    ("contact", "Emergency contacts", "content", "fa-solid fa-phone", "var(--red-600)"),
+    ("web_setting", "Website settings", "content", "fa-solid fa-sliders", "var(--gray-500)"),
+    ("org_chart", "Org chart", "content", "fa-solid fa-sitemap", "var(--blue-600)"),
+    ("map", "Interactive map", "content", "fa-solid fa-map-location-dot", "var(--green-600)"),
+]
+
+
+def _log_admin_action(rep, view_name, text):
+    title, category, icon, color = "Settings updated", "content", "fa-solid fa-circle-info", "var(--blue-600)"
+    for word, a_title, a_cat, a_icon, a_color in ADMIN_LOG_AREAS:
+        if word in view_name:
+            title, category, icon, color = a_title, a_cat, a_icon, a_color
+            break
+    low = text.lower()
+    if any(w in low for w in ("deleted", "removed", "rejected", "deactivated")):
+        color = "var(--red-600)"
+    elif any(w in low for w in ("archived", "returned", "turned off", "hidden")):
+        color = "var(--amber-600)"
+    elif any(w in low for w in ("approved", "published", "activated", "restored")):
+        color = "var(--green-600)"
+    log_activity(rep, title, text[:500], category, icon, color)
+
+
+def activity_dot(color):
+    """Turns an ActivityLog.icon_color into one of the 4 dot colors."""
+    c = (color or "").lower()
+    if "green" in c:
+        return "green"
+    if "red" in c:
+        return "red"
+    if "amber" in c:
+        return "amber"
+    return "blue"
+
+
+def activity_tone(color):
+    """Turns an ActivityLog.icon_color into a CSS class name for the icon box."""
+    c = (color or "").lower()
+    for word, tone in (("green", "green"), ("red", "red"), ("amber", "amber"), ("gray", "gray"),
+                       ("12b3c4", "teal"), ("7c4fe0", "purple")):
+        if word in c:
+            return tone
+    return "blue"
+
+
+def activity_when(dt):
+    """Short relative time for the dashboard: "Just now", "5 minutes ago", "2 days ago"."""
+    from django.utils.timesince import timesince
+    first = timesince(dt).split(",")[0]
+    return "Just now" if first.startswith("0") else f"{first} ago"
+
+
+def activity_actor(log):
+    """Who did it: the person's name, plus their office (or "Super Admin")."""
+    rep = log.representative
+    user = rep.user
+    name = user.get_full_name() or user.username
+    office = rep.office
+    if not office or office.slug == LGU_SUPER_ADMIN_SLUG:
+        return name, "Super Admin"
+    return name, office.name
 
 
 # Icon/color for each pending-item type shown in the dashboard's "Awaiting
@@ -236,7 +353,22 @@ def dashboard(request):
     office_rows.sort(key=lambda r: (-r["pending_count"], -r["services_count"]))
     office_rows = office_rows[:5]
 
+    # ---- Recent activity (latest 8 entries from all offices + Super Admin) ----
+    recent_activity = []
+    for log in ActivityLog.objects.select_related("representative__user", "representative__office")[:8]:
+        name, office_label = activity_actor(log)
+        recent_activity.append({
+            "log": log, "name": name, "office": office_label, "dot": activity_dot(log.icon_color),
+            "when": activity_when(log.created_at),
+        })
+
+    # ---- Backup reminder ----
+    from .backup import backup_health
+    backup_warning = backup_health()
+
     return render(request, "admin_dashboard/super-admin-dashboard.html", {
+        "backup_warning": backup_warning,
+        "recent_activity": recent_activity,
         "pending_total": pending_total,
         "pending_today": pending_today,
         "recent_pending": recent_pending,
@@ -2411,7 +2543,258 @@ def admin_export_approval_history(request):
 
 @super_admin_required
 def admin_activity_log(request):
-    return render(request, "admin_dashboard/super-admin-activity-logs.html")
+    q = request.GET.get("q", "").strip()
+    office_filter = request.GET.get("office", "").strip()
+    category = request.GET.get("category", "").strip()
+    date_from = request.GET.get("from", "").strip()
+    date_to = request.GET.get("to", "").strip()
+
+    logs = ActivityLog.objects.select_related("representative__user", "representative__office")
+    all_count = logs.count()
+
+    if q:
+        logs = logs.filter(
+            Q(title__icontains=q) | Q(description__icontains=q)
+            | Q(representative__user__first_name__icontains=q)
+            | Q(representative__user__last_name__icontains=q)
+            | Q(representative__user__username__icontains=q)
+            | Q(representative__office__name__icontains=q)
+        )
+    if office_filter:
+        logs = logs.filter(representative__office__slug=office_filter)
+    if category in dict(ActivityLog.CATEGORY_CHOICES):
+        logs = logs.filter(category=category)
+    else:
+        category = ""
+    try:
+        if date_from:
+            logs = logs.filter(created_at__date__gte=date_from)
+        if date_to:
+            logs = logs.filter(created_at__date__lte=date_to)
+    except ValidationError:
+        date_from = date_to = ""
+
+    paginator = Paginator(logs, 20)
+    page_obj = paginator.get_page(request.GET.get("page"))
+    rows = []
+    for log in page_obj:
+        name, office_label = activity_actor(log)
+        rows.append({"log": log, "name": name, "office": office_label, "tone": activity_tone(log.icon_color)})
+
+    today = timezone.localdate()
+    all_logs = ActivityLog.objects.all()
+    stats = {
+        "total": all_count,
+        "today": all_logs.filter(created_at__date=today).count(),
+        "week": all_logs.filter(created_at__date__gte=today - timedelta(days=6)).count(),
+        "security": all_logs.filter(category="security").count(),
+    }
+
+    # Offices that actually have log entries, for the filter dropdown.
+    office_options = (
+        Office.objects.filter(representative__activity_logs__isnull=False)
+        .distinct().order_by("name")
+    )
+
+    # Keeps the current filters on the page links.
+    params = request.GET.copy()
+    params.pop("page", None)
+
+    return render(request, "admin_dashboard/super-admin-activity-logs.html", {
+        "rows": rows,
+        "page_obj": page_obj,
+        "page_range": paginator.get_elided_page_range(page_obj.number, on_each_side=1, on_ends=1),
+        "stats": stats,
+        "office_options": office_options,
+        "category_choices": ActivityLog.CATEGORY_CHOICES,
+        "lgu_slug": LGU_SUPER_ADMIN_SLUG,
+        "current_q": q,
+        "current_office": office_filter,
+        "current_category": category,
+        "current_from": date_from,
+        "current_to": date_to,
+        "filters_on": bool(q or office_filter or category or date_from or date_to),
+        "query_string": params.urlencode(),
+    })
+
+@super_admin_required
+def admin_notifications(request):
+    """All of the Super Admin's notifications (the bell's "View all")."""
+    show = request.GET.get("show", "all")
+    notes = AdminNotification.objects.filter(user=request.user)
+    unread_count = notes.filter(is_read=False).count()
+    if show == "unread":
+        notes = notes.filter(is_read=False)
+    page_obj = Paginator(notes, 15).get_page(request.GET.get("page"))
+    return render(request, "admin_dashboard/super-admin-notifications.html", {
+        "page_obj": page_obj,
+        "unread_count": unread_count,
+        "show": show,
+    })
+
+
+def _safe_next(request, fallback):
+    nxt = request.POST.get("next") or request.GET.get("next") or ""
+    return nxt if nxt.startswith("/") and not nxt.startswith("//") else fallback
+
+
+@super_admin_required
+def admin_notification_open(request, pk):
+    """Clicking a notification: mark it read, then go to what it is about."""
+    note = get_object_or_404(AdminNotification, pk=pk, user=request.user)
+    if not note.is_read:
+        note.is_read = True
+        note.save(update_fields=["is_read"])
+    if note.link_url.startswith("/"):
+        return redirect(note.link_url)
+    return redirect("admin_dashboard:ad_notifications")
+
+
+@super_admin_required
+def admin_notifications_read_all(request):
+    if request.method == "POST":
+        AdminNotification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+    return redirect(_safe_next(request, reverse("admin_dashboard:ad_notifications")))
+
+
+@super_admin_required
+def admin_notification_delete(request, pk):
+    if request.method == "POST":
+        AdminNotification.objects.filter(pk=pk, user=request.user).delete()
+    return redirect(_safe_next(request, reverse("admin_dashboard:ad_notifications")))
+
+
+# ---------------------------------------------------------------------------
+# Backup & Restore (the work itself is in admin_dashboard/backup.py)
+# ---------------------------------------------------------------------------
+@super_admin_required
+def admin_backup(request):
+    from . import backup
+    from .models import BackupSettings, SiteBackup
+
+    settings_obj = BackupSettings.get_solo()
+    if request.method == "POST":
+        settings_obj.auto_enabled = request.POST.get("auto_enabled") == "on"
+        settings_obj.auto_include_files = request.POST.get("auto_include_files") == "on"
+        try:
+            settings_obj.keep_count = min(60, max(1, int(request.POST.get("keep_count", 14))))
+        except ValueError:
+            pass
+        settings_obj.save()
+        backup.cleanup_old_backups()
+        messages.success(request, "Backup settings were saved.")
+        return redirect("admin_dashboard:ad_backup")
+
+    busy = backup.is_busy()
+    settings_obj.refresh_from_db()
+    backups = SiteBackup.objects.all()
+    last_success = backups.filter(status="success").exclude(kind="uploaded").first()
+    storage_label, storage_temporary = backup.storage_description()
+    return render(request, "admin_dashboard/super-admin-backup-restore.html", {
+        "backups": backups,
+        "settings_obj": settings_obj,
+        "last_success": last_success,
+        "running_backup": backups.filter(status="running").first(),
+        "restore_running": settings_obj.restore_status == "running",
+        "busy": busy,
+        "storage_label": storage_label,
+        "storage_temporary": storage_temporary,
+        "health": backup.backup_health(),
+        "kept_count": backups.filter(status="success", kind__in=["manual", "auto"]).count(),
+    })
+
+
+@super_admin_required
+def admin_backup_create(request):
+    from . import backup
+    if request.method == "POST":
+        who = request.user.get_full_name() or request.user.username
+        include_files = request.POST.get("include_files") == "on"
+        if backup.start_backup("manual", include_files, who):
+            messages.success(request, "Backup started" + (" (data and files)" if include_files else " (data only)") +
+                             ". It keeps running even if you leave this page.")
+        else:
+            messages.error(request, "A backup or restore is already running. Please wait for it to finish.")
+    return redirect("admin_dashboard:ad_backup")
+
+
+@super_admin_required
+def admin_backup_upload(request):
+    from . import backup
+    if request.method == "POST":
+        f = request.FILES.get("backup_file")
+        if not f:
+            messages.error(request, "Choose a backup .zip file to upload.")
+        elif not f.name.lower().endswith(".zip"):
+            messages.error(request, "Backup files are .zip files.")
+        else:
+            try:
+                who = request.user.get_full_name() or request.user.username
+                backup.save_uploaded_backup(f, who)
+                messages.success(request, f'Backup file "{f.name}" was uploaded and checked. You can restore it from the list.')
+            except backup.BackupError as exc:
+                messages.error(request, str(exc))
+    return redirect("admin_dashboard:ad_backup")
+
+
+@super_admin_required
+def admin_backup_download(request, pk):
+    from .backup import get_backup_storage
+    from .models import SiteBackup
+    record = get_object_or_404(SiteBackup, pk=pk, status="success")
+    try:
+        fh = get_backup_storage().open(record.filename, "rb")
+    except Exception:
+        messages.error(request, "That backup file can no longer be found in the backup storage.")
+        return redirect("admin_dashboard:ad_backup")
+    return FileResponse(fh, as_attachment=True, filename=record.filename.rsplit("/", 1)[-1],
+                        content_type="application/zip")
+
+
+@super_admin_required
+def admin_backup_restore(request, pk):
+    from . import backup
+    from .models import SiteBackup
+    record = get_object_or_404(SiteBackup, pk=pk, status="success")
+    if request.method != "POST":
+        return redirect("admin_dashboard:ad_backup")
+    if request.POST.get("confirm_text", "").strip() != "RESTORE":
+        messages.error(request, 'Type RESTORE (in capital letters) to confirm.')
+    elif not request.user.check_password(request.POST.get("password", "")):
+        messages.error(request, "Your password is incorrect. Nothing was restored.")
+    else:
+        who = request.user.get_full_name() or request.user.username
+        if backup.start_restore(record, who):
+            messages.success(request, "Restore started. A safety backup of the current site is made first. "
+                                      "You may need to log in again when it finishes.")
+        else:
+            messages.error(request, "A backup or restore is already running. Please wait for it to finish.")
+    return redirect("admin_dashboard:ad_backup")
+
+
+@super_admin_required
+def admin_backup_delete(request, pk):
+    from . import backup
+    from .models import SiteBackup
+    record = get_object_or_404(SiteBackup, pk=pk)
+    if request.method == "POST":
+        if record.status == "running":
+            messages.error(request, "That backup is still running.")
+        else:
+            name = record.filename.rsplit("/", 1)[-1] or f"Backup #{record.pk}"
+            backup.delete_backup(record)
+            messages.success(request, f'Backup "{name}" was deleted.')
+    return redirect("admin_dashboard:ad_backup")
+
+
+@super_admin_required
+def admin_backup_status(request):
+    """Polled by the Backup & Restore page while something is running."""
+    from . import backup
+    from .models import BackupSettings
+    s = BackupSettings.get_solo()
+    return JsonResponse({"busy": backup.is_busy(), "restore_status": s.restore_status})
+
 
 @super_admin_required
 def admin_system_setting(request):
@@ -2575,6 +2958,17 @@ def admin_messages(request):
     rep_id = request.GET.get("rep")
     if rep_id and rep_id.isdigit():
         selected = next((c for c in conversations if c["rep"].id == int(rep_id)), None)
+    if selected:
+        # Clicking an office marks its messages as read right away, so the
+        # red number next to "Messages" in the sidebar is already updated
+        # on this page (not only after the next refresh).
+        rep = selected["rep"]
+        rep.chat_messages.filter(sender=Message.SENDER_REP, read_at__isnull=True).update(read_at=timezone.now())
+        AdminNotification.objects.filter(
+            user=request.user, is_read=False,
+            link_url=reverse("admin_dashboard:ad_messages") + f"?rep={rep.pk}",
+        ).update(is_read=True)
+        selected["unread"] = 0
     return render(request, "admin_dashboard/super-admin-messages.html", {
         "conversations": conversations,
         "selected": selected,
@@ -2589,17 +2983,23 @@ def admin_messages_data(request):
     except (TypeError, ValueError):
         after = 0
 
+    # Opening a conversation also clears the bell's "New message" notice for it.
+    AdminNotification.objects.filter(
+        user=request.user, is_read=False,
+        link_url=reverse("admin_dashboard:ad_messages") + f"?rep={rep.pk}",
+    ).update(is_read=True)
+
     # Opening a conversation marks that representative's messages as read.
     rep.chat_messages.filter(
         sender=Message.SENDER_REP, read_at__isnull=True
     ).update(read_at=timezone.now())
 
     items = rep.chat_messages.filter(id__gt=after)
+    unread = {str(c["rep"].id): c["unread"] for c in _message_conversations()}
     return JsonResponse({
         "messages": [serialize_chat_message(m) for m in items],
-        "unread": {
-            str(c["rep"].id): c["unread"] for c in _message_conversations()
-        },
+        "unread": unread,
+        "unread_total": sum(unread.values()),
     })
 
 

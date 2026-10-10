@@ -41,6 +41,14 @@ class Office(models.Model):
         help_text="Link to this office's official YouTube channel, shown as an icon on its public page.",
     )
 
+    # The account / page names shown next to the social media icons on the
+    # public office page (e.g. "Tunga Mayor's Office"). Optional — when blank,
+    # a name is taken from the link itself (see social_links below).
+    facebook_name = models.CharField(max_length=100, blank=True)
+    twitter_name = models.CharField(max_length=100, blank=True)
+    instagram_name = models.CharField(max_length=100, blank=True)
+    youtube_name = models.CharField(max_length=100, blank=True)
+
     hero_image = models.ImageField(
         upload_to="office_hero/",
         blank=True,
@@ -57,6 +65,56 @@ class Office(models.Model):
         default=True,
         help_text="Uncheck to hide this office from the public Offices page."
     )
+
+    # ---- social media (public office page) ---------------------------------
+    SOCIAL_PLATFORMS = [
+        # field prefix, platform name, icon
+        ("facebook", "Facebook", "fa-brands fa-facebook"),
+        ("twitter", "X (Twitter)", "fa-brands fa-x-twitter"),
+        ("instagram", "Instagram", "fa-brands fa-instagram"),
+        ("youtube", "YouTube", "fa-brands fa-youtube"),
+    ]
+
+    @staticmethod
+    def account_name_from_url(url, handle=False):
+        """A readable account name taken from a social media link, e.g.
+        facebook.com/TungaMayorsOffice -> "TungaMayorsOffice",
+        youtube.com/@TungaLGU -> "@TungaLGU", instagram.com/tunga.mayor (handle=True)
+        -> "@tunga.mayor". "" when the link has no name in it (a number ID or a
+        YouTube channel code) — then the office's own name is shown instead."""
+        from urllib.parse import urlparse, unquote
+        try:
+            parts = [unquote(p) for p in urlparse(url or "").path.split("/") if p]
+        except ValueError:
+            return ""
+        if not parts:
+            return ""
+        first = parts[0].lower()
+        if first in ("channel", "profile.php") or parts[0].isdigit():
+            return ""                                   # only an ID, no name
+        if first in ("pages", "pg", "people", "c", "user", "groups") and len(parts) > 1:
+            parts = parts[1:]
+        name = parts[0]
+        if name.startswith("@"):
+            return name
+        if handle:
+            return "@" + name
+        return name.replace("-", " ").replace("_", " ").strip()
+
+    @property
+    def social_links(self):
+        """The office's social media accounts that have a link, each with its
+        icon, platform name and account name — used by offices/office_detail.html."""
+        links = []
+        for key, platform, icon in self.SOCIAL_PLATFORMS:
+            url = getattr(self, f"{key}_url", "")
+            if not url:
+                continue
+            name = ((getattr(self, f"{key}_name", "") or "").strip()
+                    or self.account_name_from_url(url, handle=key in ("twitter", "instagram"))
+                    or self.name)
+            links.append({"key": key, "url": url, "platform": platform, "icon": icon, "name": name})
+        return links
 
     def __str__(self):
         return self.name

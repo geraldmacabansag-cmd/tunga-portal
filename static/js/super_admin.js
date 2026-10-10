@@ -673,7 +673,21 @@
   });
 
   function wireTopbar() {
-    var bell = $('.icon-button');
+    // Super Admin bell: the real list is already in the page (super-admin-base.html).
+    var notifBox = document.getElementById('adminNotif');
+    if (notifBox) {
+      var realBell = document.getElementById('adminBellBtn');
+      notifBox.classList.add('dropdown-anchor');
+      realBell.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var panel = document.getElementById('adminNotifPanel');
+        var willOpen = !panel.classList.contains('open');
+        closeAllDropdowns();
+        panel.classList.toggle('open', willOpen);
+        realBell.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+      });
+    }
+    var bell = notifBox ? null : $('.icon-button');
     if (bell) {
       bell.addEventListener('click', function (e) {
         e.stopPropagation();

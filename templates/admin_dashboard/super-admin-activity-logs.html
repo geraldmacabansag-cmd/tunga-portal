@@ -9,10 +9,102 @@
 
 {% block content %}
 
-      <div class="empty-state">
-        <div class="ei"><i class="fa-solid fa-clock-rotate-left"></i></div>
-        <h2>Activity Logs</h2>
-        <p>This page is ready and waiting &mdash; nothing has been built here yet.</p>
+  <div class="log-stats">
+    <div class="log-stat"><div class="log-stat__value">{{ stats.total }}</div><div class="log-stat__label">All activity</div></div>
+    <div class="log-stat"><div class="log-stat__value">{{ stats.today }}</div><div class="log-stat__label">Today</div></div>
+    <div class="log-stat"><div class="log-stat__value">{{ stats.week }}</div><div class="log-stat__label">Last 7 days</div></div>
+    <div class="log-stat"><div class="log-stat__value">{{ stats.security }}</div><div class="log-stat__label">Security events</div></div>
+  </div>
+
+  <section class="panel">
+    <form method="get" class="log-filters" id="logFilters">
+      <label class="field log-search"><i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" name="q" value="{{ current_q }}" placeholder="Search by person, office or action...">
+      </label>
+
+      <select class="field" name="office" aria-label="Office">
+        <option value="">All offices</option>
+        {% for o in office_options %}
+        <option value="{{ o.slug }}" {% if o.slug == current_office %}selected{% endif %}>{% if o.slug == lgu_slug %}Super Admin{% else %}{{ o.name }}{% endif %}</option>
+        {% endfor %}
+      </select>
+
+      <select class="field" name="category" aria-label="Type">
+        <option value="">All types</option>
+        {% for value, label in category_choices %}
+        <option value="{{ value }}" {% if value == current_category %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+
+      <span class="log-date">From <input class="field" type="date" name="from" value="{{ current_from }}"></span>
+      <span class="log-date">To <input class="field" type="date" name="to" value="{{ current_to }}"></span>
+
+      {% if filters_on %}<a class="log-clear" href="{% url 'admin_dashboard:ad_activity_log' %}"><i class="fa-solid fa-xmark"></i> Clear</a>{% endif %}
+    </form>
+
+    <div class="log-list">
+      {% for item in rows %}
+      <div class="log-row">
+        <span class="log-row__icon log-row__icon--{{ item.tone }}"><i class="{{ item.log.icon }}"></i></span>
+        <div class="log-row__body">
+          <div class="log-row__title">{{ item.log.title }}</div>
+          {% if item.log.description %}<div class="log-row__desc">{{ item.log.description }}</div>{% endif %}
+          <div class="log-row__meta">
+            <span><i class="fa-regular fa-user"></i>{{ item.name }}</span>
+            <span><i class="fa-regular fa-building"></i>{{ item.office }}</span>
+            <span class="log-cat log-cat--{{ item.log.category }}">{{ item.log.get_category_display }}</span>
+          </div>
+        </div>
+        <div class="log-row__when">
+          {{ item.log.created_at|date:"M j, Y" }}
+          <small>{{ item.log.created_at|date:"g:i A" }}</small>
+        </div>
       </div>
+      {% empty %}
+      <div class="log-empty">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+        {% if filters_on %}No activity matches these filters.{% else %}No activity has been recorded yet.{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+
+    {% if page_obj.paginator.count > 0 %}
+    <div class="pagination">
+      <span>Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} entries</span>
+      <div class="page-nums">
+        {% if page_obj.has_previous %}
+          <a class="page-btn" href="?{{ query_string }}{% if query_string %}&{% endif %}page={{ page_obj.previous_page_number }}"><i class="fa-solid fa-chevron-left"></i></a>
+        {% else %}
+          <span class="page-btn disabled"><i class="fa-solid fa-chevron-left"></i></span>
+        {% endif %}
+        {% for num in page_range %}
+          {% if num == page_obj.number %}
+            <span class="page-btn active">{{ num }}</span>
+          {% elif num == page_obj.paginator.ELLIPSIS %}
+            <span class="page-btn disabled">&hellip;</span>
+          {% else %}
+            <a class="page-btn" href="?{{ query_string }}{% if query_string %}&{% endif %}page={{ num }}">{{ num }}</a>
+          {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+          <a class="page-btn" href="?{{ query_string }}{% if query_string %}&{% endif %}page={{ page_obj.next_page_number }}"><i class="fa-solid fa-chevron-right"></i></a>
+        {% else %}
+          <span class="page-btn disabled"><i class="fa-solid fa-chevron-right"></i></span>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </section>
+
+<script>
+  // Dropdowns and dates apply right away; search applies when you press Enter.
+  (function () {
+    var form = document.getElementById('logFilters');
+    if (!form) return;
+    form.querySelectorAll('select, input[type=date]').forEach(function (el) {
+      el.addEventListener('change', function () { form.submit(); });
+    });
+  })();
+</script>
 
 {% endblock %}

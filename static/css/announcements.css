@@ -2098,3 +2098,11 @@ body.lock { overflow: hidden; }
 /* Lets the Announcements column shrink to the screen on phones
    (a grid column otherwise grows to fit its widest content). */
 .announcements-main { min-width: 0; }
+
+/* "From Our Offices": the office being shown (?office=…) */
+.offices-feed li.is-current { background: #eef3fb; border-radius: 10px; box-shadow: inset 3px 0 0 var(--gold); }
+.offices-feed li.is-current > div > a { color: var(--navy-deep); font-weight: 700; }
+.office-tab-card.is-current { border-color: var(--navy); box-shadow: 0 0 0 2px rgba(13, 58, 134, 0.18); background: #f6f9ff; }
+.office-filter-banner__actions { display: inline-flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.office-filter-banner__office { font-weight: 600; text-decoration: none; color: var(--navy); white-space: nowrap; }
+.office-filter-banner__office:hover { text-decoration: underline; }

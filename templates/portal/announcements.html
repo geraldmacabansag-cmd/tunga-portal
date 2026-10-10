@@ -48,7 +48,10 @@ Home | Digital Governance Portal
   <div class="container">
     <div class="office-filter-banner">
       <span><i class="fa-solid fa-filter"></i> Showing announcements, news and events from <strong>{{ filter_office.name }}</strong> only.</span>
-      <a href="{% url 'announcement' %}" class="office-filter-banner__clear"><i class="fa-solid fa-xmark"></i> Show all offices</a>
+      <span class="office-filter-banner__actions">
+        <a href="{% url 'offices:office_detail' filter_office.slug %}" class="office-filter-banner__office"><i class="fa-regular fa-building"></i> Visit office page</a>
+        <a href="{% url 'announcement' %}" class="office-filter-banner__clear"><i class="fa-solid fa-xmark"></i> Show all offices</a>
+      </span>
     </div>
   </div>
 </section>
@@ -121,7 +124,7 @@ Home | Digital Governance Portal
             </div>
             <ul class="offices-feed">
               {% for item in office_updates %}
-              <li>
+              <li{% if item.is_current %} class="is-current"{% endif %}>
                 {% if item.office.logo %}
                 <img src="{{ item.office.logo.url }}" alt="{{ item.office.name }}" class="office-icon office-icon--img" loading="lazy">
                 {% elif item.icon_image %}
@@ -130,7 +133,7 @@ Home | Digital Governance Portal
                 <i class="{{ item.icon }} office-icon office-icon--{{ item.color }}"></i>
                 {% endif %}
                 <div>
-                  <a href="{{ item.url }}">{{ item.office.name }}</a>
+                  <a href="{{ item.url }}" title="Show only {{ item.office.name }}'s announcements and news"{% if item.is_current %} aria-current="true"{% endif %}>{{ item.office.name }}</a>
                   <p>Latest: {{ item.latest_title }} <span>{{ item.latest_time|naturaltime }}</span></p>
                 </div>
               </li>
@@ -549,11 +552,11 @@ Home | Digital Governance Portal
           <h2 class="section-title" style="margin:0;padding:0;">Browse by Office</h2>
           <a href="{% url 'offices' %}" class="view-all">View All Offices</a>
         </div>
-        <p class="offices-tab-sub">See the latest announcement from each municipal office, all in one place.</p>
+        <p class="offices-tab-sub">See the latest announcement from each municipal office. Click an office to see only its announcements and news.</p>
 
         <div class="offices-tab-grid">
           {% for item in office_directory %}
-          <a href="{{ item.url }}" class="office-tab-card" data-search-text="{{ item.office.name|lower }}">
+          <a href="{{ item.url }}" class="office-tab-card{% if item.is_current %} is-current{% endif %}" data-search-text="{{ item.office.name|lower }}" title="Show only {{ item.office.name }}'s announcements and news"{% if item.is_current %} aria-current="true"{% endif %}>
             <span class="office-icon office-tab-card__icon office-icon--{{ item.color }}"><i class="{{ item.icon }}"></i></span>
             <div class="office-tab-card__body">
               <h3>{{ item.office.name }}</h3>

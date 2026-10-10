@@ -50,7 +50,7 @@
       {% url 'office_dashboard:messages' as messages_url %}
       {% unread_messages request as msg_unread %}
       <li class="nav-item{% if request.path == messages_url %} active{% endif %}">
-        <a href="{{ messages_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-comments"></i></span> Messages{% if msg_unread > 0 %}<span class="badge badge--msg">{{ msg_unread }}</span>{% endif %}</a>
+        <a href="{{ messages_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-comments"></i></span> Messages<span class="badge badge--msg" data-unread-badge="messages"{% if not msg_unread %} hidden{% endif %}>{{ msg_unread }}</span></a>
       </li>
     </ul>
 

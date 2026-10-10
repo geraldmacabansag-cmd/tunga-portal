@@ -15,6 +15,12 @@
   <span class="date-chip"><i class="fa-regular fa-calendar"></i> {% now "l, F j, Y" %}</span>
 </div>
 
+{% if backup_warning %}
+<a class="bk-alert bk-alert--{{ backup_warning.level }} bk-alert--link" href="{% url 'admin_dashboard:ad_backup' %}">
+  <i class="fa-solid fa-database"></i><div><strong>Backup:</strong> {{ backup_warning.text }} <u>Open Backup &amp; Restore</u></div>
+</a>
+{% endif %}
+
 <div class="stat-grid">
   <div class="stat-card">
     <div class="top">
@@ -123,61 +129,21 @@
 
     <div class="panel">
       <div class="panel-header">
-        <h2>Quick actions</h2>
-      </div>
-      <div class="panel-body">
-        <div class="dash-quick-grid">
-          <a class="quick-action" href="super-admin-announcements.html"><span class="qi"><i class="fa-solid fa-bullhorn"></i></span>Post announcement</a>
-          <a class="quick-action" href="super-admin-events.html"><span class="qi"><i class="fa-regular fa-calendar-plus"></i></span>Create event</a>
-          <a class="quick-action" href="super-admin-downloadable-forms.html"><span class="qi"><i class="fa-solid fa-file-arrow-up"></i></span>Upload form</a>
-          <a class="quick-action" href="super-admin-users.html"><span class="qi"><i class="fa-solid fa-user-plus"></i></span>Add user</a>
-          <a class="quick-action" href="super-admin-gallery.html"><span class="qi"><i class="fa-regular fa-image"></i></span>Add photo</a>
-          <a class="quick-action" href="super-admin-backup-restore.html"><span class="qi"><i class="fa-solid fa-rotate"></i></span>Backup site</a>
-        </div>
-      </div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-header">
         <h2>Recent activity</h2>
-        <a class="link" href="super-admin-activity-logs.html">View log</a>
+        <a class="link" href="{% url 'admin_dashboard:ad_activity_log' %}">View log</a>
       </div>
       <div class="panel-body activity-feed">
+        {% for item in recent_activity %}
         <div class="list-row">
-          <span class="activity-dot green"></span>
+          <span class="activity-dot {{ item.dot }}"></span>
           <div>
-            <div class="activity-text"><strong>Maria L. Enriquez</strong> approved the "Barangay Clearance" form update</div>
-            <div class="activity-time">18 minutes ago</div>
+            <div class="activity-text"><strong>{{ item.name }}</strong> <span class="activity-office">({{ item.office }})</span> &mdash; {{ item.log.description|default:item.log.title }}</div>
+            <div class="activity-time" title="{{ item.log.created_at|date:'M j, Y g:i A' }}">{{ item.log.title }} &middot; {{ item.when }}</div>
           </div>
         </div>
-        <div class="list-row">
-          <span class="activity-dot blue"></span>
-          <div>
-            <div class="activity-text"><strong>Office of the Municipal Mayor</strong> submitted a new announcement for review</div>
-            <div class="activity-time">25 minutes ago</div>
-          </div>
-        </div>
-        <div class="list-row">
-          <span class="activity-dot amber"></span>
-          <div>
-            <div class="activity-text"><strong>System</strong> completed a scheduled backup of the website database</div>
-            <div class="activity-time">2 hours ago</div>
-          </div>
-        </div>
-        <div class="list-row">
-          <span class="activity-dot red"></span>
-          <div>
-            <div class="activity-text"><strong>Ramon P. Cabahug</strong> updated Emergency Contacts for Barangay Central</div>
-            <div class="activity-time">5 hours ago</div>
-          </div>
-        </div>
-        <div class="list-row">
-          <span class="activity-dot blue"></span>
-          <div>
-            <div class="activity-text"><strong>Office of the Municipal Tourism Officer</strong> submitted a new event for review</div>
-            <div class="activity-time">Yesterday, 4:12 PM</div>
-          </div>
-        </div>
+        {% empty %}
+        <div class="list-row" style="justify-content:center;color:var(--gray-400);padding:18px 0;">No activity yet.</div>
+        {% endfor %}
       </div>
     </div>
 

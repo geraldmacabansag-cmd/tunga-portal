@@ -549,3 +549,11 @@
     left: -20px;
   }
 }
+
+.history-side { display: flex; flex-direction: column; gap: 1.5rem; }
+.history-more {
+  border-top: 2px solid rgba(0,0,0,.08);
+  padding-top: 1.25rem;
+}
+.history-more__title { margin: 0 0 .5rem; font-size: 1.1rem; }
+.history-more__body p { margin: 0 0 .75rem; line-height: 1.6; }

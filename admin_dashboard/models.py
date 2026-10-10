@@ -271,6 +271,12 @@ class AboutPageContent(models.Model):
     )
     history_image = models.ImageField(upload_to="about/", blank=True, null=True)
 
+    def history_more_paragraphs(self):
+        return [p.strip() for p in self.history_more.splitlines() if p.strip()]
+
+    history_more_title = models.CharField(max_length=150, blank=True)
+    history_more = models.TextField(blank=True, help_text="Extra history text shown under the timeline.")
+
     # --- Barangays section intro line ---
     barangays_intro = models.CharField(
         max_length=255,
@@ -357,3 +363,86 @@ class Barangay(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class AdminNotification(models.Model):
+    """A notification for a Super Admin (the bell in the dashboard's top bar).
+    Created automatically by admin_dashboard/signals.py when an office
+    submits something for approval or sends a message."""
+
+    LEVEL_CHOICES = [
+        ("info", "Info"),
+        ("success", "Success"),
+        ("warning", "Warning"),
+        ("danger", "Danger"),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="admin_notifications")
+    title = models.CharField(max_length=255)
+    description = models.CharField(max_length=500, blank=True)
+    level = models.CharField(max_length=20, choices=LEVEL_CHOICES, default="info")
+    icon = models.CharField(max_length=50, default="fa-regular fa-bell")
+    link_url = models.CharField(max_length=255, blank=True)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.title
+
+
+class BackupSettings(models.Model):
+    """Backup & Restore page settings (one row). Not included in backups and
+    not touched by a restore, so the restore status survives the restore."""
+    auto_enabled = models.BooleanField(default=True)
+    keep_count = models.PositiveIntegerField(default=14)
+    auto_include_files = models.BooleanField(default=True)
+
+    restore_status = models.CharField(max_length=20, blank=True)   # "", running, success, failed
+    restore_message = models.TextField(blank=True)
+    restore_started_at = models.DateTimeField(null=True, blank=True)
+    restore_finished_at = models.DateTimeField(null=True, blank=True)
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    def __str__(self):
+        return "Backup settings"
+
+
+class SiteBackup(models.Model):
+    """One backup .zip (data + uploaded files) kept in the backup storage.
+    Not included in backups and not touched by a restore."""
+
+    KIND_CHOICES = [
+        ("manual", "Manual"),
+        ("auto", "Automatic"),
+        ("safety", "Safety (before restore)"),
+        ("uploaded", "Uploaded"),
+    ]
+    STATUS_CHOICES = [
+        ("running", "In progress"),
+        ("success", "Complete"),
+        ("failed", "Failed"),
+    ]
+
+    filename = models.CharField(max_length=255, blank=True)     # name inside the backup storage
+    kind = models.CharField(max_length=20, choices=KIND_CHOICES, default="manual")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="running")
+    include_files = models.BooleanField(default=True)
+    size = models.BigIntegerField(default=0)
+    summary = models.JSONField(default=dict, blank=True)
+    error = models.TextField(blank=True)
+    created_by_name = models.CharField(max_length=150, blank=True)  # plain text: users can change on restore
+    created_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.filename or f"Backup #{self.pk}"

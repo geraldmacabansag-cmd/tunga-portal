@@ -182,34 +182,23 @@
         <div><i class="fa-solid fa-location-dot"></i><div><strong>Location</strong><span>{{ office.location|default:"Municipal Hall, Tunga, Leyte" }}</span></div></div>
         <div><i class="fa-regular fa-envelope"></i><div><strong>Email</strong><span>{{ office.email|default:"—" }}</span></div></div>
         <div><i class="fa-solid fa-phone"></i><div><strong>Telephone</strong><span>{{ office.telephone|default:"—" }}</span></div></div>
-          {% if office.facebook_url or office.twitter_url or office.instagram_url or office.youtube_url %}
+          {% with socials=office.social_links %}
+          {% if socials %}
+          {% comment %}Each account: platform icon + account name (e.g. the Facebook page name),
+             with the platform written small underneath. Names are set in Office Profile.{% endcomment %}
           <div class="about-office-socials">
-            {% if office.facebook_url %}
-            <a href="{{ office.facebook_url }}" target="_blank" rel="noopener noreferrer" class="about-office-socials__item about-office-socials__item--facebook" title="Facebook">
-              <i class="fa-brands fa-facebook"></i>
-              <span class="about-office-socials__name">Facebook</span>
+            {% for s in socials %}
+            <a href="{{ s.url }}" target="_blank" rel="noopener noreferrer" class="about-office-socials__item about-office-socials__item--{{ s.key }}" title="{{ s.name }} on {{ s.platform }}">
+              <i class="{{ s.icon }}"></i>
+              <span class="about-office-socials__text">
+                <span class="about-office-socials__name">{{ s.name }}</span>
+                <span class="about-office-socials__platform">{{ s.platform }}</span>
+              </span>
             </a>
-            {% endif %}
-            {% if office.twitter_url %}
-            <a href="{{ office.twitter_url }}" target="_blank" rel="noopener noreferrer" class="about-office-socials__item about-office-socials__item--twitter" title="X (Twitter)">
-              <i class="fa-brands fa-x-twitter"></i>
-              <span class="about-office-socials__name">X (Twitter)</span>
-            </a>
-            {% endif %}
-            {% if office.instagram_url %}
-            <a href="{{ office.instagram_url }}" target="_blank" rel="noopener noreferrer" class="about-office-socials__item about-office-socials__item--instagram" title="Instagram">
-              <i class="fa-brands fa-instagram"></i>
-              <span class="about-office-socials__name">Instagram</span>
-            </a>
-            {% endif %}
-            {% if office.youtube_url %}
-            <a href="{{ office.youtube_url }}" target="_blank" rel="noopener noreferrer" class="about-office-socials__item about-office-socials__item--youtube" title="YouTube">
-              <i class="fa-brands fa-youtube"></i>
-              <span class="about-office-socials__name">YouTube</span>
-            </a>
-            {% endif %}
+            {% endfor %}
           </div>
           {% endif %}
+          {% endwith %}
       </div>
 
       {% if office.service_pledge or office.mandate or office.vision or office.mission or office.goal or office.objective %}
@@ -703,21 +692,20 @@
 .about-office-meta .about-office-socials__item--instagram i { color: #e1306c; }
 .about-office-meta .about-office-socials__item--youtube   i { color: #ff0000; }
 
-/* Small screens: icon only. The pill becomes a round icon button; the name is
-   hidden visually but kept in the DOM so screen readers still announce it
-   (and the link's title tooltip still shows it). The whole circle stays clickable. */
+/* Account name next to the icon, platform written small underneath */
+.about-office-socials__text { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+.about-office-meta .about-office-socials__platform {
+  font-size: 0.72rem; font-weight: 600; color: var(--text-muted, #6b7684);
+  text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px;
+}
+.about-office-meta .about-office-socials__name { max-width: 260px; }
+
+/* Small screens: the buttons fill the width, names still shown */
 @media (max-width: 600px) {
-  .about-office-meta .about-office-socials { gap: 10px; }
-  .about-office-socials__item {
-    justify-content: center; gap: 0;
-    width: 46px; height: 46px; min-height: 0; padding: 0;
-    border-radius: 50%;
-  }
+  .about-office-meta .about-office-socials { gap: 8px; }
+  .about-office-socials__item { flex: 1 1 100%; min-height: 54px; padding: 8px 14px; border-radius: 14px; }
   .about-office-meta .about-office-socials__item i { font-size: 1.5rem; }
-  .about-office-meta .about-office-socials__name {
-    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
-    overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
-  }
+  .about-office-meta .about-office-socials__name { max-width: none; font-size: 0.98rem; }
 }
 /* ---- Office Gallery panel: View All link, 4 visible images, expandable ---- */
 /* Images scale with the panel instead of a fixed 140px height. */

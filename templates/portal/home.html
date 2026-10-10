@@ -280,4 +280,23 @@ Home | Digital Governance Portal
 })();
 </script>
 
+<script>
+// Quick Links: when the links wrap onto a second row, the first link of
+// each row shouldn't start with a divider line.
+(function () {
+  var row = document.querySelector('.services-strip__row');
+  if (!row) return;
+  function mark() {
+    var prevTop = null;
+    row.querySelectorAll('.service-link').forEach(function (a) {
+      var top = a.offsetTop;
+      a.classList.toggle('is-row-start', prevTop !== null && Math.abs(top - prevTop) > 4);
+      prevTop = top;
+    });
+  }
+  mark();
+  window.addEventListener('resize', mark);
+})();
+</script>
+
 {% endblock %}

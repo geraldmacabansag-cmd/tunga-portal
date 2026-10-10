@@ -194,7 +194,7 @@
             </div>
             <div class="panel-body">
               <p style="color:var(--gray-500,#5d667f);font-size:.88rem;margin:0 0 16px;">
-                Link your office's official social media pages here. An icon for each one you fill in will appear on your office's public page and link out to it. Leave any of these blank to hide that icon.
+                Link your office's official social media pages here. Each one you fill in appears on your office's public page as its icon and account name, linking out to it. Add the account name in the second box (for example your Facebook page name) — if you leave it empty, a name is taken from the link. Leave a link blank to hide it.
               </p>
               <form method="post" style="margin-top:0;">
                 {% csrf_token %}
@@ -205,6 +205,9 @@
                   <input class="form-input" type="url" id="facebook-url-input" name="facebook_url"
                          placeholder="https://www.facebook.com/YourOfficePage"
                          value="{{ office.facebook_url|default:'' }}">
+                  <input class="form-input" type="text" name="facebook_name" maxlength="100" style="margin-top:6px;"
+                         placeholder="Facebook page name (optional) — e.g. Tunga Mayor's Office" aria-label="Facebook page name"
+                         value="{{ office.facebook_name|default:'' }}">
                 </div>
 
                 <div class="form-group">
@@ -212,6 +215,9 @@
                   <input class="form-input" type="url" id="twitter-url-input" name="twitter_url"
                          placeholder="https://x.com/YourOfficePage"
                          value="{{ office.twitter_url|default:'' }}">
+                  <input class="form-input" type="text" name="twitter_name" maxlength="100" style="margin-top:6px;"
+                         placeholder="X account name (optional) — e.g. @TungaMayor" aria-label="X account name"
+                         value="{{ office.twitter_name|default:'' }}">
                 </div>
 
                 <div class="form-group">
@@ -219,6 +225,9 @@
                   <input class="form-input" type="url" id="instagram-url-input" name="instagram_url"
                          placeholder="https://www.instagram.com/YourOfficePage"
                          value="{{ office.instagram_url|default:'' }}">
+                  <input class="form-input" type="text" name="instagram_name" maxlength="100" style="margin-top:6px;"
+                         placeholder="Instagram account name (optional) — e.g. @tunga.mayorsoffice" aria-label="Instagram account name"
+                         value="{{ office.instagram_name|default:'' }}">
                 </div>
 
                 <div class="form-group">
@@ -226,6 +235,9 @@
                   <input class="form-input" type="url" id="youtube-url-input" name="youtube_url"
                          placeholder="https://www.youtube.com/@YourOfficeChannel"
                          value="{{ office.youtube_url|default:'' }}">
+                  <input class="form-input" type="text" name="youtube_name" maxlength="100" style="margin-top:6px;"
+                         placeholder="YouTube channel name (optional) — e.g. Tunga LGU Official" aria-label="YouTube channel name"
+                         value="{{ office.youtube_name|default:'' }}">
                   <div class="form-hint">Leave any field blank and save to remove that icon from your public page.</div>
                 </div>
 

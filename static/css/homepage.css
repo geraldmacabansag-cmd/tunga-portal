@@ -824,3 +824,88 @@
   .news-slider__viewport { container-type: inline-size; }
   .news-slider__dots { left: 50%; transform: translateX(-50%); bottom: auto; top: calc(62.5cqw - 26px); }
 }
+
+/* ==========================================================================
+   Quick Links (below the hero): a white rounded card that overlaps the
+   bottom of the photo, links in one row with thin dividers between them.
+   ========================================================================== */
+.services-strip {
+  background: transparent;
+  box-shadow: none;
+  margin-top: -40px;          /* sits over the bottom of the hero photo */
+  padding-bottom: 6px;
+}
+.services-strip .services-strip__row {
+  background: #fff;
+  border-radius: 18px;
+  border: 1px solid rgba(13, 58, 134, 0.06);
+  box-shadow: 0 14px 34px rgba(10, 47, 110, 0.12), 0 2px 6px rgba(10, 47, 110, 0.05);
+  padding: 18px 10px;
+  /* the card is only as wide as its links (centred), never wider than the page */
+  width: fit-content;
+  max-width: calc(100% - 2 * var(--page-gutter, 20px));
+  margin: 0 auto;
+  gap: 0;
+  row-gap: 10px;
+}
+.services-strip .service-link {
+  gap: 12px;
+  padding: 6px 30px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  white-space: nowrap;
+  text-decoration: none;
+  border-radius: 10px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.services-strip .service-link + .service-link { border-left: 1px solid #dfe4ec; border-radius: 0; }
+.services-strip .service-link.is-row-start { border-left-color: transparent; }
+.services-strip .service-link i {
+  font-size: 1.45rem;
+  color: var(--navy-deep);
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+.services-strip .service-link:hover { color: var(--navy-light); }
+.services-strip .service-link:hover i { color: var(--navy-light); transform: translateY(-2px); }
+.services-strip .service-link:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+
+/* tablets: a bit tighter */
+@media (max-width: 1100px) {
+  .services-strip .service-link { padding: 6px 18px; font-size: 0.86rem; }
+  .services-strip .service-link i { font-size: 1.25rem; }
+}
+/* phones: small equal tiles (icon on top, name below), centred; the card
+   still fits its tiles — 1 link = a small card, 5 links = 3 + 2, etc. */
+@media (max-width: 700px) {
+  .services-strip { margin-top: -28px; }
+  .services-strip .services-strip__row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: stretch;      /* tiles in a row are the same height, icons line up */
+    gap: 6px;
+    padding: 10px;
+    border-radius: 16px;
+  }
+  .services-strip .service-link,
+  .services-strip .service-link + .service-link {
+    flex: 0 0 96px;
+    flex-direction: column;
+    justify-content: flex-start;
+    text-align: center;
+    gap: 6px;
+    padding: 10px 4px;
+    border: none;
+    border-radius: 12px;
+    white-space: normal;
+    font-size: 0.76rem;
+    line-height: 1.25;
+  }
+  .services-strip .service-link:hover { background: #f3f6fb; }
+  .services-strip .service-link i { font-size: 1.3rem; }
+}
+@media (max-width: 340px) {
+  .services-strip .service-link,
+  .services-strip .service-link + .service-link { flex-basis: 86px; font-size: 0.72rem; }
+}

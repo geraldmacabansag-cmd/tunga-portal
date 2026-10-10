@@ -1,111 +1,240 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Backup & Restore · Super Admin · Municipality of Tunga</title>
-<link rel="stylesheet" href="styles.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-</head>
-<body data-page="backup-restore">
-<div class="app-shell">
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-brand">
-      <span class="seal"><i class="fa-solid fa-landmark"></i></span>
-      <div class="sidebar-brand-text">
-        <div class="muni">Municipality of</div>
-        <div class="name">TUNGA</div>
-        <div class="place">Leyte, Philippines</div>
-      </div>
-    </div>
-    <ul>
-      <li class="nav-section-title">Main</li>
-      <li class="nav-item"><a href="super-admin-dashboard.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-house"></i></span> Dashboard</a></li>
-      <li class="nav-item"><a href="super-admin-approval-center.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-square-check"></i></span> Approval Center</a> <span class="badge">18</span></li>
-    </ul>
+{% extends "super-admin-base.html" %}
+{% load static %}
 
-    <ul>
-      <li class="nav-section-title">Content Management</li>
-      <li class="nav-item"><a href="super-admin-announcements.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-bullhorn"></i></span> Announcements</a></li>
-      <li class="nav-item"><a href="super-admin-news-updates.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-newspaper"></i></span> News &amp; Updates</a></li>
-      <li class="nav-item"><a href="super-admin-events.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-regular fa-calendar"></i></span> Events</a></li>
-      <li class="nav-item"><a href="super-admin-downloadable-forms.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-file-arrow-down"></i></span> Downloadable Forms</a></li>
-      <li class="nav-item"><a href="super-admin-gallery.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-regular fa-images"></i></span> Gallery</a></li>
-    </ul>
+{% block page_title_tag %}Backup &amp; Restore{% endblock %}
+{% block body_page %}backup-restore{% endblock %}
+{% block page_title %}Backup &amp; Restore{% endblock %}
+{% block page_subtitle %}Keep a copy of the website's data and files, and bring it back if needed{% endblock %}
+{% block breadcrumbs %}<span>Dashboard</span><span class="sep">›</span><span>System</span><span class="sep">›</span><span class="current">Backup &amp; Restore</span>{% endblock %}
 
-    <ul>
-      <li class="nav-section-title">Office Management</li>
-      <li class="nav-item"><a href="super-admin-office-overview.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-building"></i></span> Offices</a></li>
-      <li class="nav-item"><a href="super-admin-office-reps.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-regular fa-address-book"></i></span> Office Representatives</a></li>
-      <li class="nav-item"><a href="super-admin-services.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-list-check"></i></span> Services</a></li>
-    </ul>
+{% block content %}
 
-    <ul>
-      <li class="nav-section-title">User Management</li>
-      <li class="nav-item"><a href="super-admin-users.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-users"></i></span> Users</a></li>
-      <li class="nav-item"><a href="super-admin-roles.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-user-shield"></i></span> Roles &amp; Permissions</a></li>
-    </ul>
-
-    <ul>
-      <li class="nav-section-title">Website Management</li>
-      <li class="nav-item"><a href="super-admin-homepage.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-globe"></i></span> Homepage</a></li>
-      <li class="nav-item"><a href="super-admin-contact-info.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-phone"></i></span> Contact Information</a></li>
-      <li class="nav-item"><a href="super-admin-interactive-map.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-map-location-dot"></i></span> Interactive Map</a></li>
-      <li class="nav-item"><a href="super-admin-emergency-contacts.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-phone-volume"></i></span> Emergency Contacts</a></li>
-      <li class="nav-item"><a href="super-admin-website-settings.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-sliders"></i></span> Website Settings</a></li>
-    </ul>
-
-    <ul>
-      <li class="nav-section-title">Reports &amp; Analytics</li>
-      <li class="nav-item"><a href="super-admin-analytics.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-chart-line"></i></span> Analytics &amp; Reports</a></li>
-    </ul>
-
-    <ul>
-      <li class="nav-section-title">System</li>
-      <li class="nav-item"><a href="super-admin-activity-logs.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-clock-rotate-left"></i></span> Activity Logs</a></li>
-      <li class="nav-item active"><a href="super-admin-backup-restore.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-rotate"></i></span> Backup &amp; Restore</a></li>
-      <li class="nav-item"><a href="super-admin-system-settings.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-gear"></i></span> System Settings</a></li>
-    </ul>
-
-    <div class="sidebar-footer">
-      <div class="sidebar-logout"><i class="fa-solid fa-arrow-right-from-bracket"></i> Log Out</div>
-    </div>
-  </aside>
-
-  <div class="main">
-    <header class="topbar">
-      <div class="topbar-left">
-        <button class="menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')"><i class="fa-solid fa-bars"></i></button>
-        <div class="page-heading">
-          <h1>Backup & Restore</h1>
-          <p>Manage data backups and restoration</p>
-        </div>
-      </div>
-      <div class="topbar-right">
-        <label class="field search" style="display:flex;align-items:center;gap:8px;width:220px;border-radius:999px;padding:9px 16px;color:var(--gray-400);"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search anything..." style="border:0;outline:0;flex:1;font:inherit;background:transparent;color:var(--gray-800);"></label>
-        <button class="icon-button"><i class="fa-regular fa-bell"></i><span class="dot">5</span></button>
-        <div class="user-chip">
-          <img src="https://i.pravatar.cc/64?img=12" alt="">
-          <div class="who"><div class="name">Super Administrator</div><div class="role">Super Admin</div></div>
-          <i class="fa-solid fa-chevron-down chev"></i>
-        </div>
-      </div>
-    </header>
-
-    <nav class="breadcrumbs">
-      <span>Dashboard</span><span class="sep">›</span><span>System</span><span class="sep">›</span><span class="current">Backup & Restore</span>
-    </nav>
-
-    <main class="content">
-      <div class="empty-state">
-        <div class="ei"><i class="fa-solid fa-rotate"></i></div>
-        <h2>Backup & Restore</h2>
-        <p>This page is ready and waiting &mdash; nothing has been built here yet.</p>
-      </div>
-    </main>
+  {% if restore_running %}
+  <div class="bk-alert bk-alert--info" id="bkRunning"><i class="fa-solid fa-spinner fa-spin"></i>
+    <div><strong>Restore in progress.</strong> {{ settings_obj.restore_message }} Please don't make changes until it finishes — this page refreshes by itself.</div>
   </div>
-</div>
+  {% elif running_backup %}
+  <div class="bk-alert bk-alert--info" id="bkRunning"><i class="fa-solid fa-spinner fa-spin"></i>
+    <div><strong>Backup in progress</strong> (started {{ running_backup.created_at|timesince }} ago by {{ running_backup.created_by_name|default:"the system" }}). This page refreshes by itself when it's done.</div>
+  </div>
+  {% endif %}
 
-<script src="app.js"></script>
-</body>
-</html>
+  {% if not restore_running and settings_obj.restore_status == 'success' and settings_obj.restore_finished_at %}
+  <div class="bk-alert bk-alert--success"><i class="fa-solid fa-circle-check"></i>
+    <div><strong>Last restore finished</strong> {{ settings_obj.restore_finished_at|timesince }} ago. {{ settings_obj.restore_message }}</div>
+  </div>
+  {% elif not restore_running and settings_obj.restore_status == 'failed' %}
+  <div class="bk-alert bk-alert--danger"><i class="fa-solid fa-triangle-exclamation"></i>
+    <div><strong>Last restore failed.</strong> {{ settings_obj.restore_message }}</div>
+  </div>
+  {% endif %}
+
+  {% if health %}
+  <div class="bk-alert bk-alert--{{ health.level }}"><i class="fa-solid fa-triangle-exclamation"></i><div>{{ health.text }}</div></div>
+  {% endif %}
+
+  {% if storage_temporary %}
+  <div class="bk-alert bk-alert--warning"><i class="fa-solid fa-hard-drive"></i>
+    <div><strong>Backups are saved on this server's disk, which Render erases on every redeploy.</strong>
+      Download the backups you want to keep. After moving to DigitalOcean, backups go to your private Spaces folder instead.</div>
+  </div>
+  {% endif %}
+
+  <div class="log-stats">
+    <div class="log-stat">
+      <div class="log-stat__value">{% if last_success %}{{ last_success.created_at|timesince }} ago{% else %}Never{% endif %}</div>
+      <div class="log-stat__label">Last successful backup</div>
+    </div>
+    <div class="log-stat">
+      <div class="log-stat__value">{% if settings_obj.auto_enabled %}Daily{% else %}Off{% endif %}</div>
+      <div class="log-stat__label">Automatic backups</div>
+    </div>
+    <div class="log-stat">
+      <div class="log-stat__value">{{ kept_count }} <small>/ {{ settings_obj.keep_count }}</small></div>
+      <div class="log-stat__label">Backups kept</div>
+    </div>
+    <div class="log-stat">
+      <div class="log-stat__value bk-storage">{{ storage_label }}</div>
+      <div class="log-stat__label">Saved in</div>
+    </div>
+  </div>
+
+  <div class="grid-3">
+    <div class="stack">
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Backups</h2>
+          <span class="bk-hint">Newest first</span>
+        </div>
+        <div class="bk-list">
+          {% for b in backups %}
+          <div class="bk-row">
+            <span class="bk-row__icon bk-row__icon--{{ b.status }}">
+              {% if b.status == 'running' %}<i class="fa-solid fa-spinner fa-spin"></i>{% elif b.status == 'failed' %}<i class="fa-solid fa-xmark"></i>{% else %}<i class="fa-solid fa-database"></i>{% endif %}
+            </span>
+            <div class="bk-row__body">
+              <div class="bk-row__title">
+                {{ b.created_at|date:"M j, Y · g:i A" }}
+                <span class="bk-kind bk-kind--{{ b.kind }}">{{ b.get_kind_display }}</span>
+                {% if b.status == 'success' and not b.include_files %}<span class="bk-kind">Data only</span>{% endif %}
+              </div>
+              <div class="bk-row__meta">
+                {% if b.status == 'running' %}In progress…
+                {% elif b.status == 'failed' %}<span class="bk-err">Failed: {{ b.error|truncatechars:160 }}</span>
+                {% else %}
+                  {{ b.size|filesizeformat }}
+                  {% for label, n in b.summary.items %}{% if n %} &middot; {{ n }} {{ label|lower }}{% endif %}{% endfor %}
+                {% endif %}
+              </div>
+              {% if b.status == 'success' and b.error %}<div class="bk-row__warn"><i class="fa-solid fa-circle-exclamation"></i> {{ b.error|truncatechars:200 }}</div>{% endif %}
+              <div class="bk-row__by">By {{ b.created_by_name|default:"—" }}</div>
+            </div>
+            <div class="bk-row__actions">
+              {% if b.status == 'success' %}
+              <a class="btn btn-sm btn-secondary" href="{% url 'admin_dashboard:ad_backup_download' b.pk %}" title="Download"><i class="fa-solid fa-download"></i><span> Download</span></a>
+              <button type="button" class="btn btn-sm btn-secondary" data-restore="{{ b.pk }}"
+                      data-when="{{ b.created_at|date:'M j, Y g:i A' }}"
+                      data-summary="{% for label, n in b.summary.items %}{% if n %}{{ n }} {{ label|lower }}|{% endif %}{% endfor %}"
+                      data-files="{% if b.include_files %}yes{% else %}no{% endif %}"
+                      {% if busy %}disabled{% endif %}><i class="fa-solid fa-rotate-left"></i><span> Restore</span></button>
+              {% endif %}
+              {% if b.status != 'running' %}
+              <form method="post" action="{% url 'admin_dashboard:ad_backup_delete' b.pk %}" onsubmit="return confirm('Delete this backup? The file is removed for good.');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm bk-del" title="Delete"><i class="fa-regular fa-trash-can"></i></button>
+              </form>
+              {% endif %}
+            </div>
+          </div>
+          {% empty %}
+          <div class="log-empty"><i class="fa-solid fa-database"></i>No backups yet. Click <strong>Back up now</strong> to make the first one.</div>
+          {% endfor %}
+        </div>
+      </section>
+    </div>
+
+    <div class="stack">
+      <section class="panel">
+        <div class="panel-header"><h2>Back up now</h2></div>
+        <div class="panel-body">
+          <form method="post" action="{% url 'admin_dashboard:ad_backup_create' %}">
+            {% csrf_token %}
+            <label class="bk-check"><input type="checkbox" name="include_files" checked> Include uploaded files (photos, PDFs, logos)</label>
+            <p class="bk-hint">Data only is faster and smaller, but can't bring back deleted photos or files.</p>
+            <button type="submit" class="btn btn-primary btn-block" {% if busy %}disabled{% endif %}><i class="fa-solid fa-cloud-arrow-up"></i> Back up now</button>
+          </form>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header"><h2>Upload a backup file</h2></div>
+        <div class="panel-body">
+          <form method="post" action="{% url 'admin_dashboard:ad_backup_upload' %}" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input class="form-input" type="file" name="backup_file" accept=".zip,application/zip" required>
+            <p class="bk-hint">A .zip downloaded from this page (or from another server running this portal). It's checked first, then added to the list so you can restore it.</p>
+            <button type="submit" class="btn btn-secondary btn-block" {% if busy %}disabled{% endif %}><i class="fa-solid fa-file-arrow-up"></i> Upload &amp; check</button>
+          </form>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header"><h2>Settings</h2></div>
+        <div class="panel-body">
+          <form method="post" action="{% url 'admin_dashboard:ad_backup' %}">
+            {% csrf_token %}
+            <label class="bk-check"><input type="checkbox" name="auto_enabled" {% if settings_obj.auto_enabled %}checked{% endif %}> Automatic daily backup</label>
+            <label class="bk-check"><input type="checkbox" name="auto_include_files" {% if settings_obj.auto_include_files %}checked{% endif %}> Include uploaded files in automatic backups</label>
+            <label class="form-label" for="keepCount" style="display:block;margin-top:10px;">Backups to keep</label>
+            <input class="form-input" id="keepCount" type="number" name="keep_count" min="1" max="60" value="{{ settings_obj.keep_count }}">
+            <p class="bk-hint">Older backups are deleted automatically. The last 3 safety backups are always kept too.</p>
+            <button type="submit" class="btn btn-secondary btn-block"><i class="fa-solid fa-floppy-disk"></i> Save settings</button>
+          </form>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header"><h2>How it works</h2></div>
+        <div class="panel-body bk-help">
+          <p><strong>Automatic backups</strong> start by themselves when a Super Admin opens the dashboard and the last one is more than 24 hours old. On DigitalOcean, also add a daily job: <code>python manage.py backup_site --auto</code></p>
+          <p><strong>Restoring</strong> replaces all website data with the backup's. A safety backup of the current site is made first, and if anything goes wrong nothing is changed. Files already in storage are never deleted.</p>
+          <p><strong>Keep a copy elsewhere:</strong> download a backup now and then to an office computer or USB drive. Backups contain user accounts, so keep the files private.</p>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Restore confirmation -->
+  <div class="modal-backdrop" id="restoreModal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h3>Restore this backup?</h3>
+        <button type="button" class="modal-x" data-close aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <p class="confirm-msg">All current website data will be <strong>replaced</strong> with the backup from <strong id="rsWhen"></strong>. Anything added or changed after that time will be gone (a safety backup of the current site is made first, so it can be undone).</p>
+        <ul class="bk-summary" id="rsSummary"></ul>
+        <p class="bk-hint" id="rsFiles"></p>
+        <form method="post" id="restoreForm">
+          {% csrf_token %}
+          <div class="form-group">
+            <label class="form-label" for="rsConfirm">Type <strong>RESTORE</strong> to confirm</label>
+            <input class="form-input" id="rsConfirm" name="confirm_text" autocomplete="off" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="rsPassword">Your password</label>
+            <input class="form-input" id="rsPassword" type="password" name="password" autocomplete="current-password" required>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" data-close>Cancel</button>
+            <button type="submit" class="btn btn-danger" id="rsSubmit" disabled><i class="fa-solid fa-rotate-left"></i> Restore</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+<script>
+  (function () {
+    var modal = document.getElementById('restoreModal');
+    var form = document.getElementById('restoreForm');
+    var confirmInput = document.getElementById('rsConfirm');
+    var submit = document.getElementById('rsSubmit');
+    var restoreUrl = "{% url 'admin_dashboard:ad_backup_restore' 0 %}";
+
+    document.querySelectorAll('[data-restore]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        form.action = restoreUrl.replace('/0/', '/' + btn.dataset.restore + '/');
+        document.getElementById('rsWhen').textContent = btn.dataset.when;
+        var ul = document.getElementById('rsSummary');
+        ul.innerHTML = '';
+        (btn.dataset.summary || '').split('|').filter(Boolean).forEach(function (s) {
+          var li = document.createElement('li'); li.textContent = s; ul.appendChild(li);
+        });
+        document.getElementById('rsFiles').textContent = btn.dataset.files === 'yes'
+          ? 'Uploaded files in this backup that are missing now will be put back.'
+          : 'This backup has data only: photos and files are not included (files already in storage stay).';
+        form.reset(); submit.disabled = true;
+        modal.classList.add('open');
+        setTimeout(function () { confirmInput.focus(); }, 150);
+      });
+    });
+    confirmInput.addEventListener('input', function () { submit.disabled = confirmInput.value.trim() !== 'RESTORE'; });
+    modal.querySelectorAll('[data-close]').forEach(function (b) { b.addEventListener('click', function () { modal.classList.remove('open'); }); });
+    modal.addEventListener('click', function (e) { if (e.target === modal) modal.classList.remove('open'); });
+    form.addEventListener('submit', function () { submit.disabled = true; submit.innerHTML = 'Starting…'; });
+
+    // While a backup/restore runs, check every 4 seconds and reload when done.
+    if (document.getElementById('bkRunning')) {
+      var statusUrl = "{% url 'admin_dashboard:ad_backup_status' %}";
+      var timer = setInterval(function () {
+        fetch(statusUrl, { credentials: 'same-origin' })
+          .then(function (r) { if (r.redirected) { location.reload(); return null; } return r.ok ? r.json() : null; })
+          .then(function (d) { if (d && !d.busy) { clearInterval(timer); location.reload(); } })
+          .catch(function () { /* the server may be busy restoring: try again */ });
+      }, 4000);
+    }
+  })();
+</script>
+
+{% endblock %}

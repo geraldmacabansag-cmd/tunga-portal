@@ -1119,7 +1119,10 @@ def office_profile(request, rep):
     if request.method == "POST":
         if request.POST.get('form_name') == 'social_media':
             for field in SOCIAL_LINK_FIELDS:
-                setattr(office, field, request.POST.get(field, '').strip())
+                value = request.POST.get(field, '').strip()
+                if field.endswith('_name'):
+                    value = value[:100]   # account names are short
+                setattr(office, field, value)
             office.save(update_fields=SOCIAL_LINK_FIELDS)
             messages.success(request, "Social media links updated.")
             log_activity(
@@ -1272,7 +1275,9 @@ def edit_service(request, rep, pk):
 def office_location(request, rep):
     return render(request, "office_dashboard/office-location.html", {"rep": rep})
 
-SOCIAL_LINK_FIELDS = ["facebook_url", "twitter_url", "instagram_url", "youtube_url"]
+SOCIAL_LINK_FIELDS = ["facebook_url", "twitter_url", "instagram_url", "youtube_url",
+                      # the account names shown next to the icons on the public page
+                      "facebook_name", "twitter_name", "instagram_name", "youtube_name"]
  
  
 @office_rep_required
@@ -1629,6 +1634,11 @@ def serialize_chat_message(m):
 
 @office_rep_required
 def rep_messages(request, rep):
+    # Opening Messages marks the Super Admin's messages as read right away,
+    # so the sidebar's red number is already cleared on this page.
+    rep.chat_messages.filter(
+        sender=Message.SENDER_ADMIN, read_at__isnull=True
+    ).update(read_at=timezone.now())
     return render(request, "office_dashboard/messages.html", {"rep": rep})
 
 
@@ -1645,7 +1655,7 @@ def rep_messages_data(request, rep):
     ).update(read_at=timezone.now())
 
     items = rep.chat_messages.filter(id__gt=after)
-    return JsonResponse({"messages": [serialize_chat_message(m) for m in items]})
+    return JsonResponse({"messages": [serialize_chat_message(m) for m in items], "unread_total": 0})
 
 
 @office_rep_required

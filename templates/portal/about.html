@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% load static %}
-
+ 
 {% block title %}
 Home | Digital Governance Portal
 {% endblock %}
-
+ 
 {% block content %}
-
+ 
 <section class="page-hero">
   <img src="{% static 'images/lgu_bldg.jpeg' %}" alt="Tunga Municipal Hall" class="page-hero__bg">
   <div class="page-hero__scrim"></div>
@@ -16,7 +16,7 @@ Home | Digital Governance Portal
     {% if about_content.hero_intro %}<p>{{ about_content.hero_intro }}</p>{% endif %}
   </div>
 </section>
-
+ 
 {% if about_content.vision_text or about_content.mission_text or core_values %}
 <section class="vmv-wrap">
   <div class="container">
@@ -65,8 +65,7 @@ Home | Digital Governance Portal
   </div>
 </section>
 {% endif %}
-
-{% if history_paragraphs or milestones %}
+{% if history_paragraphs or milestones or about_content.history_more %}
 <section class="history-wrap" id="history">
   <div class="container">
     <div class="panel history-panel">
@@ -80,22 +79,158 @@ Home | Digital Governance Portal
           <img src="{% if about_content.history_image %}{{ about_content.history_image.url }}{% else %}{% static 'images/hero-building.svg' %}{% endif %}" alt="Historic Tunga welcome arch" class="history-text__img">
         </div>
         {% endif %}
-        {% if milestones %}
-        <ul class="timeline">
-          {% for m in milestones %}
-          <li>
-            <span class="timeline__year{% if m.is_present %} timeline__year--present{% endif %}">{{ m.year_label }}</span>
-            <p>{{ m.description }}</p>
-          </li>
-          {% endfor %}
-        </ul>
+ 
+        {% if milestones or about_content.history_more %}
+        <div class="history-side">
+          {% if milestones %}
+          <ul class="timeline">
+            {% for m in milestones %}
+            <li>
+              <span class="timeline__year{% if m.is_present %} timeline__year--present{% endif %}">{{ m.year_label }}</span>
+              <p>{{ m.description }}</p>
+            </li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+ 
+          {% if about_content.history_more %}
+          <div class="history-more">
+            {% if about_content.history_more_title %}<h3 class="history-more__title">{{ about_content.history_more_title }}</h3>{% endif %}
+            <div class="history-more__body">
+              {% for p in about_content.history_more_paragraphs %}
+              <p>{{ p }}</p>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
         {% endif %}
+      </div><!-- /history-grid -->
+ 
+      <!-- Heritage (hard-coded) -->
+      <div class="history-legacy">
+        <h3 class="history-legacy__title"><i class="fa-solid fa-award"></i> Heritage</h3>
+        <p class="history-legacy__intro">Milestones and accomplishments that have shaped the Municipality of Tunga.</p>
+ 
+        <div class="history-legacy__grid">
+          <!-- Box 1: change the image file name to this box's own photo -->
+          <div class="legacy-card">
+            <img class="legacy-card__img" src="{% static 'images/lgu_bldg.jpeg' %}" alt="Independent Municipality">
+            <div class="legacy-card__text">
+              <h4>Independent Municipality</h4>
+              <p>Officially created as a municipality, separate from Barugo, through Executive Order No. 266 signed on September 26, 1949.</p>
+            </div>
+          </div>
+ 
+          <!-- Box 2 -->
+          <div class="legacy-card">
+            <img class="legacy-card__img" src="{% static 'images/lgu_bldg.jpeg' %}" alt="Agricultural Heritage">
+            <div class="legacy-card__text">
+              <h4>Agricultural Heritage</h4>
+              <p>[Replace with a real achievement, e.g. a farming program, award, or cooperative milestone.]</p>
+            </div>
+          </div>
+ 
+          <!-- Box 3 -->
+          <div class="legacy-card">
+            <img class="legacy-card__img" src="{% static 'images/lgu_bldg.jpeg' %}" alt="Award or Recognition">
+            <div class="legacy-card__text">
+              <h4>[Award or Recognition]</h4>
+              <p>[Replace with a real award, e.g. Seal of Good Local Governance, and the year received.]</p>
+            </div>
+          </div>
+ 
+          <!-- Box 4 -->
+          <div class="legacy-card">
+            <img class="legacy-card__img" src="{% static 'images/lgu_bldg.jpeg' %}" alt="Community Legacy">
+            <div class="legacy-card__text">
+              <h4>[Community Legacy]</h4>
+              <p>[Replace with a tradition, festival, or community program Tunga is known for.]</p>
+            </div>
+          </div>
+        </div>
       </div>
+ 
     </div>
   </div>
 </section>
 {% endif %}
-
+ 
+<style>
+/* ---- History: extra text under the timeline ---- */
+.history-side { display: flex; flex-direction: column; gap: 1.5rem; }
+.history-more {
+  border-top: 2px solid rgba(0, 0, 0, .08);
+  padding-top: 1.25rem;
+}
+.history-more__title { margin: 0 0 .5rem; font-size: 1.1rem; }
+.history-more__body p { margin: 0 0 .75rem; line-height: 1.6; }
+ 
+/* ---- History: Legacy & Significant Achievements ---- */
+.history-legacy {
+  margin-top: 2.5rem;
+  padding-top: 2rem;
+  border-top: 2px solid rgba(0, 0, 0, .08);
+}
+.history-legacy__title {
+  margin: 0 0 .35rem;
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+.history-legacy__title i { color: #c9a227; }
+.history-legacy__intro { margin: 0 0 1.5rem; opacity: .75; }
+ 
+/* Two boxes per row */
+.history-legacy__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+ 
+/* Each box: its own image on the left, information on the right */
+.legacy-card {
+  display: flex;
+  align-items: stretch;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, .08);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .04);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.legacy-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, .08);
+}
+.legacy-card__img {
+  flex: 0 0 40%;
+  width: 40%;
+  min-height: 160px;
+  object-fit: cover;
+  display: block;
+}
+.legacy-card__text {
+  flex: 1;
+  padding: 1.1rem 1.25rem;
+  border-left: 4px solid #c9a227;
+}
+.legacy-card h4 { margin: 0 0 .4rem; font-size: 1rem; }
+ 
+/* Tablets: one box per row */
+@media (max-width: 860px) {
+  .history-legacy__grid { grid-template-columns: 1fr; }
+}
+/* Phones: image on top of the text inside each box */
+@media (max-width: 520px) {
+  .legacy-card { flex-direction: column; }
+  .legacy-card__img { width: 100%; flex-basis: auto; height: 180px; }
+  .legacy-card__text { border-left: 0; border-top: 4px solid #c9a227; }
+}
+.legacy-card p { margin: 0; font-size: .92rem; line-height: 1.55; }
+</style>
+ 
 {% if about_officials or org_nodes %}
 <section class="officials-wrap" id="officials">
   <div class="container">
@@ -128,14 +263,14 @@ Home | Digital Governance Portal
   </div>
 </section>
 {% endif %}
-
+ 
 {% if barangays_poblacion or barangays_rural %}
 <section class="barangays-wrap" id="barangays">
   <div class="container">
     <div class="panel barangays-panel">
       <h2 class="section-title">Barangays of Tunga</h2>
       {% if about_content.barangays_intro %}<p class="barangays-intro">{{ about_content.barangays_intro }}</p>{% endif %}
-
+ 
       <div class="barangays-groups">
         {% if barangays_poblacion %}
         <div class="barangays-group">
@@ -150,7 +285,7 @@ Home | Digital Governance Portal
           </div>
         </div>
         {% endif %}
-
+ 
         {% if barangays_rural %}
         <div class="barangays-group">
           <div class="barangays-group__label">
@@ -169,7 +304,7 @@ Home | Digital Governance Portal
   </div>
 </section>
 {% endif %}
-
+ 
 <section class="glance-wrap">
   <div class="container">
     <div class="panel glance-panel">
@@ -206,9 +341,9 @@ Home | Digital Governance Portal
     </div>
   </div>
 </section>
-
+ 
 {% endblock %}
-
+ 
 {% block extra_js %}
 <script>
 (function () {
@@ -223,7 +358,7 @@ Home | Digital Governance Portal
     });
   });
 })();
-
+ 
 function toggleAllOfficials() {
   var strip = document.getElementById('officialsStrip');
   var btn = document.getElementById('officialsToggleBtn');
@@ -235,3 +370,4 @@ function toggleAllOfficials() {
 }
 </script>
 {% endblock %}
+ 

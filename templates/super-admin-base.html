@@ -1,4 +1,4 @@
-{% load static message_tags %}
+{% load static message_tags admin_notif %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -41,10 +41,13 @@
       {% url 'admin_dashboard:admin_dash' as dash_url %}
       <li class="nav-item{% if request.path == dash_url %} active{% endif %}"><a href="{{ dash_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-house"></i></span> Dashboard</a></li>
       {% url 'admin_dashboard:approval_center' as approval_url %}
-      <li class="nav-item{% if request.path == approval_url %} active{% endif %}"><a href="{{ approval_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-square-check"></i></span> Approval Center</a> <span class="badge">18</span></li>
+      <li class="nav-item{% if request.path == approval_url %} active{% endif %}">{% pending_approvals as approvals_waiting %}<a href="{{ approval_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-square-check"></i></span> Approval Center</a>{% if approvals_waiting > 0 %} <span class="badge" title="{{ approvals_waiting }} waiting for your approval">{% if approvals_waiting > 99 %}99+{% else %}{{ approvals_waiting }}{% endif %}</span>{% endif %}</li>
       {% url 'admin_dashboard:ad_messages' as messages_url %}
       {% unread_messages request as msg_unread %}
-      <li class="nav-item{% if request.path == messages_url %} active{% endif %}"><a href="{{ messages_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-comments"></i></span> Messages{% if msg_unread > 0 %}<span class="badge badge--msg">{{ msg_unread }}</span>{% endif %}</a></li>
+      <li class="nav-item{% if request.path == messages_url %} active{% endif %}"><a href="{{ messages_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-comments"></i></span> Messages<span class="badge badge--msg" data-unread-badge="messages"{% if not msg_unread %} hidden{% endif %}>{{ msg_unread }}</span></a></li>
+      {% url 'admin_dashboard:ad_notifications' as notifs_url %}
+      {% admin_notifications as notif %}
+      <li class="nav-item{% if request.path == notifs_url %} active{% endif %}"><a href="{{ notifs_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-bell"></i></span> Notifications{% if notif.unread > 0 %}<span class="badge badge--msg">{{ notif.unread }}</span>{% endif %}</a></li>
       {% url 'admin_dashboard:ad_archive' as archive_url %}
       <li class="nav-item{% if request.path == archive_url %} active{% endif %}"><a href="{{ archive_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-box-archive"></i></span> Archive</a></li>
     </ul>
@@ -115,7 +118,7 @@
       <li class="nav-section-title">System</li>
       {% url 'admin_dashboard:ad_activity_log' as activitylog_url %}
       <li class="nav-item{% if request.path == activitylog_url %} active{% endif %}"><a href="{{ activitylog_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-clock-rotate-left"></i></span> Activity Logs</a></li>
-      <li class="nav-item"><a href="super-admin-backup-restore.html" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-rotate"></i></span> Backup &amp; Restore</a></li>
+      {% url 'admin_dashboard:ad_backup' as backup_url %}<li class="nav-item{% if request.path == backup_url %} active{% endif %}"><a href="{{ backup_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-rotate"></i></span> Backup &amp; Restore</a></li>
       {% url 'admin_dashboard:ad_system_settings' as systemsettings_url %}
       <li class="nav-item{% if request.path == systemsettings_url %} active{% endif %}"><a href="{{ systemsettings_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-gear"></i></span> System Settings</a></li>
     </ul>
@@ -213,8 +216,36 @@
       </div>
       <div class="topbar-right">
         <button type="button" class="mobile-search-btn" id="mobileSearchBtn" aria-label="Search"><i class="fa-solid fa-magnifying-glass"></i></button>
-        <label class="field search" id="topbarSearchField" style="display:flex;align-items:center;gap:8px;width:220px;border-radius:999px;padding:9px 16px;color:var(--gray-400);"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search anything..." style="border:0;outline:0;flex:1;font:inherit;background:transparent;color:var(--gray-800);"></label>
-        <button class="icon-button"><i class="fa-regular fa-bell"></i><span class="dot">5</span></button>
+        <label class="field search" id="topbarSearchField" style="display:flex;align-items:center;gap:8px;width:220px;border-radius:999px;padding:9px 16px;color:var(--gray-400);"><i class="fa-solid fa-magnifying-glass"></i><input type="text" id="topbarSearchInput" placeholder="Search this page..." aria-label="Search this page" aria-controls="pageSearchResults" style="border:0;outline:0;flex:1;min-width:0;font:inherit;background:transparent;color:var(--gray-800);"></label>
+        <div class="page-search-results" id="pageSearchResults" role="listbox" hidden></div>
+        <div class="admin-notif" id="adminNotif">
+          <button type="button" class="icon-button" id="adminBellBtn" aria-label="Notifications" aria-haspopup="true" aria-expanded="false"><i class="fa-regular fa-bell"></i>{% if notif.unread %}<span class="dot">{% if notif.unread > 99 %}99+{% else %}{{ notif.unread }}{% endif %}</span>{% endif %}</button>
+          <div class="dropdown-panel admin-notif-panel" id="adminNotifPanel" role="menu">
+            <div class="dd-head admin-notif-head">
+              <span>Notifications{% if notif.unread %} &middot; {{ notif.unread }} new{% endif %}</span>
+              {% if notif.unread %}
+              <form method="post" action="{% url 'admin_dashboard:ad_notifications_read_all' %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button type="submit" class="admin-notif-readall">Mark all as read</button>
+              </form>
+              {% endif %}
+            </div>
+            {% for n in notif.items %}
+            <a href="{% url 'admin_dashboard:ad_notification_open' n.pk %}" class="dd-notif admin-notif-item{% if not n.is_read %} is-unread{% endif %}" role="menuitem">
+              <span class="notif-row__icon notif-row__icon--{{ n.level }}"><i class="{{ n.icon }}"></i></span>
+              <span class="admin-notif-text">
+                <span class="n-title">{{ n.title }}</span>
+                {% if n.description %}<span class="n-desc">{{ n.description|truncatechars:90 }}</span>{% endif %}
+                <span class="n-time">{{ n.created_at|timesince }} ago</span>
+              </span>
+            </a>
+            {% empty %}
+            <div class="dd-item admin-notif-empty">No notifications yet.</div>
+            {% endfor %}
+            <a href="{% url 'admin_dashboard:ad_notifications' %}" class="admin-notif-all">View all notifications</a>
+          </div>
+        </div>
         <div class="user-chip">
           <img src="{% if request.user.super_admin.photo %}{{ request.user.super_admin.photo.url }}{% else %}{% static 'images/icon/profile_logo.jpeg' %}{% endif %}" alt="">
           <div class="who"><div class="name">{{ request.user.get_full_name|default:request.user.username }}</div><div class="role">Super Admin</div></div>
@@ -234,6 +265,7 @@
 </div>
 
 <script src="{% static 'js/super_admin.js' %}"></script>
+<script src="{% static 'js/admin_page_search.js' %}"></script>
 <script>
   // Page scrolling is locked (body.modal-open) only while a modal is open.
   // Some close buttons just hide the modal, which used to leave the page

@@ -211,5 +211,38 @@ else:
     }
     STATICFILES_STORAGE = STORAGES["staticfiles"]["BACKEND"]
 
+# ---------------------------------------------------------------------------
+# DigitalOcean Spaces (for later, when the site moves to DigitalOcean).
+# Turn it on with the environment variable USE_SPACES=1 plus:
+#   SPACES_BUCKET, SPACES_KEY, SPACES_SECRET,
+#   SPACES_REGION (e.g. sgp1), SPACES_CDN_DOMAIN (optional)
+# Needs: pip install "django-storages[s3]" boto3   (add both to requirements.txt)
+# Uploaded files go to <bucket>/media (public) and backups to
+# <bucket>/backups (private). Nothing here runs until USE_SPACES=1.
+# ---------------------------------------------------------------------------
+if os.environ.get('USE_SPACES') == '1':
+    _spaces_region = os.environ.get('SPACES_REGION', 'sgp1')
+    _spaces = {
+        "bucket_name": os.environ.get('SPACES_BUCKET'),
+        "access_key": os.environ.get('SPACES_KEY'),
+        "secret_key": os.environ.get('SPACES_SECRET'),
+        "region_name": _spaces_region,
+        "endpoint_url": f"https://{_spaces_region}.digitaloceanspaces.com",
+        "file_overwrite": False,
+    }
+    STORAGES["default"] = {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {**_spaces, "location": "media", "default_acl": "public-read",
+                    "querystring_auth": False, "custom_domain": os.environ.get('SPACES_CDN_DOMAIN') or None},
+    }
+    STORAGES["backups"] = {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {**_spaces, "location": "backups", "default_acl": "private", "querystring_auth": True},
+    }
+
+# Where backups are kept when there is no STORAGES["backups"] (a private
+# folder the website never serves). See admin_dashboard/backup.py.
+BACKUP_ROOT = os.environ.get('BACKUP_ROOT') or (BASE_DIR / 'private_backups')
+
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'home'

@@ -67,10 +67,15 @@ button {
   cursor: pointer;
 }
 
+/* Page width: the public pages use the whole screen with only a small
+   margin on the left and right (--page-gutter; smaller on phones). */
+:root { --page-gutter: 50px; }
+@media (max-width: 600px) { :root { --page-gutter: 44px; } }
+
 .container {
-  max-width: 1180px;
+  max-width: none;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 var(--page-gutter);
 }
 
 :focus-visible {
@@ -832,8 +837,8 @@ button {
 
 .page-hero__inner {
   position: relative;
-  padding: 28px 24px 60px;
-  max-width: 1180px;
+  padding: 28px var(--page-gutter) 60px;
+  max-width: none;
   margin: 0 auto;
   color: #fff;
   min-height: 300px;
@@ -989,9 +994,9 @@ button {
 }
 
 .footer-main {
-  padding: 44px 24px 28px;
+  padding: 44px var(--page-gutter) 28px;
   display: grid;
-  grid-template-columns: 1.6fr 1fr 1fr 1fr auto;
+  grid-template-columns: 1.6fr 1fr 1fr 1fr;
   gap: 32px;
 }
 
@@ -1117,17 +1122,9 @@ button {
   background: rgba(255, 255, 255, 0.08);
 }
 
-.footer-badge {
-  align-self: center;
-}
-
-.footer-badge img {
-  width: 68px;
-}
-
 .footer-bottom {
   border-top: 1px solid #22407c;
-  padding: 16px 24px;
+  padding: 16px var(--page-gutter);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1274,10 +1271,6 @@ button {
 
   .footer-main {
     grid-template-columns: 1fr 1fr;
-  }
-
-  .footer-badge {
-    display: none;
   }
 
   .page-hero h1 {
@@ -1744,4 +1737,4 @@ button {
 @media (max-width: 420px) {
   .account-photo { flex-direction: column; text-align: center; }
   .account-photo__btns { justify-content: center; }
-} 
+}

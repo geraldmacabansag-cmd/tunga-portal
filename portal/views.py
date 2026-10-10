@@ -449,10 +449,13 @@ def announcement(request):
             continue
         seen_office_ids.add(office.id)
         icon, color, icon_image = get_office_card_style(office)
-        office_url = reverse('offices:office_detail', args=[office.slug])
+        # Clicking an office shows only that office's announcements and news
+        # on this page (?office=<slug>, the All Updates tab).
+        office_url = reverse('announcement') + f"?office={office.slug}#all"
         office_updates.append({
             "office": office,
             "url": office_url,
+            "is_current": filter_office is not None and office.id == filter_office.id,
             "icon": icon,
             "icon_image": icon_image,
             "color": color,
@@ -480,7 +483,8 @@ def announcement(request):
     )
     for office in active_offices:
         icon, color, _ = get_office_card_style(office)
-        office_url = reverse('offices:office_detail', args=[office.slug])
+        # same as the sidebar: show only this office's posts on this page
+        office_url = reverse('announcement') + f"?office={office.slug}#all"
         office_anns = Announcement.public().filter(representative__office=office)
         latest = office_anns.order_by('-date_posted', '-last_updated', '-created_at').first()
         office_directory.append({
@@ -491,6 +495,7 @@ def announcement(request):
             "latest": latest,
             "latest_display_date": (latest.date_posted or latest.created_at.date()) if latest else None,
             "count": office_anns.count(),
+            "is_current": filter_office is not None and office.id == filter_office.id,
         })
 
     office_directory.sort(key=lambda item: (

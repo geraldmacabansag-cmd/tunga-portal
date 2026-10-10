@@ -64,6 +64,15 @@
     });
   }
 
+  // The red number next to "Messages" in the sidebar.
+  function updateSidebarBadge(total) {
+    if (typeof total !== 'number') return;
+    document.querySelectorAll('[data-unread-badge="messages"]').forEach(function (b) {
+      b.textContent = total;
+      b.hidden = !total;
+    });
+  }
+
   function load(initial) {
     var url = dataUrl + (dataUrl.indexOf('?') === -1 ? '?' : '&') + 'after=' + lastId;
     if (repId) url += '&rep=' + encodeURIComponent(repId);
@@ -75,6 +84,7 @@
         (data.messages || []).forEach(render);
         if (stick && (data.messages || []).length) scrollToEnd();
         updateUnread(data.unread);
+        updateSidebarBadge(data.unread_total);
       })
       .catch(function () { /* offline / server hiccup: try again on the next tick */ });
   }

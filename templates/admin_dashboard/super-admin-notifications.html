@@ -1,0 +1,58 @@
+{% extends "super-admin-base.html" %}
+{% load static %}
+
+{% block page_title_tag %}Notifications{% endblock %}
+{% block body_page %}notifications{% endblock %}
+{% block page_title %}Notifications{% endblock %}
+{% block page_subtitle %}Submissions waiting for approval and new messages{% endblock %}
+{% block breadcrumbs %}<span>Dashboard</span><span class="sep">›</span><span class="current">Notifications</span>{% endblock %}
+
+{% block content %}
+
+  <section class="panel">
+    <div class="panel-header notif-page-head">
+      <div class="tabs notif-tabs">
+        <a class="tab {% if show != 'unread' %}active{% endif %}" href="?show=all">All</a>
+        <a class="tab {% if show == 'unread' %}active{% endif %}" href="?show=unread">Unread <span class="count">{{ unread_count }}</span></a>
+      </div>
+      {% if unread_count %}
+      <form method="post" action="{% url 'admin_dashboard:ad_notifications_read_all' %}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button type="submit" class="btn btn-sm btn-secondary"><i class="fa-solid fa-check-double"></i> Mark all as read</button>
+      </form>
+      {% endif %}
+    </div>
+
+    <div class="notif-list">
+      {% for n in page_obj %}
+      <div class="notif-row{% if not n.is_read %} is-unread{% endif %}">
+        <span class="notif-row__icon notif-row__icon--{{ n.level }}"><i class="{{ n.icon }}"></i></span>
+        <a class="notif-row__body" href="{% url 'admin_dashboard:ad_notification_open' n.pk %}">
+          <span class="notif-row__title">{{ n.title }}</span>
+          {% if n.description %}<span class="notif-row__desc">{{ n.description }}</span>{% endif %}
+          <span class="notif-row__time">{{ n.created_at|date:"M j, Y g:i A" }} &middot; {{ n.created_at|timesince }} ago</span>
+        </a>
+        <form method="post" action="{% url 'admin_dashboard:ad_notification_delete' n.pk %}">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+          <button type="submit" class="notif-row__delete" aria-label="Delete notification" title="Delete"><i class="fa-regular fa-trash-can"></i></button>
+        </form>
+      </div>
+      {% empty %}
+      <div class="log-empty"><i class="fa-regular fa-bell"></i>{% if show == 'unread' %}You're all caught up.{% else %}No notifications yet.{% endif %}</div>
+      {% endfor %}
+    </div>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+    <div class="pagination">
+      <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+      <div class="page-nums">
+        {% if page_obj.has_previous %}<a class="page-btn" href="?show={{ show }}&page={{ page_obj.previous_page_number }}"><i class="fa-solid fa-chevron-left"></i></a>{% endif %}
+        {% if page_obj.has_next %}<a class="page-btn" href="?show={{ show }}&page={{ page_obj.next_page_number }}"><i class="fa-solid fa-chevron-right"></i></a>{% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </section>
+
+{% endblock %}
