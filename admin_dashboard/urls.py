@@ -49,6 +49,8 @@ urlpatterns = [
     path('Admin-Office-Representative/<int:pk>/replace-user/', views.admin_rep_replace_user, name='admin_rep_replace_user'),
 
     path('Admin-Services/', views.admin_services, name='ad_services'),
+    path('Admin-Submissions/', views.admin_submissions, name='ad_submissions'),
+    path('Admin-Submissions/<int:pk>/pdf/', views.admin_submission_pdf, name='ad_submission_pdf'),
     path('Admin-Services/<int:pk>/', views.admin_service_detail, name='ad_service_detail'),
     path('Admin-Services/<int:pk>/delete/', views.admin_service_delete, name='ad_service_delete'),
     path('Admin-Services/toggle-editing/', views.admin_toggle_service_editing, name='admin_toggle_service_editing'),

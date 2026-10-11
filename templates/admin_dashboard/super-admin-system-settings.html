@@ -32,6 +32,7 @@
 
           <form method="post">
             {% csrf_token %}
+            <input type="hidden" name="action" value="brevo">
 
             <div class="form-group">
               <label class="form-label">Sender Email <span class="req">*</span></label>
@@ -47,9 +48,93 @@
 
             <div class="modal-actions" style="justify-content:flex-start;border-top:none;padding-top:4px;">
               <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Email Provider</button>
+              {% if email_settings.is_configured %}
+              <button type="submit" form="test-brevo-form" class="btn btn-secondary"><i class="fa-regular fa-paper-plane"></i> Send test email</button>
+              {% endif %}
             </div>
           </form>
+          <form method="post" id="test-brevo-form">{% csrf_token %}<input type="hidden" name="action" value="test"><input type="hidden" name="which" value="brevo"></form>
         </div>
       </section>
+
+      {% comment %}Backup sender: used automatically when Brevo can't send
+         (daily limit used up, Brevo down). admin_dashboard/email_utils.py{% endcomment %}
+      <section class="panel" style="margin-top:18px;">
+        <div class="panel-header">
+          <h2>Backup Email Sender</h2>
+        </div>
+        <div class="panel-body">
+          <p class="form-help" style="margin-top:0;">
+            If Brevo can't send an email (for example its <b>300 emails a day</b> free limit is used up, or Brevo is down),
+            the website automatically sends the same email through this backup. Codes for sign-up and password reset,
+            and status updates of online forms, still reach people.
+          </p>
+
+          {% if email_settings.backup_ready %}
+            <div class="badge badge-green" style="margin-bottom:8px;"><i class="fa-solid fa-circle-check"></i> Backup ready — {{ email_settings.get_backup_provider_display }}, sending from {{ email_settings.backup_email }}</div>
+            <p class="form-help" style="margin:0 0 16px;">{% if email_settings.backup_last_used %}Used {{ email_settings.backup_used_count }} time{{ email_settings.backup_used_count|pluralize }} so far · last used {{ email_settings.backup_last_used|date:"M d, Y g:i A" }}{% else %}Not needed yet — Brevo has sent every email so far.{% endif %}</p>
+          {% elif email_settings.backup_provider %}
+            <div class="badge badge-amber" style="margin-bottom:16px;"><i class="fa-solid fa-triangle-exclamation"></i> Backup is missing a password or key — it won't be used yet</div>
+          {% else %}
+            <div class="badge badge-gray" style="margin-bottom:16px;"><i class="fa-solid fa-circle-minus"></i> No backup — if Brevo can't send, the email is skipped (the website notification still shows)</div>
+          {% endif %}
+
+          <form method="post" id="backup-form">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="backup">
+
+            <div class="form-group">
+              <label class="form-label">Backup service</label>
+              <select class="form-input" name="backup_provider" id="backup-provider">
+                {% for value, label in email_settings.BACKUP_CHOICES %}
+                  <option value="{{ value }}" {% if email_settings.backup_provider == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+              <span class="form-help" data-for="mailjet"><b>Recommended.</b> Free: 200 emails a day (6,000 a month). Sign up at <a href="https://www.mailjet.com" target="_blank" rel="noopener">mailjet.com</a>, add and verify your sender email, then copy the API Key and Secret Key from <a href="https://app.mailjet.com/account/apikeys" target="_blank" rel="noopener">Account → API Keys</a>.</span>
+              <span class="form-help" data-for="gmail">About 500 emails a day. <b>Render's free plan blocks this</b> (Gmail uses SMTP ports that free web services can't reach), so use it only on a paid plan or other hosting. Needs a Gmail account with 2-Step Verification and an <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">App Password</a>.</span>
+            </div>
+
+            <div class="form-group" data-for="mailjet gmail">
+              <label class="form-label"><span data-for="mailjet">Sender Email (verified in Mailjet)</span><span data-for="gmail">Gmail Address</span> <span class="req">*</span></label>
+              <input class="form-input" type="email" name="backup_email" value="{{ email_settings.backup_email }}" placeholder="e.g. tungaportal.notify@gmail.com">
+            </div>
+
+            <div class="form-group" data-for="mailjet">
+              <label class="form-label">Mailjet API Key {% if not email_settings.backup_api_key_encrypted %}<span class="req">*</span>{% endif %}</label>
+              <input class="form-input" type="password" name="backup_api_key" autocomplete="new-password" placeholder="{% if email_settings.backup_api_key_encrypted %}•••••••••••••••• (saved — leave blank to keep it){% else %}Paste the Mailjet API Key{% endif %}">
+            </div>
+
+            <div class="form-group" data-for="mailjet gmail">
+              <label class="form-label"><span data-for="mailjet">Mailjet Secret Key</span><span data-for="gmail">Gmail App Password (16 letters)</span> {% if not email_settings.app_password_encrypted %}<span class="req">*</span>{% endif %}</label>
+              <input class="form-input" type="password" name="backup_secret" autocomplete="new-password" placeholder="{% if email_settings.app_password_encrypted %}•••••••••••••••• (saved — leave blank to keep it){% else %}Paste it here{% endif %}">
+              <span class="form-help">Saved encrypted, like the Brevo key.</span>
+            </div>
+
+            <div class="modal-actions" style="justify-content:flex-start;border-top:none;padding-top:4px;">
+              <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Backup Sender</button>
+              {% if email_settings.backup_ready %}
+              <button type="submit" form="test-backup-form" class="btn btn-secondary"><i class="fa-regular fa-paper-plane"></i> Send test email through backup</button>
+              {% endif %}
+            </div>
+          </form>
+          <form method="post" id="test-backup-form">{% csrf_token %}<input type="hidden" name="action" value="test"><input type="hidden" name="which" value="backup"></form>
+        </div>
+      </section>
+
+      <style>#backup-form [data-for][hidden] { display: none !important; }</style>
+      <script>
+      (function () {
+        var sel = document.getElementById('backup-provider');
+        var form = document.getElementById('backup-form');
+        if (!sel || !form) return;
+        function sync() {
+          form.querySelectorAll('[data-for]').forEach(function (el) {
+            el.hidden = el.getAttribute('data-for').split(' ').indexOf(sel.value) === -1;
+          });
+        }
+        sel.addEventListener('change', sync);
+        sync();
+      })();
+      </script>
 
 {% endblock %}

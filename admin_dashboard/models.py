@@ -160,11 +160,27 @@ class SiteContactInfo(models.Model):
         return (self.site_tagline or "").strip() or self.DEFAULT_TAGLINE
 
 class EmailProviderSettings(models.Model):
+    """Super Admin → System Settings. Emails go out through Brevo first; if
+    Brevo fails (e.g. its 300-a-day free limit is used up) the same email is
+    sent through the BACKUP sender (Mailjet or Gmail). admin_dashboard/email_utils.py"""
+    BACKUP_CHOICES = [
+        ("", "No backup"),
+        ("mailjet", "Mailjet (works on Render's free plan)"),
+        ("gmail", "Gmail (needs a host that allows SMTP)"),
+    ]
+
     email_address = models.EmailField(blank=True, help_text="The verified sender email in Brevo")
-    app_password_encrypted = models.TextField(blank=True)  # unused since the switch to Brevo — kept to avoid a destructive migration
+    # Backup sender: the Gmail App Password, or the Mailjet Secret Key (encrypted)
+    app_password_encrypted = models.TextField(blank=True)
     api_key_encrypted = models.TextField(blank=True)
     is_configured = models.BooleanField(default=False)
     last_updated = models.DateTimeField(auto_now=True)
+
+    backup_provider = models.CharField(max_length=20, choices=BACKUP_CHOICES, blank=True, default="")
+    backup_email = models.EmailField(blank=True, help_text="Sender address of the backup (the Gmail address, or a sender verified in Mailjet)")
+    backup_api_key_encrypted = models.TextField(blank=True)   # Mailjet API Key
+    backup_last_used = models.DateTimeField(null=True, blank=True)
+    backup_used_count = models.PositiveIntegerField(default=0)
 
     class Meta:
         verbose_name = "Email Provider Settings"
@@ -185,6 +201,32 @@ class EmailProviderSettings(models.Model):
     def get_api_key(self):
         from .crypto_utils import decrypt_value
         return decrypt_value(self.api_key_encrypted)
+
+    # backup sender secrets (encrypted like the Brevo key)
+    def set_backup_secret(self, plain):
+        from .crypto_utils import encrypt_value
+        self.app_password_encrypted = encrypt_value(plain)
+
+    def get_backup_secret(self):
+        from .crypto_utils import decrypt_value
+        return decrypt_value(self.app_password_encrypted)
+
+    def set_backup_api_key(self, plain):
+        from .crypto_utils import encrypt_value
+        self.backup_api_key_encrypted = encrypt_value(plain)
+
+    def get_backup_api_key(self):
+        from .crypto_utils import decrypt_value
+        return decrypt_value(self.backup_api_key_encrypted)
+
+    @property
+    def backup_ready(self):
+        """True when the chosen backup has everything it needs."""
+        if self.backup_provider == "gmail":
+            return bool(self.backup_email and self.app_password_encrypted)
+        if self.backup_provider == "mailjet":
+            return bool(self.backup_email and self.app_password_encrypted and self.backup_api_key_encrypted)
+        return False
 
 class EmergencyContact(models.Model):
 

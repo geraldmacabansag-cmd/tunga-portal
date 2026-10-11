@@ -881,6 +881,9 @@ def send_signup_otp_ajax(request):
         return JsonResponse({"success": True})
     return JsonResponse({"success": False, "error": error or "Could not send the code. Please try again."}, status=500)
 
+REMEMBER_ME_SECONDS = 60 * 60 * 24 * 30   # 30 days
+
+
 def login(request):
     next_url = request.POST.get("next") or request.GET.get("next") or "home"
     # Only go "next" to a page on this website (never to another site).
@@ -891,17 +894,26 @@ def login(request):
     if request.method == "POST":
         email = request.POST.get("email", "").strip().lower()
         password = request.POST.get("password", "")
+        remember = request.POST.get("remember") == "on"
+        form_back = {"next": next_url, "email": email, "remember": remember}
 
         # 5 wrong passwords on an account (or 20 from one device) = blocked 15 minutes.
         minutes = security.locked_minutes("login", request, email)
         if minutes:
             messages.error(request, security.lock_message(minutes))
-            return render(request, "account/login.html", {"next": next_url})
+            return render(request, "account/login.html", form_back)
 
         user = authenticate(request, username=email, password=password)
         if user is not None:
             security.clear_failures("login", email)
             auth_login(request, user)
+            # "Remember me" ticked  -> stay logged in for 30 days, even after
+            #                          the browser is closed.
+            # not ticked            -> logged out when the browser is closed.
+            if remember:
+                request.session.set_expiry(REMEMBER_ME_SECONDS)
+            else:
+                request.session.set_expiry(0)
             if SuperAdmin.objects.filter(user=user).exists():
                 return redirect("admin_dashboard:admin_dash")
             if OfficeRepresentative.objects.filter(user=user).exists():
@@ -914,7 +926,7 @@ def login(request):
             messages.error(request, security.lock_message(minutes))
         else:
             messages.error(request, security.wrong_message("Invalid email or password.", "login", request, email))
-        return render(request, "account/login.html", {"next": next_url})
+        return render(request, "account/login.html", form_back)
 
     return render(request, "account/login.html", {"next": next_url})
 
@@ -1212,16 +1224,72 @@ def account_change_password(request):
 
 
 @login_required
+def account_delete(request):
+    """Settings → Delete my account (Data Privacy Act: the right to have your
+    data erased). Citizens only — Office Representative and Super Admin
+    accounts are managed by the Super Admin. Needs the password (or, for
+    accounts made with Google that have no password, the email address)."""
+    next_url = request.POST.get('next') or reverse('home')
+    if not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+        next_url = reverse('home')
+    if request.method != "POST":
+        return redirect(next_url)
+
+    user = request.user
+    if (SuperAdmin.objects.filter(user=user).exists() or OfficeRepresentative.objects.filter(user=user).exists()
+            or user.is_staff or user.is_superuser):
+        messages.error(request, "Office Representative and Super Admin accounts can't be deleted here. Please contact the Super Admin.")
+        return redirect(next_url)
+
+    if request.POST.get('confirm') != 'yes':
+        messages.error(request, "Please tick the box to confirm that you want to delete your account.")
+        return redirect(next_url)
+
+    minutes = security.locked_minutes("password", request, user.username)
+    if minutes:
+        messages.error(request, security.lock_message(minutes))
+        return redirect(next_url)
+
+    if user.has_usable_password():
+        ok = user.check_password(request.POST.get('password', ''))
+        wrong_text = "Password is incorrect. Your account was not deleted."
+    else:   # signed up with Google: type the email address instead
+        ok = request.POST.get('email_confirm', '').strip().lower() == (user.email or '').lower() != ''
+        wrong_text = "The email address doesn't match. Your account was not deleted."
+    if not ok:
+        security.record_failure("password", request, user.username)
+        messages.error(request, security.wrong_message(wrong_text, "password", request, user.username))
+        return redirect(next_url)
+    security.clear_failures("password", user.username)
+
+    # Remove the profile picture file, then the account. Everything linked
+    # to the account (profile, online form submissions and their answers,
+    # Google sign-in link, verification codes) is deleted with it.
+    profile = CitizenProfile.objects.filter(user=user).first()
+    if profile and profile.photo:
+        try:
+            profile.photo.delete(save=False)
+        except Exception:
+            pass
+    EmailOTP.objects.filter(email__iexact=user.email).delete()
+    auth_logout(request)
+    user.delete()
+    messages.success(request, "Your account and your personal data have been deleted. Thank you for using the Tunga Portal.")
+    return redirect('home')
+
+
+@login_required
 def account_submissions_partial(request):
     """Lazy-loaded fragment for the My Account popup's "My Form Submissions"
     list — fetched only when the popup is actually opened, so base.html
     doesn't have to run this query on every single page load."""
-    submissions = list(
+    from office_dashboard.submissions import decorate
+    submissions = decorate(list(
         FormSubmission.objects
         .filter(user=request.user)
         .select_related('form', 'form__office')
         .order_by('-submitted_at')[:20]
-    )
+    ))
     return render(request, "portal/_account_submissions.html", {"submissions": submissions})
 
 

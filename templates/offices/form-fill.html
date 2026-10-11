@@ -178,9 +178,11 @@ Fill Out {{ form_obj.title }} | Digital Governance Portal
     msgs.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
   function clearError() { msgs.innerHTML = ''; }
-  function showSuccess(url, filename) {
+  function showSuccess(url, filename, data) {
+      data = data || {};
+      var esc = function (t) { return String(t).replace(/[&<>"]/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); };
     msgs.innerHTML = '<div style="padding:12px 16px;border-radius:8px;margin-bottom:14px;background:#e8f7ee;color:#17693a;border:1px solid #b7e4c7;">' +
-      '<strong>Saved.</strong> Your filled form (' + (filename || 'PDF') + ') is downloading to your device. ' +
+      '<strong>Sent' + (data.office ? ' to ' + esc(data.office) : '') + '.</strong> ' + (data.reference_no ? 'Reference no. <strong>' + esc(data.reference_no) + '</strong>. ' : '') + 'You can follow its status in <strong>My Account → My Form Submissions</strong>. A copy (' + (filename || 'PDF') + ') is downloading to your device. ' +
       'If nothing happened, <a href="' + url + '" download style="color:#0b5d2e;font-weight:600;text-decoration:underline;">tap here to download it</a>.</div>';
     msgs.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
@@ -334,7 +336,7 @@ fetch(form.action, {
         document.body.appendChild(a);
         a.click();
         setTimeout(function () { a.remove(); }, 1500);
-        showSuccess(data.download_url, data.filename);
+        showSuccess(data.download_url, data.filename, data);
       }).catch(function (err) {
       showError(err.message || 'Something went wrong. Please try again.');
     }).finally(function () {

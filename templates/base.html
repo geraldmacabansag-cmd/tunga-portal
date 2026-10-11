@@ -21,8 +21,8 @@
     <meta property="og:locale" content="en_PH">
     <meta name="twitter:card" content="summary_large_image">
 
-    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=3">
-    <link rel="stylesheet" href="{% static 'css/homepage.css' %}?v=2">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=4">
+    <link rel="stylesheet" href="{% static 'css/homepage.css' %}?v=3">
     <link rel="stylesheet" href="{% static 'css/offices.css' %}">
     <link rel="stylesheet" href="{% static 'css/announcements.css' %}">
     <link rel="stylesheet" href="{% static 'css/photo-collage.css' %}?v=1">
@@ -30,7 +30,7 @@
     <link rel="stylesheet" href="{% static 'css/aboutus.css' %}">
     <link rel="stylesheet" href="{% static 'css/history.css' %}">
     <link rel="stylesheet" href="{% static 'css/contactus.css' %}">
-    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=3">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=4">
     <link rel="stylesheet" href="{% static 'css/auth.css' %}">
     <link rel="stylesheet" href="{% static 'css/mayorsoffice.css' %}">
 
@@ -70,9 +70,7 @@
             </div>
           {% else %}
             
-            <a href="{% url 'login' %}"><i class="fa-regular fa-user"></i> <span>Citizen Login</span></a>
-            <span class="top-bar__divider">|</span>
-            <a href="{% url 'signup' %}"><i class="fa-regular fa-user"></i> <span>Create Account</span></a>
+            <a href="{% url 'login' %}"><i class="fa-regular fa-user"></i> <span>Login / Sign Up</span></a>
           {% endif %}
         </div>
   </div>
@@ -268,6 +266,47 @@
         <button type="submit" class="btn btn-primary">Update Password</button>
       </div>
     </form>
+
+    <hr class="account-modal__divider">
+
+    {% comment %}Delete my account (Data Privacy Act: right to erasure) — citizens only.
+       View: portal.views.account_delete{% endcomment %}
+    <div class="account-danger" id="deleteAccountBox">
+      <h3><i class="fa-solid fa-triangle-exclamation"></i> Delete my account</h3>
+      {% if is_super_admin or user.office_rep or user.is_staff %}
+        <p>Office Representative and Super Admin accounts can't be deleted here. Please contact the Super Admin.</p>
+      {% else %}
+        <p>This permanently deletes your account and your personal data from the Tunga Portal. It can't be undone.</p>
+        <button type="button" class="btn-danger-outline" id="deleteAccountStart">Delete my account…</button>
+        <form method="post" action="{% url 'account_delete' %}" id="deleteAccountForm" hidden>
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.path }}">
+          <ul>
+            <li>Your name, email, mobile number and profile picture</li>
+            <li>The forms you filled out online, and their status. Offices can no longer process requests that aren't finished yet.</li>
+            <li>You can create a new account later with the same email.</li>
+          </ul>
+          {% if user.has_usable_password %}
+          <div class="account-modal__field">
+            <label for="delete-password">Enter your password to confirm</label>
+            <input type="password" id="delete-password" name="password" autocomplete="current-password" required>
+          </div>
+          {% else %}
+          <div class="account-modal__field">
+            <label for="delete-email">Type your email address to confirm</label>
+            <input type="email" id="delete-email" name="email_confirm" placeholder="{{ user.email }}" autocomplete="off" required>
+          </div>
+          {% endif %}
+          <label class="checkbox-label" style="display:flex;gap:8px;align-items:flex-start;font-size:.8rem;margin:4px 0 12px;">
+            <input type="checkbox" name="confirm" value="yes" required style="margin-top:2px;"> I understand that my account and data will be permanently deleted.
+          </label>
+          <div class="account-modal__actions" style="justify-content:flex-start;gap:8px;">
+            <button type="submit" class="btn-danger"><i class="fa-solid fa-trash-can"></i> Delete my account</button>
+            <button type="button" class="btn btn-outline" id="deleteAccountCancel">Cancel</button>
+          </div>
+        </form>
+      {% endif %}
+    </div>
   </div>
 </dialog>
 {% endif %} 
@@ -602,6 +641,40 @@
         if (settingsModalClose) settingsModalClose.addEventListener('click', function () { settingsModal.close(); });
         settingsModal.addEventListener('click', function (e) { if (e.target === settingsModal) settingsModal.close(); });
       }
+
+      // Settings → "Delete my account…" shows the confirm form.
+      var delStart = document.getElementById('deleteAccountStart');
+      var delForm = document.getElementById('deleteAccountForm');
+      if (delStart && delForm) {
+        delStart.addEventListener('click', function () {
+          delStart.hidden = true; delForm.hidden = false;
+          var f = delForm.querySelector('input[type=password], input[type=email]');
+          if (f) f.focus();
+        });
+        document.getElementById('deleteAccountCancel').addEventListener('click', function () {
+          delForm.reset(); delForm.hidden = true; delStart.hidden = false;
+        });
+      }
+
+      // Notifications about a submitted form ("#my-submissions") open
+      // My Account, where the status and the office's note are shown.
+      function openMySubmissions() {
+        if (!openAccountBtn) return;
+        if (accountModal && accountModal.open) accountModal.close();
+        accountSubmissionsLoaded = false;   // load the latest status
+        openAccountBtn.click();
+        setTimeout(function () {
+          var h = document.getElementById('accountSubmissionsHost');
+          if (h) h.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        }, 350);
+      }
+      document.addEventListener('click', function (e) {
+        var a = e.target.closest('a[href="#my-submissions"]');
+        if (!a) return;
+        e.preventDefault();
+        openMySubmissions();
+      });
+      if (location.hash === '#my-submissions') openMySubmissions();
     })();
 
     /* -------------------------------------------------------------- */

@@ -3022,6 +3022,71 @@ def admin_backup_status(request):
 @super_admin_required
 def admin_system_setting(request):
     email_settings = EmailProviderSettings.get_solo()
+    action = request.POST.get('action', 'brevo') if request.method == "POST" else ""
+
+    # Backup sender (used automatically when Brevo fails or its daily limit is used up)
+    if action == 'backup':
+        provider = request.POST.get('backup_provider', '')
+        backup_email = request.POST.get('backup_email', '').strip()
+        secret = request.POST.get('backup_secret', '').strip()
+        api_key = request.POST.get('backup_api_key', '').strip()
+        if provider not in ('', 'mailjet', 'gmail'):
+            provider = ''
+        if provider and not backup_email:
+            messages.error(request, "Please enter the backup sender email.")
+            return redirect('admin_dashboard:ad_system_settings')
+        try:
+            if provider != email_settings.backup_provider and not secret:
+                # switching provider: the old password/keys don't fit the new one
+                email_settings.app_password_encrypted = ''
+                email_settings.backup_api_key_encrypted = ''
+            if secret:
+                email_settings.set_backup_secret(secret)
+            if api_key:
+                email_settings.set_backup_api_key(api_key)
+        except RuntimeError as e:
+            messages.error(request, f"Could not save the backup sender: {e}")
+            return redirect('admin_dashboard:ad_system_settings')
+        email_settings.backup_provider = provider
+        email_settings.backup_email = backup_email if provider else ''
+        if provider == 'gmail':
+            email_settings.backup_api_key_encrypted = ''   # only Mailjet uses an API key
+        if not provider:
+            email_settings.app_password_encrypted = ''
+            email_settings.backup_api_key_encrypted = ''
+        email_settings.save()
+        if not provider:
+            messages.success(request, "The backup email sender was turned off.")
+        elif email_settings.backup_ready:
+            messages.success(request, f"Backup email sender saved ({email_settings.get_backup_provider_display().split(' (')[0]}).")
+        else:
+            messages.error(request, "Backup sender saved, but it is missing a password or key, so it won't be used yet.")
+        return redirect('admin_dashboard:ad_system_settings')
+
+    # "Send test email" — tries the main sender and the backup separately
+    if action == 'test':
+        from .email_utils import send_with_brevo, send_with_backup
+        to = request.user.email
+        if not to:
+            messages.error(request, "Your account has no email address to send the test to.")
+            return redirect('admin_dashboard:ad_system_settings')
+        which = request.POST.get('which', 'brevo')
+        subject = "Tunga Portal test email"
+        body = "This is a test email from the Tunga Portal (Super Admin → System Settings). It works!"
+        if which == 'backup':
+            if not email_settings.backup_ready:
+                messages.error(request, "Set up the backup sender first.")
+                return redirect('admin_dashboard:ad_system_settings')
+            ok, err = send_with_backup(email_settings, subject + " (backup sender)", body, "", to)
+            name = email_settings.get_backup_provider_display().split(' (')[0]
+        else:
+            ok, err = send_with_brevo(email_settings, subject + " (Brevo)", body, "", to)
+            name = "Brevo"
+        if ok:
+            messages.success(request, f"Test email sent through {name} to {to}. Check the inbox (and Spam).")
+        else:
+            messages.error(request, f"{name} could not send the test email: {err}")
+        return redirect('admin_dashboard:ad_system_settings')
 
     if request.method == "POST":
         email_address = request.POST.get('email_address', '').strip()
@@ -3397,3 +3462,33 @@ def admin_svc_download_form(request, pk):
                             filename=form.file.name.rsplit('/', 1)[-1])
     except FileNotFoundError:
         raise Http404("File not found.")
+
+
+
+# ---------------------------------------------------------------------------
+# Submissions: every office's online form submissions, view only (each
+# office updates the status of its own). office_dashboard/submissions.py
+# ---------------------------------------------------------------------------
+@super_admin_required
+def admin_submissions(request):
+    from office_dashboard import submissions as subs
+    from offices.models import Office
+    all_qs = subs.base_queryset()
+    qs, current = subs.apply_filters(all_qs, request)
+    counts_qs = all_qs.filter(form__office_id=int(current["office"])) if current["office"] else all_qs
+    page_obj = Paginator(qs, 20).get_page(request.GET.get("page"))
+    subs.decorate(page_obj.object_list)
+    return render(request, "admin_dashboard/super-admin-submissions.html", {
+        "page_obj": page_obj,
+        "counts": subs.counts(counts_qs),
+        "current": current,
+        "status_info": subs.STATUS_INFO,
+        "office_list": Office.objects.filter(downloadable_forms__submissions__isnull=False).distinct().order_by("name"),
+    })
+
+
+@super_admin_required
+def admin_submission_pdf(request, pk):
+    from office_dashboard import submissions as subs
+    s = get_object_or_404(subs.base_queryset(), pk=pk)
+    return subs.filled_pdf_response(s, download=request.GET.get("download") == "1")

@@ -67,4 +67,8 @@ urlpatterns = [
 
     path('office-log', views.activity_log, name='log'),
 
+    path('office-submissions', views.submissions, name='submissions'),
+    path('office-submissions/<int:pk>/pdf', views.submission_pdf, name='submission_pdf'),
+    path('office-submissions/<int:pk>/update', views.submission_update, name='submission_update'),
+
 ]

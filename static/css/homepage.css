@@ -875,39 +875,58 @@
   .services-strip .service-link { padding: 6px 18px; font-size: 0.86rem; }
   .services-strip .service-link i { font-size: 1.25rem; }
 }
-/* phones: small equal tiles (icon on top, name below), centred; the card
-   still fits its tiles — 1 link = a small card, 5 links = 3 + 2, etc. */
+/* phones: a full-width white card below the photo with the links in a
+   2-column grid (icon + name side by side). An odd last link takes the whole
+   row, so 1 link = one wide button, 2 = side by side, 5 = 2 + 2 + 1. */
 @media (max-width: 700px) {
-  .services-strip { margin-top: -28px; }
+  .services-strip { margin-top: 14px; padding-bottom: 0; }
   .services-strip .services-strip__row {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: stretch;      /* tiles in a row are the same height, icons line up */
-    gap: 6px;
-    padding: 10px;
-    border-radius: 16px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    width: auto;
+    max-width: none;
+    margin: 0 var(--page-gutter, 16px);
+    padding: 8px;
+    border-radius: 14px;
+    box-shadow: 0 6px 18px rgba(10, 47, 110, 0.10);
   }
+  .services-strip .service-link:last-child:nth-child(odd) { grid-column: 1 / -1; }
   .services-strip .service-link,
   .services-strip .service-link + .service-link {
-    flex: 0 0 96px;
-    flex-direction: column;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
     justify-content: flex-start;
-    text-align: center;
-    gap: 6px;
-    padding: 10px 4px;
+    text-align: left;
+    gap: 10px;
+    min-height: 52px;
+    padding: 8px 10px;
     border: none;
-    border-radius: 12px;
+    border-radius: 10px;
+    background: #f5f7fb;
     white-space: normal;
-    font-size: 0.76rem;
+    font-size: 0.8rem;
     line-height: 1.25;
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
-  .services-strip .service-link:hover { background: #f3f6fb; }
-  .services-strip .service-link i { font-size: 1.3rem; }
+  .services-strip .service-link:hover { background: #e9eef7; }
+  .services-strip .service-link i {
+    flex: 0 0 32px;
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9px;
+    background: #fff;
+    font-size: 0.95rem;
+  }
 }
-@media (max-width: 340px) {
-  .services-strip .service-link,
-  .services-strip .service-link + .service-link { flex-basis: 86px; font-size: 0.72rem; }
+/* very small phones: one link per row */
+@media (max-width: 330px) {
+  .services-strip .services-strip__row { grid-template-columns: 1fr; }
 }
 
 /* Phones: less space inside the white cards, so the text gets more room */

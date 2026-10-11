@@ -35,7 +35,7 @@ Home | Digital Governance Portal
           Email Address
           <div class="input-icon">
             <i class="fa-regular fa-envelope"></i>
-            <input type="email" name="email" placeholder="you@example.com" required>
+            <input type="email" name="email" value="{{ email|default:'' }}" placeholder="you@example.com" required>
           </div>
         </label>
         <label>
@@ -49,7 +49,7 @@ Home | Digital Governance Portal
 
         <div class="auth-form__row">
           <label class="checkbox-label">
-            <input type="checkbox"> Remember me
+            <input type="checkbox" name="remember" {% if remember %}checked{% endif %}> Remember me
           </label>
           <a href="{% url 'forgot_password' %}" class="auth-link">Forgot password?</a>
         </div>

@@ -52,6 +52,12 @@
       <li class="nav-item{% if request.path == messages_url %} active{% endif %}">
         <a href="{{ messages_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-comments"></i></span> Messages<span class="badge badge--msg" data-unread-badge="messages"{% if not msg_unread %} hidden{% endif %}>{{ msg_unread }}</span></a>
       </li>
+      {% url 'office_dashboard:submissions' as submissions_url %}
+      {% with new_subs=rep.new_submissions_count %}
+      <li class="nav-item{% if request.path == submissions_url %} active{% endif %}">
+        <a href="{{ submissions_url }}" style="display:flex;align-items:center;gap:11px;width:100%;color:inherit;"><span class="glyph"><i class="fa-solid fa-inbox"></i></span> Submissions{% if new_subs %}<span class="badge badge--msg" title="{{ new_subs }} new">{{ new_subs }}</span>{% endif %}</a>
+      </li>
+      {% endwith %}
     </ul>
 
     <ul>

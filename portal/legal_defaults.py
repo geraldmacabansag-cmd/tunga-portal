@@ -24,7 +24,7 @@ Address: [Municipal Hall address]
 ## What information we collect
 - When you create an account: your first and last name, email address, mobile number and password. Your password is stored in a scrambled (hashed) form that no one, including us, can read.
 - When you sign in with Google: your name, email address and profile picture from your Google account.
-- When you fill in a form online: the answers you type into the office's form.
+- When you fill in a form online: the answers you type into the office's form. They are sent to that office, which updates the status of your request; we email you when it changes.
 - When you upload a profile photo: the photo.
 - When you use Contact Us: nothing is stored on this website. Your message is written and sent from your own email app (such as Gmail).
 - Automatically: cookies that keep you signed in and protect the forms on this site, and the internet address (IP address) of failed sign-in attempts, which is kept for one day to stop password guessing.
@@ -53,7 +53,7 @@ We may also share information when the law requires it.
 - Actions in the dashboards are recorded, and the website is backed up regularly.
 
 ## How long we keep your information
-- Your account: until you ask us to delete it, or it is no longer needed.
+- Your account: until you delete it yourself (side menu → Settings → Delete my account) or ask us to delete it. Deleting your account also deletes the forms you sent online.
 - Forms you submitted: for as long as the office needs them for the service, and as required by government record-keeping rules.
 - Failed sign-in records: one day.
 - Backups: [number] days.

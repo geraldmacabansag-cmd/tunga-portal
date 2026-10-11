@@ -28,6 +28,11 @@ class OfficeRepresentative(models.Model):
         return self.notifications.filter(is_read=False).count()
 
     @property
+    def new_submissions_count(self):
+        """Online form submissions to this office not opened yet (sidebar badge)."""
+        return FormSubmission.objects.filter(form__office_id=self.office_id, status="submitted").count()
+
+    @property
     def recent_notifications(self):
         return self.notifications.order_by('-created_at')[:5]
 
@@ -541,15 +546,41 @@ class FormField(models.Model):
 
 
 class FormSubmission(models.Model):
+    """A form a citizen filled out online. It goes to the form's office
+    (Office Dashboard → Submissions), which updates its status; the citizen
+    sees the status in My Account and gets a notification + email."""
+    STATUS_SUBMITTED = "submitted"
+    STATUS_RECEIVED = "received"
+    STATUS_PROCESSING = "processing"
+    STATUS_READY = "ready"
+    STATUS_DECLINED = "declined"
+    STATUS_CHOICES = [
+        (STATUS_SUBMITTED, "Submitted"),
+        (STATUS_RECEIVED, "Received"),
+        (STATUS_PROCESSING, "Processing"),
+        (STATUS_READY, "Ready for pickup"),
+        (STATUS_DECLINED, "Declined"),
+    ]
+
     form = models.ForeignKey(DownloadableForm, on_delete=models.CASCADE, related_name="submissions")
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="form_submissions")
     submitted_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_SUBMITTED)
+    office_note = models.TextField(blank=True, help_text="Message from the office to the citizen (e.g. what to bring).")
+    status_updated_at = models.DateTimeField(null=True, blank=True)
+    status_updated_by = models.CharField(max_length=150, blank=True)
 
     class Meta:
         ordering = ["-submitted_at"]
 
     def __str__(self):
         return f"{self.form.title} — {self.user.get_full_name() or self.user.username}"
+
+    @property
+    def reference_no(self):
+        """Short number the citizen can tell the office, e.g. TNG-2026-00012."""
+        year = self.submitted_at.year if self.submitted_at else timezone.now().year
+        return f"TNG-{year}-{self.pk:05d}"
 
 
 class FormSubmissionValue(models.Model):

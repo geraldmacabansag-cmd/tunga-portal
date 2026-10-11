@@ -1,5 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.views import redirect_to_login
 from django.contrib import messages
 from django.http import FileResponse, JsonResponse, Http404, HttpResponse
 from .pdf_serve import pdf_response
@@ -20,6 +21,11 @@ def serve_form_pdf(request, pk):
     """Original PDF of a published form (View / Download links and the
     pdf.js preview in Fill Out Online)."""
     form_obj = get_object_or_404(DownloadableForm, pk=pk, status="published")
+    # Downloading a form needs an account (Fill Out Online needs one too).
+    # After logging in, the visitor comes back to the form's page.
+    if request.GET.get("download") == "1" and not request.user.is_authenticated:
+        messages.info(request, "Please log in or create an account to download this form.")
+        return redirect_to_login(reverse("offices:view_form", args=[pk]))
     return pdf_response(
         request, form_obj.file,
         filename=_pdf_filename(form_obj.title, ""),
@@ -255,6 +261,9 @@ def submit_form(request, pk):
 
     download_url = reverse("offices:download_filled", args=[submission.pk])
 
+    # Tell the office: it appears in Office Dashboard → Submissions.
+    _notify_office_of_submission(submission)
+
     # The page's script asks for JSON and then points the browser at the
     # download URL. That is a plain, native file download (the same as
     # tapping a Download link), so the phone saves it straight into its
@@ -265,18 +274,38 @@ def submit_form(request, pk):
             "ok": True,
             "download_url": download_url,
             "filename": _pdf_filename(form_obj.title),
+            "reference_no": submission.reference_no,
+            "office": form_obj.office.name if form_obj.office else "",
         })
 
+    messages.success(request, f"Your form was sent to {form_obj.office.name if form_obj.office else 'the office'}. "
+                              f"Reference no. {submission.reference_no}. Follow its status in My Account.")
     return redirect(download_url)
+
+
+def _notify_office_of_submission(submission):
+    """Dashboard notification for the office's representative."""
+    try:
+        from office_dashboard.models import OfficeRepresentative
+        from office_dashboard.notifications import notify
+        rep = OfficeRepresentative.objects.filter(office=submission.form.office).first()
+        who = submission.user.get_full_name() or submission.user.email
+        notify(rep, "submissions", f"New online submission: {submission.form.title}",
+               f"{who} · {submission.reference_no}", level="info",
+               link_url=reverse("office_dashboard:submissions") + "?status=submitted")
+    except Exception:
+        pass   # never block the citizen's submission
 
 
 @login_required
 def download_filled(request, pk):
     """Sends the person's own saved answers, written onto the office's PDF,
     as a file download. Only the citizen who filled it in can fetch it."""
+    # The citizen's own copy stays available even if the office later
+    # archives the form, so they can always get what they sent.
     submission = get_object_or_404(
         FormSubmission.objects.select_related("form", "form__office"),
-        pk=pk, user=request.user, form__status="published",
+        pk=pk, user=request.user,
     )
     form_obj = submission.form
 

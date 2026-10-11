@@ -1,11 +1,20 @@
+{% comment %}My Account → My Form Submissions: each form the citizen sent online,
+with the status the office set and the office's note. Loaded when the
+popup opens (portal.views.account_submissions_partial).{% endcomment %}
 {% if submissions %}
 <ul class="account-submissions-list">
   {% for s in submissions %}
-  <li class="account-submissions-list__item">
-    <div>
+  <li class="account-submissions-list__item sub-item sub-item--{{ s.status }}">
+    <div class="sub-item__top">
       <p class="account-submissions-list__title">{{ s.form.title }}</p>
-      <p class="account-submissions-list__meta">{{ s.form.office.name|default:"—" }} &middot; Submitted {{ s.submitted_at|date:"M d, Y g:i A" }}</p>
+      <span class="sub-item__status"><i class="{{ s.info.icon }}"></i> {{ s.info.label }}</span>
     </div>
+    <p class="account-submissions-list__meta">{{ s.form.office.name|default:"—" }} &middot; Ref. {{ s.reference_no }} &middot; Sent {{ s.submitted_at|date:"M d, Y g:i A" }}</p>
+    <p class="sub-item__text">{{ s.info.citizen }}</p>
+    {% if s.office_note %}
+    <div class="sub-item__note"><strong><i class="fa-regular fa-comment"></i> Note from the office{% if s.status_updated_at %} &middot; {{ s.status_updated_at|date:"M d, g:i A" }}{% endif %}</strong>{{ s.office_note|linebreaksbr }}</div>
+    {% endif %}
+    <a class="sub-item__dl" href="{% url 'offices:download_filled' s.pk %}" download><i class="fa-solid fa-download"></i> Download my filled form</a>
   </li>
   {% endfor %}
 </ul>

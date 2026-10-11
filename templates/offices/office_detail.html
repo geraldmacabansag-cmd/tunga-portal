@@ -431,7 +431,11 @@
             {% else %}
               <span class="charter-forms__btn charter-forms__btn--fill is-disabled" title="This form isn't set up for online filling yet"><i class="fa-solid fa-pen-to-square"></i> Fill Out Online</span>
             {% endif %}
+            {% if user.is_authenticated %}
             <a class="charter-forms__btn charter-forms__btn--download" href="{% url 'offices:view_pdf' form.pk %}?download=1" download><i class="fa-solid fa-download"></i> Download</a>
+            {% else %}
+            <a class="charter-forms__btn charter-forms__btn--download" href="{% url 'offices:view_pdf' form.pk %}?download=1" title="Log in to download this form"><i class="fa-solid fa-download"></i> Download</a>
+            {% endif %}
           </span>
         </li>
         {% endfor %}

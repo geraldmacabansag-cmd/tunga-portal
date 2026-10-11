@@ -1,0 +1,235 @@
+{% comment %}
+Online form submissions list — shared by the Office Representative's
+Submissions page (can_update=True) and the Super Admin's Submissions page
+(is_admin=True, every office, view only). View: office_dashboard/submissions.py
+{% endcomment %}
+{% if not is_admin and messages %}
+<div class="sub-msgs">
+  {% for message in messages %}<div class="sub-msg sub-msg--{{ message.tags }}">{{ message }}</div>{% endfor %}
+</div>
+{% endif %}
+
+<div class="stat-grid sub-stats">
+  <a class="stat-card sub-stat{% if current.status == 'submitted' %} is-on{% endif %}" href="?status=submitted{% if current.office %}&office={{ current.office }}{% endif %}">
+    <div class="top"><span class="stat-icon blue"><i class="fa-solid fa-paper-plane"></i></span></div>
+    <div class="stat-value">{{ counts.submitted }}</div>
+    <div class="stat-label">New</div>
+    <div class="stat-sub">Not opened yet</div>
+  </a>
+  <a class="stat-card sub-stat{% if current.status == 'open' %} is-on{% endif %}" href="?status=open{% if current.office %}&office={{ current.office }}{% endif %}">
+    <div class="top"><span class="stat-icon amber"><i class="fa-solid fa-gears"></i></span></div>
+    <div class="stat-value">{{ counts.in_progress }}</div>
+    <div class="stat-label">In Progress</div>
+    <div class="stat-sub">Received or processing</div>
+  </a>
+  <a class="stat-card sub-stat{% if current.status == 'ready' %} is-on{% endif %}" href="?status=ready{% if current.office %}&office={{ current.office }}{% endif %}">
+    <div class="top"><span class="stat-icon green"><i class="fa-solid fa-circle-check"></i></span></div>
+    <div class="stat-value">{{ counts.ready }}</div>
+    <div class="stat-label">Ready for Pickup</div>
+    <div class="stat-sub">Waiting for the citizen</div>
+  </a>
+  <a class="stat-card sub-stat{% if current.status == 'declined' %} is-on{% endif %}" href="?status=declined{% if current.office %}&office={{ current.office }}{% endif %}">
+    <div class="top"><span class="stat-icon gray"><i class="fa-solid fa-circle-xmark"></i></span></div>
+    <div class="stat-value">{{ counts.declined }}</div>
+    <div class="stat-label">Declined</div>
+    <div class="stat-sub">Returned with a reason</div>
+  </a>
+</div>
+
+<section class="panel">
+  <div class="panel-header">
+    <h2>{% if is_admin %}All Online Submissions{% else %}Online Submissions{% endif %}</h2>
+    <span class="sub-total">{{ counts.total }} total</span>
+  </div>
+  <form method="get" class="filters-row sub-filters">
+    <label class="field search" style="flex:1;"><i class="fa-solid fa-magnifying-glass"></i><input type="text" name="q" value="{{ current.q }}" placeholder="Search name, email, form or reference no..." onchange="this.form.submit()"></label>
+    {% if is_admin %}
+    <select class="field" name="office" onchange="this.form.submit()">
+      <option value="">All Offices</option>
+      {% for o in office_list %}<option value="{{ o.id }}" {% if current.office == o.id|stringformat:"s" %}selected{% endif %}>{{ o.name }}</option>{% endfor %}
+    </select>
+    {% else %}
+    <select class="field" name="form" onchange="this.form.submit()">
+      <option value="">All Forms</option>
+      {% for f in form_choices %}<option value="{{ f.id }}" {% if current.form == f.id|stringformat:"s" %}selected{% endif %}>{{ f.title }}</option>{% endfor %}
+    </select>
+    {% endif %}
+    <select class="field" name="status" onchange="this.form.submit()">
+      <option value="">All Status</option>
+      <option value="open" {% if current.status == "open" %}selected{% endif %}>Not finished yet</option>
+      {% for key, s in status_info.items %}<option value="{{ key }}" {% if current.status == key %}selected{% endif %}>{{ s.label }}</option>{% endfor %}
+    </select>
+    {% if current.q or current.status or current.form or current.office %}<a class="btn btn-secondary" href="?">Clear</a>{% endif %}
+  </form>
+
+  <div class="table-wrap">
+    <table class="data-table sub-table">
+      <thead><tr><th>Reference No.</th><th>Citizen</th><th>{% if is_admin %}Form / Office{% else %}Form{% endif %}</th><th>Submitted</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>
+      {% for s in page_obj %}
+        <tr{% if s.status == 'submitted' %} class="sub-row--new"{% endif %}>
+          <td><span class="sub-ref">{{ s.reference_no }}</span>{% if s.status == 'submitted' %} <span class="sub-new">New</span>{% endif %}</td>
+          <td style="min-width:200px;">
+            <div class="cell-primary">{{ s.user.get_full_name|default:s.user.username }}</div>
+            <div class="cell-sub">{{ s.user.email }}{% if s.user.profile.mobile_number %} · {{ s.user.profile.mobile_number }}{% endif %}</div>
+          </td>
+          <td style="min-width:180px;"><div class="cell-primary">{{ s.form.title }}</div>{% if is_admin %}<div class="cell-sub"><i class="fa-solid fa-building"></i> {{ s.form.office.name|default:"—" }}</div>{% elif s.form.service %}<div class="cell-sub">{{ s.form.service.name }}</div>{% endif %}</td>
+          <td style="white-space:nowrap;">{{ s.submitted_at|date:"M d, Y" }}<div class="cell-sub">{{ s.submitted_at|date:"g:i A" }}</div></td>
+          <td style="min-width:150px;">
+            <span class="badge {{ s.info.badge }}">{{ s.info.label }}</span>
+            {% if s.office_note %}<div class="cell-sub sub-note" title="{{ s.office_note }}"><i class="fa-regular fa-comment"></i> {{ s.office_note|truncatechars:60 }}</div>{% endif %}
+            {% if s.status_updated_at %}<div class="cell-sub">{{ s.status_updated_at|date:"M d, g:i A" }}{% if s.status_updated_by %} · {{ s.status_updated_by }}{% endif %}</div>{% endif %}
+          </td>
+          <td>
+            <div class="sub-actions">
+              {% if is_admin %}
+                <a class="btn btn-secondary sub-btn" href="{% url 'admin_dashboard:ad_submission_pdf' s.pk %}" target="_blank" rel="noopener" title="Open the filled form"><i class="fa-regular fa-file-pdf"></i> View</a>
+              {% else %}
+                <a class="btn btn-secondary sub-btn" href="{% url 'office_dashboard:submission_pdf' s.pk %}" target="_blank" rel="noopener" title="Open the filled form{% if s.status == 'submitted' %} (marks it Received){% endif %}"><i class="fa-regular fa-file-pdf"></i> View</a>
+                <button type="button" class="btn btn-primary sub-btn js-sub-update"
+                        data-url="{% url 'office_dashboard:submission_update' s.pk %}"
+                        data-ref="{{ s.reference_no }}"
+                        data-who="{{ s.user.get_full_name|default:s.user.email }}"
+                        data-form="{{ s.form.title }}"
+                        data-status="{{ s.status }}"
+                        data-note="{{ s.office_note }}"><i class="fa-solid fa-pen"></i> Update</button>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" style="text-align:center;color:var(--gray-400);padding:28px 0;">
+          {% if current.q or current.status or current.form or current.office %}No submissions match your search.{% else %}No online submissions yet. When a citizen fills out one of {% if is_admin %}the offices'{% else %}your{% endif %} forms online, it will appear here.{% endif %}
+        </td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if page_obj.paginator.num_pages > 1 %}
+  <div class="pagination">
+    <span>Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }}</span>
+    <div class="page-nums">
+      {% if page_obj.has_previous %}<a class="page-btn" href="?page={{ page_obj.previous_page_number }}&q={{ current.q|urlencode }}&status={{ current.status }}&form={{ current.form }}&office={{ current.office }}"><i class="fa-solid fa-chevron-left"></i></a>{% endif %}
+      <span class="page-btn active">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}<a class="page-btn" href="?page={{ page_obj.next_page_number }}&q={{ current.q|urlencode }}&status={{ current.status }}&form={{ current.form }}&office={{ current.office }}"><i class="fa-solid fa-chevron-right"></i></a>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+</section>
+
+{% if not is_admin %}
+<!-- Update status popup (filled in by the script below from the row's Update button) -->
+<div class="modal-backdrop" id="sub-update-modal">
+  <div class="modal-box" style="max-width:480px;">
+    <div class="modal-head">
+      <h3>Update Status</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form method="post" id="sub-update-form">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <div class="sub-modal-info">
+          <strong id="sub-m-ref"></strong>
+          <span id="sub-m-who"></span>
+          <span id="sub-m-form"></span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="sub-m-status">Status <span class="req">*</span></label>
+          <select class="form-input" id="sub-m-status" name="status" required>
+            {% for key, label in office_choices %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="sub-m-note">Note to the citizen <span id="sub-m-note-req" class="req" hidden>*</span></label>
+          <textarea class="form-input" id="sub-m-note" name="office_note" rows="4" maxlength="1000"></textarea>
+          <small class="form-help" id="sub-m-help">Optional. The citizen sees this in My Account.</small>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-paper-plane"></i> Save &amp; Notify Citizen</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var modal = document.getElementById('sub-update-modal');
+  if (!modal) return;
+  var form = document.getElementById('sub-update-form');
+  var statusSel = document.getElementById('sub-m-status');
+  var note = document.getElementById('sub-m-note');
+  var noteReq = document.getElementById('sub-m-note-req');
+  var help = document.getElementById('sub-m-help');
+  var hints = {
+    received: 'e.g. We received your form and will review it within 3 working days.',
+    processing: 'e.g. Your request is being processed.',
+    ready: 'e.g. Please bring a valid ID and ₱50 fee at the Treasurer\'s window, 8 AM – 5 PM.',
+    declined: 'e.g. The cedula number is missing. Please fill out the form again.'
+  };
+  function sync() {
+    var declined = statusSel.value === 'declined';
+    note.required = declined;
+    noteReq.hidden = !declined;
+    note.placeholder = hints[statusSel.value] || '';
+    var emailed = statusSel.value === 'ready' || statusSel.value === 'declined';
+    help.textContent = (declined ? 'Required: tell the citizen why, so they know what to fix. '
+                                 : 'Optional. ') +
+      (emailed ? 'The citizen gets an email and sees it in My Account.'
+               : 'Shown in the citizen\'s My Account and notifications (no email for this status).');
+  }
+  statusSel.addEventListener('change', sync);
+  function open(btn) {
+    form.action = btn.dataset.url;
+    document.getElementById('sub-m-ref').textContent = btn.dataset.ref;
+    document.getElementById('sub-m-who').textContent = btn.dataset.who;
+    document.getElementById('sub-m-form').textContent = btn.dataset.form;
+    var order = ['received', 'processing', 'ready', 'declined'];
+    var cur = btn.dataset.status;
+    // suggest the next step
+    var next = cur === 'submitted' ? 'received' : (cur === 'received' ? 'processing' : (cur === 'processing' ? 'ready' : cur));
+    statusSel.value = order.indexOf(next) !== -1 ? next : 'received';
+    note.value = btn.dataset.note || '';
+    sync();
+    modal.classList.add('open');
+    document.body.classList.add('modal-open');
+    setTimeout(function () { statusSel.focus(); }, 50);
+  }
+  function close() { modal.classList.remove('open'); document.body.classList.remove('modal-open'); }
+  document.querySelectorAll('.js-sub-update').forEach(function (b) {
+    b.addEventListener('click', function () { open(b); });
+  });
+  modal.querySelectorAll('[data-act="cancel"], .modal-x').forEach(function (b) { b.addEventListener('click', close); });
+  modal.addEventListener('click', function (e) { if (e.target === modal) close(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && modal.classList.contains('open')) close(); });
+})();
+</script>
+{% endif %}
+
+<style>
+  .sub-stats .sub-stat { text-decoration: none; color: inherit; transition: box-shadow .15s, transform .15s; }
+  .sub-stats .sub-stat:hover { transform: translateY(-2px); }
+  .sub-stats .sub-stat.is-on { outline: 2px solid var(--blue-600, #2563eb); outline-offset: -2px; }
+  .sub-total { font-size: 13px; color: var(--gray-500); }
+  .sub-ref { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 700; font-size: 12.5px; white-space: nowrap; }
+  .sub-new { display: inline-block; margin-left: 4px; padding: 1px 7px; border-radius: 999px; background: var(--blue-600, #2563eb); color: #fff; font-size: 10.5px; font-weight: 700; vertical-align: middle; }
+  .sub-row--new td { background: rgba(37, 99, 235, .04); }
+  .sub-note { margin-top: 4px; max-width: 210px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sub-actions { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
+  .sub-btn { justify-content: center; padding: 6px 12px !important; font-size: 12.5px !important; white-space: nowrap; }
+  .sub-msgs { margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px; }
+  .sub-msg { padding: 11px 14px; border-radius: 10px; font-size: 13.5px; background: #eff6ff; color: #1e3a8a; border: 1px solid #bfdbfe; }
+  .sub-msg--success { background: #ecfdf3; color: #166534; border-color: #bbf7d0; }
+  .sub-msg--error { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+  .sub-filters { flex-wrap: wrap; }
+  .sub-filters .search { flex: 1 1 240px !important; min-width: 0; }
+  .sub-filters select.field { flex: 1 1 150px; min-width: 0; max-width: 100%; }
+  @media (max-width: 700px) {
+    .sub-stats { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  }
+  .sub-modal-info { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; margin-bottom: 14px; border-radius: 10px; background: var(--gray-50, #f8fafc); font-size: 13px; color: var(--gray-700); }
+  .sub-modal-info strong { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+</style>

@@ -94,5 +94,22 @@ def public_notifications(request):
             "event_date": e.event_date,
         })
 
+    # The office updated the status of a form this person sent online
+    # (office_dashboard/submissions.py). A new status = a new notification.
+    from office_dashboard.models import FormSubmission
+    from office_dashboard.submissions import STATUS_INFO
+    for s in (FormSubmission.objects.filter(user=request.user, status_updated_at__gte=cutoff)
+              .exclude(status="submitted").select_related('form__office').order_by('-status_updated_at')[:10]):
+        info = STATUS_INFO.get(s.status, STATUS_INFO["submitted"])
+        items.append({
+            "key": f"s{s.pk}-{s.status}-{int(s.status_updated_at.timestamp())}",
+            "kind": "submission-declined" if s.status == "declined" else "submission",
+            "label": "Your form: " + info["label"],
+            "icon": info["icon"], "title": s.form.title,
+            "office": s.form.office.name if s.form.office else "",
+            "when": s.status_updated_at, "url": "#my-submissions",
+            "urgent": False,
+        })
+
     items.sort(key=lambda i: i["when"], reverse=True)
     return {"public_notifications": items[:15]}

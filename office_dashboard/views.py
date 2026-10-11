@@ -1611,3 +1611,63 @@ def _int_or_none(value):
         return int(value)
     except (TypeError, ValueError):
         return None
+
+
+
+# ---------------------------------------------------------------------------
+# Submissions: forms citizens filled out online and sent to this office.
+# The office opens the filled PDF and updates the status; the citizen sees
+# it in My Account and gets a notification + email (office_dashboard/submissions.py).
+# ---------------------------------------------------------------------------
+@office_rep_required
+def submissions(request, rep):
+    from . import submissions as subs
+    office_qs = subs.base_queryset().filter(form__office=rep.office)
+    qs, current = subs.apply_filters(office_qs, request)
+    page_obj = Paginator(qs, 15).get_page(request.GET.get("page"))
+    subs.decorate(page_obj.object_list)
+    return render(request, "office_dashboard/submissions.html", {
+        "rep": rep,
+        "page_obj": page_obj,
+        "counts": subs.counts(office_qs),
+        "current": current,
+        "status_info": subs.STATUS_INFO,
+        "office_choices": subs.OFFICE_CHOICES,
+        "form_choices": DownloadableForm.objects.filter(office=rep.office, submissions__isnull=False).distinct().order_by("title"),
+    })
+
+
+@office_rep_required
+def submission_pdf(request, rep, pk):
+    """The citizen's filled form (only for this office's submissions)."""
+    from . import submissions as subs
+    s = get_object_or_404(subs.base_queryset(), pk=pk, form__office=rep.office)
+    if s.status == "submitted":
+        # Opening it for the first time = the office has received it.
+        subs.update_status(s, "received", s.office_note, rep.user.get_full_name() or rep.user.username)
+    return subs.filled_pdf_response(s, download=request.GET.get("download") == "1")
+
+
+@office_rep_required
+def submission_update(request, rep, pk):
+    from . import submissions as subs
+    s = get_object_or_404(subs.base_queryset(), pk=pk, form__office=rep.office)
+    if request.method == "POST":
+        new_status = request.POST.get("status", "")
+        note = request.POST.get("office_note", "")
+        if new_status == "declined" and not note.strip():
+            messages.error(request, "Please write the reason in the note so the citizen knows what to fix.")
+        elif subs.update_status(s, new_status, note, rep.user.get_full_name() or rep.user.username):
+            label = subs.STATUS_INFO[new_status]["label"]
+            log_activity(rep, f"Submission {s.reference_no} marked {label}",
+                         f"{s.form.title} — {s.user.get_full_name() or s.user.email}",
+                         icon=subs.STATUS_INFO[new_status]["icon"])
+            how = "by email and on the website" if new_status in subs.EMAIL_STATUSES else "on the website"
+            messages.success(request, f"{s.reference_no} is now “{label}”. "
+                                      f"{s.user.get_full_name() or s.user.email} was notified {how}.")
+        else:
+            messages.info(request, "Nothing changed.")
+    back = request.POST.get("next") or reverse("office_dashboard:submissions")
+    if not back.startswith("/"):
+        back = reverse("office_dashboard:submissions")
+    return redirect(back)
