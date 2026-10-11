@@ -169,3 +169,125 @@
 /* Keep every map layer (Leaflet uses z-index 400-1000) INSIDE the map, so the
    site's sidebar, menu button and dropdowns always stay on top of it. */
 .tmap { position: relative; z-index: 0; isolation: isolate; }
+
+/* ---------- building names ---------- */
+/* name under each pin (hidden when zoomed far out, or switched off with the "A" button) */
+.tmap .leaflet-tooltip.tm-name {
+  background: rgba(255, 255, 255, .92); color: var(--tmap-ink); border: 0; border-radius: 6px;
+  padding: 1px 7px; font: 600 11.5px/1.35 var(--tmap-font); box-shadow: 0 1px 4px rgba(0, 0, 0, .25);
+  white-space: nowrap; max-width: 220px; overflow: hidden; text-overflow: ellipsis;
+}
+.tmap .leaflet-tooltip.tm-name::before { display: none; }
+.tmap.tm-names-off .leaflet-tooltip.tm-name,
+.tmap.tm-far .leaflet-tooltip.tm-name { display: none; }
+/* a building name written on the map (no pin): plain map text, like the map's own labels, but clickable */
+.tmap .tm-blabel {
+  position: absolute; transform: translate(-50%, -50%); white-space: nowrap; cursor: pointer;
+  color: #3b3f45; font: 600 12.5px/1.2 var(--tmap-font); letter-spacing: .01em; text-align: center;
+  text-shadow: 0 0 2px #fff, 0 0 2px #fff, 0 0 3px #fff, 0 0 4px #fff;   /* white halo, like map labels */
+}
+.tmap .tm-blabel:hover { color: var(--tmap-accent); text-decoration: underline; }
+.tmap .tm-blabel.draft { font-style: italic; opacity: .65; }
+.tmap.tm-far .tm-blabel { font-size: 10.5px; }
+.tmap.tm-sat .tm-blabel { color: #fff; text-shadow: 0 0 3px #000, 0 0 3px #000, 0 1px 4px #000; }
+.tmap.tm-sat .leaflet-tooltip.tm-name { background: rgba(255, 255, 255, .97); }
+
+/* ---------- map tools (top right) ---------- */
+.tmap .tm-tools a { display: grid; place-items: center; width: 30px; height: 30px; color: var(--tmap-ink); font-size: 14px; background: #fff; }
+.tmap .tm-tools a:hover { background: var(--tmap-chip); }
+.tmap .tm-tools a.on { color: var(--tmap-accent); background: #e3f1ea; }
+
+/* ---------- barangay filter ---------- */
+.tmap .tm-filter { display: flex; align-items: center; gap: 8px; padding: 0 18px 12px; font-size: 12.5px; color: var(--tmap-muted); }
+.tmap .tm-filter label { margin: 0; font-weight: 600; white-space: nowrap; }
+.tmap .tm-filter select { flex: 1; min-width: 0; border: 1px solid var(--tmap-line); border-radius: 9px; padding: 6px 8px; background: var(--tmap-panel); }
+
+/* ---------- editor tools ---------- */
+.tmap .tm-admin-tools { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.tmap .tm-admin-tools .tm-btn { background: var(--tmap-panel); }
+@media (max-width: 760px) {
+  .tmap .tm-filter { padding: 0 16px 10px; }
+}
+
+/* ---------- compass (turning the map) ---------- */
+.tmap .tm-compass a { display: grid; place-items: center; width: 30px; height: 30px; color: var(--tmap-ink); font-size: 13px; background: #fff; position: relative; }
+.tmap .tm-compass a:hover { background: var(--tmap-chip); }
+.tmap .tm-compass .tm-needle-btn { height: 40px; }
+.tmap .tm-needle { width: 24px; height: 24px; transform: rotate(var(--b, 0deg)); transition: transform .15s; }
+.tmap .tm-compass .tm-n { position: absolute; top: 1px; left: 50%; transform: translateX(-50%); font: 800 8px/1 var(--tmap-font); color: #d23c4b; opacity: 0; }
+.tmap .tm-compass .turned { background: #fff4e5; }
+.tmap .tm-compass .turned .tm-n { opacity: 1; }
+
+/* ---------- boundaries ---------- */
+.tmap .tm-brgy-name {
+  position: absolute; transform: translate(-50%, -50%); white-space: nowrap; pointer-events: none;
+  font: 800 12px/1.2 var(--tmap-font); letter-spacing: .06em; text-transform: uppercase; color: #1d3c34;
+  text-shadow: 0 0 2px #fff, 0 0 3px #fff, 0 0 5px #fff;
+}
+.tmap.tm-sat .tm-brgy-name { color: #fff; text-shadow: 0 0 3px #000, 0 0 5px #000; }
+
+/* barangay filled in automatically in the Add form */
+.tmap .tm-note { font-size: 11.5px; color: var(--tmap-muted); min-height: 1em; }
+.tmap .tm-note.ok { color: var(--tmap-accent); font-weight: 600; }
+.tmap .tm-note.warn { color: var(--tmap-warn); }
+
+/* phones: while tapping the map to place something, the list gets out of the way */
+@media (max-width: 760px) {
+  .tmap.tm-picking .tm-panel { display: none; }
+}
+
+/* ---------- compact mode (a map inside a page section, e.g. Contact Us) ---------- */
+/* the list and search open as a drawer over the map */
+.tmap .tm-drawer-btn { display: none; }
+@media (min-width: 761px) {
+  .tmap.tm-compact .tm-mapwrap { position: absolute; inset: 0; }
+  .tmap.tm-compact .tm-panel {
+    position: absolute; top: 0; left: 0; bottom: 0; width: min(340px, 86%);
+    transform: translateX(-102%); transition: transform .25s ease; box-shadow: var(--tmap-shadow);
+    overflow-y: auto; overscroll-behavior: contain;
+  }
+  .tmap.tm-compact .tm-results { flex: none; overflow: visible; }
+  .tmap.tm-compact.tm-drawer-open .tm-panel { transform: none; }
+  .tmap.tm-compact .tm-drawer-btn {
+    display: inline-flex; align-items: center; gap: 8px; position: absolute; top: 12px; left: 12px; z-index: 650;
+    border: 0; border-radius: 999px; padding: 9px 16px; background: var(--tmap-panel); color: var(--tmap-ink);
+    font-weight: 700; font-size: 13px; cursor: pointer; box-shadow: var(--tmap-shadow); transition: left .25s ease;
+  }
+  .tmap.tm-compact .tm-drawer-btn i { color: var(--tmap-accent); }
+  .tmap.tm-compact.tm-drawer-open .tm-drawer-btn { left: calc(min(340px, 86%) + 12px); }
+}
+
+/* ---------- the list panel scrolls as a whole (search, types and list always reachable) ---------- */
+.tmap .tm-panel { overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #c7d3cd transparent; }
+.tmap .tm-search { grid-template-columns: minmax(0, 1fr); }
+.tmap .tm-mode button { min-width: 0; }
+.tmap .tm-results { flex: none; overflow: visible; min-height: auto; }
+.tmap .tm-results-head { position: sticky; top: 0; z-index: 2; background: var(--tmap-panel); }
+@media (max-width: 760px) {
+  .tmap .tm-grab { position: sticky; top: 0; z-index: 3; background: var(--tmap-panel); }
+  .tmap .tm-results-head { top: 22px; }
+}
+
+/* ---------- top-left buttons, hide / show the list ---------- */
+.tmap .tm-tl { position: absolute; top: 12px; left: 12px; z-index: 650; display: flex; gap: 8px; flex-wrap: wrap; max-width: calc(100% - 80px); }
+.tmap .tm-tl > * {
+  display: inline-flex; align-items: center; gap: 8px; border: 0; border-radius: 999px; padding: 9px 16px;
+  background: var(--tmap-panel); color: var(--tmap-ink); font-weight: 700; font-size: 13px; cursor: pointer;
+  box-shadow: var(--tmap-shadow); text-decoration: none; line-height: 1.2;
+}
+.tmap .tm-tl > * i { color: var(--tmap-accent); }
+.tmap .tm-tl > *:hover { background: var(--tmap-chip); }
+.tmap .tm-show-panel { display: none !important; }
+.tmap .tm-brand { position: relative; }
+.tmap .tm-hide-panel {
+  flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--tmap-line);
+  background: var(--tmap-panel); color: var(--tmap-muted); cursor: pointer; display: grid; place-items: center;
+}
+.tmap .tm-hide-panel:hover { background: var(--tmap-chip); color: var(--tmap-ink); }
+@media (min-width: 761px) {
+  .tmap.tm-panel-hidden .tm-panel { display: none; }
+  .tmap.tm-panel-hidden .tm-show-panel { display: inline-flex !important; }
+}
+@media (max-width: 760px) {
+  .tmap .tm-hide-panel { display: none; }   /* phones: the list is the bottom sheet */
+}

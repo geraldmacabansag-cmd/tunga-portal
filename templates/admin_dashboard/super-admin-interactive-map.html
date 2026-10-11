@@ -14,7 +14,232 @@
   {% tunga_map height="calc(100vh - 230px)" %}
 
   <style>
-    /* Fit the map nicely inside the dashboard's content area. */
-    .content .tmap { min-height: 520px; }
+    /* ---- Fit the map to the screen (height is set exactly by the script below) ---- */
+    .content .tmap { min-height: 420px; }
+
+    /* ---- Left panel: the whole panel scrolls, so search, types, the list
+       and the "Add infrastructure" button are always reachable ---- */
+    .content .tmap .tm-panel {
+      overflow-y: auto;
+      overscroll-behavior: contain;      /* scrolling the list never scrolls the page */
+      scrollbar-width: thin;
+      scrollbar-color: #c7d3cd transparent;
+    }
+    .content .tmap .tm-panel::-webkit-scrollbar { width: 8px; }
+    .content .tmap .tm-panel::-webkit-scrollbar-thumb { background: #c7d3cd; border-radius: 8px; }
+    .content .tmap .tm-panel { overflow-x: hidden; }
+    /* the scrollbar takes a little width: let the search area shrink to fit */
+    .content .tmap .tm-search { grid-template-columns: minmax(0, 1fr); }
+    .content .tmap .tm-mode button { min-width: 0; }
+    .content .tmap .tm-results { flex: none; overflow: visible; min-height: auto; }
+    /* "All infrastructure · N" stays at the top while you scroll the list */
+    .content .tmap .tm-results-head { position: sticky; top: 0; z-index: 2; background: var(--tmap-panel); }
+    /* "Add infrastructure" stays at the bottom while you scroll */
+    .content .tmap .tm-admin-bar { position: sticky; bottom: 0; z-index: 2; margin-top: auto; box-shadow: 0 -6px 14px rgba(16, 40, 30, .06); }
+    .content .tmap .tm-admin-bar .tm-btn { width: 100%; }
+
+    /* Laptops with short screens: a little narrower panel, more map */
+    @media (max-width: 1200px) {
+      .content .tmap .tm-panel { width: 320px; }
+    }
+
+    /* Phones: the panel is a sheet at the bottom of the map */
+    @media (max-width: 760px) {
+      .content .tmap { min-height: 460px; border-radius: 12px; }
+      .content .tmap .tm-panel { max-height: 55%; }
+      .content .tmap .tm-panel.open { max-height: 92%; }
+      .content .tmap .tm-grab { position: sticky; top: 0; z-index: 3; background: var(--tmap-panel); }
+      .content .tmap .tm-results-head { top: 22px; }   /* below the grab handle */
+    }
   </style>
+
+  <script>
+    // Make the map fill the rest of the screen exactly (no page scrolling),
+    // on any screen size, and again when the window is resized or rotated.
+    (function () {
+      var map = document.querySelector('.content .tmap');
+      if (!map) return;
+      function fit() {
+        var top = map.getBoundingClientRect().top + window.scrollY;
+        var content = map.closest('.content');
+        var bottom = content ? parseFloat(getComputedStyle(content).paddingBottom) || 16 : 16;
+        var min = window.innerWidth <= 760 ? 460 : 420;
+        var h = Math.max(min, Math.floor(window.innerHeight - top - bottom));
+        var changed = map.style.getPropertyValue('--tmap-height') !== h + 'px';
+        map.style.setProperty('--tmap-height', h + 'px');
+        return changed;
+      }
+      fit();
+      // Runs before the map's own resize handler, so the map redraws at the new size.
+      window.addEventListener('resize', fit);
+      // After images/fonts load the page header can shift; tell the map if the size changed.
+      window.addEventListener('load', function () {
+        if (fit()) window.dispatchEvent(new Event('resize'));
+      });
+    })();
+  </script>
+
+  {# ---------- Municipal Hall pin (the same pin as Website Settings → Map location) ---------- #}
+  <script src="{% static 'js/lgu_pin.js' %}?v=1"></script>
+  {{ info.map_lat|json_script:"lguPinLat" }}
+  {{ info.map_lng|json_script:"lguPinLng" }}
+  {{ info.map_place_name|default:"Municipal Hall of Tunga"|json_script:"lguPinName" }}
+
+  <style>
+    .content .tmap .lgu-editor {
+      position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 700;
+      width: min(420px, calc(100% - 24px)); background: #fff; border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(16, 40, 30, .22); padding: 14px 16px; display: grid; gap: 8px;
+      border-top: 4px solid #c0392b;
+    }
+    .content .tmap .lgu-editor[hidden] { display: none; }
+    .content .tmap .lgu-editor h4 { margin: 0; font-size: 15px; font-weight: 800; color: var(--tmap-ink); }
+    .content .tmap .lgu-editor p { margin: 0; font-size: 12.5px; color: var(--tmap-muted); line-height: 1.45; }
+    .content .tmap .lgu-editor input {
+      width: 100%; border: 1px solid var(--tmap-line); border-radius: 9px; padding: 8px 10px; background: var(--tmap-bg);
+    }
+    .content .tmap .lgu-editor .lgu-coords { font: 500 12px var(--tmap-mono); color: var(--tmap-ink); }
+    .content .tmap .lgu-editor .lgu-msg { font-size: 12.5px; font-weight: 600; }
+    .content .tmap .lgu-editor .lgu-msg.ok { color: var(--tmap-accent); }
+    .content .tmap .lgu-editor .lgu-msg.err { color: var(--tmap-warn); }
+    .content .tmap .lgu-editor .tm-row { justify-content: flex-end; }
+    .content .tmap .tm-admin-bar .lgu-pin-btn { background: #fff; color: #c0392b; border: 1px solid #f0c9c4; }
+    .content .tmap .lgu-pop h4 { margin: 0 0 2px; font-size: 15px; font-weight: 700; }
+    .content .tmap .lgu-pop .meta { color: var(--tmap-muted); font-size: 12px; margin-bottom: 6px; }
+    .content .tmap .lgu-pop .coords { font: 500 11.5px var(--tmap-mono); color: var(--tmap-muted); }
+    @media (max-width: 760px) {
+      .content .tmap .lgu-editor { top: 8px; padding: 12px; }
+      .content .tmap .lgu-editor p { display: none; }
+      /* while pinning on a phone, hide the list so the whole map can be tapped */
+      .content .tmap.lgu-editing .tm-panel { display: none; }
+    }
+  </style>
+
+  <script>
+    // Interactive Map: show the Municipal Hall pin and let the Super Admin move it.
+    // Saving here updates Website Settings → Map location and the Contact Us map too.
+    (function () {
+      var root = document.querySelector('.content .tmap');
+      if (!root || !window.TungaLguPin) return;
+      var SAVE_URL = "{% url 'admin_dashboard:ad_map_location' %}";
+      var saved = {
+        lat: JSON.parse(document.getElementById('lguPinLat').textContent),
+        lng: JSON.parse(document.getElementById('lguPinLng').textContent),
+        name: JSON.parse(document.getElementById('lguPinName').textContent)
+      };
+
+      function esc(s) { return String(s).replace(/[&<>"']/g, function (m) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]; }); }
+
+      function setup(map) {
+        if (root._lguPin) return;
+        var pin = TungaLguPin.create(map, [saved.lat, saved.lng], saved.name);
+        root._lguPin = pin;
+        // its name on the map, like the other buildings
+        pin.bindTooltip(esc(saved.name), { permanent: true, direction: 'bottom', className: 'tm-name', opacity: 1, offset: [0, 2] });
+
+        function popupHtml() {
+          return '<div class="lgu-pop"><h4>' + esc(saved.name) + '</h4>' +
+            '<div class="meta"><i class="fa-solid fa-landmark"></i> Municipal Hall · shown on Contact Us</div>' +
+            '<div class="coords">' + saved.lat.toFixed(6) + ', ' + saved.lng.toFixed(6) + '</div>' +
+            '<div class="tm-row" style="margin-top:10px;"><button type="button" class="tm-btn tm-small" data-lgu="move">' +
+            '<i class="fa-solid fa-location-crosshairs"></i> Move pin</button></div></div>';
+        }
+        pin.bindPopup(popupHtml);
+
+        // the editor box over the map
+        var box = document.createElement('div');
+        box.className = 'lgu-editor'; box.hidden = true;
+        box.innerHTML =
+          '<h4><i class="fa-solid fa-landmark" style="color:#c0392b"></i> Pin the Municipal Hall location</h4>' +
+          '<p>Drag the red pin, or click the map at the exact spot. This is the same pin as in Website Settings and on the Contact Us page.</p>' +
+          '<input type="text" maxlength="120" aria-label="Name shown on the pin" data-lgu="name">' +
+          '<div class="lgu-coords" data-lgu="coords"></div>' +
+          '<div class="lgu-msg" data-lgu="msg" hidden></div>' +
+          '<div class="tm-row"><button type="button" class="tm-btn tm-ghost tm-small" data-lgu="cancel">Cancel</button>' +
+          '<button type="button" class="tm-btn tm-small" data-lgu="save"><i class="fa-solid fa-check"></i> Save location</button></div>';
+        root.querySelector('.tm-mapwrap').appendChild(box);
+        var nameIn = box.querySelector('[data-lgu=name]'), coords = box.querySelector('[data-lgu=coords]'),
+            msg = box.querySelector('[data-lgu=msg]'), saveBtn = box.querySelector('[data-lgu=save]');
+
+        var brgySeq = 0;
+        function showCoords(ll) {
+          var text = ll.lat.toFixed(6) + ', ' + ll.lng.toFixed(6);
+          coords.textContent = text;
+          // the barangay of the spot, from the barangay boundaries (same as Add infrastructure)
+          if (root._tmapBarangayAt) {
+            var seq = ++brgySeq;
+            root._tmapBarangayAt(ll).then(function (name) {
+              if (seq === brgySeq && name) coords.textContent = text + ' · Brgy. ' + name;
+            });
+          }
+        }
+        function say(text, ok) { msg.textContent = text; msg.className = 'lgu-msg ' + (ok ? 'ok' : 'err'); msg.hidden = !text; }
+
+        function startEdit() {
+          map.closePopup();
+          nameIn.value = saved.name; say('');
+          showCoords(pin.getLatLng());
+          box.hidden = false;
+          map.flyTo(pin.getLatLng(), Math.max(map.getZoom(), TungaLguPin.ZOOM), { duration: .6 });
+          TungaLguPin.edit(map, pin, function (ll) { showCoords(ll); say(''); });
+          root.classList.add('lgu-editing');   // phones: hide the list while pinning
+          map.invalidateSize();
+        }
+        function endEdit() { TungaLguPin.stopEdit(map, pin); box.hidden = true; root.classList.remove('lgu-editing'); }
+
+        box.addEventListener('click', function (e) {
+          var act = e.target.closest('[data-lgu]'); act = act && act.dataset.lgu;
+          if (act === 'cancel') { pin.setLatLng([saved.lat, saved.lng]); endEdit(); }
+          if (act === 'save') {
+            var ll = pin.getLatLng();
+            if (!TungaLguPin.inLeyte(ll.lat, ll.lng)) { say('The pin must be inside Leyte.', false); return; }
+            var fd = new FormData();
+            fd.append('map_latitude', ll.lat.toFixed(6));
+            fd.append('map_longitude', ll.lng.toFixed(6));
+            fd.append('map_place_name', nameIn.value.trim());
+            saveBtn.disabled = true;
+            fetch(SAVE_URL, { method: 'POST', body: fd, credentials: 'same-origin',
+                              headers: { 'X-CSRFToken': root.dataset.csrf, 'X-Requested-With': 'XMLHttpRequest' } })
+              .then(function (r) { return r.json(); })
+              .then(function (d) {
+                if (!d.success) { say(d.error || 'Could not save the location.', false); return; }
+                saved = { lat: d.lat, lng: d.lng, name: d.name };
+                pin.setLatLng([d.lat, d.lng]);
+                pin.setTooltipContent(esc(d.name));
+                endEdit();
+                pin.openPopup();
+                flash('Location saved — Website Settings and the Contact Us map now use this pin.');
+              })
+              .catch(function () { say('Could not save the location. Check your connection and try again.', false); })
+              .then(function () { saveBtn.disabled = false; });
+          }
+        });
+
+        map.on('popupopen', function (e) {
+          var b = e.popup.getElement().querySelector('[data-lgu=move]');
+          if (b) b.addEventListener('click', startEdit);
+        });
+
+        // a button in the "You can edit this map" bar
+        var bar = root.querySelector('.tm-admin-bar');
+        if (bar) {
+          var btn = document.createElement('button');
+          btn.type = 'button'; btn.className = 'tm-btn lgu-pin-btn';
+          btn.innerHTML = '<i class="fa-solid fa-landmark"></i> Pin Municipal Hall location';
+          btn.addEventListener('click', startEdit);
+          bar.appendChild(btn);
+        }
+
+        function flash(text) {
+          var toast = root.querySelector('[data-el=toast]');
+          if (!toast) return;
+          toast.textContent = text; toast.hidden = false;
+          clearTimeout(flash.t); flash.t = setTimeout(function () { toast.hidden = true; }, 3500);
+        }
+      }
+
+      if (root._tmap) setup(root._tmap);
+      root.addEventListener('tmap:ready', function (e) { setup(e.detail.map); });
+    })();
+  </script>
 {% endblock %}

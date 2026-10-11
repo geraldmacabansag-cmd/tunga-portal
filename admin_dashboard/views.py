@@ -2113,7 +2113,45 @@ def admin_about_reset_defaults(request):
 
 @super_admin_required
 def admin_interactive_map(request):
-    return render(request, "admin_dashboard/super-admin-interactive-map.html")
+    # The Municipal Hall pin (same one as Website Settings → General → Map
+    # location, shown on Contact Us → Our Location).
+    return render(request, "admin_dashboard/super-admin-interactive-map.html", {
+        "info": SiteContactInfo.get_solo(),
+    })
+
+
+# The pin must stay inside Leyte so a slip of the mouse can't put it at sea.
+# (Website Settings uses the same limits.)
+def _pin_in_leyte(lat, lng):
+    return 9.8 <= lat <= 12.6 and 124.0 <= lng <= 125.9
+
+
+@super_admin_required
+def admin_map_location_save(request):
+    """Saves the Municipal Hall pin from the Interactive Map page. It is the
+    very same location as Website Settings → General → Map location."""
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "POST only."}, status=405)
+    try:
+        lat = float(request.POST.get("map_latitude", ""))
+        lng = float(request.POST.get("map_longitude", ""))
+    except (TypeError, ValueError):
+        return JsonResponse({"success": False, "error": "Pick a spot on the map first."}, status=400)
+    if not _pin_in_leyte(lat, lng):
+        return JsonResponse({"success": False, "error": "The pin must be inside Leyte. The old location was kept."}, status=400)
+    info = SiteContactInfo.get_solo()
+    info.map_latitude, info.map_longitude = round(lat, 6), round(lng, 6)
+    name = request.POST.get("map_place_name", "").strip()[:120]
+    if name:
+        info.map_place_name = name
+    info.save()
+    try:
+        _log_admin_action(get_or_create_lgu_rep(request.user), "admin_interactive_map",
+                          f'Moved the "{info.map_place_name}" pin to {info.map_latitude:.6f}, {info.map_longitude:.6f}.')
+    except Exception:
+        pass
+    return JsonResponse({"success": True, "lat": info.map_latitude, "lng": info.map_longitude,
+                         "name": info.map_place_name})
 
 @super_admin_required
 def admin_org_chart(request, office_id=None):
@@ -2277,7 +2315,7 @@ def admin_web_setting(request):
             try:
                 lat = float(request.POST.get('map_latitude', ''))
                 lng = float(request.POST.get('map_longitude', ''))
-                if 9.8 <= lat <= 12.6 and 124.0 <= lng <= 125.9:
+                if _pin_in_leyte(lat, lng):
                     info.map_latitude, info.map_longitude = round(lat, 6), round(lng, 6)
                 else:
                     messages.error(request, "The map pin must be inside Leyte. The old location was kept.")

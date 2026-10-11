@@ -1117,3 +1117,9 @@ def account_submissions_partial(request):
         .order_by('-submitted_at')[:20]
     )
     return render(request, "portal/_account_submissions.html", {"submissions": submissions})
+
+
+def tunga_map_page(request):
+    """The full-page Tunga Map for the public ("View larger map" on Contact Us):
+    the places the Super Admin added on the Interactive Map, view only."""
+    return render(request, "portal/tunga_map.html")

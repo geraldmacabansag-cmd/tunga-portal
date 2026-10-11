@@ -55,6 +55,7 @@ def serialize(place, request):
         "lat": place.latitude,
         "lng": place.longitude,
         "published": place.is_published,
+        "labelOnly": place.label_only,
         "images": [{"id": im.id, "url": request.build_absolute_uri(im.image.url)} for im in place.images.all()],
     }
 
@@ -99,6 +100,7 @@ def clean_fields(data):
         "latitude": lat,
         "longitude": lng,
         "is_published": data.get("published", "true") != "false",
+        "label_only": data.get("labelOnly") == "true",
     }
 
 

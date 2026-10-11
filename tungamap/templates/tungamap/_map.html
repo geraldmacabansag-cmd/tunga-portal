@@ -1,9 +1,11 @@
 {% load static %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-<link rel="stylesheet" href="{% static 'tungamap/tungamap.css' %}?v=3">
+<link rel="stylesheet" href="{% static 'tungamap/tungamap.css' %}?v=6">
 
-<section class="tmap" style="--tmap-height: {{ height }}"
+<section class="tmap{% if compact %} tm-compact{% endif %}" style="--tmap-height: {{ height }}"
+     data-public="{{ public|yesno:'1,0' }}" data-compact="{{ compact|yesno:'1,0' }}" data-start="{{ start }}"
+     {% if hall %}data-hall-lat="{{ hall.lat }}" data-hall-lng="{{ hall.lng }}" data-hall-name="{{ hall.name }}" data-hall-address="{{ hall.address }}"{% endif %}
      data-api="{{ api_url }}"
      data-csrf="{{ csrf_token }}"
      data-can-edit="{{ can_edit|yesno:'1,0' }}"
@@ -31,13 +33,21 @@
         <input data-el="q" type="search" autocomplete="off" aria-label="Search the map" placeholder="Search school, health center, market…">
         <button class="tm-btn" type="submit">Search</button>
       </form>
-      <label class="tm-osm-toggle" data-el="osmToggleWrap">
-        <input type="checkbox" data-el="osmToggle" checked>
+      <label class="tm-osm-toggle" data-el="osmToggleWrap"{% if public %} hidden{% endif %}>
+        <input type="checkbox" data-el="osmToggle"{% if not public %} checked{% endif %}>
         Also show matches already mapped on OpenStreetMap
       </label>
     </div>
 
     <div class="tm-chips" data-el="chips" aria-label="Browse by type"></div>
+
+    <div class="tm-filter">
+      <label for="tm-brgy-filter"><i class="fa-solid fa-map-location-dot" aria-hidden="true"></i> Barangay</label>
+      <select id="tm-brgy-filter" data-el="brgyFilter">
+        <option value="">All barangays</option>
+        {% for b in barangays %}<option value="{{ b }}">{{ b }}</option>{% endfor %}
+      </select>
+    </div>
 
     <div class="tm-results-head">
       <span data-el="resultsLabel">All infrastructure</span>
@@ -49,6 +59,10 @@
     <footer class="tm-admin-bar">
       <span><i class="fa-solid fa-user-shield"></i> You can edit this map</span>
       <button type="button" class="tm-btn" data-el="addBtn"><i class="fa-solid fa-plus"></i> Add infrastructure</button>
+      <div class="tm-admin-tools">
+        <button type="button" class="tm-btn tm-ghost tm-small" data-el="labelBtn"><i class="fa-solid fa-font"></i> Name a building</button>
+        <button type="button" class="tm-btn tm-ghost tm-small" data-el="exportBtn"><i class="fa-solid fa-file-csv"></i> Export list</button>
+      </div>
     </footer>
     {% endif %}
   </aside>
@@ -78,6 +92,7 @@
         <div class="tm-field">
           <label for="tm-brgy">Barangay</label>
           <select id="tm-brgy" data-el="pBrgy"></select>
+          <small class="tm-note" data-el="pBrgyNote"></small>
         </div>
         <div class="tm-field tm-full">
           <label for="tm-desc">Description</label>
@@ -96,6 +111,7 @@
           <input id="tm-imgs" data-el="pImgs" type="file" accept="image/jpeg,image/png,image/webp" multiple>
           <div class="tm-thumbs" data-el="pThumbs"></div>
         </div>
+        <label class="tm-check tm-full"><input type="checkbox" data-el="pLabelOnly"> Show only the name on the map (no pin) — for naming a building</label>
         <label class="tm-check tm-full"><input type="checkbox" data-el="pPublished" checked> Show this place to the public</label>
       </div>
       <p class="tm-error" data-el="placeErr" hidden></p>
@@ -128,4 +144,7 @@
 </section>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="{% static 'tungamap/tungamap.js' %}?v=3" defer></script>
+{# lets the map turn (compass, two-finger twist, Shift + mouse wheel) #}
+<script src="https://cdn.jsdelivr.net/npm/leaflet-rotate@0.2.8/dist/leaflet-rotate.js"></script>
+{% if hall %}<script src="{% static 'js/lgu_pin.js' %}?v=1"></script>{% endif %}
+<script src="{% static 'tungamap/tungamap.js' %}?v=7" defer></script>

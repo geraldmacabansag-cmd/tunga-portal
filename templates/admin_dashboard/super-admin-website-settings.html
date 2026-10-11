@@ -10,6 +10,7 @@
 {% block content %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="{% static 'js/lgu_pin.js' %}?v=1"></script>
 
       <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;">
         <div>
@@ -93,7 +94,7 @@
                   </div>
                 </div>
                 <div id="mapPicker" style="height:320px;border:1px solid var(--gray-200,#e5e7eb);border-radius:10px;z-index:0;"></div>
-                <span class="form-help">Drag the pin (or click on the map) to the exact spot of the Municipal Hall, then click Save Contact Information. This is the pin people see on the Contact Us page and where "Get directions" leads.</span>
+                <span class="form-help">Drag the pin (or click on the map) to the exact spot of the Municipal Hall, then click Save Contact Information. This is the pin people see on the Contact Us page and where "Get directions" leads. It is the same pin as on the <a href="{% url 'admin_dashboard:ad_map' %}">Interactive Map</a> — moving it in one place moves it in both.</span>
               </div>
 
 <div class="modal-actions" style="justify-content:flex-start;border-top:none;padding-top:4px;">
@@ -408,16 +409,17 @@
     function start() {
       if (!window.L || box._map) return;
       var pos = [parseFloat(latIn.value) || 11.2483, parseFloat(lngIn.value) || 124.7524];
-      var map = L.map(box, { scrollWheelZoom: false }).setView(pos, 17);
+      var map = L.map(box, { scrollWheelZoom: false }).setView(pos, TungaLguPin.ZOOM);
       box._map = map;
       // OpenStreetMap needs to know our site address, or the tiles say "Access blocked"
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19, referrerPolicy: 'strict-origin-when-cross-origin', attribution: '&copy; OpenStreetMap contributors'
       }).addTo(map);
-      var pin = L.marker(pos, { draggable: true }).addTo(map);
+      // Same pin and same way of moving it as on the Interactive Map (static/js/lgu_pin.js)
+      var pin = TungaLguPin.create(map, pos, document.querySelector('[name=map_place_name]').value);
       function setInputs(ll) { latIn.value = ll.lat.toFixed(6); lngIn.value = ll.lng.toFixed(6); }
-      pin.on('dragend', function () { setInputs(pin.getLatLng()); });
-      map.on('click', function (e) { pin.setLatLng(e.latlng); setInputs(e.latlng); map.scrollWheelZoom.enable(); });
+      TungaLguPin.edit(map, pin, setInputs);
+      map.on('click', function () { map.scrollWheelZoom.enable(); });
       function fromInputs() {
         var la = parseFloat(latIn.value), ln = parseFloat(lngIn.value);
         if (!isNaN(la) && !isNaN(ln)) { pin.setLatLng([la, ln]); map.panTo([la, ln]); }

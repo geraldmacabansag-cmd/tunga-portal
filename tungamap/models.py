@@ -36,6 +36,9 @@ class Place(models.Model):
     latitude = models.FloatField()
     longitude = models.FloatField()
     is_published = models.BooleanField(default=True, help_text="Unpublished places are only visible to map editors.")
+    # A building name written on the map (text only, no pin) — e.g. "Rural
+    # Health Unit" on top of the building itself.
+    label_only = models.BooleanField(default=False, help_text="Show only the name on the map, without a pin.")
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
     )

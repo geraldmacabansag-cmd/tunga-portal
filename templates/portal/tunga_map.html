@@ -1,0 +1,47 @@
+{% load static %}{% load tungamap %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tunga Map | Municipality of Tunga</title>
+  <link rel="icon" href="{% if site_contact.logo %}{{ site_contact.logo.url }}{% else %}{% static 'images/tunga_leyte_logo.png' %}{% endif %}">
+  <style>
+    /* Full-screen map: no website header, menu or footer — just the map and a Back button. */
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #f3f6f4;
+                 font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif; }
+    .tmap-full { position: fixed; inset: 0; }
+    .tmap-full .tmap { height: 100% !important; min-height: 0 !important; border: 0; border-radius: 0; }
+    .tmap-back i { color: inherit !important; }
+    .tmap-full .tmap .tm-tl > .tmap-back { background: #0a2f6e; color: #fff; }
+    .tmap-full .tmap .tm-tl > .tmap-back:hover { background: #12408f; }
+  </style>
+</head>
+<body>
+  <main class="tmap-full">
+    {% tunga_map height="100vh" public=True hall=True %}
+  </main>
+
+  <script>
+    // "Back": return to the page the visitor came from (if it's this website),
+    // otherwise to Contact Us.
+    (function () {
+      var root = document.querySelector('.tmap-full .tmap');
+      var fallback = "{% url 'contact' %}";
+      function addBack() {
+        var slot = root && root.querySelector('.tm-tl');
+        if (!slot || slot.querySelector('.tmap-back')) return;
+        var a = document.createElement('a');
+        a.className = 'tmap-back'; a.href = fallback;
+        a.innerHTML = '<i class="fa-solid fa-arrow-left"></i> <span>Back</span>';
+        a.addEventListener('click', function (e) {
+          var fromHere = document.referrer && document.referrer.indexOf(location.origin) === 0;
+          if (fromHere && history.length > 1) { e.preventDefault(); history.back(); }
+        });
+        slot.insertBefore(a, slot.firstChild);
+      }
+      if (root) root.addEventListener('tmap:ready', addBack);
+      window.addEventListener('load', addBack);
+    })();
+  </script>
+</body>
+</html>
