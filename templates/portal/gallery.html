@@ -8,7 +8,8 @@ Photo Gallery | Digital Governance Portal
 {% block content %}
 
 <section class="page-hero">
-  <img src="{% static 'images/lgu_bldg.jpeg' %}" alt="Tunga Municipal Hall" class="page-hero__bg">
+  {# banner: Website Settings → Appearance → Page banners (default: LGU building photo) #}
+  <img src="{% if site_contact.banner_gallery %}{{ site_contact.banner_gallery.url }}{% else %}{% static 'images/lgu_tunga_bldg.jpeg' %}{% endif %}" alt="Tunga Municipal Hall" class="page-hero__bg">
   <div class="page-hero__scrim"></div>
   <div class="page-hero__inner">
     <h1>Photo Gallery</h1>

@@ -99,7 +99,7 @@ Home | Digital Governance Portal
         {% include "includes/_password_rules.html" with pw="signup-password" confirm="signup-confirm-password" %}
 
         <label class="checkbox-label">
-          <input type="checkbox" required> I agree to the <a href="#" class="auth-link">Terms of Use</a> and <a href="#" class="auth-link">Privacy Policy</a>
+          <input type="checkbox" required> I agree to the <a href="{% url 'terms_of_use' %}" class="auth-link" target="_blank" rel="noopener">Terms of Use</a> and <a href="{% url 'privacy_policy' %}" class="auth-link" target="_blank" rel="noopener">Privacy Policy</a>
         </label>
 
         <button type="submit" class="btn btn-primary btn-block">Create Account</button>

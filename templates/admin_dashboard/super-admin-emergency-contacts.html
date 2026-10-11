@@ -77,39 +77,28 @@
         <div class="form-group">
           <label class="form-label">Category</label>
           <select class="form-input" name="category">
-            <option>Medical / Rescue</option><option>Police</option><option>Health</option><option>Fire</option><option>General</option>
+            {% for val, label in category_choices %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
           </select>
-          <div class="form-group">
-            <label class="form-label">Icon</label>
-            <div class="icon-picker">
-              {% for value, label in contacts.0.ICON_CHOICES %}{% endfor %}
-              <label class="icon-option"><input type="radio" name="icon" value="fa-truck-medical" checked><span><i class="fa-solid fa-truck-medical"></i></span></label>
-              <label class="icon-option"><input type="radio" name="icon" value="fa-user-shield"><span><i class="fa-solid fa-user-shield"></i></span></label>
-              <label class="icon-option"><input type="radio" name="icon" value="fa-heart-pulse"><span><i class="fa-solid fa-heart-pulse"></i></span></label>
-              <label class="icon-option"><input type="radio" name="icon" value="fa-fire"><span><i class="fa-solid fa-fire"></i></span></label>
-              <label class="icon-option"><input type="radio" name="icon" value="fa-hospital"><span><i class="fa-solid fa-hospital"></i></span></label>
-              <label class="icon-option"><input type="radio" name="icon" value="fa-life-ring"><span><i class="fa-solid fa-life-ring"></i></span></label>
-              <label class="icon-option"><input type="radio" name="icon" value="fa-shield-halved"><span><i class="fa-solid fa-shield-halved"></i></span></label>
-              <label class="icon-option"><input type="radio" name="icon" value="fa-house-fire"><span><i class="fa-solid fa-house-fire"></i></span></label>
-              <label class="icon-option"><input type="radio" name="icon" value="fa-phone-volume"><span><i class="fa-solid fa-phone-volume"></i></span></label>
-              <label class="icon-option"><input type="radio" name="icon" value="fa-phone"><span><i class="fa-solid fa-phone"></i></span></label>
-            </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Icon <span class="req">*</span></label>
+          <div class="icon-picker">
+            {% for icon_val, icon_label in icon_choices %}
+            <label class="icon-option" title="{{ icon_label }}"><input type="radio" name="icon" value="{{ icon_val }}" {% if forloop.first %}required{% endif %}><span><i class="fa-solid {{ icon_val }}"></i></span></label>
+            {% endfor %}
           </div>
-          <div class="form-group">
-            <label class="form-label">Color</label>
-            <div class="color-picker">
-              <label class="color-option"><input type="radio" name="color" value="red" checked><span class="cc-color-red"><i class="fa-solid fa-check"></i></span></label>
-              <label class="color-option"><input type="radio" name="color" value="navy"><span class="cc-color-navy"><i class="fa-solid fa-check"></i></span></label>
-              <label class="color-option"><input type="radio" name="color" value="teal"><span class="cc-color-teal"><i class="fa-solid fa-check"></i></span></label>
-              <label class="color-option"><input type="radio" name="color" value="orange"><span class="cc-color-orange"><i class="fa-solid fa-check"></i></span></label>
-              <label class="color-option"><input type="radio" name="color" value="purple"><span class="cc-color-purple"><i class="fa-solid fa-check"></i></span></label>
-              <label class="color-option"><input type="radio" name="color" value="gray"><span class="cc-color-gray"><i class="fa-solid fa-check"></i></span></label>
-            </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Color <span class="req">*</span></label>
+          <div class="color-picker">
+            {% for color_val, color_label in color_choices %}
+            <label class="color-option" title="{{ color_label }}"><input type="radio" name="color" value="{{ color_val }}" {% if forloop.first %}required{% endif %}><span class="cc-color-{{ color_val }}"><i class="fa-solid fa-check"></i></span></label>
+            {% endfor %}
           </div>
         </div>
         <div class="form-row">
           <div class="form-group"><label class="form-label">Carrier / Label</label><input class="form-input" type="text" name="carrier_label" placeholder="e.g. SMART, TM, GLOBE"></div>
-          <div class="form-group"><label class="form-label">Phone Number</label><input class="form-input" type="text" name="phone_number" placeholder="0900 000 0000" required></div>
+          <div class="form-group"><label class="form-label">Phone Number <span class="req">*</span></label><input class="form-input" type="tel" name="phone_number" placeholder="0900 000 0000" maxlength="30" required></div>
         </div>
         <div class="form-group"><label class="form-label">Additional Detail (optional)</label><input class="form-input" type="text" name="extra_detail" placeholder="e.g. Officer-in-Charge name or radio frequency"></div>
         <div class="modal-actions">
@@ -139,24 +128,24 @@
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">Icon</label>
+          <label class="form-label">Icon <span class="req">*</span></label>
           <div class="icon-picker">
-            {% for icon_val, icon_label in c.ICON_CHOICES %}
-            <label class="icon-option"><input type="radio" name="icon" value="{{ icon_val }}" {% if c.icon == icon_val %}checked{% endif %}><span><i class="fa-solid {{ icon_val }}"></i></span></label>
+            {% for icon_val, icon_label in icon_choices %}
+            <label class="icon-option" title="{{ icon_label }}"><input type="radio" name="icon" value="{{ icon_val }}" {% if c.icon == icon_val %}checked{% endif %} {% if forloop.first %}required{% endif %}><span><i class="fa-solid {{ icon_val }}"></i></span></label>
             {% endfor %}
           </div>
         </div>
         <div class="form-group">
-          <label class="form-label">Color</label>
+          <label class="form-label">Color <span class="req">*</span></label>
           <div class="color-picker">
-            {% for color_val, color_label in c.COLOR_CHOICES %}
-            <label class="color-option"><input type="radio" name="color" value="{{ color_val }}" {% if c.color == color_val %}checked{% endif %}><span class="cc-color-{{ color_val }}"><i class="fa-solid fa-check"></i></span></label>
+            {% for color_val, color_label in color_choices %}
+            <label class="color-option" title="{{ color_label }}"><input type="radio" name="color" value="{{ color_val }}" {% if c.color == color_val %}checked{% endif %} {% if forloop.first %}required{% endif %}><span class="cc-color-{{ color_val }}"><i class="fa-solid fa-check"></i></span></label>
             {% endfor %}
           </div>
         </div>
         <div class="form-row">
           <div class="form-group"><label class="form-label">Carrier / Label</label><input class="form-input" type="text" name="carrier_label" value="{{ c.carrier_label }}"></div>
-          <div class="form-group"><label class="form-label">Phone Number</label><input class="form-input" type="text" name="phone_number" value="{{ c.phone_number }}" required></div>
+          <div class="form-group"><label class="form-label">Phone Number <span class="req">*</span></label><input class="form-input" type="tel" name="phone_number" value="{{ c.phone_number }}" maxlength="30" required></div>
         </div>
         <div class="form-group"><label class="form-label">Additional Detail (optional)</label><input class="form-input" type="text" name="extra_detail" value="{{ c.extra_detail }}"></div>
         <div class="modal-actions">

@@ -916,3 +916,61 @@
     padding: 22px 18px;
   }
 }
+/* Emergency hotline cards: every color the Super Admin can pick */
+.emergency__card--maroon { border-color: #e4bdc8; }
+.emergency__card--maroon i { color: #9f1239; }
+.emergency__btn--maroon { background: #9f1239; }
+.emergency__btn--maroon:hover { background: #870f30; }
+.emergency__card--pink { border-color: #f5c3d9; }
+.emergency__card--pink i { color: #db2777; }
+.emergency__btn--pink { background: #db2777; }
+.emergency__btn--pink:hover { background: #ba2165; }
+.emergency__card--yellow { border-color: #f0deb9; }
+.emergency__card--yellow i { color: #ca8a04; }
+.emergency__btn--yellow { background: #ca8a04; }
+.emergency__btn--yellow:hover { background: #ab7503; }
+.emergency__card--brown { border-color: #e0cabc; }
+.emergency__card--brown i { color: #92400e; }
+.emergency__btn--brown { background: #92400e; }
+.emergency__btn--brown:hover { background: #7c360b; }
+.emergency__card--green { border-color: #bee5cc; }
+.emergency__card--green i { color: #16a34a; }
+.emergency__btn--green { background: #16a34a; }
+.emergency__btn--green:hover { background: #128a3e; }
+.emergency__card--sky { border-color: #b8ddef; }
+.emergency__card--sky i { color: #0284c7; }
+.emergency__btn--sky { background: #0284c7; }
+.emergency__btn--sky:hover { background: #0170a9; }
+.emergency__card--blue { border-color: #c2d3f9; }
+.emergency__card--blue i { color: #2563eb; }
+.emergency__btn--blue { background: #2563eb; }
+.emergency__btn--blue:hover { background: #1f54c7; }
+.emergency__card--indigo { border-color: #cac7f0; }
+.emergency__card--indigo i { color: #4338ca; }
+.emergency__btn--indigo { background: #4338ca; }
+.emergency__btn--indigo:hover { background: #382fab; }
+.emergency__card--purple { border-color: #dacef6; }
+.emergency__card--purple i { color: #7c4fe0; }
+.emergency__btn--purple { background: #7c4fe0; }
+.emergency__btn--purple:hover { background: #6943be; }
+.emergency__card--gray { border-color: #cdcfd5; }
+.emergency__card--gray i { color: #4d5468; }
+.emergency__btn--gray { background: #4d5468; }
+.emergency__btn--gray:hover { background: #414758; }
+.emergency__card--black { border-color: #bcbec3; }
+.emergency__card--black i { color: #111827; }
+.emergency__btn--black { background: #111827; }
+.emergency__btn--black:hover { background: #0e1421; }
+@media (hover: hover) and (pointer: fine) {
+  .emergency__card--maroon:hover { box-shadow: 0 14px 28px rgba(159, 18, 57, .22); }
+  .emergency__card--pink:hover { box-shadow: 0 14px 28px rgba(219, 39, 119, .22); }
+  .emergency__card--yellow:hover { box-shadow: 0 14px 28px rgba(202, 138, 4, .22); }
+  .emergency__card--brown:hover { box-shadow: 0 14px 28px rgba(146, 64, 14, .22); }
+  .emergency__card--green:hover { box-shadow: 0 14px 28px rgba(22, 163, 74, .22); }
+  .emergency__card--sky:hover { box-shadow: 0 14px 28px rgba(2, 132, 199, .22); }
+  .emergency__card--blue:hover { box-shadow: 0 14px 28px rgba(37, 99, 235, .22); }
+  .emergency__card--indigo:hover { box-shadow: 0 14px 28px rgba(67, 56, 202, .22); }
+  .emergency__card--purple:hover { box-shadow: 0 14px 28px rgba(124, 79, 224, .22); }
+  .emergency__card--gray:hover { box-shadow: 0 14px 28px rgba(77, 84, 104, .22); }
+  .emergency__card--black:hover { box-shadow: 0 14px 28px rgba(17, 24, 39, .22); }
+}

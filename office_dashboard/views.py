@@ -1014,10 +1014,6 @@ def delete_service(request, rep, pk):
 def edit_service(request, rep, pk):
     return service_editor.edit_service(request, service_editor.Editor(rep.office), pk)
 
-@office_rep_required
-def office_location(request, rep):
-    return render(request, "office_dashboard/office-location.html", {"rep": rep})
-
 SOCIAL_LINK_FIELDS = ["facebook_url", "twitter_url", "instagram_url", "youtube_url",
                       # the account names shown next to the icons on the public page
                       "facebook_name", "twitter_name", "instagram_name", "youtube_name"]

@@ -2293,7 +2293,12 @@ def admin_org_chart(request, office_id=None):
 @super_admin_required
 def admin_emergency_contact(request):
     contacts = EmergencyContact.objects.all()
-    return render(request, "admin_dashboard/super-admin-emergency-contacts.html", {"contacts": contacts})
+    return render(request, "admin_dashboard/super-admin-emergency-contacts.html", {
+        "contacts": contacts,
+        "category_choices": EmergencyContact.CATEGORY_CHOICES,
+        "icon_choices": EmergencyContact.ICON_CHOICES,
+        "color_choices": EmergencyContact.COLOR_CHOICES,
+    })
 
 
 @super_admin_required
@@ -2303,17 +2308,29 @@ def admin_contact_save(request, pk):
     if request.method == "POST":
         name = request.POST.get('name', '').strip()
         number = request.POST.get('phone_number', '').strip()
+        icon = request.POST.get('icon', '')
+        color = request.POST.get('color', '')
 
-        if not name or not number:
-            messages.error(request, "Please fill in at least the service name and phone number.")
+        # Service name, icon, color and phone number are all required.
+        missing = []
+        if not name:
+            missing.append("service name")
+        if icon not in dict(EmergencyContact.ICON_CHOICES):
+            missing.append("icon")
+        if color not in dict(EmergencyContact.COLOR_CHOICES):
+            missing.append("color")
+        if not number:
+            missing.append("phone number")
+        if missing:
+            messages.error(request, "Please choose or fill in the " + ", ".join(missing) + ".")
         else:
             contact.name = name
             contact.category = request.POST.get('category', 'General')
             contact.carrier_label = request.POST.get('carrier_label', '')
             contact.phone_number = number
             contact.extra_detail = request.POST.get('extra_detail', '')
-            contact.icon = request.POST.get('icon', 'fa-phone')
-            contact.color = request.POST.get('color', 'gray')
+            contact.icon = icon
+            contact.color = color
             if not contact.pk:
                 # New contacts go to the end, after the default hotlines.
                 last = EmergencyContact.objects.order_by('-order').first()
@@ -2363,6 +2380,18 @@ def admin_web_setting(request):
                 except Exception:
                     pass  # file already gone — just clear the field
                 info.hero_banner = None
+            # Banner at the top of each public page (Announcements, Gallery,
+            # Offices, About Us, Contact Us). A new file replaces it; "Use
+            # default" removes it so the page shows the LGU building photo.
+            for key, label, _url in SiteContactInfo.PAGE_BANNERS:
+                if request.FILES.get(key):
+                    setattr(info, key, request.FILES.get(key))
+                elif request.POST.get('reset_' + key) == '1' and getattr(info, key):
+                    try:
+                        getattr(info, key).delete(save=False)
+                    except Exception:
+                        pass  # file already gone — just clear the field
+                    setattr(info, key, None)
             # Header tagline: empty (or "Reset to default") = the original tagline.
             tagline = request.POST.get('site_tagline', '').strip()[:120]
             info.site_tagline = tagline or SiteContactInfo.DEFAULT_TAGLINE
@@ -2424,6 +2453,21 @@ def admin_web_setting(request):
                 info.share_image = request.FILES['share_image']
             info.save()
             messages.success(request, "SEO settings were updated.")
+        elif section == 'legal':
+            # Privacy Policy / Terms of Use / Accessibility Statement
+            from .models import LegalPage
+            page = LegalPage.objects.filter(key=request.POST.get('key')).first()
+            if page is None:
+                messages.error(request, "That page was not found.")
+            elif request.POST.get('reset') == '1':
+                from portal.legal_defaults import PAGES
+                page.content = next(text for k, _t, _u, text in PAGES if k == page.key)
+                page.save()
+                messages.success(request, f'"{page.title}" was reset to the starting draft.')
+            else:
+                page.content = request.POST.get('content', '').strip()
+                page.save()
+                messages.success(request, f'"{page.title}" was updated.')
         elif section == 'cache':
             from django.core.cache import cache
             cache.clear()
@@ -2465,8 +2509,10 @@ def admin_web_setting(request):
 
         return redirect(reverse('admin_dashboard:ad_web_setting') + '#' + (section or 'general'))
 
+    from .models import LegalPage
     return render(request, "admin_dashboard/super-admin-website-settings.html", {
         "info": info,
+        "legal_pages": LegalPage.all_pages(),
     })
 
 

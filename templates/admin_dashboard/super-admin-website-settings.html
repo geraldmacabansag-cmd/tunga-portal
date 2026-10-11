@@ -27,6 +27,7 @@
           <div class="subtab" data-section="social"><i class="fa-solid fa-share-nodes"></i> Social Media</div>
           <div class="subtab" data-section="seo"><i class="fa-solid fa-magnifying-glass-chart"></i> SEO &amp; Google</div>
           <div class="subtab" data-section="maintenance"><i class="fa-solid fa-triangle-exclamation"></i> Maintenance</div>
+          <div class="subtab" data-section="legal"><i class="fa-solid fa-scale-balanced"></i> Legal Pages</div>
         </div>
 
         <div class="panel-body">
@@ -130,6 +131,48 @@
                 <button type="button" class="btn btn-secondary" id="banner-reset" data-default="{% static 'images/lgu_tunga_bldg.jpeg' %}" style="margin-top:8px;"><i class="fa-solid fa-rotate-left"></i> Use default banner (LGU building)</button>
                 {% endif %}
                 <span class="form-help">Shown as the background image at the top of the public homepage. Recommended size 1600×600px. The preview updates immediately, but nothing changes on the live site until you click Save Appearance.</span>
+              </div>
+
+              <!-- Page banners: the photo at the top of each public page -->
+              <div class="form-group" style="margin-top:18px;">
+                <label class="form-label">Page banners</label>
+                <span class="form-help" style="display:block;margin:0 0 10px;">The photo behind the page title at the top of these public pages. Pages without their own banner use the LGU building photo. Wide photos work best (about 1600×500px). Nothing changes on the live site until you click Save Appearance.</span>
+                {# styles kept here (not in super_admin_style.css) so they always load, even with an old cached CSS file #}
+                <style>
+                  .page-banners { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; max-width: 1100px; }
+                  .page-banner { border: 1px solid var(--gray-200, #e5e7eb); border-radius: 10px; padding: 10px; background: #fff; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+                  .page-banner__head { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 12.5px; line-height: 1.3; }
+                  .page-banner__head strong { font-size: 12.5px; font-weight: 700; color: var(--gray-800, #1f2937); }
+                  .page-banner__head a { color: var(--gray-400, #9ca3af); font-size: 11px; flex-shrink: 0; }
+                  .page-banner__head a:hover { color: var(--blue-600, #2563eb); }
+                  .page-banner img.page-banner__preview { width: 100%; height: 72px; max-height: 72px; object-fit: cover; border-radius: 7px; border: 1px solid var(--gray-200, #e5e7eb); display: block; }
+                  .page-banner .page-banner__label { margin: 0; font-size: 11px; }
+                  .page-banner input.page-banner__input { font-size: 11.5px; padding: 6px; min-width: 0; width: 100%; }
+                  .page-banner .page-banner__reset { align-self: flex-start; font-size: 11.5px; padding: 5px 9px; }
+                  @media (max-width: 600px) {
+                    .page-banners { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+                    .page-banner { padding: 8px; }
+                    .page-banner img.page-banner__preview { height: 56px; max-height: 56px; }
+                  }
+                  @media (max-width: 360px) { .page-banners { grid-template-columns: 1fr; } }
+                </style>
+                <div class="page-banners">
+                  {% for b in info.page_banners %}
+                  <div class="page-banner" data-default="{% static 'images/lgu_tunga_bldg.jpeg' %}">
+                    <div class="page-banner__head">
+                      <strong>{{ b.label }}</strong>
+                      <a href="{% url b.url_name %}" target="_blank" rel="noopener" title="Open this page"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+                    </div>
+                    <img class="page-banner__preview" src="{% if b.image %}{{ b.image.url }}{% else %}{% static 'images/lgu_tunga_bldg.jpeg' %}{% endif %}" alt="">
+                    <span class="form-help page-banner__label">{% if b.image %}Custom banner{% else %}Default (LGU building){% endif %}</span>
+                    <input class="form-input file-input page-banner__input" type="file" name="{{ b.key }}" accept="image/*">
+                    <input type="hidden" class="page-banner__reset-flag" name="reset_{{ b.key }}" value="">
+                    {% if b.image %}
+                    <button type="button" class="btn btn-secondary btn-sm page-banner__reset"><i class="fa-solid fa-rotate-left"></i> Use default</button>
+                    {% endif %}
+                  </div>
+                  {% endfor %}
+                </div>
               </div>
 
               <div class="form-group">
@@ -355,6 +398,48 @@
             </form>
           </div>
 
+          <!-- ============ LEGAL PAGES (Privacy Policy, Terms of Use, Accessibility) ============ -->
+          <div class="settings-section" id="section-legal" style="display:none;">
+            <div class="reminder-box" style="margin-bottom:18px;">
+              <i class="fa-solid fa-scale-balanced ic"></i>
+              <div>
+                <strong>Have these reviewed before going live</strong>
+                <p>The starting text is a draft based on how this website works. Replace everything in [brackets] and have the LGU's Legal Office and Data Protection Officer approve it. The pages are linked in the footer of every page and on the sign-up page.</p>
+              </div>
+            </div>
+            <p class="form-help" style="margin:0 0 16px;">How to write: a line starting with <code>## </code> is a heading, a line starting with <code>- </code> is a bullet point, and an empty line starts a new paragraph.</p>
+
+            {% for page in legal_pages %}
+            <div class="legal-edit">
+              <div class="legal-edit__head">
+                <div>
+                  <strong>{{ page.title }}</strong>
+                  <small>Last updated {{ page.updated_at|date:"M j, Y, g:i A" }}</small>
+                </div>
+                <a class="btn btn-secondary btn-sm" href="{% url page.url_name %}" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i> View page</a>
+              </div>
+              <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="section" value="legal">
+                <input type="hidden" name="key" value="{{ page.key }}">
+                <textarea class="form-input form-textarea legal-edit__text" name="content" aria-label="{{ page.title }}">{{ page.content }}</textarea>
+                <div class="modal-actions" style="justify-content:flex-start;border-top:none;padding-top:8px;flex-wrap:wrap;">
+                  <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save {{ page.title }}</button>
+                  <button type="submit" name="reset" value="1" class="btn btn-secondary" formnovalidate onclick="return confirm('Replace this page with the starting draft? Your changes will be lost.');"><i class="fa-solid fa-rotate-left"></i> Reset to draft</button>
+                </div>
+              </form>
+            </div>
+            {% endfor %}
+
+            <style>
+              .legal-edit { border: 1px solid var(--gray-200, #e5e7eb); border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; background: #fff; }
+              .legal-edit__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+              .legal-edit__head strong { display: block; font-size: 14px; color: var(--gray-900, #111827); }
+              .legal-edit__head small { color: var(--gray-500, #6b7280); font-size: 12px; }
+              .legal-edit__text { width: 100%; min-height: 260px; font-family: inherit; font-size: 13px; line-height: 1.55; resize: vertical; }
+            </style>
+          </div>
+
         </div>
       </div>
 
@@ -364,7 +449,7 @@
 
 {% block extra_js %}
 <script>
-  var TAB_NAMES = ['general', 'appearance', 'social', 'seo', 'maintenance'];
+  var TAB_NAMES = ['general', 'appearance', 'social', 'seo', 'maintenance', 'legal'];
 
   function activateTab(name){
     if (TAB_NAMES.indexOf(name) === -1) name = 'general';
@@ -420,8 +505,22 @@
   }
 
 
+  // "Save Changes" at the top saves the tab that is open (it used to only
+  // show a message without saving anything).
   function saveSettings(){
-    showToast('Website settings saved.');
+    var section = Array.prototype.find.call(document.querySelectorAll('.settings-section'), function (sec) {
+      return sec.style.display !== 'none';
+    });
+    if (!section) return;
+    var forms = Array.prototype.filter.call(section.querySelectorAll('form'), function (f) {
+      var sec = f.querySelector('input[name="section"]');
+      return !(sec && sec.value === 'cache');
+    });
+    if (forms.length === 1) {
+      if (forms[0].requestSubmit) forms[0].requestSubmit(); else forms[0].submit();
+    } else if (forms.length > 1) {
+      showToast('Use the Save button under each page to save it.');
+    }
   }
 
   function showToast(msg){
@@ -537,6 +636,31 @@
     // Picking a new photo after clicking the button cancels the reset.
     input.addEventListener('change', function () { if (input.files.length) flag.value = ''; });
   })();
+
+  // Page banners (Announcements, Gallery, Offices, About Us, Contact Us):
+  // show the chosen photo right away; "Use default" goes back to the LGU building photo.
+  document.querySelectorAll('.page-banner').forEach(function (card) {
+    var input = card.querySelector('.page-banner__input');
+    var preview = card.querySelector('.page-banner__preview');
+    var label = card.querySelector('.page-banner__label');
+    var flag = card.querySelector('.page-banner__reset-flag');
+    var reset = card.querySelector('.page-banner__reset');
+    input.addEventListener('change', function () {
+      var file = input.files && input.files[0];
+      if (!file) return;
+      flag.value = '';
+      var reader = new FileReader();
+      reader.onload = function (e) { preview.src = e.target.result; };
+      reader.readAsDataURL(file);
+      label.textContent = 'New banner — not saved yet';
+    });
+    if (reset) reset.addEventListener('click', function () {
+      flag.value = '1';
+      input.value = '';
+      preview.src = card.dataset.default;
+      label.textContent = 'Default (LGU building) — not saved yet';
+    });
+  });
 
   document.querySelectorAll('.social-visibility-checkbox').forEach(function(box){
     box.addEventListener('change', function(){

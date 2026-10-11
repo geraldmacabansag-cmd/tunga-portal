@@ -21,8 +21,8 @@
     <meta property="og:locale" content="en_PH">
     <meta name="twitter:card" content="summary_large_image">
 
-    <link rel="stylesheet" href="{% static 'css/base.css' %}">
-    <link rel="stylesheet" href="{% static 'css/homepage.css' %}">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=3">
+    <link rel="stylesheet" href="{% static 'css/homepage.css' %}?v=2">
     <link rel="stylesheet" href="{% static 'css/offices.css' %}">
     <link rel="stylesheet" href="{% static 'css/announcements.css' %}">
     <link rel="stylesheet" href="{% static 'css/photo-collage.css' %}?v=1">
@@ -30,7 +30,7 @@
     <link rel="stylesheet" href="{% static 'css/aboutus.css' %}">
     <link rel="stylesheet" href="{% static 'css/history.css' %}">
     <link rel="stylesheet" href="{% static 'css/contactus.css' %}">
-    <link rel="stylesheet" href="{% static 'css/base.css' %}">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=3">
     <link rel="stylesheet" href="{% static 'css/auth.css' %}">
     <link rel="stylesheet" href="{% static 'css/mayorsoffice.css' %}">
 
@@ -372,10 +372,10 @@
           <li><a href="{% url 'about' %}">About Us</a></li>
         </ul>
         <ul>
-          <li><a href="{% url 'history' %}">History</a></li>
+          <li><a href="{% url 'about' %}#history">History</a></li>
           <li><a href="{% url 'contact' %}">Contact Us</a></li>
-          <li><a href="#">Privacy Policy</a></li>
-          <li><a href="#">Terms Of Use</a></li>
+          <li><a href="{% url 'privacy_policy' %}">Privacy Policy</a></li>
+          <li><a href="{% url 'terms_of_use' %}">Terms Of Use</a></li>
         </ul>
       </div>
     </div>
@@ -396,9 +396,9 @@
   <div class="footer-bottom container">
     <span>&copy; Municipality of Tunga. All Rights Reserved.</span>
     <div class="footer-bottom__links">
-      <a href="#">Privacy Policy</a>
-      <a href="#">Terms Of Use</a>
-      <a href="#">Accessibility Statement</a>
+      <a href="{% url 'privacy_policy' %}">Privacy Policy</a>
+      <a href="{% url 'terms_of_use' %}">Terms Of Use</a>
+      <a href="{% url 'accessibility' %}">Accessibility Statement</a>
     </div>
   </div>
 </footer>

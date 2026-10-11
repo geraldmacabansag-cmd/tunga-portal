@@ -33,6 +33,13 @@ class SiteContactInfo(models.Model):
     office_hours = models.CharField(max_length=150, blank=True)
     logo = models.ImageField(upload_to="site/", blank=True, null=True)
     hero_banner = models.ImageField(upload_to="site/", blank=True, null=True)
+    # Banner photo at the top of each public page (Website Settings → Appearance →
+    # Page banners). Empty = the default LGU building photo (static/images/lgu_tunga_bldg.jpeg).
+    banner_announcements = models.ImageField(upload_to="site/banners/", blank=True, null=True)
+    banner_gallery = models.ImageField(upload_to="site/banners/", blank=True, null=True)
+    banner_offices = models.ImageField(upload_to="site/banners/", blank=True, null=True)
+    banner_about = models.ImageField(upload_to="site/banners/", blank=True, null=True)
+    banner_contact = models.ImageField(upload_to="site/banners/", blank=True, null=True)
     # Shown under "MUNICIPALITY OF TUNGA" in the public site header (Website Settings → Appearance)
     site_tagline = models.CharField(max_length=120, default=DEFAULT_TAGLINE, blank=True)
     # How long each announcement stays in the bar at the very top of the public
@@ -97,6 +104,21 @@ class SiteContactInfo(models.Model):
     @property
     def seo_description_text(self):
         return self.seo_description or self.DEFAULT_SEO_DESCRIPTION
+
+    # (field, label shown in Website Settings, public page)
+    PAGE_BANNERS = [
+        ("banner_announcements", "Announcements page", "announcement"),
+        ("banner_gallery", "Gallery page", "gallery"),
+        ("banner_offices", "Offices page", "offices"),
+        ("banner_about", "About Us page", "about"),
+        ("banner_contact", "Contact Us page", "contact"),
+    ]
+
+    @property
+    def page_banners(self):
+        """For the Appearance tab: [{key, label, url_name, image}, …]."""
+        return [{"key": k, "label": label, "url_name": url_name, "image": getattr(self, k)}
+                for k, label, url_name in self.PAGE_BANNERS]
 
     @property
     def maintenance_active(self):
@@ -187,13 +209,23 @@ class EmergencyContact(models.Model):
         ("fa-phone", "Phone"),
     ]
 
+    # Colors of the icon and CALL button (CSS: super_admin_style.css "cc-…" and homepage.css "emergency__…")
     COLOR_CHOICES = [
         ("red", "Red"),
-        ("navy", "Navy"),
-        ("teal", "Teal"),
+        ("maroon", "Maroon"),
+        ("pink", "Pink"),
         ("orange", "Orange"),
+        ("yellow", "Yellow"),
+        ("brown", "Brown"),
+        ("green", "Green"),
+        ("teal", "Teal"),
+        ("sky", "Sky Blue"),
+        ("blue", "Blue"),
+        ("navy", "Navy"),
+        ("indigo", "Indigo"),
         ("purple", "Purple"),
         ("gray", "Gray"),
+        ("black", "Black"),
     ]
 
     name = models.CharField(max_length=150)
@@ -504,3 +536,46 @@ class SiteBackup(models.Model):
 
     def __str__(self):
         return self.filename or f"Backup #{self.pk}"
+
+
+class LegalPage(models.Model):
+    """Privacy Policy, Terms of Use and Accessibility Statement — edited in
+    Website Settings → Legal Pages, shown at /privacy-policy/, /terms-of-use/
+    and /accessibility/ (links in the footer and on the sign-up page).
+    The starting text is in portal/legal_defaults.py."""
+    KEY_CHOICES = [
+        ("privacy", "Privacy Policy"),
+        ("terms", "Terms of Use"),
+        ("accessibility", "Accessibility Statement"),
+    ]
+    key = models.CharField(max_length=20, choices=KEY_CHOICES, unique=True)
+    title = models.CharField(max_length=120)
+    content = models.TextField(blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["id"]
+
+    def __str__(self):
+        return self.title
+
+    @classmethod
+    def get(cls, key):
+        """The page, created from the starting text if it doesn't exist yet."""
+        from portal.legal_defaults import PAGES
+        page = cls.objects.filter(key=key).first()
+        if page is None:
+            for k, title, _url, text in PAGES:
+                if k == key:
+                    page = cls.objects.create(key=k, title=title, content=text)
+        return page
+
+    @classmethod
+    def all_pages(cls):
+        from portal.legal_defaults import PAGES
+        return [cls.get(k) for k, _t, _u, _x in PAGES]
+
+    @property
+    def url_name(self):
+        from portal.legal_defaults import PAGES
+        return next(u for k, _t, u, _x in PAGES if k == self.key)

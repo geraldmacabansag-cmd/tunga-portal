@@ -730,7 +730,18 @@ def about(request):
     })
 
 def history(request):
-    return render(request, "portal/history.html")
+    """The separate History page was removed — History is a section of the
+    About Us page now. Old links and bookmarks to /history/ land there."""
+    return redirect(reverse('about') + '#history', permanent=True)
+
+def legal_page(request, key):
+    """Privacy Policy, Terms of Use and Accessibility Statement (edited in
+    Super Admin → Website Settings → Legal Pages)."""
+    from admin_dashboard.models import LegalPage
+    return render(request, "portal/legal_page.html", {
+        "page": LegalPage.get(key),
+        "all_pages": LegalPage.all_pages(),
+    })
 
 def contact(request):
     # Populates the "Send Us a Message" office dropdown — only offices that
@@ -1030,7 +1041,7 @@ def site_search(request):
         {"label": "Photo Gallery", "url": reverse('gallery'), "keywords": ["gallery", "photo", "picture", "album"]},
         {"label": "Offices Directory", "url": reverse('offices'), "keywords": ["office", "offices", "department"]},
         {"label": "About Us", "url": reverse('about'), "keywords": ["about", "mission", "vision"]},
-        {"label": "History", "url": reverse('history'), "keywords": ["history", "founding", "heritage"]},
+        {"label": "History", "url": reverse('about') + "#history", "keywords": ["history", "founding", "heritage"]},
         {"label": "Municipal Officials", "url": reverse('about') + "#officials", "keywords": ["official", "mayor", "councilor", "officials"]},
         {"label": "Barangays", "url": reverse('about') + "#barangays", "keywords": ["barangay", "barangays"]},
         {"label": "Contact Us", "url": reverse('contact'), "keywords": ["contact", "phone", "email", "address", "hotline"]},
@@ -1262,8 +1273,10 @@ def sitemap_xml(request):
         (reverse("offices"), "weekly", "0.8"),
         (reverse("gallery"), "weekly", "0.6"),
         (reverse("about"), "monthly", "0.6"),
-        (reverse("history"), "monthly", "0.5"),
         (reverse("contact"), "monthly", "0.7"),
+        (reverse("privacy_policy"), "yearly", "0.3"),
+        (reverse("terms_of_use"), "yearly", "0.3"),
+        (reverse("accessibility"), "yearly", "0.3"),
         (reverse("tunga_map"), "weekly", "0.5"),
     ]
     for office in Office.objects.exclude(slug="lgu-super-admin").filter(is_visible=True).order_by("display_order", "name"):

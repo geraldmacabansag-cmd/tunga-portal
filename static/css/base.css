@@ -1742,3 +1742,19 @@ button.side-panel__logout { font-family: inherit; cursor: pointer; }
   .account-photo { flex-direction: column; text-align: center; }
   .account-photo__btns { justify-content: center; }
 }
+/* Header tagline ("Abtik na serbisyo, masulong na bungto.") — always shown
+   in full: on small screens it wraps onto a second line instead of being
+   cut off with "…". */
+.brand__tagline {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  overflow-wrap: break-word;
+  line-height: 1.25;
+}
+@media (max-width: 420px) {
+  .brand__tagline { font-size: 0.66rem; }
+}
+@media (max-width: 360px) {
+  .brand__label { font-size: 0.6rem; letter-spacing: 0.04em; }
+}

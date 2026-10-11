@@ -12,7 +12,8 @@ Home | Digital Governance Portal
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&display=swap">
 
 <section class="page-hero">
-  <img src="{% static 'images/lgu_bldg.jpeg' %}" alt="Tunga Municipal Hall" class="page-hero__bg">
+  {# banner: Website Settings → Appearance → Page banners (default: LGU building photo) #}
+  <img src="{% if site_contact.banner_offices %}{{ site_contact.banner_offices.url }}{% else %}{% static 'images/lgu_tunga_bldg.jpeg' %}{% endif %}" alt="Tunga Municipal Hall" class="page-hero__bg">
   <div class="page-hero__scrim"></div>
   <div class="page-hero__inner">
     <div class="breadcrumb"><a href="{% url 'home' %}">Home</a> <i class="fa-solid fa-chevron-right" style="font-size:.65rem"></i> <span class="current">Offices</span></div>

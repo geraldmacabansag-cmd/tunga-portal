@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% load static legal_text %}
+{% comment %}
+Privacy Policy / Terms of Use / Accessibility Statement — the text is edited
+in Super Admin → Website Settings → Legal Pages (admin_dashboard.LegalPage).
+{% endcomment %}
+
+{% block title %}
+{{ page.title }} | Digital Governance Portal
+{% endblock %}
+
+{% block content %}
+
+<section class="page-hero">
+  <img src="{% static 'images/lgu_tunga_bldg.jpeg' %}" alt="Tunga Municipal Hall" class="page-hero__bg">
+  <div class="page-hero__scrim"></div>
+  <div class="page-hero__inner">
+    <div class="breadcrumb"><a href="{% url 'home' %}">Home</a> <i class="fa-solid fa-chevron-right" style="font-size:.65rem"></i> <span class="current">{{ page.title }}</span></div>
+    <h1>{{ page.title }}</h1>
+    <p>Last updated: {{ page.updated_at|date:"F j, Y" }}</p>
+  </div>
+</section>
+
+<section class="legal-wrap">
+  <div class="container">
+    <div class="legal-layout">
+      <article class="legal-body">
+        {% if page.content %}
+          {{ page.content|legal_text }}
+        {% else %}
+          <p>This page is being prepared. For questions, please <a href="{% url 'contact' %}">contact us</a>.</p>
+        {% endif %}
+      </article>
+
+      <aside class="legal-side">
+        <strong>Related pages</strong>
+        <ul>
+          {% for p in all_pages %}
+          <li><a href="{% url p.url_name %}" {% if p.key == page.key %}aria-current="page" class="is-current"{% endif %}>{{ p.title }}</a></li>
+          {% endfor %}
+          <li><a href="{% url 'contact' %}">Contact Us</a></li>
+        </ul>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<style>
+  .legal-wrap { padding: 36px 0 56px; }
+  .legal-layout { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 28px; align-items: start; }
+  .legal-body { background: #fff; border: 1px solid rgba(0,0,0,.08); border-radius: 14px; padding: 28px 32px; line-height: 1.7; color: #374151; overflow-wrap: anywhere; }
+  .legal-body h2 { font-size: 1.15rem; color: var(--navy, #16325c); margin: 1.6em 0 .5em; }
+  .legal-body h2:first-child { margin-top: 0; }
+  .legal-body p { margin: 0 0 .9em; }
+  .legal-body ul { margin: 0 0 1em; padding-left: 1.3em; list-style: disc; }
+  .legal-body li { display: list-item; }
+  .legal-body li { margin-bottom: .35em; }
+  .legal-side { position: sticky; top: 90px; background: #fff; border: 1px solid rgba(0,0,0,.08); border-radius: 14px; padding: 18px 20px; font-size: .92rem; }
+  .legal-side ul { list-style: none; margin: 10px 0 0; padding: 0; }
+  .legal-side li { margin: 0 0 8px; }
+  .legal-side a { color: var(--navy, #16325c); text-decoration: none; }
+  .legal-side a:hover, .legal-side a.is-current { text-decoration: underline; font-weight: 600; }
+  @media (max-width: 860px) {
+    .legal-layout { grid-template-columns: 1fr; }
+    .legal-side { position: static; }
+  }
+  @media (max-width: 600px) {
+    .legal-wrap { padding: 20px 0 36px; }
+    .legal-body { padding: 18px 16px; }
+  }
+</style>
+{% endblock %}
