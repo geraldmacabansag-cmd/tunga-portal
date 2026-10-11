@@ -1,0 +1,1808 @@
+{% load static %}
+{% comment %}Services editor, part 2 of 2: the windows, script and styles. See _service_editor_body.html.{% endcomment %}
+
+<div class="modal-backdrop" id="add-step-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="step-modal-title">Add Client Step</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form id="add-step-form" method="post" data-url-template="{% url svc_ns|add:':save_process_steps' 0 %}">
+        {% csrf_token %}
+        <div id="step-rows"></div>
+          <button type="button" class="btn btn-secondary btn-sm" id="step-add-btn" style="margin-bottom:16px;">
+            <i class="fa-solid fa-plus"></i> Add Another Step
+          </button>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Steps</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="reminders-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Edit Important Reminders</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form id="reminders-form" method="post" data-url-template="{% url svc_ns|add:':save_reminders' 0 %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label" for="reminders-textarea">One reminder per line</label>
+          <textarea class="form-input form-textarea" id="reminders-textarea" name="items" rows="6" placeholder="e.g. Make sure all documents are complete and updated."></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Reminders</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="add-requirement-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="requirement-modal-title">Add Requirement</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form id="add-requirement-form" method="post" data-url-template="{% url svc_ns|add:':save_requirements' 0 %}">
+        {% csrf_token %}
+        <div id="requirement-rows"></div>
+        <button type="button" class="btn btn-secondary btn-sm" id="requirement-add-btn" style="margin-bottom:16px;">
+          <i class="fa-solid fa-plus"></i> Add Another Requirement
+        </button>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Requirements</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="preview-service-modal">
+  <div class="modal-box charter-modal">
+    <div class="modal-head">
+      <h3>Service Preview</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div id="preview-service-body"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="legal-basis-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Edit Legal Basis</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form id="legal-basis-form" method="post" data-url-template="{% url svc_ns|add:':save_legal_basis' 0 %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label" for="legal-basis-textarea">Legal Basis (if applicable)</label>
+          <textarea class="form-input form-textarea" id="legal-basis-textarea" name="legal_basis" rows="8" placeholder="e.g. Republic Act No. 11032, Local Ordinance No. ..."></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="schedule-of-service-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Edit Schedule of Service</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form id="schedule-of-service-form" method="post" data-url-template="{% url svc_ns|add:':save_schedule_of_service' 0 %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label" for="schedule-of-service-textarea">Schedule of Service (if applicable)</label>
+          <textarea class="form-input form-textarea" id="schedule-of-service-textarea" name="schedule_of_service" rows="8" placeholder="e.g. Monday - Friday, 8:00 AM - 5:00 PM"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="add-service-form-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Add Downloadable Form</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form>
+        <div class="form-group">
+          <label class="form-label" for="svc-form-title">Form Name <span class="req">*</span></label>
+          <input class="form-input" type="text" id="svc-form-title" name="title" placeholder="e.g. Certificate of Indigency" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="svc-form-size">File Size</label>
+          <input class="form-input" type="text" id="svc-form-size" name="size" placeholder="e.g. 200 KB" value="200 KB">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="svc-form-status">Status</label>
+          <select class="form-input" id="svc-form-status" name="status">
+            <option>Published</option>
+            <option>Pending Approval</option>
+          </select>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add Form</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="edit-service-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Edit Service</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form method="post" id="edit-service-form" action="" data-url-template="{% url svc_ns|add:':edit_service' 0 %}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="services">
+
+        <div class="form-group">
+          <label class="form-label" for="edit-svc-name">Service Name <span class="req">*</span></label>
+          <input class="form-input" type="text" id="edit-svc-name" name="name" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="edit-svc-description">Description</label>
+          <textarea class="form-input" id="edit-svc-description" name="description" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="edit-svc-division">Office or Division</label>
+          <input class="form-input" type="text" id="edit-svc-division" name="division" placeholder="{{ editor_office.name }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="edit-svc-classification">Classification</label>
+          <input class="form-input" type="text" id="edit-svc-classification" name="classification" placeholder="Simple/Complex">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Type of Transaction</label>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;">
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+              <input type="checkbox" name="transaction_type" value="G2G" id="edit-svc-txn-g2g"> G2G – Government to Government
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+              <input type="checkbox" name="transaction_type" value="G2B" id="edit-svc-txn-g2b"> G2B – Government to Business
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+              <input type="checkbox" name="transaction_type" value="G2C" id="edit-svc-txn-g2c"> G2C – Government to Citizen
+            </label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="edit-svc-who-may-avail">Who May Avail</label>
+          <input class="form-input" type="text" id="edit-svc-who-may-avail" name="who_may_avail">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Internal/External Services</label>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;">
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+              <input type="radio" name="service_scope" value="internal" id="edit-svc-scope-internal"> Internal
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+              <input type="radio" name="service_scope" value="external" id="edit-svc-scope-external"> External
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+              <input type="radio" name="service_scope" value="" id="edit-svc-scope-none"> None
+            </label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Icon</label>
+          <input type="hidden" name="icon" id="edit-svc-icon-input" value="{{ icon_choices.0.0 }}">
+          <div class="icon-picker" id="edit-svc-icon-picker">
+            {% for value, label in icon_choices %}
+            <button type="button" class="icon-picker__item" data-icon-value="{{ value }}" title="{{ label }}">
+              <i class="{{ value }}"></i>
+            </button>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- add service modal form -->
+<div class="modal-backdrop" id="add-service-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Add Service</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form method="post" action="{{ svc_add_url }}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="services">
+
+        <div class="form-group">
+          <label class="form-label" for="svc-name">Service Name <span class="req">*</span></label>
+          <input class="form-input" type="text" id="svc-name" name="name" placeholder="e.g. Senior Citizen ID Issuance" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="svc-description">Description</label>
+          <textarea class="form-input" id="svc-description" name="description" rows="3" placeholder="What this service is for and who can avail of it"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="svc-division">Office or Division</label>
+          <input class="form-input" type="text" id="svc-division" name="division" value="{{ editor_office.name }}" placeholder="{{ editor_office.name }}">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="svc-classification">Classification</label>
+          <input class="form-input" type="text" id="svc-classification" name="classification" placeholder="Simple/Complex">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Type of Transaction</label>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;">
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+              <input type="checkbox" name="transaction_type" value="G2G"> G2G – Government to Government
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+              <input type="checkbox" name="transaction_type" value="G2B"> G2B – Government to Business
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+              <input type="checkbox" name="transaction_type" value="G2C"> G2C – Government to Citizen
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="svc-who-may-avail">Who May Avail</label>
+          <input class="form-input" type="text" id="svc-who-may-avail" name="who_may_avail" placeholder="e.g. Transacting public, Senior citizens">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Internal/External Services</label>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;">
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+              <input type="radio" name="service_scope" value="internal"> Internal
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+              <input type="radio" name="service_scope" value="external"> External
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
+              <input type="radio" name="service_scope" value="" checked> None
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Icon</label>
+          <input type="hidden" name="icon" id="svc-icon-input" value="{{ icon_choices.0.0 }}">
+          <div class="icon-picker">
+            {% for value, label in icon_choices %}
+            <button type="button" class="icon-picker__item {% if forloop.first %}selected{% endif %}" data-icon-value="{{ value }}" title="{{ label }}">
+              <i class="{{ value }}"></i>
+            </button>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="button" class="btn btn-primary" id="add-service-confirm-btn">Add</button>
+        </div>
+      </form>
+
+      <p style="margin:14px 0 0;font-size:.82rem;color:var(--gray-500,#5d667f);">
+        <i class="fa-regular fa-circle-question"></i>
+        This won't be saved yet — you'll see it in the detail view first, and it's only added once you click <strong>Save Changes</strong> there. Requirements, process steps, fees, and other details can be filled in once it's saved.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- hidden form -->
+{% for service in services %}
+<div class="modal-backdrop" id="delete-modal-{{ service.pk }}">
+  <div class="modal-box" style="max-width:400px;">
+    <div class="modal-head">
+      <h3>Delete Service</h3>
+      <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <p>Are you sure you want to permanently delete <strong>"{{ service.name }}"</strong>? This will also remove any process steps saved for it. This cannot be undone.</p>
+
+      <form method="post" action="{% url svc_ns|add:':delete_service' service.pk %}">
+        {% csrf_token %}
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" style="background:#dc2626;border-color:#dc2626;">Yes, Delete</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+{# Settings for the script below. Kept outside the script so the code editor does not flag Django tags as errors. #}
+<div id="svc-editor-settings" hidden
+     data-editing-enabled="{{ editing_globally_enabled|yesno:'1,0' }}"
+     data-is-admin="{{ svc_is_admin|yesno:'1,0' }}"
+     data-upload-url="{{ svc_upload_url }}"></div>
+<script>
+(function () {
+  var svcSettings = (document.getElementById('svc-editor-settings') || {}).dataset || {};
+
+  // Site-wide switch set by the Super Admin from their Services page —
+  // same value for every service shown on this page.
+  var editingGloballyEnabled = svcSettings.editingEnabled !== '0';
+  // The Super Admin can edit any service at any time (no "published" lock).
+  var svcIsAdmin = svcSettings.isAdmin === '1';
+
+  // True while the detail view is showing an unsaved Add Service preview
+  // rather than a real, saved service (see confirmAddServiceDraft() and
+  // showDetail()'s isDraft handling further down).
+  var isDraftService = false;
+
+  var listView = document.getElementById('services-list-view');
+  var detailView = document.getElementById('service-detail-view');
+  var crumbSep = document.getElementById('crumb-sep');
+  var crumbCurrent = document.getElementById('crumb-current');
+  var crumbServices = document.getElementById('crumb-services');
+  var stepsHost = document.getElementById('steps-host');
+  var addStepForm = document.getElementById('add-step-form');
+  var addStepModal = document.getElementById('add-step-modal');
+  var stepModalTrigger = document.getElementById('step-modal-trigger');
+  var stepModalTitle = document.getElementById('step-modal-title');
+  var stepRowsHost = document.getElementById('step-rows');
+  var stepAddBtn = document.getElementById('step-add-btn');
+
+  var requirementsHost = document.getElementById('requirements-host');
+  var addRequirementForm = document.getElementById('add-requirement-form');
+  var addRequirementModal = document.getElementById('add-requirement-modal');
+  var requirementModalTrigger = document.getElementById('requirement-modal-trigger');
+  var requirementModalTitle = document.getElementById('requirement-modal-title');
+  var requirementRowsHost = document.getElementById('requirement-rows');
+  var requirementAddBtn = document.getElementById('requirement-add-btn');
+
+  var previewModal = document.getElementById('preview-service-modal');
+  var previewBtn = document.getElementById('preview-service-btn');
+  var previewBody = document.getElementById('preview-service-body');
+
+  var legalBasisModal = document.getElementById('legal-basis-modal');
+  var legalBasisForm = document.getElementById('legal-basis-form');
+  var legalBasisTrigger = document.getElementById('legal-basis-modal-trigger');
+  var legalBasisTextarea = document.getElementById('legal-basis-textarea');
+
+  var scheduleOfServiceModal = document.getElementById('schedule-of-service-modal');
+  var scheduleOfServiceForm = document.getElementById('schedule-of-service-form');
+  var scheduleOfServiceTrigger = document.getElementById('schedule-of-service-modal-trigger');
+  var scheduleOfServiceTextarea = document.getElementById('schedule-of-service-textarea');
+
+  var currentServicePk = null;
+  var currentServiceData = null;   // new
+  var currentSteps = [];
+  var currentRequirements = [];
+  var currentLegalBasis = '';
+  var currentScheduleOfService = '';
+  var currentReminders = '';
+
+  var remindersModal = document.getElementById('reminders-modal');
+  var remindersForm = document.getElementById('reminders-form');
+  var remindersTrigger = document.getElementById('reminders-modal-trigger');
+  var remindersTextarea = document.getElementById('reminders-textarea');
+
+  if (remindersTrigger) {
+    remindersTrigger.addEventListener('click', function () {
+      if (!currentServicePk) return;
+      var currentLines = [];
+      document.querySelectorAll('#reminders-host li').forEach(function (li) {
+        if (li.textContent.trim() && li.textContent.trim() !== 'No reminders added yet.') {
+          currentLines.push(li.textContent.trim());
+        }
+      });
+      remindersTextarea.value = currentLines.join('\n');
+      remindersModal.classList.add('open');
+      document.body.classList.add('modal-open');
+    });
+  }
+
+  function closeRemindersModal() {
+    remindersModal.classList.remove('open');
+    document.body.classList.remove('modal-open');
+  }
+
+  if (remindersForm) {
+    remindersForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
+      var lines = remindersTextarea.value.split('\n').map(function (s) { return s.trim(); }).filter(Boolean);
+      currentReminders = lines.join('\n');
+
+      var remindersHost = document.getElementById('reminders-host');
+      remindersHost.innerHTML = lines.length
+        ? lines.map(function () { return '<li></li>'; }).join('')
+        : '<li style="color:var(--gray-400);">No reminders added yet.</li>';
+      remindersHost.querySelectorAll('li').forEach(function (li, i) {
+        if (lines[i]) li.textContent = lines[i];
+      });
+
+      closeRemindersModal();
+    });
+  }
+
+  var pendingForms = [];
+  var uploadFormUrl = svcSettings.uploadUrl || '';
+
+  function renderPendingFormRow(serviceId, entry) {
+    var tbody = document.querySelector('[data-service-forms-for="' + serviceId + '"] tbody');
+    if (!tbody) return;
+    var emptyRow = tbody.querySelector('td[colspan]');
+    if (emptyRow) emptyRow.closest('tr').remove();
+
+    var tr = document.createElement('tr');
+    tr.className = 'pending-form-row';
+    tr.innerHTML =
+      '<td class="row-icon-name">' +
+        '<span class="row-thumb" style="background:var(--red-50);color:var(--red-600);"><i class="fa-solid fa-file-pdf"></i></span>' +
+        '<span class="cell-primary"></span>' +
+      '</td>' +
+      '<td><span class="tag"></span></td>' +
+      '<td>&mdash;</td>' +
+      '<td>0</td>' +
+      '<td><span class="badge badge-amber">Unsaved</span></td>' +
+      '<td><span style="font-size:11.5px;color:var(--gray-400);">Save Changes to upload</span></td>';
+    tr.querySelector('.cell-primary').textContent = entry.title;
+    tr.querySelector('.tag').textContent = entry.category || '—';
+    tbody.appendChild(tr);
+  }
+
+  document.querySelectorAll('.add-form-inline').forEach(function (form) {
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      var serviceId = form.dataset.serviceId;
+      var fileInput = form.querySelector('input[type="file"]');
+      var titleInput = form.querySelector('input[name="title"]');
+      var descInput = form.querySelector('textarea[name="description"]');
+      var catInput = form.querySelector('select[name="category"]');
+
+      var file = fileInput.files[0];
+      var title = titleInput.value.trim();
+
+      if (!file || !title) {
+        alert('Please choose a PDF file and enter a form name.');
+        return;
+      }
+
+      pendingForms.push({
+        serviceId: serviceId,
+        file: file,
+        title: title,
+        description: descInput.value.trim(),
+        category: catInput.value
+      });
+
+      renderPendingFormRow(serviceId, { title: title, category: catInput.value });
+
+      var modal = document.getElementById('add-form-modal-' + serviceId);
+      if (modal) { modal.classList.remove('open'); document.body.classList.remove('modal-open'); }
+      form.reset();
+    });
+  });
+
+  document.querySelectorAll('[id^="add-form-modal-"]').forEach(function (modal) {
+    function closeThisFormModal() {
+      modal.classList.remove('open');
+      document.body.classList.remove('modal-open');
+    }
+    modal.querySelectorAll('[data-act="cancel"], .modal-x').forEach(function (btn) {
+      btn.addEventListener('click', closeThisFormModal);
+    });
+    modal.addEventListener('click', function (e) {
+      if (e.target === modal) closeThisFormModal();
+    });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    document.querySelectorAll('[id^="add-form-modal-"].open').forEach(function (modal) {
+      modal.classList.remove('open');
+      document.body.classList.remove('modal-open');
+    });
+  });
+
+  function getCsrfToken() {
+    var el = document.querySelector('#add-step-form [name=csrfmiddlewaretoken]');
+    return el ? el.value : '';
+  }
+
+  var saveChangesBtn = document.getElementById('save-changes-btn');
+  if (saveChangesBtn) {
+    saveChangesBtn.addEventListener('click', function () {
+      if (isDraftService) {
+        // Nothing has been written to the database for this one yet — this
+        // click is what actually creates it. Submit the same form the Add
+        // Service modal filled in (its fields were left untouched, see
+        // buildAddServiceDraft()/the confirm handler above) for real this
+        // time; the server creates the service and redirects back here
+        // with ?service=<new id>, which lands on the now-saved service with
+        // Requirements/Client Steps/Forms unlocked.
+        if (addServiceForm) addServiceForm.submit();
+        return;
+      }
+
+      if (!currentServicePk) return;
+
+      var csrf = getCsrfToken();
+      var requests = [];
+
+      var stepsData = new FormData();
+      stepsData.append('csrfmiddlewaretoken', csrf);
+      currentSteps.forEach(function (s) {
+        stepsData.append('step_number[]', (s.step_number === undefined || s.step_number === null) ? '' : s.step_number);
+        stepsData.append('title[]', s.title);
+        stepsData.append('agency[]', s.agency_action || '');
+        stepsData.append('fee[]', s.fee || '');
+        stepsData.append('processing_time[]', s.processing_time || '');
+        stepsData.append('person[]', s.person_responsible || '');
+      });
+      requests.push(fetch(addStepForm.dataset.urlTemplate.replace('/0/', '/' + currentServicePk + '/'), { method: 'POST', body: stepsData, credentials: 'same-origin' }));
+
+      var reqData = new FormData();
+      reqData.append('csrfmiddlewaretoken', csrf);
+      currentRequirements.forEach(function (r) { reqData.append('title[]', r.title); reqData.append('where[]', r.where_to_secure || ''); reqData.append('txn[]', r.transaction_type || ''); });
+      requests.push(fetch(addRequirementForm.dataset.urlTemplate.replace('/0/', '/' + currentServicePk + '/'), { method: 'POST', body: reqData, credentials: 'same-origin' }));
+
+      var legalBasisData = new FormData();
+      legalBasisData.append('csrfmiddlewaretoken', csrf);
+      legalBasisData.append('legal_basis', currentLegalBasis || '');
+      requests.push(fetch(legalBasisForm.dataset.urlTemplate.replace('/0/', '/' + currentServicePk + '/'), { method: 'POST', body: legalBasisData, credentials: 'same-origin' }));
+
+      var scheduleOfServiceData = new FormData();
+      scheduleOfServiceData.append('csrfmiddlewaretoken', csrf);
+      scheduleOfServiceData.append('schedule_of_service', currentScheduleOfService || '');
+      requests.push(fetch(scheduleOfServiceForm.dataset.urlTemplate.replace('/0/', '/' + currentServicePk + '/'), { method: 'POST', body: scheduleOfServiceData, credentials: 'same-origin' }));
+
+      var remindersData = new FormData();
+      remindersData.append('csrfmiddlewaretoken', csrf);
+      remindersData.append('items', currentReminders);
+      requests.push(fetch(remindersForm.dataset.urlTemplate.replace('/0/', '/' + currentServicePk + '/'), { method: 'POST', body: remindersData, credentials: 'same-origin' }));
+
+      pendingForms.forEach(function (pf) {
+        var fd = new FormData();
+        fd.append('csrfmiddlewaretoken', csrf);
+        fd.append('service', currentServicePk);
+        fd.append('file', pf.file);
+        fd.append('title', pf.title);
+        fd.append('description', pf.description);
+        fd.append('category', pf.category);
+        requests.push(fetch(uploadFormUrl, { method: 'POST', body: fd, credentials: 'same-origin' }));
+      });
+
+      saveChangesBtn.disabled = true;
+
+      Promise.all(requests).then(function (responses) {
+        var allOk = responses.every(function (r) { return r.ok; });
+        if (!allOk) throw new Error('One or more saves failed');
+        window.location.href = window.location.pathname + '?service=' + currentServicePk;
+      }).catch(function () {
+        alert('Something went wrong while saving. Please try again.');
+        saveChangesBtn.disabled = false;
+      });
+    });
+  }
+
+  function parseLeadingNumber(text) {
+    if (!text) return null;
+    var m = String(text).match(/(\d+(?:\.\d+)?)/);
+    return m ? parseFloat(m[1]) : null;
+  }
+
+  function computeTotalProcessingTime(steps) {
+    var sum = 0, hasNumeric = false, textParts = [];
+    steps.forEach(function (s) {
+      var n = parseLeadingNumber(s.processing_time);
+      if (n !== null) { sum += n; hasNumeric = true; }
+      else if (s.processing_time) { textParts.push(s.processing_time); }
+    });
+    var parts = [];
+    if (hasNumeric) parts.push(sum % 1 === 0 ? String(sum) : sum.toFixed(2));
+    parts = parts.concat(textParts);
+    return parts.length ? parts.join(' + ') : '—';
+  }
+
+  function renderSteps(stepsJson) {
+    var steps = [];
+    try { steps = JSON.parse(stepsJson || '[]'); } catch (e) { steps = []; }
+
+    if (!steps.length) {
+      stepsHost.innerHTML = '<p style="color:var(--gray-400);padding:8px 0;">No client steps added yet.</p>';
+      return;
+    }
+
+    var sorted = steps.slice().sort(function (a, b) {
+      return (parseFloat(a.step_number) || 0) - (parseFloat(b.step_number) || 0);
+    });
+
+    var rows = sorted.map(function () {
+      return '<tr>' +
+        '<td></td>' + '<td></td>' + '<td></td>' + '<td></td>' + '<td></td>' + '<td></td>' +
+        '</tr>';
+    }).join('');
+
+    stepsHost.innerHTML =
+      '<div class="table-wrap"><table class="data-table" style="table-layout:fixed;width:100%;">' +
+        '<colgroup><col style="width:10%;"><col style="width:20%;"><col style="width:22%;"><col style="width:16%;"><col style="width:14%;"><col style="width:18%;"></colgroup>' +
+        '<thead><tr><th>Client Step No.</th><th>Client Step</th><th>Agency Action</th><th>Fee to be Paid</th><th>Processing Time</th><th>Person Responsible</th></tr></thead>' +
+        '<tbody>' + rows + '</tbody>' +
+      '</table></div>' +
+      '<div style="text-align:right;margin-top:8px;font-size:13px;font-weight:700;color:var(--gray-700, #374151);">Total Processing Time: <span id="steps-total-time"></span></div>';
+
+    stepsHost.querySelectorAll('tbody tr').forEach(function (row, i) {
+      var s = sorted[i];
+      var cells = row.querySelectorAll('td');
+      cells[0].textContent = s.step_number || (i + 1);
+      cells[1].textContent = s.title || '';
+      cells[2].textContent = s.agency_action || '—';
+      cells[3].textContent = s.fee || '—';
+      cells[3].className = 'svc-long-text';
+      cells[4].textContent = s.processing_time || '—';
+      cells[5].textContent = s.person_responsible || '—';
+    });
+
+    document.getElementById('steps-total-time').textContent = computeTotalProcessingTime(sorted);
+  }
+
+  function updateStepButton(steps) {
+    stepModalTrigger.innerHTML = steps.length
+      ? '<i class="fa-regular fa-pen-to-square"></i> Edit Step'
+      : '<i class="fa-solid fa-plus"></i> Add Step';
+  }
+
+  function renderRequirements(requirementsJson) {
+    var reqs = [];
+    try { reqs = JSON.parse(requirementsJson || '[]'); } catch (e) { reqs = []; }
+
+    if (!reqs.length) {
+      requirementsHost.innerHTML = '<p style="color:var(--gray-400);padding:8px 0;">No requirements added yet.</p>';
+      return;
+    }
+
+    var general = reqs.filter(function (r) { return !r.transaction_type; });
+    var byTxn = {};
+    reqs.forEach(function (r) {
+      if (!r.transaction_type) return;
+      (byTxn[r.transaction_type] = byTxn[r.transaction_type] || []).push(r);
+    });
+    var txnKeys = Object.keys(byTxn).sort();
+
+    function reqTable(list) {
+      var rows = list.map(function (r) {
+        return '<tr>' +
+          '<td></td>' +
+          '<td></td>' +
+          '</tr>';
+      }).join('');
+      return '<div class="table-wrap"><table class="data-table" style="table-layout:fixed;width:100%;">' +
+        '<colgroup><col style="width:55%;"><col style="width:45%;"></colgroup>' +
+        '<thead><tr><th>Requirement</th><th>Where to Secure</th></tr></thead>' +
+        '<tbody>' + rows + '</tbody>' +
+        '</table></div>';
+    }
+
+    var html = '';
+    if (general.length) html += reqTable(general);
+    txnKeys.forEach(function (key) {
+      html += '<h3 style="font-size:14px;margin:18px 0 8px;">' + escapeHtml(key) + '</h3>' + reqTable(byTxn[key]);
+    });
+
+    requirementsHost.innerHTML = html;
+
+    var allTables = requirementsHost.querySelectorAll('table');
+    var groups = general.length ? [general].concat(txnKeys.map(function (k) { return byTxn[k]; })) : txnKeys.map(function (k) { return byTxn[k]; });
+    allTables.forEach(function (table, gi) {
+      var list = groups[gi];
+      table.querySelectorAll('tbody tr').forEach(function (row, i) {
+        var r = list[i];
+        var cells = row.querySelectorAll('td');
+        cells[0].textContent = r.title || '';
+        cells[1].textContent = r.where_to_secure || '—';
+      });
+    });
+  }
+
+  function updateRequirementButton(reqs) {
+    requirementModalTrigger.innerHTML = reqs.length
+      ? '<i class="fa-regular fa-pen-to-square"></i> Edit Requirement'
+      : '<i class="fa-solid fa-plus"></i> Add Requirement';
+  }
+
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = str == null ? '' : String(str);
+    return div.innerHTML;
+  }
+
+  function buildPreviewRequirementsTable(reqs) {
+    if (!reqs.length) return '<p style="color:var(--gray-400);padding:8px 0;">No requirements added yet.</p>';
+
+    var general = reqs.filter(function (r) { return !r.transaction_type; });
+    var byTxn = {};
+    reqs.forEach(function (r) {
+      if (!r.transaction_type) return;
+      (byTxn[r.transaction_type] = byTxn[r.transaction_type] || []).push(r);
+    });
+    var txnKeys = Object.keys(byTxn).sort();
+
+    var rows = '';
+    function addRows(list) {
+      list.forEach(function (r) {
+        rows += '<tr><td>' + escapeHtml(r.title) + '</td><td>' + escapeHtml(r.where_to_secure || '—') + '</td></tr>';
+      });
+    }
+    addRows(general);
+    txnKeys.forEach(function (key) {
+      rows += '<tr><td colspan="2" class="charter-subhead">' + escapeHtml(key) + '</td></tr>';
+      addRows(byTxn[key]);
+    });
+
+    return '<table class="charter-table">' +
+      '<thead><tr><th colspan="2">Checklist of Requirements</th></tr><tr><th>Requirement</th><th>Where to Secure</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody>' +
+      '</table>';
+  }
+
+  function buildPreviewStepsTable(steps) {
+    if (!steps.length) return '<p style="color:var(--gray-400);padding:8px 0;">No client steps added yet.</p>';
+
+    var sorted = steps.slice().sort(function (a, b) { return (parseFloat(a.step_number) || 0) - (parseFloat(b.step_number) || 0); });
+
+    var rows = sorted.map(function (s, i) {
+      return '<tr>' +
+        '<td>' + (i + 1) + '. ' + escapeHtml(s.title) + '</td>' +
+        '<td>' + escapeHtml(s.agency_action || '—') + '</td>' +
+        '<td class="svc-long-text">' + escapeHtml(s.fee || '—') + '</td>' +
+        '<td>' + escapeHtml(s.processing_time || '—') + '</td>' +
+        '<td>' + escapeHtml(s.person_responsible || '—') + '</td>' +
+        '</tr>';
+    }).join('');
+
+    return '<table class="charter-table">' +
+      '<thead><tr><th>Client Steps</th><th>Agency Actions</th><th>Fees to be Paid</th><th>Processing Time</th><th>Person Responsible</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody>' +
+      '<tfoot><tr><td colspan="3" style="text-align:right;">TOTAL</td><td>' + escapeHtml(computeTotalProcessingTime(sorted)) + '</td><td></td></tr></tfoot>' +
+      '</table>';
+  }
+
+  function buildPreviewHtml() {
+    var name = document.getElementById('detail-name').textContent || '';
+    var description = document.getElementById('detail-description').textContent || '';
+    var division = document.getElementById('detail-division').textContent || '—';
+    var classification = document.getElementById('detail-classification').textContent || '—';
+    var transactionType = document.getElementById('detail-transaction-type').textContent || '—';
+    var whoMayAvail = document.getElementById('detail-who-may-avail').textContent || '—';
+
+    var html = '';
+    html += '<h2 class="charter-title">' + escapeHtml(name) + '</h2>';
+    if (description) html += '<p class="charter-desc">' + escapeHtml(description) + '</p>';
+
+    html += '<table class="charter-table charter-info-table">' +
+      '<tr><th>Office or Division:</th><td>' + escapeHtml(division) + '</td></tr>' +
+      '<tr><th>Classification:</th><td>' + escapeHtml(classification) + '</td></tr>' +
+      '<tr><th>Type of Transaction:</th><td>' + escapeHtml(transactionType) + '</td></tr>' +
+      '<tr><th>Who May Avail:</th><td>' + escapeHtml(whoMayAvail) + '</td></tr>' +
+      '</table>';
+
+    html += buildPreviewRequirementsTable(currentRequirements);
+    html += buildPreviewStepsTable(currentSteps);
+
+    if (currentScheduleOfService) {
+      html += '<h3 class="charter-subtitle">Schedule of Service</h3>' +
+        '<p class="charter-plain">' + escapeHtml(currentScheduleOfService) + '</p>';
+    }
+
+    if (currentLegalBasis) {
+      html += '<h3 class="charter-subtitle">Legal Basis</h3>' +
+        '<p class="charter-plain" style="white-space:pre-line;">' + escapeHtml(currentLegalBasis) + '</p>';
+    }
+
+    var forms = [];
+    var formsBlock = document.querySelector('[data-service-forms-for="' + currentServicePk + '"]');
+    if (formsBlock) {
+      formsBlock.querySelectorAll('tbody tr').forEach(function (row) {
+        var nameCell = row.querySelector('.cell-primary');
+        var downloadLink = row.querySelector('a[href*="/download"]');
+        if (nameCell) {
+          forms.push({
+            name: nameCell.textContent.trim(),
+            url: downloadLink ? downloadLink.getAttribute('href') : null
+          });
+        }
+      });
+    }
+    if (forms.length) {
+      html += '<div class="charter-forms">' +
+        '<h3 class="charter-forms__title"><i class="fa-solid fa-file-arrow-down"></i> Downloadable Forms</h3>' +
+        '<ul class="charter-forms__list">' + forms.map(function (f) {
+          return f.url
+            ? '<li><a class="charter-forms__link" href="' + escapeHtml(f.url) + '" target="_blank" rel="noopener">' +
+                '<span class="charter-forms__icon"><i class="fa-solid fa-file-pdf"></i></span>' +
+                '<span class="charter-forms__name">' + escapeHtml(f.name) + '</span>' +
+                '<span class="charter-forms__cta"><i class="fa-solid fa-download"></i> Download</span></a></li>'
+            : '<li><div class="charter-forms__item--plain">' +
+                '<span class="charter-forms__icon"><i class="fa-solid fa-file-pdf"></i></span>' +
+                '<span class="charter-forms__name">' + escapeHtml(f.name) + '</span></div></li>';
+        }).join('') + '</ul></div>';
+    }
+
+    return html;
+  }
+
+  if (previewBtn) {
+    previewBtn.addEventListener('click', function () {
+      if (!currentServicePk) return;
+      previewBody.innerHTML = buildPreviewHtml();
+      previewModal.classList.add('open');
+      document.body.classList.add('modal-open');
+    });
+  }
+
+  function closePreviewModal() {
+    previewModal.classList.remove('open');
+    document.body.classList.remove('modal-open');
+  }
+
+  previewModal.querySelectorAll('.modal-x').forEach(function (btn) {
+    btn.addEventListener('click', closePreviewModal);
+  });
+  previewModal.addEventListener('click', function (e) {
+    if (e.target === previewModal) closePreviewModal();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && previewModal.classList.contains('open')) closePreviewModal();
+  });
+
+  function showDetail(data) {
+    currentServicePk = data.id || null;
+    currentServiceData = data;   // new
+
+    document.querySelectorAll('[data-service-forms-for]').forEach(function (block) {
+      block.style.display = (block.dataset.serviceFormsFor === String(currentServicePk)) ? '' : 'none';
+    });
+
+    document.querySelectorAll('.subtab').forEach(function (t) { t.classList.remove('active'); });
+    var defaultTab = document.querySelector('.subtab[data-subtab="requirements"]');
+    if (defaultTab) defaultTab.classList.add('active');
+    document.querySelectorAll('[data-subtab-panel]').forEach(function (panel) {
+      panel.style.display = (panel.dataset.subtabPanel === 'requirements') ? '' : 'none';
+    });
+
+    currentReminders = data.reminders || '';
+    pendingForms = [];
+
+    // Discard any staged (unsaved) form-upload rows left over from a
+    // previous service — they were never actually saved, so they
+    // shouldn't still appear once you leave without clicking Save Changes.
+    document.querySelectorAll('.pending-form-row').forEach(function (row) {
+      var tbody = row.closest('tbody');
+      row.remove();
+      if (tbody && !tbody.querySelector('tr')) {
+        var emptyRow = document.createElement('tr');
+        emptyRow.innerHTML = '<td colspan="6" style="text-align:center;color:var(--gray-400);padding:24px 0;">No forms uploaded for this service yet.</td>';
+        tbody.appendChild(emptyRow);
+      }
+    });
+
+    document.querySelectorAll('[id^="add-form-trigger-"]').forEach(function (btn) {
+      btn.disabled = false;
+    });
+    var currentFormTrigger = document.getElementById('add-form-trigger-' + data.id);
+    if (currentFormTrigger) currentFormTrigger.disabled = isPublished;
+
+    var remindersHost = document.getElementById('reminders-host');
+    var reminderLines = (data.reminders || '').split('\n').map(function (s) { return s.trim(); }).filter(Boolean);
+    remindersHost.innerHTML = reminderLines.length
+      ? reminderLines.map(function (line) { return '<li></li>'; }).join('')
+      : '<li style="color:var(--gray-400);">No reminders added yet.</li>';
+    remindersHost.querySelectorAll('li').forEach(function (li, i) {
+      if (reminderLines[i]) li.textContent = reminderLines[i];
+    });
+
+    document.getElementById('detail-name').textContent = data.name || '';
+    document.getElementById('detail-icon').className = data.icon || 'fa-solid fa-file-signature';
+    document.getElementById('detail-description').textContent = data.description || 'No description provided.';
+    document.getElementById('detail-division').textContent = data.division || data.office || '—';
+    document.getElementById('detail-classification').textContent = data.classification || '—';
+    document.getElementById('detail-transaction-type').textContent = data.transactionType || '—';
+    document.getElementById('detail-who-may-avail').textContent = data.whoMayAvail || '—';
+    document.getElementById('detail-service-scope').textContent = data.serviceScope || 'None';
+    renderServiceDates(data);
+
+    var noteBox = document.getElementById('detail-admin-note-box');
+    var statusBadgeClass = {
+      published: 'badge-green',
+      pending: 'badge-amber',
+      returned: 'badge-red',
+      reject: 'badge-red',
+      archive: 'badge-gray'
+    }[data.status] || 'badge-gray';
+
+    ['detail-status-badge'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) {
+        el.className = 'badge ' + statusBadgeClass;
+        el.textContent = data.statusDisplay || '';
+      }
+    });
+
+    // A published service has already been approved and gone live —
+    // office reps can no longer edit its process steps, requirements,
+    // fees, or reminders. Disable the controls up front instead of
+    // letting them try and hit a 403 from the server.
+    var isPublished = !svcIsAdmin && data.status === 'published';
+
+    // A brand-new service previewed from the Add Service modal (see
+    // confirmAddServiceDraft() below) — nothing has been written to the
+    // database yet, so it has no real id. Requirements/Steps/Forms all
+    // need a real service to attach to, so those stay locked until this
+    // is actually saved via the Save Changes button.
+    var isDraft = !data.id;
+    isDraftService = isDraft;
+
+    var draftNote = document.getElementById('detail-draft-note');
+    if (!draftNote) {
+      draftNote = document.createElement('div');
+      draftNote.id = 'detail-draft-note';
+      draftNote.className = 'reminder-box';
+      draftNote.style.marginBottom = '14px';
+      draftNote.innerHTML = '<span class="ic"><i class="fa-solid fa-circle-info"></i></span><div><strong>Not saved yet</strong><p>Review the details above, then click <strong>Save Changes</strong> to add this service. Requirements, process steps, and forms can be added once it\'s saved.</p></div>';
+      var subtabsEl3 = document.querySelector('.subtabs');
+      if (subtabsEl3 && subtabsEl3.parentNode) subtabsEl3.parentNode.insertBefore(draftNote, subtabsEl3.nextSibling);
+    }
+    draftNote.style.display = isDraft ? '' : 'none';
+
+    var lockedNote = document.getElementById('detail-locked-note');
+    if (!lockedNote) {
+      lockedNote = document.createElement('div');
+      lockedNote.id = 'detail-locked-note';
+      lockedNote.className = 'reminder-box';
+      lockedNote.style.marginBottom = '14px';
+      lockedNote.innerHTML = '<span class="ic"><i class="fa-solid fa-lock"></i></span><div><strong>Published</strong><p>This service is live and can no longer be edited. Contact the Super Admin if changes are needed.</p></div>';
+      var subtabsEl = document.querySelector('.subtabs');
+      if (subtabsEl && subtabsEl.parentNode) subtabsEl.parentNode.insertBefore(lockedNote, subtabsEl.nextSibling);
+    }
+    lockedNote.style.display = isPublished ? '' : 'none';
+
+    // Save Changes stays enabled for a draft (clicking it is what actually
+    // creates the service) — only the sub-resource tabs below it need a
+    // real, saved service to attach to.
+    var saveChangesBtnEl = document.getElementById('save-changes-btn');
+    if (saveChangesBtnEl) saveChangesBtnEl.disabled = isPublished;
+
+    ['step-modal-trigger', 'requirement-modal-trigger', 'legal-basis-modal-trigger', 'schedule-of-service-modal-trigger', 'reminders-modal-trigger'].forEach(function (id) {
+      var btn = document.getElementById(id);
+      if (btn) btn.disabled = isPublished || isDraft;
+    });
+
+    // Edit button (name/description/division/classification/type of
+    // transaction/who may avail/internal-external/icon): disabled once
+    // published, same as everything else, but can ALSO be switched off by
+    // the Super Admin independently (editEnabled), even while pending.
+    // Also disabled for a draft — re-open the Add Service modal instead,
+    // since there's no saved service yet for the Edit modal to post to.
+    var editingDisabledByAdmin = data.editEnabled === 'false';
+    // Edit button is governed ONLY by the Super Admin's global switch now —
+    // it stays clickable even after the service is published, so the Super
+    // Admin can let an office fix a published service's basic info when needed.
+    var editServiceBtnEl = document.getElementById('edit-service-btn');
+    if (editServiceBtnEl) editServiceBtnEl.disabled = !editingGloballyEnabled || isDraft;
+
+    if (previewBtn) previewBtn.disabled = isDraft;
+
+    var editLockedNote = document.getElementById('detail-edit-locked-note');
+    if (!editLockedNote) {
+      editLockedNote = document.createElement('div');
+      editLockedNote.id = 'detail-edit-locked-note';
+      editLockedNote.className = 'reminder-box';
+      editLockedNote.style.marginBottom = '14px';
+      editLockedNote.innerHTML = '<span class="ic"><i class="fa-solid fa-lock"></i></span><div><strong>Editing turned off</strong><p>The Super Admin has turned off service editing for all offices. Contact the Super Admin if changes are needed.</p></div>';
+      var subtabsEl2 = document.querySelector('.subtabs');
+      if (subtabsEl2 && subtabsEl2.parentNode) subtabsEl2.parentNode.insertBefore(editLockedNote, subtabsEl2.nextSibling);
+    }
+    editLockedNote.style.display = !editingGloballyEnabled ? '' : 'none';
+
+    var noteBox = document.getElementById('detail-admin-note-box');
+    var noteText = document.getElementById('detail-admin-note-text');
+    if (data.adminNote) {
+      noteText.textContent = data.adminNote;
+      noteBox.style.display = '';
+    } else {
+      noteBox.style.display = 'none';
+    }
+
+    renderSteps(data.steps);
+
+    try { currentSteps = JSON.parse(data.steps || '[]'); } catch (e) { currentSteps = []; }
+    updateStepButton(currentSteps);
+
+    renderRequirements(data.requirements);
+
+    try { currentRequirements = JSON.parse(data.requirements || '[]'); } catch (e) { currentRequirements = []; }
+    updateRequirementButton(currentRequirements);
+
+    document.getElementById('detail-legal-basis').textContent = data.legalBasis || '—';
+    document.getElementById('detail-schedule-of-service').textContent = data.scheduleOfService || '—';
+    currentLegalBasis = data.legalBasis || '';
+    currentScheduleOfService = data.scheduleOfService || '';
+
+    crumbCurrent.textContent = data.name || '';
+    crumbCurrent.style.display = '';
+    crumbSep.style.display = '';
+    crumbServices.style.cursor = 'pointer';
+
+    listView.style.display = 'none';
+    detailView.style.display = '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function showList() {
+    detailView.style.display = 'none';
+    listView.style.display = '';
+    crumbCurrent.style.display = 'none';
+    crumbSep.style.display = 'none';
+    try { history.replaceState(null, '', window.location.pathname); } catch (e) {}
+
+    // Leaving an unsaved Add Service preview without clicking Save Changes
+    // abandons it — clear the hidden form so the next "Add Service" opens
+    // with a blank slate instead of the discarded draft's old values.
+    if (isDraftService) {
+      isDraftService = false;
+      if (addServiceForm) addServiceForm.reset();
+    }
+  }
+
+  document.querySelectorAll('.view-service-btn').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      showDetail(btn.dataset);
+    });
+  });
+
+  (function restoreFromQuery() {
+    var params = new URLSearchParams(window.location.search);
+    var wantedId = params.get('service');
+    var wantedTab = params.get('tab');
+    if (!wantedId) return;
+    var btn = document.querySelector('.view-service-btn[data-id="' + wantedId + '"]');
+    if (!btn) return;
+    showDetail(btn.dataset);
+    if (wantedTab) {
+      var tabEl = document.querySelector('.subtab[data-subtab="' + wantedTab + '"]');
+      if (tabEl) tabEl.click();
+    }
+  })();
+
+  // Subtabs (Service Process / Requirements / Fees / Office Information /
+  // Settings): app.js already toggles the .active class on the tab itself,
+  // this adds the actual panel switching it never had.
+  document.querySelectorAll('.subtab').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      var target = tab.dataset.subtab;
+      document.querySelectorAll('[data-subtab-panel]').forEach(function (panel) {
+        panel.style.display = (panel.dataset.subtabPanel === target) ? '' : 'none';
+      });
+    });
+  });
+
+  var backBtn = document.getElementById('back-to-services');
+  if (backBtn) backBtn.addEventListener('click', showList);
+  if (crumbServices) crumbServices.addEventListener('click', showList);
+
+  // Add Service (list view): this page's own trigger + chrome, since
+  // app.js's wireAddServiceCreate() only wires this modal on the
+  // office-profile page.
+  var addServiceModal = document.getElementById('add-service-modal');
+  var addServiceForm = addServiceModal ? addServiceModal.querySelector('form') : null;
+  var addServiceConfirmBtn = document.getElementById('add-service-confirm-btn');
+
+  function openAddServiceModal() {
+    if (!addServiceModal) return;
+    addServiceModal.classList.add('open');
+    document.body.classList.add('modal-open');
+  }
+
+  function closeAddServiceModal() {
+    if (!addServiceModal) return;
+    addServiceModal.classList.remove('open');
+    document.body.classList.remove('modal-open');
+    setTimeout(function () { if (addServiceForm) addServiceForm.reset(); }, 200);
+  }
+
+  // "Add" in the Add Service modal no longer saves anything — it just
+  // previews the entered details in the detail view (as an unsaved draft)
+  // so the office rep can check them over. The fields stay sitting in this
+  // same (now hidden) form; clicking Save Changes there is what actually
+  // submits it to the server and creates the service — see the
+  // save-changes-btn handler below.
+  function buildAddServiceDraft() {
+    var fd = new FormData(addServiceForm);
+    return {
+      id: null,
+      name: (fd.get('name') || '').trim(),
+      description: (fd.get('description') || '').trim(),
+      division: (fd.get('division') || '').trim(),
+      classification: (fd.get('classification') || '').trim(),
+      transactionType: fd.getAll('transaction_type').join(', '),
+      whoMayAvail: (fd.get('who_may_avail') || '').trim(),
+      serviceScope: fd.get('service_scope') || '',
+      icon: fd.get('icon') || 'fa-solid fa-file-signature',
+      status: 'draft',
+      statusDisplay: 'Draft — not yet saved',
+      editEnabled: 'true',
+      reminders: '',
+      steps: '[]',
+      requirements: '[]',
+      legalBasis: '',
+      scheduleOfService: '',
+      adminNote: '',
+      created: '', updated: '', approved: '',
+    };
+  }
+
+  if (addServiceConfirmBtn) {
+    addServiceConfirmBtn.addEventListener('click', function () {
+      if (!addServiceForm) return;
+      if (!addServiceForm.reportValidity()) return;
+
+      var draft = buildAddServiceDraft();
+      addServiceModal.classList.remove('open');
+      document.body.classList.remove('modal-open');
+      showDetail(draft);
+    });
+  }
+
+  // Delete Service: per-service confirmation popup (same pattern as the
+  // Announcements page's data-delete-target modals), instead of a native
+  // confirm() dialog. stopPropagation blocks app.js's generic delegated
+  // .ic + trash-can handler, which would otherwise also fire and fake-delete
+  // the row client-side only.
+  document.querySelectorAll('[data-delete-target]').forEach(function (trigger) {
+    var modal = document.getElementById(trigger.dataset.deleteTarget);
+    if (!modal) return;
+
+    trigger.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      modal.classList.add('open');
+      document.body.classList.add('modal-open');
+    });
+
+    function closeThisModal() {
+      modal.classList.remove('open');
+      document.body.classList.remove('modal-open');
+    }
+    modal.querySelectorAll('[data-act="cancel"], .modal-x').forEach(function (btn) {
+      btn.addEventListener('click', closeThisModal);
+    });
+    modal.addEventListener('click', function (e) {
+      if (e.target === modal) closeThisModal();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && modal.classList.contains('open')) closeThisModal();
+    });
+  });
+
+  var openAddServiceBtn = document.getElementById('open-add-service-from-services');
+  if (openAddServiceBtn) openAddServiceBtn.addEventListener('click', openAddServiceModal);
+  var openAddServiceEmptyBtn = document.getElementById('open-add-service-empty-state');
+  if (openAddServiceEmptyBtn) openAddServiceEmptyBtn.addEventListener('click', openAddServiceModal);
+
+  if (addServiceModal) {
+    addServiceModal.querySelectorAll('[data-act="cancel"], .modal-x').forEach(function (btn) {
+      btn.addEventListener('click', closeAddServiceModal);
+    });
+    addServiceModal.addEventListener('click', function (e) {
+      if (e.target === addServiceModal) closeAddServiceModal();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && addServiceModal.classList.contains('open')) closeAddServiceModal();
+    });
+  }
+
+  /* ---- for edit service modal ---- */
+
+  var editServiceModal = document.getElementById('edit-service-modal');
+  var editServiceForm = document.getElementById('edit-service-form');
+  var editServiceBtn = document.getElementById('edit-service-btn');
+  var editSvcIconPicker = document.getElementById('edit-svc-icon-picker');
+  var editSvcIconInput = document.getElementById('edit-svc-icon-input');
+
+  if (editSvcIconPicker && editSvcIconInput) {
+    editSvcIconPicker.querySelectorAll('.icon-picker__item').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        editSvcIconPicker.querySelectorAll('.icon-picker__item').forEach(function (b) { b.classList.remove('selected'); });
+        btn.classList.add('selected');
+        editSvcIconInput.value = btn.dataset.iconValue;
+      });
+    });
+  }
+
+  function closeEditServiceModal() {
+    if (!editServiceModal) return;
+    editServiceModal.classList.remove('open');
+    document.body.classList.remove('modal-open');
+  }
+
+  if (editServiceBtn) {
+    editServiceBtn.addEventListener('click', function () {
+      if (!editServiceModal || !editServiceForm || !currentServicePk) return;
+      var data = currentServiceData || {};
+
+      editServiceForm.action = editServiceForm.dataset.urlTemplate.replace('/0/', '/' + currentServicePk + '/');
+
+      document.getElementById('edit-svc-name').value = data.name || '';
+      document.getElementById('edit-svc-description').value = data.description || '';
+      document.getElementById('edit-svc-division').value = data.division || '';
+      document.getElementById('edit-svc-classification').value = data.classification || '';
+      document.getElementById('edit-svc-who-may-avail').value = data.whoMayAvail || '';
+
+      var txnCodes = (data.transactionType || '').split(',').map(function (s) { return s.trim(); });
+      ['g2g', 'g2b', 'g2c'].forEach(function (code) {
+        var box = document.getElementById('edit-svc-txn-' + code);
+        if (box) box.checked = txnCodes.some(function (t) { return t.toUpperCase().indexOf(code.toUpperCase()) === 0; });
+      });
+
+      var scope = data.serviceScope || '';
+      document.getElementById('edit-svc-scope-internal').checked = scope.toLowerCase() === 'internal';
+      document.getElementById('edit-svc-scope-external').checked = scope.toLowerCase() === 'external';
+      document.getElementById('edit-svc-scope-none').checked = scope.toLowerCase() !== 'internal' && scope.toLowerCase() !== 'external';
+
+      var iconValue = data.icon || 'fa-solid fa-file-signature';
+      editSvcIconInput.value = iconValue;
+      if (editSvcIconPicker) {
+        editSvcIconPicker.querySelectorAll('.icon-picker__item').forEach(function (btn) {
+          btn.classList.toggle('selected', btn.dataset.iconValue === iconValue);
+        });
+      }
+
+      editServiceModal.classList.add('open');
+      document.body.classList.add('modal-open');
+    });
+  }
+
+  if (editServiceModal) {
+    editServiceModal.querySelectorAll('[data-act="cancel"], .modal-x').forEach(function (btn) {
+      btn.addEventListener('click', closeEditServiceModal);
+    });
+    editServiceModal.addEventListener('click', function (e) {
+      if (e.target === editServiceModal) closeEditServiceModal();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && editServiceModal.classList.contains('open')) closeEditServiceModal();
+    });
+  }
+
+  /* ---- header dates: Created / Last updated / Published (real data) ---- */
+  function renderServiceDates(data) {
+    var host = document.getElementById('detail-dates');
+    if (!host) return;
+    var items = [];
+    function add(icon, label, value, cls) {
+      items.push('<span class="svc-date ' + (cls || '') + '"><i class="' + icon + '"></i> ' + label +
+                 (value ? ' <strong>' + escapeHtml(value) + '</strong>' : '') + '</span>');
+    }
+    if (!data.id) {
+      add('fa-regular fa-circle', 'Not saved yet');
+    } else {
+      if (data.status === 'published' && data.approved) add('fa-solid fa-circle-check', 'Published', data.approved, 'is-ok');
+      else if (data.status === 'pending') add('fa-regular fa-clock', 'Waiting for Super Admin approval', '', 'is-wait');
+      else if (data.status === 'returned') add('fa-solid fa-rotate-left', 'Returned for revision', '', 'is-warn');
+      else if (data.status === 'reject') add('fa-solid fa-circle-xmark', 'Rejected', '', 'is-warn');
+      else if (data.status === 'archive') add('fa-solid fa-box-archive', 'Archived');
+      if (data.created) add('fa-regular fa-calendar-plus', 'Created', data.created);
+      if (data.updated && data.updated !== data.created) add('fa-regular fa-pen-to-square', 'Last updated', data.updated);
+    }
+    host.innerHTML = items.join('');
+  }
+
+  /* ---- step editor: cards with a number badge + minus-only remove ---- */
+  function createStepRow(stepNumber, title, agencyAction, fee, processingTime, person) {
+    var row = document.createElement('div');
+    row.className = 'step-edit-row';
+    row.innerHTML =
+      '<div class="step-edit-row__body">' +
+        '<input class="form-input" type="number" min="0" step="any" name="step_number[]" placeholder="Client Step Number, e.g. 1.1" style="max-width:200px;">' +
+        '<textarea class="form-input form-textarea" name="title[]" placeholder="Client Step Name, e.g. Submit Requirements" rows="2"></textarea>' +
+        '<textarea class="form-input form-textarea" name="agency[]" placeholder="Agency Action" rows="2"></textarea>' +
+        '<textarea class="form-input form-textarea" name="fee[]" rows="2" placeholder="Fees to be Paid — any text, e.g. None, ₱50.00 per copy, or a full explanation of the fees"></textarea>' +
+        '<input class="form-input" type="text" name="processing_time[]" placeholder="Processing Time, e.g. 5 minutes, 3-5 days, Same day">' +
+        '<input class="form-input" type="text" name="person[]" placeholder="Person Responsible">' +
+      '</div>' +
+      '<button type="button" class="step-remove-row" title="Remove step"><i class="fa-solid fa-minus"></i></button>';
+    row.querySelector('input[name="step_number[]"]').value = stepNumber || '';
+    row.querySelector('textarea[name="title[]"]').value = title || '';
+    row.querySelector('textarea[name="agency[]"]').value = agencyAction || '';
+    row.querySelector('[name="fee[]"]').value = fee || '';
+    row.querySelector('input[name="processing_time[]"]').value = processingTime || '';
+    row.querySelector('input[name="person[]"]').value = person || '';
+    return row;
+  }
+
+  function populateStepRows(steps) {
+    stepRowsHost.innerHTML = '';
+    if (!steps.length) {
+      stepRowsHost.appendChild(createStepRow('', '', '', '', '', ''));
+    } else {
+      steps.forEach(function (s) {
+        stepRowsHost.appendChild(createStepRow(s.step_number, s.title, s.agency_action, s.fee, s.processing_time, s.person_responsible));
+      });
+    }
+  }
+
+  if (stepAddBtn) {
+    stepAddBtn.addEventListener('click', function () {
+      stepRowsHost.appendChild(createStepRow('', '', '', '', '', ''));
+    });
+  }
+
+  stepRowsHost.addEventListener('click', function (e) {
+    var removeBtn = e.target.closest('.step-remove-row');
+    if (!removeBtn) return;
+    var row = removeBtn.closest('.step-edit-row');
+    if (stepRowsHost.children.length > 1) {
+      row.remove();
+    } else {
+      row.querySelector('input[name="step_number[]"]').value = '';
+      row.querySelector('textarea[name="title[]"]').value = '';
+      row.querySelector('textarea[name="agency[]"]').value = '';
+      row.querySelector('[name="fee[]"]').value = '';
+      row.querySelector('input[name="processing_time[]"]').value = '';
+      row.querySelector('input[name="person[]"]').value = '';
+    }
+  });
+
+  if (stepModalTrigger) {
+    stepModalTrigger.addEventListener('click', function () {
+      populateStepRows(currentSteps);
+      stepModalTitle.textContent = currentSteps.length ? 'Edit Client Steps' : 'Add Client Step';
+      addStepModal.classList.add('open');
+      document.body.classList.add('modal-open');
+    });
+  }
+
+  function closeAddStepModal() {
+    addStepModal.classList.remove('open');
+    document.body.classList.remove('modal-open');
+    setTimeout(function () { populateStepRows([]); }, 200);
+  }
+
+  /* ---- save via AJAX: closes only the modal, stays on the service ---- */
+  if (addStepForm) {
+    addStepForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
+      var newSteps = [];
+      stepRowsHost.querySelectorAll('.step-edit-row').forEach(function (row) {
+        var stepNumberRaw = row.querySelector('input[name="step_number[]"]').value.trim();
+        var title = row.querySelector('textarea[name="title[]"]').value.trim();
+        var agencyAction = row.querySelector('textarea[name="agency[]"]').value.trim();
+        var fee = row.querySelector('[name="fee[]"]').value.trim();
+        var processingTime = row.querySelector('input[name="processing_time[]"]').value.trim();
+        var person = row.querySelector('input[name="person[]"]').value.trim();
+        if (title) {
+          newSteps.push({
+            step_number: stepNumberRaw || null,
+            title: title,
+            agency_action: agencyAction,
+            fee: fee,
+            processing_time: processingTime,
+            person_responsible: person
+          });
+        }
+      });
+
+      currentSteps = newSteps;
+      renderSteps(JSON.stringify(newSteps));
+      updateStepButton(newSteps);
+      closeAddStepModal();
+    });
+  }
+
+  /* ---- requirement editor: mirrors the step editor ---- */
+  function createRequirementRow(title, where, txn) {
+    var row = document.createElement('div');
+    row.className = 'requirement-edit-row';
+    row.innerHTML =
+      '<div class="requirement-edit-row__body">' +
+        '<input class="form-input" type="text" name="title[]" placeholder="Name of Requirement, e.g. Barangay Clearance">' +
+        '<input class="form-input" type="text" name="where[]" placeholder="Where to Secure, e.g. Barangay Hall">' +
+        '<input class="form-input" type="text" name="txn[]" placeholder="Transaction Type — if applicable" style="max-width:280px;">' +
+      '</div>' +
+      '<button type="button" class="requirement-remove-row" title="Remove requirement"><i class="fa-solid fa-minus"></i></button>';
+
+    row.querySelector('input[name="title[]"]').value = title || '';
+    row.querySelector('input[name="where[]"]').value = where || '';
+    row.querySelector('input[name="txn[]"]').value = txn || '';
+
+    return row;
+  }
+
+  function populateRequirementRows(reqs) {
+    requirementRowsHost.innerHTML = '';
+    if (!reqs.length) {
+      requirementRowsHost.appendChild(createRequirementRow('', '', ''));
+    } else {
+      reqs.forEach(function (r) {
+        requirementRowsHost.appendChild(createRequirementRow(r.title, r.where_to_secure, r.transaction_type));
+      });
+    }
+  }
+
+  if (requirementAddBtn) {
+    requirementAddBtn.addEventListener('click', function () {
+      requirementRowsHost.appendChild(createRequirementRow('', '', ''));
+    });
+  }
+
+  requirementRowsHost.addEventListener('click', function (e) {
+    var removeBtn = e.target.closest('.requirement-remove-row');
+    if (!removeBtn) return;
+    var row = removeBtn.closest('.requirement-edit-row');
+    if (requirementRowsHost.children.length > 1) {
+      row.remove();
+    } else {
+      row.querySelector('input[name="title[]"]').value = '';
+      row.querySelector('input[name="where[]"]').value = '';
+      row.querySelector('input[name="txn[]"]').value = '';
+    }
+  });
+
+  if (requirementModalTrigger) {
+    requirementModalTrigger.addEventListener('click', function () {
+      populateRequirementRows(currentRequirements);
+      requirementModalTitle.textContent = currentRequirements.length ? 'Edit Requirements' : 'Add Requirement';
+      addRequirementModal.classList.add('open');
+      document.body.classList.add('modal-open');
+    });
+  }
+
+  function closeAddRequirementModal() {
+    addRequirementModal.classList.remove('open');
+    document.body.classList.remove('modal-open');
+    setTimeout(function () { populateRequirementRows([]); }, 200);
+  }
+
+  addRequirementModal.querySelectorAll('[data-act="cancel"], .modal-x').forEach(function (btn) {
+    btn.addEventListener('click', closeAddRequirementModal);
+  });
+  addRequirementModal.addEventListener('click', function (e) {
+    if (e.target === addRequirementModal) closeAddRequirementModal();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && addRequirementModal.classList.contains('open')) closeAddRequirementModal();
+  });
+
+  /* ---- save via AJAX: closes only the modal, stays on the service ---- */
+  if (addRequirementForm) {
+    addRequirementForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
+      var newRequirements = [];
+      requirementRowsHost.querySelectorAll('.requirement-edit-row').forEach(function (row) {
+        var title = row.querySelector('input[name="title[]"]').value.trim();
+        var where = row.querySelector('input[name="where[]"]').value.trim();
+        var txn = row.querySelector('input[name="txn[]"]').value.trim();
+        if (title) newRequirements.push({ title: title, where_to_secure: where, transaction_type: txn });
+      });
+
+      currentRequirements = newRequirements;
+      renderRequirements(JSON.stringify(newRequirements));
+      updateRequirementButton(newRequirements);
+      closeAddRequirementModal();
+    });
+  }
+
+  /* ---- Legal Basis modal: saved directly, no repeatable rows ---- */
+  if (legalBasisTrigger) {
+    legalBasisTrigger.addEventListener('click', function () {
+      legalBasisTextarea.value = currentLegalBasis || '';
+      legalBasisModal.classList.add('open');
+      document.body.classList.add('modal-open');
+    });
+  }
+
+  function closeLegalBasisModal() {
+    legalBasisModal.classList.remove('open');
+    document.body.classList.remove('modal-open');
+  }
+
+  legalBasisModal.querySelectorAll('[data-act="cancel"], .modal-x').forEach(function (btn) {
+    btn.addEventListener('click', closeLegalBasisModal);
+  });
+  legalBasisModal.addEventListener('click', function (e) {
+    if (e.target === legalBasisModal) closeLegalBasisModal();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && legalBasisModal.classList.contains('open')) closeLegalBasisModal();
+  });
+
+  if (legalBasisForm) {
+    legalBasisForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
+      currentLegalBasis = legalBasisTextarea.value.trim();
+      document.getElementById('detail-legal-basis').textContent = currentLegalBasis || '—';
+
+      closeLegalBasisModal();
+    });
+  }
+
+  /* ---- Schedule of Service modal: saved directly, no repeatable rows ---- */
+  if (scheduleOfServiceTrigger) {
+    scheduleOfServiceTrigger.addEventListener('click', function () {
+      scheduleOfServiceTextarea.value = currentScheduleOfService || '';
+      scheduleOfServiceModal.classList.add('open');
+      document.body.classList.add('modal-open');
+    });
+  }
+
+  function closeScheduleOfServiceModal() {
+    scheduleOfServiceModal.classList.remove('open');
+    document.body.classList.remove('modal-open');
+  }
+
+  scheduleOfServiceModal.querySelectorAll('[data-act="cancel"], .modal-x').forEach(function (btn) {
+    btn.addEventListener('click', closeScheduleOfServiceModal);
+  });
+  scheduleOfServiceModal.addEventListener('click', function (e) {
+    if (e.target === scheduleOfServiceModal) closeScheduleOfServiceModal();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && scheduleOfServiceModal.classList.contains('open')) closeScheduleOfServiceModal();
+  });
+
+  if (scheduleOfServiceForm) {
+    scheduleOfServiceForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+
+      currentScheduleOfService = scheduleOfServiceTextarea.value.trim();
+      document.getElementById('detail-schedule-of-service').textContent = currentScheduleOfService || '—';
+
+      closeScheduleOfServiceModal();
+    });
+  }
+
+  var wantedId = new URLSearchParams(window.location.search).get('service');
+  if (wantedId) {
+    var target = document.querySelector('.view-service-btn[data-id="' + wantedId + '"]');
+    if (target) target.click();
+  }
+})();
+
+
+</script>
+
+
+<style>
+  .view-service-btn { font: inherit; padding: 0; outline: none; }
+  .view-service-btn:focus-visible { outline: 2px solid var(--blue-600); outline-offset: 2px; }
+
+  .step-edit-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 14px;
+    margin-bottom: 12px;
+    border: 1px solid var(--gray-200);
+    border-radius: 10px;
+    background: var(--gray-50, #f9fafb);
+  }
+  .step-edit-row__num {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--blue-600);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 800;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .step-edit-row__body { flex: 1; min-width: 0; }
+  .step-edit-row__body .form-input { margin-bottom: 8px; }
+  .step-edit-row__body .form-input:last-child { margin-bottom: 0; }
+
+  /* Add Client Step modal: on small screens only, widen the modal (landscape)
+     and lay the fields out two-per-row so the person can see what they're typing. */
+  @media (max-width: 768px), (max-height: 600px) and (orientation: landscape) {
+    #add-step-modal .modal-box {
+      width: 95vw;
+      max-width: 95vw;
+      max-height: 92vh;
+    }
+    #add-step-modal .step-edit-row__body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    #add-step-modal .step-edit-row__body .form-input {
+      margin-bottom: 0;
+    }
+    #add-step-modal .step-edit-row__body textarea[name="title[]"],
+    #add-step-modal .step-edit-row__body textarea[name="agency[]"] {
+      grid-column: 1 / -1;
+    }
+  }
+  .step-remove-row {
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--gray-400);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font: inherit;
+  }
+  .step-remove-row:hover {
+    background: var(--red-50, #fef2f2);
+    border-color: var(--red-100, #fee2e2);
+    color: var(--red-600);
+  }
+
+  .action-icons [data-delete-target]:hover {
+  color: var(--red-700);
+  }
+
+/* Requirements: display list */
+.req-item{
+  display:flex;gap:12px;align-items:flex-start;
+  padding:14px 0;border-bottom:1px solid var(--gray-100);
+}
+.req-item:last-child{border-bottom:none;}
+.req-check{
+  width:18px;height:18px;border-radius:5px;border:2px solid var(--gray-300);
+  flex-shrink:0;margin-top:2px;
+}
+.req-body{flex:1;min-width:0;}
+.req-top{display:flex;align-items:center;gap:8px;margin-bottom:3px;flex-wrap:wrap;}
+.req-name{font-size:13.5px;font-weight:700;color:var(--gray-900);}
+.req-tag{font-size:10.5px;font-weight:800;letter-spacing:.02em;padding:2px 8px;border-radius:999px;}
+.req-tag.required{background:var(--red-50, #fdecec);color:var(--red-700, #b32620);}
+.req-tag.optional{background:var(--gray-100);color:var(--gray-600);}
+.req-desc{font-size:12px;color:var(--gray-500);line-height:1.5;}
+
+/* Requirements: edit rows inside the modal (mirrors .step-edit-row) */
+.requirement-edit-row{
+  display:flex;gap:12px;align-items:flex-start;
+  padding:14px;margin-bottom:12px;
+  border:1px solid var(--gray-200);border-radius:10px;
+  background:var(--gray-50, #f9fafb);
+}
+.requirement-edit-row__body{flex:1;min-width:0;}
+.requirement-edit-row__body .form-input{margin-bottom:8px;}
+.requirement-radio-group{
+  display:flex;gap:14px;align-items:center;font-size:12.5px;color:var(--gray-600);margin-top:2px;
+}
+.requirement-radio-group label{display:flex;align-items:center;gap:5px;cursor:pointer;}
+.requirement-remove-row{
+  flex-shrink:0;width:30px;height:30px;border-radius:7px;
+  border:1px solid transparent;background:transparent;color:var(--gray-400);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;font:inherit;
+}
+.requirement-remove-row:hover{
+  background:var(--red-50, #fef2f2);border-color:var(--red-100, #fee2e2);color:var(--red-600);
+}
+
+/* Service preview: citizen's charter style */
+.charter-modal { max-width: 780px; }
+.charter-title { text-align: center; font-size: 17px; margin: 0 0 4px; text-transform: uppercase; }
+.charter-desc { text-align: center; color: var(--gray-500); font-size: 13px; margin: 0 0 18px; }
+.charter-subtitle { font-size: 14px; margin: 22px 0 8px; }
+.charter-plain { font-size: 13px; color: var(--gray-700, #374151); margin: 0; }
+.charter-list { margin: 0; padding-left: 18px; font-size: 13px; color: var(--gray-700, #374151); }
+/* Service preview: Downloadable Forms - highlighted card so the forms are easy to spot */
+.charter-forms { margin: 26px 0 4px; padding: 16px; background: #eef2ff; border: 1px solid #c7d2fe; border-left: 5px solid #16307f; border-radius: 10px; }
+.charter-forms__title { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; font-size: 15px; font-weight: 800; color: #16307f; }
+.charter-forms__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.charter-forms__link, .charter-forms__item--plain { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: #fff; border: 1px solid #d5ddf5; border-radius: 8px; color: #16307f; text-decoration: none; transition: border-color .15s, box-shadow .15s, transform .15s; }
+.charter-forms__link:hover { border-color: #16307f; box-shadow: 0 3px 10px rgba(22, 48, 127, .14); transform: translateY(-1px); text-decoration: none; }
+.charter-forms__icon { flex: 0 0 auto; width: 36px; height: 36px; border-radius: 8px; background: #fde8e8; color: #c0392b; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+.charter-forms__name { flex: 1 1 140px; min-width: 0; font-size: 14px; font-weight: 700; line-height: 1.3; word-break: break-word; }
+.charter-forms__cta { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 999px; background: #16307f; color: #fff; font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+.charter-forms__link:hover .charter-forms__cta { background: #0f2262; }
+@media (max-width: 480px) {
+  .charter-forms { padding: 12px; }
+  .charter-forms__link { flex-wrap: wrap; }
+  .charter-forms__cta { width: 100%; justify-content: center; }
+}
+.charter-table { width: 100%; border-collapse: collapse; margin-bottom: 18px; font-size: 12.5px; table-layout: fixed; }
+.charter-table th, .charter-table td { border: 1px solid var(--gray-300, #d1d5db); padding: 8px 10px; text-align: left; vertical-align: top; word-wrap: break-word; }
+.charter-table thead th { background: var(--blue-100, #bfdbfe); font-weight: 800; }
+.charter-table tfoot td { background: var(--gray-50, #f9fafb); font-weight: 800; }
+.charter-table .charter-subhead { background: var(--blue-50, #eff6ff); font-weight: 700; text-align: center; }
+.charter-info-table th { background: var(--blue-100, #bfdbfe); width: 200px; }
+
+</style>
+
+<style>
+  /* ---- Service detail header ---- */
+  .svc-head { padding: 20px 22px 16px; }
+  .svc-head__top { display: flex; align-items: flex-start; gap: 14px; }
+  .svc-head__icon {
+    flex: none; width: 46px; height: 46px; border-radius: 12px;
+    display: grid; place-items: center; font-size: 19px;
+    background: var(--blue-50, #eff6ff); color: var(--blue-600, #2563eb);
+  }
+  .svc-head__titles { flex: 1; min-width: 0; }
+  .svc-head__title-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; }
+  .svc-head__title-row h2 { margin: 0; font-size: 19px; line-height: 1.3; overflow-wrap: anywhere; }
+  .svc-head__desc { margin: 6px 0 0; font-size: 13px; line-height: 1.55; color: var(--gray-500, #6b7280); max-width: 760px; overflow-wrap: anywhere; }
+  .svc-head__actions { flex: none; display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+
+  .svc-head__meta {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px;
+    margin-top: 16px; padding: 12px 14px; border-radius: 10px;
+    background: var(--gray-50, #f9fafb); border: 1px solid var(--gray-100, #f3f4f6);
+  }
+  .svc-meta { min-width: 0; }
+  .svc-meta__k { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--gray-400, #9ca3af); }
+  .svc-meta__v { display: block; margin-top: 2px; font-size: 13px; font-weight: 600; color: var(--gray-800, #1f2937); overflow-wrap: anywhere; }
+
+  .svc-head__dates { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 12px; font-size: 12px; color: var(--gray-500, #6b7280); }
+  .svc-date i { margin-right: 3px; color: var(--gray-400, #9ca3af); }
+  .svc-date strong { color: var(--gray-700, #374151); font-weight: 600; }
+  .svc-date.is-ok, .svc-date.is-ok i { color: #15803d; }
+  .svc-date.is-wait, .svc-date.is-wait i { color: #b45309; }
+  .svc-date.is-warn, .svc-date.is-warn i { color: #b91c1c; }
+
+  /* Long fees (or any long text) wrap inside their table cell, keeping line breaks */
+  .svc-long-text { white-space: pre-line; overflow-wrap: anywhere; min-width: 140px; }
+
+  @media (max-width: 900px) {
+    .svc-head__top { flex-wrap: wrap; }
+    .svc-head__actions { width: 100%; justify-content: flex-start; }
+  }
+  @media (max-width: 520px) {
+    .svc-head { padding: 16px; }
+    .svc-head__actions .btn { flex: 1 1 auto; justify-content: center; }
+  }
+</style>

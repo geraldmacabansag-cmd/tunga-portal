@@ -109,13 +109,13 @@
                       data-toggle-url="{% url 'admin_dashboard:admin_rep_toggle_active' r.rep.id %}"
                     >
                       <i class="fa-regular {% if r.rep.user.is_active %}fa-circle-pause{% else %}fa-circle-play{% endif %}"></i>
+                    </button>
                     <button type="button" class="ic replace-rep-btn"
                       title="Replace with another user"
                       data-office="{{ r.rep.office.name }}"
                       data-current-name="{{ r.rep.user.get_full_name|default:r.rep.user.username }}"
                       data-replace-url="{% url 'admin_dashboard:admin_rep_replace_user' r.rep.id %}"
                     ><i class="fa-solid fa-arrow-right-arrow-left"></i></button>
-                    </button>
                   </div>
                 </td>
               </tr>
@@ -134,13 +134,72 @@
         </div>
 
         <div class="pagination">
-          <span>Showing 1–8 of 8 representatives</span>
-          <div class="page-nums">
-            <button class="page-btn"><i class="fa-solid fa-chevron-left"></i></button>
-            <button class="page-btn active">1</button>
-            <button class="page-btn"><i class="fa-solid fa-chevron-right"></i></button>
-          </div>
+          <span>Showing {{ rows|length }} of {{ total_reps }} representative{{ total_reps|pluralize }}</span>
         </div>
+      </div>
+
+      <!-- Past Representatives: saved when a representative is replaced or removed -->
+      <style>
+        .past-reps { margin-top: 20px; }
+        .past-reps__intro { margin: 0; padding: 0 20px 12px; font-size: 12.5px; color: var(--gray-500); }
+        .past-reps .count-pill { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: var(--gray-100); color: var(--gray-600); font-size: 12px; font-weight: 600; vertical-align: middle; }
+        .past-reps .row-avatar-wrap img { filter: grayscale(.35); }
+        .past-reps__remarks { max-width: 240px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .past-reps .tag-gray { background: var(--gray-100); color: var(--gray-600); }
+      </style>
+      <div class="panel past-reps" id="past-representatives">
+        <div class="panel-header">
+          <h2><i class="fa-solid fa-clock-rotate-left" style="color:var(--gray-400);margin-right:6px;"></i> Past Representatives <span class="count-pill">{{ past_total }}</span></h2>
+        </div>
+        <p class="past-reps__intro">Everyone who represented an office before. A person is added here automatically when they are replaced by another account or removed. {% if current_q or current_office %}<b>Filtered by the search / office above.</b>{% endif %}</p>
+        <div class="table-wrap" style="border:none;border-radius:0;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Representative</th>
+                <th>Office</th>
+                <th>Position</th>
+                <th>Served</th>
+                <th>Replaced by</th>
+                <th>Ended</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in past_reps %}
+              <tr>
+                <td>
+                  <div class="row-icon-name">
+                    <div class="row-avatar-wrap">
+                      <img src="{% if p.photo %}{{ p.photo.url }}{% else %}{% static 'images/icon/profile_logo.jpeg' %}{% endif %}" alt="">
+                    </div>
+                    <div>
+                      <p class="cell-primary">{{ p.name }}</p>
+                      <p class="cell-sub">{{ p.email|default:"—" }}{% if p.mobile_number %} · {{ p.mobile_number }}{% endif %}</p>
+                    </div>
+                  </div>
+                </td>
+                <td><span class="tag tag-gray">{{ p.office.name|default:p.office_name }}</span></td>
+                <td>{{ p.position|default:"—" }}</td>
+                <td>
+                  <p class="cell-primary" style="font-weight:500;">{% if p.started_at %}{{ p.started_at|date:"M d, Y" }}{% else %}Not recorded{% endif %} – {{ p.ended_at|date:"M d, Y" }}</p>
+                  {% if p.served_days is not None %}<p class="cell-sub">{% if p.served_days >= 365 %}{% widthratio p.served_days 365 1 %} yr{% elif p.served_days >= 30 %}{% widthratio p.served_days 30 1 %} mo{% else %}{{ p.served_days }} day{{ p.served_days|pluralize }}{% endif %}</p>{% endif %}
+                </td>
+                <td>{{ p.replaced_by|default:"—" }}</td>
+                <td>
+                  <span class="badge {% if p.end_reason == 'replaced' %}badge-blue{% else %}badge-gray{% endif %}">{{ p.get_end_reason_display }}</span>
+                  {% if p.ended_by %}<p class="cell-sub">by {{ p.ended_by }}</p>{% endif %}
+                  {% if p.remarks %}<p class="cell-sub past-reps__remarks" title="{{ p.remarks }}"><i class="fa-regular fa-comment"></i> {{ p.remarks|truncatechars:60 }}</p>{% endif %}
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="6" style="text-align:center;color:var(--gray-400);padding:24px;">No past representatives yet. When you replace a representative, the previous one is listed here.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% if past_total > past_reps|length %}
+        <div class="pagination"><span>Showing the latest {{ past_reps|length }} of {{ past_total }}. Use the search or office filter above to find others.</span></div>
+        {% endif %}
       </div>
 
 
@@ -242,6 +301,11 @@
             {% endfor %}
           </select>
           <span class="form-help">Only accounts not already assigned to an office are listed. The office's existing content stays linked — only the account changes.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Remarks <span style="color:var(--gray-400);font-weight:400;">(optional)</span></label>
+          <textarea class="form-input" name="remarks" rows="2" maxlength="1000" placeholder="e.g. Transferred to the Treasurer's Office, retired, end of term…"></textarea>
+          <span class="form-help">The current representative will be moved to <b>Past Representatives</b> with this note.</span>
         </div>
         <div class="modal-actions" style="padding:0;">
           <button type="button" class="btn btn-secondary" onclick="closeModal('replaceRepModal')">Cancel</button>

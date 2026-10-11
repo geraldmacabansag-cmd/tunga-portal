@@ -1,0 +1,73 @@
+{% extends "super-admin-base.html" %}
+{% load static %}
+{% comment %}
+Super Admin → Services → "Add services to an office".
+Pick an office at the top; the editor below is the SAME one the Office
+Representative uses (templates/office_dashboard/_service_editor_*.html), and
+everything saved goes to the picked office only. Services added here are
+published right away and the Super Admin can edit them at any time.
+{% endcomment %}
+
+{% block page_title_tag %}Office Services{% endblock %}
+{% block body_page %}office-services-editor{% endblock %}
+{% block page_title %}Office Services{% endblock %}
+{% block page_subtitle %}{% if editor_office %}Add and edit the services of {{ editor_office.name }}{% else %}Choose an office to add or edit its services{% endif %}{% endblock %}
+
+{% block breadcrumbs %}<span>Dashboard</span><span class="sep">›</span><a href="{% url 'admin_dashboard:ad_services' %}" style="color:inherit;">Services</a><span class="sep">›</span><span id="crumb-services">{% if editor_office %}{{ editor_office.name }}{% else %}Choose an office{% endif %}</span><span class="sep" id="crumb-sep" style="display:none;">›</span><span class="current" id="crumb-current" style="display:none;"></span>{% endblock %}
+
+{% block content %}
+
+  <!-- Which office's services are being edited -->
+  <section class="panel office-pick">
+    <form method="get" action="{% url 'admin_dashboard:office_services_pick' %}" class="office-pick__row">
+      <div class="office-pick__label">
+        <span class="stat-icon blue"><i class="fa-solid fa-building-columns"></i></span>
+        <div>
+          <strong>Office</strong>
+          <small>Services you add or edit here are saved to this office only.</small>
+        </div>
+      </div>
+      <select class="form-input office-pick__select" name="office" aria-label="Office" onchange="this.form.submit()">
+        <option value="">Choose an office…</option>
+        {% for o in offices %}
+          <option value="{{ o.id }}" {% if editor_office and o.id == editor_office.id %}selected{% endif %}>{{ o.name }}</option>
+        {% endfor %}
+      </select>
+      <noscript><button type="submit" class="btn btn-primary">Open</button></noscript>
+      {% if editor_office %}
+        <a class="btn btn-secondary" href="{% url 'offices:office_detail' editor_office.slug %}" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i> View office page</a>
+      {% endif %}
+    </form>
+    {% if editor_office %}
+    <div class="office-pick__note">
+      <i class="fa-solid fa-circle-info"></i>
+      Services you add are <b>published right away</b> on {{ editor_office.name }}'s page, and you can edit them at any time.
+      {% if editor_office.representative %}The office's representative is notified when you add or delete a service.{% endif %}
+    </div>
+    {% endif %}
+  </section>
+
+  {% if editor_office %}
+    {% include "office_dashboard/_service_editor_body.html" %}
+    {% include "office_dashboard/_service_editor_extras.html" %}
+  {% else %}
+    <section class="panel">
+      <div class="panel-body" style="text-align:center;padding:40px 20px;color:var(--gray-500);">
+        <i class="fa-solid fa-hand-pointer" style="font-size:28px;color:var(--gray-300);"></i>
+        <p style="margin:12px 0 0;">Choose an office above to see its services and add new ones.</p>
+      </div>
+    </section>
+  {% endif %}
+
+  <style>
+    .office-pick { margin-bottom: 18px; }
+    .office-pick__row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding: 16px 20px; }
+    .office-pick__label { display: flex; align-items: center; gap: 12px; flex: 1 1 260px; }
+    .office-pick__label strong { display: block; font-size: 14px; color: var(--gray-900); }
+    .office-pick__label small { display: block; font-size: 12px; color: var(--gray-500); }
+    .office-pick__select { flex: 0 1 320px; min-width: 220px; }
+    .office-pick__note { margin: 0 20px 16px; padding: 10px 12px; border-radius: 10px; background: var(--blue-50, #eff6ff); color: var(--gray-700); font-size: 12.5px; }
+    .office-pick__note i { color: var(--blue-600); margin-right: 6px; }
+    @media (max-width: 600px) { .office-pick__select { flex: 1 1 100%; } }
+  </style>
+{% endblock %}

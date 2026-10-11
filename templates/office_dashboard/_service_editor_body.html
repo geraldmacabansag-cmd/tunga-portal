@@ -1,0 +1,328 @@
+{% load static %}
+{% comment %}
+The Services editor (list, service details, requirements, client steps,
+forms, legal basis, schedule, reminders) — shared by the Office
+Representative page (office-rep-service-details.html) and the Super Admin
+page (admin_dashboard/super-admin-office-services.html), so both work the same.
+Needs: services, editor_office, svc_ns ("office_dashboard" / "admin_dashboard"),
+svc_add_url, svc_upload_url, svc_is_admin, editing_globally_enabled + the counts.
+Part 1 of 2: the content (goes inside <main class="content">).
+{% endcomment %}
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon blue"><i class="fa-solid fa-list-check"></i></span></div>
+          <div class="stat-value">{{ total_count }}</div>
+          <div class="stat-label">Total Services</div>
+        </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon green"><i class="fa-solid fa-circle-check"></i></span></div>
+          <div class="stat-value">{{ published_count }}</div>
+          <div class="stat-label">Published</div>
+        </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon amber"><i class="fa-regular fa-clock"></i></span></div>
+          <div class="stat-value">{{ pending_count }}</div>
+          <div class="stat-label">Pending Approval</div>
+        </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon gray"><i class="fa-solid fa-rotate-left"></i></span></div>
+          <div class="stat-value">{{ returned_count }}</div>
+          <div class="stat-label">Returned</div>
+        </div>
+      </div>
+
+      <!-- ============================= -->
+      <!-- LIST VIEW: table of services   -->
+      <!-- ============================= -->
+      <section class="panel" id="services-list-view">
+        <div class="panel-header">
+          <h2>Services Offered</h2>
+          <button type="button" class="btn btn-primary" id="open-add-service-from-services"><i class="fa-solid fa-plus"></i> Add Service</button>
+        </div>
+
+        <form method="get" class="filters-row">
+          <label class="field search" style="flex:1;"><i class="fa-solid fa-magnifying-glass"></i><input type="text" name="q" value="{{ current_q }}" placeholder="Search services..." onchange="this.form.submit()"></label>
+          <select class="field" name="status" onchange="this.form.submit()">
+            <option value="" {% if current_status == "" %}selected{% endif %}>All Status</option>
+            <option value="published" {% if current_status == "published" %}selected{% endif %}>Published</option>
+            <option value="pending" {% if current_status == "pending" %}selected{% endif %}>Pending Approval</option>
+            <option value="returned" {% if current_status == "returned" %}selected{% endif %}>Returned</option>
+            <option value="archive" {% if current_status == "archive" %}selected{% endif %}>Archived</option>
+          </select>
+        </form>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Services Name</th><th>Classification</th><th>Type of Transaction</th><th>Who May Avail</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+              {% for service in services %}
+              <tr>
+                <td class="row-icon-name">
+                  <span class="row-thumb" style="background:var(--blue-50,#eff6ff);color:var(--blue-600);"><i class="{{ service.icon }}"></i></span>
+                  <span class="cell-primary">{{ service.name }}</span>
+                </td>
+                <td><span class="tag">{{ service.classification|default:"—" }}</span></td>
+                <td>{{ service.transaction_type_display|default:"—" }}</td>
+                <td>{{ service.who_may_avail|default:"—" }}</td>
+                <td>
+                  <span class="badge {% if service.status == 'published' %}badge-green{% elif service.status == 'pending' %}badge-amber{% elif service.status == 'returned' or service.status == 'reject' %}badge-red{% else %}badge-gray{% endif %}">
+                    {{ service.get_status_display }}
+                  </span>
+                </td>
+                <td>
+                  <div class="action-icons">
+                    <button type="button" class="ic view-service-btn" title="Edit"
+                      data-id="{{ service.pk }}"
+                      data-name="{{ service.name }}"
+                      data-icon="{{ service.icon }}"
+                      data-category="{{ service.get_category_display }}"
+                      data-description="{{ service.description|default:'' }}"
+                      data-availability="{{ service.availability|default:'Monday - Friday, 8:00 AM - 5:00 PM' }}"
+                      data-processing="{{ service.processing_time|default:'3 - 5 Working Days' }}"
+                      data-office="{{ service.office.name|default:editor_office.name }}"
+                      data-division="{{ service.division|default:service.office.name|default:editor_office.name }}"
+                      data-classification="{{ service.classification|default:'' }}"
+                      data-transaction-type="{{ service.transaction_type_display }}"
+                      data-who-may-avail="{{ service.who_may_avail|default:'' }}"
+                      data-service-scope="{{ service.get_service_scope_display|default:'' }}"
+                      data-created="{{ service.published_at|date:'M d, Y g:i A' }}"
+                      data-updated="{{ service.updated_at|date:'M d, Y g:i A' }}"
+                      data-approved="{% if service.approved_at %}{{ service.approved_at|date:'M d, Y g:i A' }}{% endif %}"
+                      data-admin-note="{{ service.admin_note|default:'' }}"
+                      data-status="{{ service.status }}"
+                      data-status-display="{{ service.get_status_display }}"
+                      data-reminders="{{ service.reminders|default:'' }}"
+                      data-legal-basis="{{ service.legal_basis|default:'' }}"
+                      data-schedule-of-service="{{ service.schedule_of_service|default:'' }}"
+                      data-steps="{{ service.steps_json }}"
+                      data-requirements="{{ service.requirements_json }}">
+                      <i class="fa-regular fa-pen-to-square"></i>
+                    </button>
+                    <button type="button" class="ic" title="Delete" data-delete-target="delete-modal-{{ service.pk }}">
+                      <i class="fa-regular fa-trash-can"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="6" style="text-align:center;color:var(--gray-400);padding:24px 0;">
+                  No services added yet. <button type="button" id="open-add-service-empty-state" style="color:var(--blue-600);font-weight:700;background:none;border:none;padding:0;font:inherit;cursor:pointer;">Add your first service →</button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============================= -->
+      <!-- DETAIL VIEW: single service    -->
+      <!-- ============================= -->
+      <div id="service-detail-view" style="display:none;">
+
+        <button type="button" class="btn btn-secondary btn-sm" id="back-to-services" style="margin-bottom:14px;">
+          <i class="fa-solid fa-arrow-left"></i> Back to Services
+        </button>
+
+        <section class="panel svc-head-panel" style="margin-bottom:18px;">
+          <div class="svc-head">
+            <div class="svc-head__top">
+              <span class="svc-head__icon"><i class="fa-solid fa-file-signature" id="detail-icon"></i></span>
+              <div class="svc-head__titles">
+                <div class="svc-head__title-row">
+                  <h2 id="detail-name">Service</h2>
+                  <span class="badge" id="detail-status-badge"></span>
+                </div>
+                <p class="svc-head__desc" id="detail-description"></p>
+              </div>
+              <div class="svc-head__actions">
+                <button type="button" class="btn btn-secondary" id="edit-service-btn"><i class="fa-regular fa-pen-to-square"></i> Edit</button>
+                <button type="button" class="btn btn-secondary" id="preview-service-btn"><i class="fa-regular fa-eye"></i> Preview</button>
+                <button type="button" class="btn btn-primary" id="save-changes-btn"><i class="fa-regular fa-floppy-disk"></i> Save Changes</button>
+              </div>
+            </div>
+
+            <div class="svc-head__meta" id="detail-meta-row">
+              <div class="svc-meta"><span class="svc-meta__k">Office / Division</span><span class="svc-meta__v" id="detail-division">—</span></div>
+              <div class="svc-meta"><span class="svc-meta__k">Classification</span><span class="svc-meta__v" id="detail-classification">—</span></div>
+              <div class="svc-meta"><span class="svc-meta__k">Type of Transaction</span><span class="svc-meta__v" id="detail-transaction-type">—</span></div>
+              <div class="svc-meta"><span class="svc-meta__k">Who May Avail</span><span class="svc-meta__v" id="detail-who-may-avail">—</span></div>
+              <div class="svc-meta"><span class="svc-meta__k">Service</span><span class="svc-meta__v" id="detail-service-scope">—</span></div>
+            </div>
+
+            <!-- Real dates for this service (filled in by showDetail) -->
+            <div class="svc-head__dates" id="detail-dates"></div>
+          </div>
+
+          <div class="subtabs">
+            <span class="subtab active" data-subtab="requirements"><i class="fa-regular fa-file-lines"></i> Requirements</span>
+            <span class="subtab" data-subtab="process"><i class="fa-solid fa-diagram-project"></i> Client Steps</span>
+            <span class="subtab" data-subtab="other"><i class="fa-regular fa-file-lines"></i> Others</span>
+            <span class="subtab" data-subtab="forms"><i class="fa-solid fa-file-arrow-down"></i> Downloadable Forms</span>
+          </div>
+        </section>
+
+          <div class="grid-3" data-subtab-panel="requirements">
+            <section class="panel" style="grid-column:1 / -1;">
+              <div class="panel-header"><h2>Requirements</h2><button type="button" class="btn btn-secondary btn-sm" id="requirement-modal-trigger"><i class="fa-solid fa-plus"></i> Add Requirement</button></div>
+              <div class="panel-body" id="requirements-host">
+                <p style="color:var(--gray-400);padding:8px 0;">No requirements added yet.</p>
+              </div>
+            </section>
+          </div>
+
+        <div class="grid-3" data-subtab-panel="process" style="display:none;">
+          <!-- Process steps -->
+          <section class="panel" style="grid-column:1 / -1;">
+            <div class="panel-header"><h2>Client Steps</h2><button type="button" class="btn btn-secondary btn-sm" id="step-modal-trigger"><i class="fa-solid fa-plus"></i> Add Step</button></div>
+            <div class="panel-body" id="steps-host">
+              <p style="color:var(--gray-400);padding:8px 0;">No client steps added yet.</p>
+            </div>
+          </section>
+
+          <!-- Important reminders -->
+          <section class="panel" style="grid-column:1 / -1;">
+            <div class="panel-header"><h2>Important Reminders</h2><button type="button" class="btn btn-secondary btn-sm" id="reminders-modal-trigger"><i class="fa-regular fa-pen-to-square"></i> Edit Reminders</button></div>
+            <div class="panel-body">
+              <ul class="reminder-list" id="reminders-host">
+                <li style="color:var(--gray-400);">No reminders added yet.</li>
+              </ul>
+            </div>
+          </section>
+
+          <!-- Super Admin review note -->
+          <div class="reminder-box" id="detail-admin-note-box" style="display:none;grid-column:1 / -1;">
+            <span class="ic"><i class="fa-regular fa-comment-dots"></i></span>
+            <div><strong>Note from Super Admin</strong><p id="detail-admin-note-text"></p></div>
+          </div>
+        </div>
+
+          <div class="grid-3" data-subtab-panel="other" style="display:none;">
+            <section class="panel" style="grid-column:1 / -1;">
+              <div class="panel-header"><h2>Other Details</h2></div>
+              <div class="panel-body">
+                <div class="info-row">
+                  <span class="k">Legal Basis (if applicable)</span>
+                  <span class="v" style="display:flex;align-items:center;gap:8px;">
+                    <span id="detail-legal-basis" style="white-space:pre-line;">—</span>
+                    <button type="button" class="ic" id="legal-basis-modal-trigger" title="Edit Legal Basis"><i class="fa-regular fa-pen-to-square"></i></button>
+                  </span>
+                </div>
+                <div class="info-row">
+                  <span class="k">Schedule of Service (if applicable)</span>
+                  <span class="v" style="display:flex;align-items:center;gap:8px;">
+                    <span id="detail-schedule-of-service" style="white-space:pre-line;">—</span>
+                    <button type="button" class="ic" id="schedule-of-service-modal-trigger" title="Edit Schedule of Service"><i class="fa-regular fa-pen-to-square"></i></button>
+                  </span>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <div class="grid-3" data-subtab-panel="forms" style="display:none;">
+            <section class="panel" style="grid-column:1 / -1;">
+              {% for service in services %}
+              <div data-service-forms-for="{{ service.id }}" style="display:none;">
+                <div class="panel-header">
+                  <h2>Downloadable Forms</h2>
+                  <button type="button" class="btn btn-primary" id="add-form-trigger-{{ service.id }}" onclick="document.getElementById('add-form-modal-{{ service.id }}').classList.add('open')"><i class="fa-solid fa-plus"></i> Add Form</button>
+                </div>
+                <div class="table-wrap">
+                  <table class="data-table">
+                    <thead><tr><th>Form</th><th>Category</th><th>Date Uploaded</th><th>Downloads</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody>
+                      {% for form in service.forms.all %}
+                      <tr>
+                        <td class="row-icon-name">
+                          <span class="row-thumb" style="background:var(--red-50);color:var(--red-600);"><i class="fa-solid fa-file-pdf"></i></span>
+                          <span class="cell-primary">{{ form.title }}</span>
+                        </td>
+                        <td><span class="tag">{{ form.category|default:"—" }}</span></td>
+                        <td>{{ form.date_uploaded|date:"M d, Y" }}</td>
+                        <td>{{ form.download_count }}</td>
+                        <td><span class="badge {% if form.status == 'published' %}badge-green{% else %}badge-amber{% endif %}">{{ form.get_status_display }}</span></td>
+                        <td>
+                          <div class="action-icons">
+                            <a class="ic" href="{% url svc_ns|add:':download_form' form.pk %}" title="Download"><i class="fa-solid fa-download"></i></a>
+                            <button type="button" class="ic" title="Delete" data-delete-target="delete-service-form-modal-{{ form.pk }}"><i class="fa-regular fa-trash-can"></i></button>
+                          </div>
+                        </td>
+                      </tr>
+                      {% empty %}
+                      <tr><td colspan="6" style="text-align:center;color:var(--gray-400);padding:24px 0;">No forms uploaded for this service yet.</td></tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Add Form modal — same fields/behavior as the Downloadable Forms page -->
+              <div class="modal-backdrop" id="add-form-modal-{{ service.id }}">
+                <div class="modal-box">
+                  <div class="modal-head">
+                    <h3>Add Form — {{ service.name }}</h3>
+                    <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+                  </div>
+                  <div class="modal-body">
+                    <form class="add-form-inline" data-service-id="{{ service.id }}" onsubmit="return false;">
+                      {% csrf_token %}
+
+                      <div class="form-group">
+                        <label class="form-label" for="df-file-{{ service.id }}">Attachment (PDF) <span class="req">*</span></label>
+                        <input class="form-input" type="file" id="df-file-{{ service.id }}" name="file" accept=".pdf,application/pdf" required>
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label" for="df-title-{{ service.id }}">Form Name <span class="req">*</span></label>
+                        <input class="form-input" type="text" id="df-title-{{ service.id }}" name="title" placeholder="e.g. Solid Waste Complaint Form" required>
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label" for="df-description-{{ service.id }}">Description</label>
+                        <textarea class="form-input" id="df-description-{{ service.id }}" name="description" rows="3" placeholder="What this form is for"></textarea>
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label" for="df-category-{{ service.id }}">Category</label>
+                        <select class="form-input" id="df-category-{{ service.id }}" name="category">
+                          {% for cat in category_choices_forms %}
+                            <option value="{{ cat }}">{{ cat }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                      <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Add Form</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Delete confirm modal for each of this service's forms -->
+              {% for form in service.forms.all %}
+              <div class="modal-backdrop" id="delete-service-form-modal-{{ form.pk }}">
+                <div class="modal-box" style="max-width:400px;">
+                  <div class="modal-head">
+                    <h3>Delete Form</h3>
+                    <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+                  </div>
+                  <div class="modal-body">
+                    <p>Are you sure you want to delete <strong>"{{ form.title }}"</strong>? This cannot be undone.</p>
+                    <form method="post" action="{% url svc_ns|add:':delete_service_form' service.id form.pk %}">
+                      {% csrf_token %}
+                      <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
+                        <button type="submit" class="btn btn-primary" style="background:#dc2626;border-color:#dc2626;">Yes, Delete</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+
+              {% endfor %}
+            </section>
+          </div>
+
+        <div class="footer-note"><i class="fa-solid fa-circle-info"></i>&nbsp; Changes you make will be saved as draft. Don't forget to save your changes.</div>
+
+      </div>

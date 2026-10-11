@@ -200,9 +200,8 @@
     </div>
     <div class="modal-body">
 
-      {% if e.poster %}
-        <img src="{{ e.poster.url }}" style="width:100%;max-height:220px;object-fit:cover;border-radius:10px;margin-bottom:16px;">
-      {% endif %}
+      {# poster + every extra photo (arrows / thumbnails when more than one) #}
+      {% include "includes/_view_photos.html" with item=e %}
 
       <div class="modal-view-row"><span class="k">Title</span><span class="v">{{ e.title }}</span></div>
       <div class="modal-view-row"><span class="k">Category</span><span class="v">{{ e.category|default:"—" }}</span></div>

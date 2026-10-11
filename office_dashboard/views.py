@@ -27,6 +27,7 @@ from .announcement_rules import clean_announcement
 from .org_chart import build_tree as build_org_tree, descendant_ids as org_descendant_ids, parent_choices as org_parent_choices, next_order as next_org_order
 from .org_chart import clean_width as clean_org_width
 from .content_photos import save_content_photos
+from . import service_editor
 from .org_chart import clean_style as clean_org_style, style_for as org_style_for, DEFAULT_COLORS as ORG_DEFAULT_COLORS, DEFAULT_LINE as ORG_DEFAULT_LINE, STYLE_DEFAULTS as ORG_STYLE_DEFAULTS
 from .models import OrgChartNode, OrgChartSettings
 from django import forms as dj_forms
@@ -507,210 +508,33 @@ def delete_event(request, rep, pk):
 
 @office_rep_required
 def services(request, rep):
-    all_services = rep.office.services.all()
-
-    total_count = all_services.count()
-    published_count = all_services.filter(status='published').count()
-    pending_count = all_services.filter(status='pending').count()
-    returned_count = all_services.filter(status='returned').count()
-
-    services_qs = all_services
-
-    q = request.GET.get('q', '').strip()
-    if q:
-        services_qs = services_qs.filter(name__icontains=q)
-
-    status = request.GET.get('status', '')
-    if status:
-        services_qs = services_qs.filter(status=status)
-
-    services_qs = list(services_qs)
-    for service in services_qs:
-        service.steps_json = json.dumps([
-            {
-                "step_number": str(step.order),
-                "title": step.title,
-                "agency_action": step.agency_action,
-                "fee": step.fee,
-                "processing_time": step.processing_time,
-                "person_responsible": step.person_responsible,
-            }
-            for step in service.steps.all()
-        ])
-        service.requirements_json = json.dumps([
-            {
-                "title": r.title,
-                "where_to_secure": r.where_to_secure,
-                "transaction_type": r.transaction_type,
-            }
-            for r in service.requirements.all()
-        ])
-
-    return render(request, "office_dashboard/office-rep-service-details.html", {
-        "rep": rep,
-        "services": services_qs,
-        "category_choices": Service.CATEGORY_CHOICES,
-        "icon_choices": Service.ICON_CHOICES,
-        "total_count": total_count,
-        "published_count": published_count,
-        "pending_count": pending_count,
-        "returned_count": returned_count,
-        "current_q": q,
-        "current_status": status,
-        "category_choices_forms": FORM_CATEGORY_CHOICES,
-        "editing_globally_enabled": ServiceEditSettings.get_solo().editing_enabled,
-    })
+    # the editor itself is shared with the Super Admin: office_dashboard/service_editor.py
+    return service_editor.render_list(request, service_editor.Editor(rep.office),
+                                      "office_dashboard/office-rep-service-details.html", {"rep": rep})
 
 @office_rep_required
 def delete_service_form(request, rep, service_pk, pk):
-    form = get_object_or_404(DownloadableForm, pk=pk, office=rep.office, service_id=service_pk)
-
-    if request.method == "POST":
-        title = form.title
-        form.file.delete(save=False)
-        form.delete()
-        messages.success(request, f'"{title}" was deleted.')
-
-    return redirect(f"{reverse('office_dashboard:services')}?service={service_pk}")
+    return service_editor.delete_service_form(request, service_editor.Editor(rep.office), service_pk, pk)
 
 @office_rep_required
 def save_process_steps(request, rep, service_pk):
-    service = get_object_or_404(Service, pk=service_pk, office=rep.office)
-
-    if request.method == "POST":
-        if service.status == 'published':
-            return HttpResponse("This service is already published and can no longer be edited.", status=403)
-
-
-    if request.method == "POST":
-        step_numbers = request.POST.getlist('step_number[]')
-        titles = request.POST.getlist('title[]')
-        agency_actions = request.POST.getlist('agency[]')
-        fees = request.POST.getlist('fee[]')
-        processing_times = request.POST.getlist('processing_time[]')
-        persons = request.POST.getlist('person[]')
-
-        service.steps.all().delete()
-
-        fallback_order = 1
-        created_any = False
-        for i, title in enumerate(titles):
-            title = title.strip()
-            if not title:
-                continue
-            step_number_raw = step_numbers[i].strip() if i < len(step_numbers) else ""
-            try:
-                order = Decimal(step_number_raw) if step_number_raw else Decimal(fallback_order)
-            except InvalidOperation:
-                order = Decimal(fallback_order)
-            agency_action = agency_actions[i].strip() if i < len(agency_actions) else ""
-            fee = fees[i].strip() if i < len(fees) else ""
-            processing_time = processing_times[i].strip() if i < len(processing_times) else ""
-            person = persons[i].strip() if i < len(persons) else ""
-
-            ProcessStep.objects.create(
-                service=service,
-                order=order,
-                title=title,
-                agency_action=agency_action,
-                fee=fee,
-                processing_time=processing_time,
-                person_responsible=person,
-            )
-            fallback_order += 1
-            created_any = True
-
-        if not created_any:
-            messages.error(request, "Add at least one step with a name.")
-        else:
-            messages.success(request, "Client steps updated.")
-
-    return redirect(f"{reverse('office_dashboard:services')}?service={service.pk}")
+    return service_editor.save_process_steps(request, service_editor.Editor(rep.office), service_pk)
 
 @office_rep_required
 def save_reminders(request, rep, service_pk):
-    service = get_object_or_404(Service, pk=service_pk, office=rep.office)
-
-    if request.method == "POST":
-        if service.status == 'published':
-            return HttpResponse("This service is already published and can no longer be edited.", status=403)
-
-
-    if request.method == "POST":
-        items_raw = request.POST.get('items', '')
-        lines = [line.strip() for line in items_raw.splitlines() if line.strip()]
-        service.reminders = "\n".join(lines)
-        service.save()
-
-    return redirect('office_dashboard:services')
+    return service_editor.save_reminders(request, service_editor.Editor(rep.office), service_pk)
 
 @office_rep_required
 def save_requirements(request, rep, service_pk):
-    service = get_object_or_404(Service, pk=service_pk, office=rep.office)
-
-    if request.method == "POST":
-        if service.status == 'published':
-            return HttpResponse("This service is already published and can no longer be edited.", status=403)
-
-    if request.method == "POST":
-        titles = request.POST.getlist('title[]')
-        wheres = request.POST.getlist('where[]')
-        txns = request.POST.getlist('txn[]')
-
-        service.requirements.all().delete()
-
-        order = 1
-        for i, title in enumerate(titles):
-            title = title.strip()
-            if not title:
-                continue
-            where = wheres[i].strip() if i < len(wheres) else ""
-            transaction_type = txns[i].strip() if i < len(txns) else ""
-            Requirement.objects.create(
-                service=service,
-                order=order,
-                title=title,
-                where_to_secure=where,
-                transaction_type=transaction_type,
-            )
-            order += 1
-
-        if order == 1:
-            messages.error(request, "Add at least one requirement with a name.")
-        else:
-            messages.success(request, "Requirements updated.")
-
-    return redirect(f"{reverse('office_dashboard:services')}?service={service.pk}")
+    return service_editor.save_requirements(request, service_editor.Editor(rep.office), service_pk)
 
 @office_rep_required
 def save_legal_basis(request, rep, service_pk):
-    service = get_object_or_404(Service, pk=service_pk, office=rep.office)
-
-    if request.method == "POST":
-        if service.status == 'published':
-            return HttpResponse("This service is already published and can no longer be edited.", status=403)
-
-
-    if request.method == "POST":
-        service.legal_basis = request.POST.get('legal_basis', '').strip()
-        service.save()
-
-    return redirect('office_dashboard:services')
+    return service_editor.save_legal_basis(request, service_editor.Editor(rep.office), service_pk)
 
 @office_rep_required
 def save_schedule_of_service(request, rep, service_pk):
-    service = get_object_or_404(Service, pk=service_pk, office=rep.office)
-
-    if request.method == "POST":
-        if service.status == 'published':
-            return HttpResponse("This service is already published and can no longer be edited.", status=403)
-
-
-    if request.method == "POST":
-        service.schedule_of_service = request.POST.get('schedule_of_service', '').strip()
-        service.save()
-
-    return redirect('office_dashboard:services')
+    return service_editor.save_schedule_of_service(request, service_editor.Editor(rep.office), service_pk)
 
 FORM_CATEGORY_CHOICES = ["Permits", "Clearance", "Health", "Assistance"]
 
@@ -1180,97 +1004,15 @@ def office_profile(request, rep):
 
 @office_rep_required
 def add_service(request, rep):
-    if request.method == "POST":
-        name = request.POST.get('name', '').strip()
-        description = request.POST.get('description', '').strip()
-        icon = request.POST.get('icon') or 'fa-solid fa-file-signature'
-
-        division = request.POST.get('division', '').strip() or rep.office.name
-        classification = request.POST.get('classification', '').strip()
-        transaction_types = request.POST.getlist('transaction_type')
-        transaction_type = ",".join(transaction_types)
-        who_may_avail = request.POST.get('who_may_avail', '').strip()
-        service_scope = request.POST.get('service_scope', '').strip()
-        if service_scope not in ('internal', 'external'):
-            service_scope = ''
-
-        if not name:
-            messages.error(request, "Service name is required.")
-        else:
-            service = Service.objects.create(
-                office=rep.office,
-                name=name,
-                description=description,
-                icon=icon,
-                division=division,
-                classification=classification,
-                transaction_type=transaction_type,
-                who_may_avail=who_may_avail,
-                service_scope=service_scope,
-            )
-            messages.success(request, f'"{name}" was added. Add its requirements, process steps, fees and other details below.')
-
-            next_page = request.POST.get('next') or request.GET.get('next')
-            if next_page == 'services':
-                # Straight into that service's own detail view instead of
-                # the bare list — the Services page reads this "service"
-                # query param on load and opens the matching detail panel.
-                return redirect(f"{reverse('office_dashboard:services')}?service={service.pk}")
-            return redirect('office_dashboard:profile')
-
-    next_page = request.POST.get('next') or request.GET.get('next')
-    if next_page == 'services':
-        return redirect('office_dashboard:services')
-    return redirect('office_dashboard:profile')
+    return service_editor.add_service(request, service_editor.Editor(rep.office), reverse('office_dashboard:profile'))
 
 @office_rep_required
 def delete_service(request, rep, pk):
-    service = get_object_or_404(Service, pk=pk, office=rep.office)
-
-    if request.method == "POST":
-        name = service.name
-        service.delete()
-        messages.success(request, f'"{name}" was deleted.')
-
-    return redirect('office_dashboard:services')
+    return service_editor.delete_service(request, service_editor.Editor(rep.office), pk)
 
 @office_rep_required
 def edit_service(request, rep, pk):
-    service = get_object_or_404(Service, pk=pk, office=rep.office)
-
-    if request.method == "POST":
-        if not ServiceEditSettings.get_solo().editing_enabled:
-            messages.error(request, "The Super Admin has turned off editing of services for all offices.")
-            return redirect(f"{reverse('office_dashboard:services')}?service={service.pk}")
-
-        name = request.POST.get('name', '').strip()
-        description = request.POST.get('description', '').strip()
-        icon = request.POST.get('icon') or service.icon
-
-        division = request.POST.get('division', '').strip() or rep.office.name
-        classification = request.POST.get('classification', '').strip()
-        transaction_types = request.POST.getlist('transaction_type')
-        transaction_type = ",".join(transaction_types)
-        who_may_avail = request.POST.get('who_may_avail', '').strip()
-        service_scope = request.POST.get('service_scope', '').strip()
-        if service_scope not in ('internal', 'external'):
-            service_scope = ''
-
-        if not name:
-            messages.error(request, "Service name is required.")
-        else:
-            service.name = name
-            service.description = description
-            service.icon = icon
-            service.division = division
-            service.classification = classification
-            service.transaction_type = transaction_type
-            service.who_may_avail = who_may_avail
-            service.service_scope = service_scope
-            service.save()
-            messages.success(request, f'"{name}" was updated.')
-
-    return redirect(f"{reverse('office_dashboard:services')}?service={service.pk}")
+    return service_editor.edit_service(request, service_editor.Editor(rep.office), pk)
 
 @office_rep_required
 def office_location(request, rep):

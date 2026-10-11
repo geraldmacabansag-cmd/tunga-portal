@@ -703,7 +703,7 @@ def offices(request):
     })
 
 def about(request):
-    from admin_dashboard.models import AboutPageContent, HistoryMilestone, AboutOfficial, Barangay
+    from admin_dashboard.models import AboutPageContent, HistoryMilestone, AboutOfficial, Barangay, HeritageItem
 
     about_content = AboutPageContent.get_solo()
     barangays_poblacion = list(Barangay.objects.filter(group="poblacion"))
@@ -723,6 +723,7 @@ def about(request):
         "history_paragraphs": about_content.history_intro_paragraphs(),
         "milestones": HistoryMilestone.objects.all(),
         "about_officials": AboutOfficial.objects.all(),
+        "heritage_items": HeritageItem.objects.all(),
         "barangays_poblacion": barangays_poblacion,
         "barangays_rural": barangays_rural,
         "barangays_total": len(barangays_poblacion) + len(barangays_rural),

@@ -1,0 +1,14 @@
+{% load static %}
+{% comment %}
+All photos of an announcement / news post / event in a View window or review
+page: the main image first, then the extra photos, with arrows, a counter and
+thumbnails when there is more than one (static/js/view-photos.js).
+Use: {% include "includes/_view_photos.html" with item=a %}
+{% endcomment %}
+{% with photos=item.gallery_photos %}{% if photos %}
+<link rel="stylesheet" href="{% static 'css/view-photos.css' %}?v=1">
+<div class="vp" data-vp-urls="{{ item.gallery_urls_json }}">
+  <img src="{{ photos.0.url }}" alt="{{ item.title }}">
+</div>
+<script src="{% static 'js/view-photos.js' %}?v=1" defer></script>
+{% endif %}{% endwith %}

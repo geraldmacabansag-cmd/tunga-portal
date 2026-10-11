@@ -107,49 +107,25 @@ Home | Digital Governance Portal
         {% endif %}
       </div><!-- /history-grid -->
  
-      <!-- Heritage (hard-coded) -->
+      <!-- Heritage — edited in Super Admin → About Us Page → Heritage tab -->
+      {% if heritage_items %}
       <div class="history-legacy">
-        <h3 class="history-legacy__title"><i class="fa-solid fa-award"></i> Heritage</h3>
-        <p class="history-legacy__intro">Milestones and accomplishments that have shaped the Municipality of Tunga.</p>
- 
+        <h3 class="history-legacy__title"><i class="fa-solid fa-award"></i> {{ about_content.heritage_title|default:"Heritage" }}</h3>
+        {% if about_content.heritage_intro %}<p class="history-legacy__intro">{{ about_content.heritage_intro }}</p>{% endif %}
+
         <div class="history-legacy__grid">
-          <!-- Box 1: change the image file name to this box's own photo -->
+          {% for h in heritage_items %}
           <div class="legacy-card">
-            <img class="legacy-card__img" src="{% static 'images/lgu_bldg.jpeg' %}" alt="Independent Municipality">
+            <img class="legacy-card__img" src="{% if h.image %}{{ h.image.url }}{% else %}{% static 'images/lgu_bldg.jpeg' %}{% endif %}" alt="{{ h.title }}" loading="lazy">
             <div class="legacy-card__text">
-              <h4>Independent Municipality</h4>
-              <p>Officially created as a municipality, separate from Barugo, through Executive Order No. 266 signed on September 26, 1949.</p>
+              <h4>{{ h.title }}</h4>
+              {% if h.description %}<p>{{ h.description|linebreaksbr }}</p>{% endif %}
             </div>
           </div>
- 
-          <!-- Box 2 -->
-          <div class="legacy-card">
-            <img class="legacy-card__img" src="{% static 'images/lgu_bldg.jpeg' %}" alt="Agricultural Heritage">
-            <div class="legacy-card__text">
-              <h4>Agricultural Heritage</h4>
-              <p>[Replace with a real achievement, e.g. a farming program, award, or cooperative milestone.]</p>
-            </div>
-          </div>
- 
-          <!-- Box 3 -->
-          <div class="legacy-card">
-            <img class="legacy-card__img" src="{% static 'images/lgu_bldg.jpeg' %}" alt="Award or Recognition">
-            <div class="legacy-card__text">
-              <h4>[Award or Recognition]</h4>
-              <p>[Replace with a real award, e.g. Seal of Good Local Governance, and the year received.]</p>
-            </div>
-          </div>
- 
-          <!-- Box 4 -->
-          <div class="legacy-card">
-            <img class="legacy-card__img" src="{% static 'images/lgu_bldg.jpeg' %}" alt="Community Legacy">
-            <div class="legacy-card__text">
-              <h4>[Community Legacy]</h4>
-              <p>[Replace with a tradition, festival, or community program Tunga is known for.]</p>
-            </div>
-          </div>
+          {% endfor %}
         </div>
       </div>
+      {% endif %}
  
     </div>
   </div>
@@ -370,4 +346,3 @@ function toggleAllOfficials() {
 }
 </script>
 {% endblock %}
- 

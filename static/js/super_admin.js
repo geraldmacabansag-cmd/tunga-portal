@@ -496,6 +496,9 @@
   /* Generic delegated click handling for row action icons                */
   /* ------------------------------------------------------------------ */
   document.addEventListener('click', function (e) {
+    // The office Services editor (same as the Office Representative's) wires
+    // its own buttons — keep these demo row actions out of its way.
+    if (document.body.dataset.page === 'office-services-editor') return;
     var ic = e.target.closest('.ic, .dl');
     if (!ic) return;
     var icon = ic.querySelector('i');

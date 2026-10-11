@@ -19,6 +19,9 @@ class OfficeRepresentative(models.Model):
     notify_weekly_summary = models.BooleanField(default=False)  # weekly views & activity digest
     notify_announcements = models.BooleanField(default=True)    # announcements posted by the LGU Super Admin
     last_weekly_summary_at = models.DateTimeField(null=True, blank=True)
+    # when the current person became this office's representative (set when
+    # assigned or replaced; empty for representatives assigned before this)
+    assigned_at = models.DateTimeField(null=True, blank=True)
 
     @property
     def unread_notifications_count(self):
@@ -763,3 +766,55 @@ class ContentPhoto(models.Model):
 
     def __str__(self):
         return f"Photo #{self.pk}"
+
+
+class PastRepresentative(models.Model):
+    """Someone who used to be an office's representative (Super Admin →
+    Office Representatives → "Past Representatives"). A row is saved when a
+    representative is replaced by another account or removed. The details are
+    copied, so the history stays even if the account or office is deleted."""
+    REASON_CHOICES = [
+        ("replaced", "Replaced"),
+        ("removed", "Removed"),
+    ]
+    office = models.ForeignKey(Office, on_delete=models.SET_NULL, null=True, blank=True, related_name="past_representatives")
+    office_name = models.CharField(max_length=200)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="past_rep_terms")
+    name = models.CharField(max_length=200)
+    email = models.EmailField(blank=True)
+    position = models.CharField(max_length=100, blank=True)
+    mobile_number = models.CharField(max_length=20, blank=True)
+    photo = models.ImageField(upload_to="rep_photos/", blank=True, null=True)
+    started_at = models.DateTimeField(null=True, blank=True)     # empty = not recorded
+    ended_at = models.DateTimeField(default=timezone.now)
+    end_reason = models.CharField(max_length=20, choices=REASON_CHOICES, default="replaced")
+    replaced_by = models.CharField(max_length=200, blank=True)   # name of the next representative
+    ended_by = models.CharField(max_length=200, blank=True)      # who made the change
+    remarks = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-ended_at", "-id"]
+
+    def __str__(self):
+        return f"{self.name} — {self.office_name} (until {self.ended_at:%Y-%m-%d})"
+
+    @property
+    def served_days(self):
+        if not self.started_at:
+            return None
+        return max(0, (self.ended_at - self.started_at).days)
+
+    @classmethod
+    def record(cls, rep, reason="replaced", replaced_by="", ended_by="", remarks="", link=True):
+        """Saves the current representative of `rep` as a past representative.
+        link=False keeps only the copied details (used while the account or
+        office itself is being deleted)."""
+        user = rep.user
+        return cls.objects.create(
+            office=rep.office if link else None, office_name=rep.office.name,
+            user=user if link else None, name=user.get_full_name() or user.username, email=user.email or "",
+            position=rep.position or "", mobile_number=rep.mobile_number or "",
+            photo=rep.photo.name if rep.photo else None,
+            started_at=rep.assigned_at, end_reason=reason,
+            replaced_by=replaced_by[:200], ended_by=ended_by[:200], remarks=remarks or "",
+        )

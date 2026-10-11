@@ -15,12 +15,16 @@
       <h2 style="margin:0;font-size:16px;font-weight:800;color:var(--gray-900);">Services</h2>
       <p style="margin:3px 0 0;font-size:12.5px;color:var(--gray-500);">Published services currently listed on the public website</p>
     </div>
-    <div style="display:flex;align-items:center;gap:10px;">
-      <span style="font-size:12.5px;font-weight:700;color:var(--gray-700);text-align:right;white-space:nowrap;">Allow Service Editing<br><span style="font-weight:500;color:var(--gray-400);font-size:11px;">Applies to all offices</span></span>
-      <label class="toggle-switch" title="{% if editing_enabled %}Turn off editing for every office representative{% else %}Turn editing back on for every office representative{% endif %}">
-        <input type="checkbox" {% if editing_enabled %}checked{% endif %} onclick="event.preventDefault(); document.getElementById('toggle-service-editing-modal').classList.add('open'); document.body.classList.add('modal-open');">
-        <span class="slider"></span>
-      </label>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px;">
+      <a class="btn btn-primary" href="{% url 'admin_dashboard:office_services_pick' %}" title="Choose an office, then add or edit its services with the same editor the office uses"><i class="fa-solid fa-plus"></i> Add services to an office</a>
+      <!-- Allow Service Editing switch, under the button -->
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:12.5px;font-weight:700;color:var(--gray-700);text-align:right;white-space:nowrap;">Allow Service Editing<br><span style="font-weight:500;color:var(--gray-400);font-size:11px;">Applies to all offices</span></span>
+        <label class="toggle-switch" title="{% if editing_enabled %}Turn off editing for every office representative{% else %}Turn editing back on for every office representative{% endif %}">
+          <input type="checkbox" {% if editing_enabled %}checked{% endif %} onclick="event.preventDefault(); document.getElementById('toggle-service-editing-modal').classList.add('open'); document.body.classList.add('modal-open');">
+          <span class="slider"></span>
+        </label>
+      </div>
     </div>
   </div>
 
@@ -77,6 +81,7 @@
           <td>
             <div class="action-icons">
               <a class="ic" href="{% url 'admin_dashboard:ad_service_detail' service.pk %}"><i class="fa-regular fa-eye"></i></a>
+              {% if service.office.slug != 'lgu-super-admin' %}<a class="ic" href="{% url 'admin_dashboard:services' service.office_id %}?service={{ service.pk }}" title="Edit in the office's Services editor"><i class="fa-solid fa-sliders"></i></a>{% endif %}
               <span class="ic" data-delete-target="delete-service-modal-{{ service.pk }}"><i class="fa-regular fa-trash-can"></i></span>
             </div>
           </td>

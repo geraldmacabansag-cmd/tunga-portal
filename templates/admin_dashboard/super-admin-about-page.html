@@ -12,7 +12,7 @@
 <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;">
   <div>
     <h2 style="margin:0;font-size:16px;font-weight:800;color:var(--gray-900);">About Us Page</h2>
-    <p style="margin:3px 0 0;font-size:12.5px;color:var(--gray-500);">Controls the About Us, History, Municipal Officials, Barangays and "At a Glance" sections of the public site</p>
+    <p style="margin:3px 0 0;font-size:12.5px;color:var(--gray-500);">Controls the About Us, History, Heritage, Municipal Officials, Barangays and "At a Glance" sections of the public site</p>
   </div>
   <div style="display:flex;gap:10px;">
     <button type="button" class="btn btn-secondary" onclick="openResetModal()"><i class="fa-solid fa-rotate-left"></i> Reset Tab to Default</button>
@@ -24,6 +24,7 @@
   <div class="subtabs">
     <div class="subtab active" data-section="about"><i class="fa-regular fa-file-lines"></i> About Us</div>
     <div class="subtab" data-section="history"><i class="fa-solid fa-landmark"></i> History</div>
+    <div class="subtab" data-section="heritage"><i class="fa-solid fa-award"></i> Heritage</div>
     <div class="subtab" data-section="officials"><i class="fa-solid fa-users"></i> Municipal Officials</div>
     <div class="subtab" data-section="barangays"><i class="fa-solid fa-map-location-dot"></i> Barangays</div>
     <div class="subtab" data-section="glance"><i class="fa-solid fa-chart-simple"></i> At a Glance</div>
@@ -117,6 +118,74 @@
             </tr>
             {% empty %}
             <tr class="no-results-row"><td colspan="3">No timeline entries yet. Click "Add Milestone" to create one.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ============ HERITAGE (cards under the History timeline) ============ -->
+    <div class="settings-section" id="section-heritage" style="display:none;">
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="section" value="heritage">
+        <div class="form-group">
+          <label class="form-label">Heading</label>
+          <input class="form-input" type="text" name="heritage_title" value="{{ content.heritage_title }}" maxlength="100" placeholder="Heritage">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Intro line</label>
+          <input class="form-input" type="text" name="heritage_intro" value="{{ content.heritage_intro }}" maxlength="255" placeholder="Milestones and accomplishments that have shaped the Municipality of Tunga.">
+          <span class="form-help">Shown under the heading. Leave empty to hide it.</span>
+        </div>
+        <div class="modal-actions" style="justify-content:flex-start;border-top:none;padding-top:4px;">
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Heading</button>
+        </div>
+      </form>
+
+      <div class="panel-header" style="margin-top:22px;">
+        <h2><i class="fa-solid fa-award" style="color:var(--amber-600,#c07f0a);margin-right:8px;"></i>Heritage Cards</h2>
+        <span class="ic" onclick="document.getElementById('add-heritage-modal').classList.add('open')" style="background:var(--blue-600);color:#fff;padding:8px 14px;border-radius:8px;cursor:pointer;"><i class="fa-solid fa-plus"></i> Add Card</span>
+      </div>
+      <p class="form-help" style="margin:0 0 14px;">Shown two per row under the History timeline on the About Us page. A card without a photo uses the Municipal Hall photo. The whole section is hidden when there are no cards.</p>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Photo</th>
+              <th>Title</th>
+              <th>Description</th>
+              <th>Order</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for h in heritage_items %}
+            <tr>
+              <td><img src="{% if h.image %}{{ h.image.url }}{% else %}{% static 'images/lgu_bldg.jpeg' %}{% endif %}" alt="" style="width:72px;height:48px;border-radius:8px;object-fit:cover;"></td>
+              <td><p class="cell-primary">{{ h.title }}</p>{% if not h.image %}<span class="tag tag-gray">Default photo</span>{% endif %}</td>
+              <td>{{ h.description|truncatechars:90|default:"—" }}</td>
+              <td>
+                <div class="action-icons">
+                  <form method="post" action="{% url 'admin_dashboard:admin_about_heritage_move' h.pk %}" style="display:contents;">
+                    {% csrf_token %}<input type="hidden" name="direction" value="up">
+                    <button type="submit" class="ic" title="Move up" {% if forloop.first %}disabled style="opacity:.35;cursor:default;"{% endif %}><i class="fa-solid fa-arrow-up"></i></button>
+                  </form>
+                  <form method="post" action="{% url 'admin_dashboard:admin_about_heritage_move' h.pk %}" style="display:contents;">
+                    {% csrf_token %}<input type="hidden" name="direction" value="down">
+                    <button type="submit" class="ic" title="Move down" {% if forloop.last %}disabled style="opacity:.35;cursor:default;"{% endif %}><i class="fa-solid fa-arrow-down"></i></button>
+                  </form>
+                </div>
+              </td>
+              <td>
+                <div class="action-icons">
+                  <span class="ic" title="Edit" onclick="document.getElementById('edit-heritage-modal-{{ h.pk }}').classList.add('open')"><i class="fa-regular fa-pen-to-square"></i></span>
+                  <span class="ic" title="Delete" onclick="document.getElementById('delete-heritage-modal-{{ h.pk }}').classList.add('open')"><i class="fa-regular fa-trash-can"></i></span>
+                </div>
+              </td>
+            </tr>
+            {% empty %}
+            <tr class="no-results-row"><td colspan="5">No heritage cards yet. Click "Add Card" to create one.</td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -372,6 +441,102 @@
   </div>
 </div>
 {% endfor %}
+
+<!-- ======================= HERITAGE MODALS ======================= -->
+<div class="modal-backdrop" id="add-heritage-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Add Heritage Card</h3>
+      <button type="button" class="modal-x" onclick="document.getElementById('add-heritage-modal').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form method="post" action="{% url 'admin_dashboard:admin_about_heritage_create' %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label">Title <span class="req">*</span></label>
+          <input class="form-input" type="text" name="title" maxlength="150" placeholder="e.g. Seal of Good Local Governance 2024" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea class="form-input form-textarea" name="description" style="min-height:90px;" placeholder="A short sentence or two about this milestone, award or tradition."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Photo</label>
+          <img class="heritage-preview" src="{% static 'images/lgu_bldg.jpeg' %}" alt="">
+          <input class="form-input file-input heritage-image-input" type="file" name="image" accept="image/*">
+          <span class="form-help">Landscape photos look best. Leave empty to use the Municipal Hall photo.</span>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('add-heritage-modal').classList.remove('open')">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Add Card</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% for h in heritage_items %}
+<div class="modal-backdrop" id="edit-heritage-modal-{{ h.pk }}">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Edit Heritage Card</h3>
+      <button type="button" class="modal-x" onclick="document.getElementById('edit-heritage-modal-{{ h.pk }}').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <form method="post" action="{% url 'admin_dashboard:admin_about_heritage_save' h.pk %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label">Title <span class="req">*</span></label>
+          <input class="form-input" type="text" name="title" value="{{ h.title }}" maxlength="150" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea class="form-input form-textarea" name="description" style="min-height:90px;">{{ h.description }}</textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Photo</label>
+          <img class="heritage-preview" src="{% if h.image %}{{ h.image.url }}{% else %}{% static 'images/lgu_bldg.jpeg' %}{% endif %}" alt="">
+          <input class="form-input file-input heritage-image-input" type="file" name="image" accept="image/*">
+          {% if h.image %}
+          <label style="display:flex;align-items:center;gap:6px;font-weight:400;font-size:13px;margin-top:6px;">
+            <input type="checkbox" name="remove_image"> Remove this photo (use the Municipal Hall photo instead)
+          </label>
+          {% else %}
+          <span class="form-help">Using the Municipal Hall photo. Choose a file to use a different one.</span>
+          {% endif %}
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('edit-heritage-modal-{{ h.pk }}').classList.remove('open')">Cancel</button>
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="delete-heritage-modal-{{ h.pk }}">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Delete heritage card</h3>
+      <button type="button" class="modal-x" onclick="document.getElementById('delete-heritage-modal-{{ h.pk }}').classList.remove('open')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <p class="confirm-msg">Are you sure you want to delete "{{ h.title }}"? This cannot be undone.</p>
+      <form method="post" action="{% url 'admin_dashboard:admin_about_heritage_delete' h.pk %}">
+        {% csrf_token %}
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('delete-heritage-modal-{{ h.pk }}').classList.remove('open')">Cancel</button>
+          <button type="submit" class="btn btn-danger"><i class="fa-regular fa-trash-can"></i> Delete</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<style>
+  .heritage-preview { display: block; width: 100%; max-width: 320px; height: 150px; object-fit: cover; border-radius: 10px; border: 1px solid var(--gray-200); margin-bottom: 8px; }
+</style>
 
 <!-- ======================= OFFICIAL MODALS ======================= -->
 <div class="modal-backdrop" id="add-official-modal">
@@ -632,7 +797,7 @@
 
 {% block extra_js %}
 <script>
-  var TAB_NAMES = ['about', 'history', 'officials', 'barangays', 'glance'];
+  var TAB_NAMES = ['about', 'history', 'heritage', 'officials', 'barangays', 'glance'];
 
   function activateTab(name){
     if (TAB_NAMES.indexOf(name) === -1) name = 'about';
@@ -656,6 +821,7 @@
   var TAB_LABELS = {
     about: 'About Us',
     history: 'History',
+    heritage: 'Heritage',
     officials: 'Municipal Officials',
     barangays: 'Barangays',
     glance: 'At a Glance'
@@ -688,6 +854,18 @@
       reader.readAsDataURL(file);
     });
   }
+
+  // Heritage card windows: show the chosen photo right away
+  document.querySelectorAll('.heritage-image-input').forEach(function(input){
+    input.addEventListener('change', function(){
+      var file = input.files && input.files[0];
+      var preview = input.parentNode.querySelector('.heritage-preview');
+      if (!file || !preview) return;
+      var reader = new FileReader();
+      reader.onload = function(e){ preview.src = e.target.result; };
+      reader.readAsDataURL(file);
+    });
+  });
 
   wireImagePreview('history-image-input', 'history-image-preview', 'history-image-preview-label', 'New image selected — not saved yet, click Save History Intro to apply it.');
 </script>

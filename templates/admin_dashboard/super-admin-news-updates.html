@@ -92,11 +92,11 @@
                       data-status="{{ n.get_status_display }}"
                       data-status-class="{{ n.badge_class }}"
                       data-views="{{ n.views }}"
-                      data-image="{% if n.image %}{{ n.image.url }}{% endif %}"
+                      data-image="{% if n.image %}{{ n.image.url }}{% endif %}" data-gallery="{{ n.gallery_urls_json }}" data-gallery-target="vn-image-wrap"
                       data-created="{{ n.created_at|date:'F j, Y g:i A' }}"
                       data-details-url="{% url 'admin_dashboard:approval_details' 'News' n.pk %}"
                     ><i class="fa-regular fa-eye"></i></button>
-                    <button type="button" class="ic news-edit-btn" title="Edit" data-photos="{{ n.extra_photos_json }}" data-photos-form="newsForm"
+                    <button type="button" class="ic news-edit-btn" title="Edit" data-photos="{{ n.extra_photos_json }}" data-cover="{% if n.image %}{{ n.image.url }}{% endif %}" data-photos-form="newsForm"
                       data-id="{{ n.pk }}"
                       data-title="{{ n.title }}"
                       data-category="{{ n.category }}"
@@ -164,6 +164,7 @@
 
           <div class="form-group">
             <label class="form-label">Cover image</label>
+            <div class="cp-cover-current" data-cover-current hidden></div>
             <input class="form-input file-input" type="file" accept="image/*" name="image" id="newsImageFile">
             <span class="form-help" id="newsImageHelp">JPG or PNG. Leave empty to keep the current image when editing.</span>
           </div>
@@ -210,6 +211,8 @@
 </div>
 
 <!-- View News modal -->
+<link rel="stylesheet" href="{% static 'css/view-photos.css' %}?v=1">
+<script src="{% static 'js/view-photos.js' %}?v=1" defer></script>
 <div class="modal-backdrop" id="view-news-modal">
   <div class="modal-box modal-wide">
     <div class="modal-head">

@@ -4,11 +4,11 @@
   form or service for approval  -> "New ... waiting for approval"
 - An office representative sends a message to the Super Admin -> "New message"
 """
-from django.db.models.signals import pre_save, post_save
+from django.db.models.signals import pre_save, post_save, pre_delete
 from django.dispatch import receiver
 from django.urls import reverse
 
-from office_dashboard.models import (Announcement, NewsUpdate, Event, Photo,
+from office_dashboard.models import (Announcement, NewsUpdate, Event, Photo, OfficeRepresentative, PastRepresentative,
                                      DownloadableForm, Service, Message)
 from .models import SuperAdmin, AdminNotification
 
@@ -92,3 +92,15 @@ def _message_saved(sender, instance, created, **kwargs):
         return
     notify_super_admins(f"New message from {who}", f"{office}: {preview}",
                         "info", "fa-regular fa-envelope", link)
+
+
+@receiver(pre_delete, sender=OfficeRepresentative)
+def keep_removed_representative(sender, instance, **kwargs):
+    """A representative removed (from the Django admin, or because the account
+    or the office was deleted) goes to Past Representatives. Only the copied
+    details are kept, because the account / office may be deleted with it."""
+    try:
+        if instance.user_id and instance.office_id:
+            PastRepresentative.record(instance, reason="removed", link=False)
+    except Exception:
+        pass   # never block a delete because of the history

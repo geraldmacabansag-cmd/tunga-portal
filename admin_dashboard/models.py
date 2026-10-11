@@ -312,6 +312,13 @@ class AboutPageContent(models.Model):
     history_more_title = models.CharField(max_length=150, blank=True)
     history_more = models.TextField(blank=True, help_text="Extra history text shown under the timeline.")
 
+    # --- Heritage section (under the History timeline) ---
+    heritage_title = models.CharField(max_length=100, default="Heritage")
+    heritage_intro = models.CharField(
+        max_length=255, blank=True,
+        default="Milestones and accomplishments that have shaped the Municipality of Tunga.",
+    )
+
     # --- Barangays section intro line ---
     barangays_intro = models.CharField(
         max_length=255,
@@ -364,6 +371,22 @@ class HistoryMilestone(models.Model):
 
     def __str__(self):
         return self.year_label
+
+
+class HeritageItem(models.Model):
+    """One card of the About page's "Heritage" section (under the History
+    timeline): a photo, a title and a short description. Edited on the
+    Super Admin's About Us Page → Heritage tab."""
+    title = models.CharField(max_length=150)
+    description = models.TextField(blank=True)
+    image = models.ImageField(upload_to="about/heritage/", blank=True, null=True)   # empty = the Municipal Hall photo
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order", "id"]
+
+    def __str__(self):
+        return self.title
 
 
 class AboutOfficial(models.Model):

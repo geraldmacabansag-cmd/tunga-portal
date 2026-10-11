@@ -101,11 +101,11 @@
                       data-contact-info="{{ e.contact_info }}"
                       data-status="{{ e.get_status_display }}"
                       data-status-class="{{ e.badge_class }}"
-                      data-image="{% if e.poster %}{{ e.poster.url }}{% endif %}"
+                      data-image="{% if e.poster %}{{ e.poster.url }}{% endif %}" data-gallery="{{ e.gallery_urls_json }}" data-gallery-target="ve-image-wrap"
                       data-created="{{ e.created_at|date:'F j, Y g:i A' }}"
                       data-details-url="{% url 'admin_dashboard:approval_details' 'Event' e.pk %}"
                     ><i class="fa-regular fa-eye"></i></button>
-                    <button type="button" class="ic event-edit-btn" title="Edit" data-photos="{{ e.extra_photos_json }}" data-photos-form="eventForm"
+                    <button type="button" class="ic event-edit-btn" title="Edit" data-photos="{{ e.extra_photos_json }}" data-cover="{% if e.poster %}{{ e.poster.url }}{% endif %}" data-photos-form="eventForm"
                       data-id="{{ e.pk }}"
                       data-title="{{ e.title }}"
                       data-category="{{ e.category }}"
@@ -211,6 +211,7 @@
 
         <div class="form-group">
           <label class="form-label">Event Poster / Image</label>
+          <div class="cp-cover-current" data-cover-current hidden></div>
           <input class="form-input file-input" type="file" name="poster" id="eventPosterFile" accept="image/*">
           <span class="form-help" id="eventPosterHelp">JPG or PNG. Leave empty to keep the current poster when editing.</span>
         </div>
@@ -235,6 +236,8 @@
 </div>
 
 <!-- View Event modal -->
+<link rel="stylesheet" href="{% static 'css/view-photos.css' %}?v=1">
+<script src="{% static 'js/view-photos.js' %}?v=1" defer></script>
 <div class="modal-backdrop" id="view-event-modal">
   <div class="modal-box modal-wide">
     <div class="modal-head">

@@ -1,0 +1,32 @@
+/* Photo viewer in View windows / review pages — static/js/view-photos.js */
+.vp { margin-bottom: 16px; }
+.vp-stage { position: relative; border-radius: 10px; overflow: hidden; background: #0f172a; }
+.vp-main { display: block; width: 100%; height: 260px; object-fit: contain; cursor: zoom-in; background: #0f172a; }
+.vp-prev, .vp-next {
+  position: absolute; top: 50%; transform: translateY(-50%);
+  width: 36px; height: 36px; border-radius: 50%; border: 0; cursor: pointer;
+  background: rgba(255,255,255,.92); color: #1f2937; box-shadow: 0 2px 8px rgba(0,0,0,.25);
+  display: grid; place-items: center; font-size: 14px;
+}
+.vp-prev { left: 10px; } .vp-next { right: 10px; }
+.vp-prev:hover, .vp-next:hover { background: #fff; }
+.vp-count {
+  position: absolute; right: 10px; bottom: 10px; padding: 3px 9px; border-radius: 999px;
+  background: rgba(15,23,42,.72); color: #fff; font-size: 12px; font-weight: 600;
+}
+.vp-strip { display: flex; gap: 8px; overflow-x: auto; padding: 8px 2px 4px; scrollbar-width: thin; }
+.vp-thumb {
+  flex: 0 0 auto; width: 64px; height: 64px; padding: 0; border-radius: 8px; overflow: hidden;
+  border: 2px solid transparent; background: #e5e7eb; cursor: pointer; opacity: .7;
+}
+.vp-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.vp-thumb:hover { opacity: 1; }
+.vp-thumb.is-active { border-color: var(--blue-600, #2563eb); opacity: 1; }
+@media (max-width: 600px) {
+  .vp-main { height: 200px; }
+  .vp-thumb { width: 54px; height: 54px; }
+}
+/* Edit forms: the current cover image (Super Admin shared form) */
+.cp-cover-current { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 12.5px; color: var(--gray-500, #6b7280); }
+.cp-cover-current img { width: 96px; height: 96px; border-radius: 10px; object-fit: cover; }
+.cp-cover-current[hidden] { display: none; }

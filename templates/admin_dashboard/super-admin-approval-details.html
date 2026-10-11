@@ -44,10 +44,10 @@
           <div class="field-grid">
 
             {% if item_type == 'Announcement' %}
-              {% if obj.image %}
+              {% if obj.gallery_photos %}
               <div class="full">
-                <div class="fl-label">Image</div>
-                <a href="{{ obj.image.url }}" target="_blank"><img class="modal-preview-img" src="{{ obj.image.url }}" alt="{{ obj.title }}"></a>
+                <div class="fl-label">Photos ({{ obj.gallery_photos|length }})</div>
+                {% include "includes/_view_photos.html" with item=obj %}
               </div>
               {% endif %}
               <div class="full"><div class="fl-label">Content</div><div class="fl-value muted">{{ obj.content|linebreaksbr|default:"—" }}</div></div>
@@ -61,10 +61,10 @@
               <div><div class="fl-label">Views</div><div class="fl-value">{{ obj.views }}</div></div>
 
             {% elif item_type == 'News' %}
-              {% if obj.image %}
+              {% if obj.gallery_photos %}
               <div class="full">
-                <div class="fl-label">Image</div>
-                <a href="{{ obj.image.url }}" target="_blank"><img class="modal-preview-img" src="{{ obj.image.url }}" alt="{{ obj.title }}"></a>
+                <div class="fl-label">Photos ({{ obj.gallery_photos|length }})</div>
+                {% include "includes/_view_photos.html" with item=obj %}
               </div>
               {% endif %}
               <div class="full"><div class="fl-label">Summary</div><div class="fl-value muted">{{ obj.summary|default:"—" }}</div></div>
@@ -78,10 +78,10 @@
               <div><div class="fl-label">Views</div><div class="fl-value">{{ obj.views }}</div></div>
 
             {% elif item_type == 'Event' %}
-              {% if obj.poster %}
+              {% if obj.gallery_photos %}
               <div class="full">
-                <div class="fl-label">Poster</div>
-                <a href="{{ obj.poster.url }}" target="_blank"><img class="modal-preview-img" src="{{ obj.poster.url }}" alt="{{ obj.title }}"></a>
+                <div class="fl-label">Poster &amp; photos ({{ obj.gallery_photos|length }})</div>
+                {% include "includes/_view_photos.html" with item=obj %}
               </div>
               {% endif %}
               <div class="full"><div class="fl-label">Description</div><div class="fl-value muted">{{ obj.description|linebreaksbr|default:"—" }}</div></div>

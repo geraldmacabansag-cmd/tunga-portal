@@ -217,9 +217,8 @@
     </div>
     <div class="modal-body">
 
-      {% if n.image %}
-        <img src="{{ n.image.url }}" style="width:100%;max-height:220px;object-fit:cover;border-radius:10px;margin-bottom:16px;">
-      {% endif %}
+      {# main image + every extra photo (arrows / thumbnails when more than one) #}
+      {% include "includes/_view_photos.html" with item=n %}
 
       <div class="modal-view-row"><span class="k">Headline</span><span class="v">{{ n.title }}</span></div>
       <div class="modal-view-row"><span class="k">Category</span><span class="v">{{ n.category|default:"—" }}</span></div>

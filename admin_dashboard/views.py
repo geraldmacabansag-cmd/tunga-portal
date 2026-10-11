@@ -3,7 +3,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .models import AdminNotification
-from .models import SuperAdmin, SiteContactInfo, EmergencyContact, EmailProviderSettings, QuickLink, AboutPageContent, HistoryMilestone, AboutOfficial, Barangay
+from .models import SuperAdmin, SiteContactInfo, EmergencyContact, EmailProviderSettings, QuickLink, AboutPageContent, HistoryMilestone, AboutOfficial, Barangay, HeritageItem
 from django.core.paginator import Paginator
 from django.contrib.auth.models import User
 from django.db.models import Count, Sum, Q, F
@@ -1552,8 +1552,19 @@ def admin_office_rep(request):
 
     rows.sort(key=lambda r: r["rep"].office.name)
 
+    # Past Representatives panel (same search and office filter as above)
+    from office_dashboard.models import PastRepresentative
+    past = PastRepresentative.objects.select_related('office')
+    if q:
+        past = past.filter(Q(name__icontains=q) | Q(email__icontains=q))
+    if office_id:
+        past = past.filter(office_id=office_id)
+    past_total = past.count()
+
     return render(request, "admin_dashboard/super-admin-office-reps.html", {
         "rows": rows,
+        "past_reps": past[:100],
+        "past_total": past_total,
         "offices": Office.objects.exclude(slug=LGU_SUPER_ADMIN_SLUG).order_by('name'),
         "total_reps": len(reps),
         "total_offices": total_offices,
@@ -1583,7 +1594,8 @@ def admin_assign_representative(request):
         if not user or not office:
             messages.error(request, "Please choose a user and an office that don't already have a representative assigned.")
         else:
-            rep = OfficeRepresentative(user=user, office=office, position=position, mobile_number=mobile_number)
+            rep = OfficeRepresentative(user=user, office=office, position=position, mobile_number=mobile_number,
+                                       assigned_at=timezone.now())
             if photo:
                 rep.photo = photo
             rep.save()
@@ -1602,10 +1614,18 @@ def admin_rep_replace_user(request, pk):
         if not new_user:
             messages.error(request, "Please choose a user who isn't already assigned to another office.")
         else:
+            from office_dashboard.models import PastRepresentative
             old_label = rep.user.get_full_name() or rep.user.username
-            rep.user = new_user
-            rep.save()
             new_label = new_user.get_full_name() or new_user.username
+            # keep the outgoing person in "Past Representatives"
+            PastRepresentative.record(
+                rep, reason="replaced", replaced_by=new_label,
+                ended_by=request.user.get_full_name() or request.user.username,
+                remarks=request.POST.get('remarks', '').strip()[:1000],
+            )
+            rep.user = new_user
+            rep.assigned_at = timezone.now()
+            rep.save()
             messages.success(request, f'{rep.office.name} is now represented by {new_label} (replacing {old_label}). All content stays linked to this office.')
 
     return redirect('admin_dashboard:ad_office_rep')
@@ -1909,6 +1929,11 @@ def admin_about_page(request):
                 content.history_image = request.FILES.get('history_image')
             content.save()
             messages.success(request, "History content was updated.")
+        elif section == 'heritage':
+            content.heritage_title = request.POST.get('heritage_title', '').strip() or "Heritage"
+            content.heritage_intro = request.POST.get('heritage_intro', '').strip()
+            content.save()
+            messages.success(request, "Heritage heading was updated.")
         elif section == 'barangays':
             content.barangays_intro = request.POST.get('barangays_intro', '').strip()
             content.save()
@@ -1938,6 +1963,7 @@ def admin_about_page(request):
         "content": content,
         "milestones": HistoryMilestone.objects.all(),
         "officials": AboutOfficial.objects.all(),
+        "heritage_items": HeritageItem.objects.all(),
         "barangays_poblacion": Barangay.objects.filter(group='poblacion'),
         "barangays_rural": Barangay.objects.filter(group='rural'),
     })
@@ -1971,6 +1997,56 @@ def admin_about_milestone_delete(request, pk):
         m.delete()
         messages.success(request, f'"{label}" was removed.')
     return redirect(reverse('admin_dashboard:ad_about_page') + '#history')
+
+
+@super_admin_required
+def admin_about_heritage_save(request, pk):
+    """Add (pk=0) or edit one Heritage card: title, description, photo."""
+    h = get_object_or_404(HeritageItem, pk=pk) if pk else HeritageItem()
+    if request.method == "POST":
+        title = request.POST.get('title', '').strip()
+        description = request.POST.get('description', '').strip()
+        if not title:
+            messages.error(request, "Please enter a title for the heritage card.")
+        else:
+            is_create = h.pk is None
+            h.title = title
+            h.description = description
+            if request.FILES.get('image'):
+                h.image = request.FILES.get('image')
+            elif request.POST.get('remove_image') == 'on':
+                h.image = None   # back to the Municipal Hall photo
+            if is_create:
+                h.order = HeritageItem.objects.count()
+            h.save()
+            messages.success(request, f'"{title}" was saved.')
+    return redirect(reverse('admin_dashboard:ad_about_page') + '#heritage')
+
+
+@super_admin_required
+def admin_about_heritage_delete(request, pk):
+    h = get_object_or_404(HeritageItem, pk=pk)
+    if request.method == "POST":
+        title = h.title
+        h.delete()
+        messages.success(request, f'"{title}" was removed.')
+    return redirect(reverse('admin_dashboard:ad_about_page') + '#heritage')
+
+
+@super_admin_required
+def admin_about_heritage_move(request, pk):
+    """Moves a Heritage card one place up or down (POST direction=up|down)."""
+    if request.method == "POST":
+        items = list(HeritageItem.objects.all())
+        idx = next((i for i, x in enumerate(items) if x.pk == pk), None)
+        step = -1 if request.POST.get('direction') == 'up' else 1
+        if idx is not None and 0 <= idx + step < len(items):
+            items[idx], items[idx + step] = items[idx + step], items[idx]
+            for order, item in enumerate(items):
+                if item.order != order:
+                    item.order = order
+                    item.save(update_fields=['order'])
+    return redirect(reverse('admin_dashboard:ad_about_page') + '#heritage')
 
 
 @super_admin_required
@@ -2050,6 +2126,12 @@ _ABOUT_DEFAULT_OFFICIALS = [
     ("Hon. Liza M. Alegre", "SB Member"),
     ("Hon. Ricardo P. Torres", "SB Member"),
 ]
+_ABOUT_DEFAULT_HERITAGE = [
+    ("Independent Municipality", "Officially created as a municipality, separate from Barugo, through Executive Order No. 266 signed on September 26, 1949."),
+    ("Agricultural Heritage", "[Replace with a real achievement, e.g. a farming program, award, or cooperative milestone.]"),
+    ("[Award or Recognition]", "[Replace with a real award, e.g. Seal of Good Local Governance, and the year received.]"),
+    ("[Community Legacy]", "[Replace with a tradition, festival, or community program Tunga is known for.]"),
+]
 _ABOUT_DEFAULT_BARANGAYS_POBLACION = ["San Antonio", "San Pedro", "San Roque", "San Vicente", "Santo Niño"]
 _ABOUT_DEFAULT_BARANGAYS_RURAL = ["Astorga", "Balire", "Banawang"]
 
@@ -2077,6 +2159,14 @@ def admin_about_reset_defaults(request):
                 HistoryMilestone.objects.create(year_label=year_label, description=description, is_present=is_present, order=order)
             messages.success(request, "The History tab was reset to its default content.")
 
+        elif tab == 'heritage':
+            content.heritage_title = defaults.heritage_title
+            content.heritage_intro = defaults.heritage_intro
+            content.save()
+            HeritageItem.objects.all().delete()
+            for order, (title, description) in enumerate(_ABOUT_DEFAULT_HERITAGE):
+                HeritageItem.objects.create(title=title, description=description, order=order)
+            messages.success(request, "The Heritage tab was reset to its default content.")
         elif tab == 'officials':
             AboutOfficial.objects.all().delete()
             for order, (name, position) in enumerate(_ABOUT_DEFAULT_OFFICIALS):
@@ -3116,3 +3206,148 @@ def admin_messages_send(request):
             link_url=reverse("office_dashboard:messages"),
         )
     return JsonResponse({"success": True, "message": serialize_chat_message(msg)})
+
+# ---------------------------------------------------------------------------
+# Services of a chosen office (Super Admin → Services → "Add services to an
+# office"). Same editor as the Office Representative's Services page
+# (office_dashboard/service_editor.py + _service_editor_*.html). The Super
+# Admin works on ONE office at a time — the one picked at the top of the page —
+# and everything saved goes to that office only. Services added here are
+# published right away and can be edited at any time.
+# ---------------------------------------------------------------------------
+def _service_offices():
+    return Office.objects.exclude(slug=LGU_SUPER_ADMIN_SLUG).order_by('name')
+
+
+def _office_editor(request, office_id):
+    from office_dashboard import service_editor
+    office = get_object_or_404(_service_offices(), pk=office_id)
+    return service_editor, service_editor.Editor(office, is_admin=True, admin_user=request.user)
+
+
+def _service_editor_for(request, service_pk):
+    """Editor for the office that owns this service (never the LGU's own)."""
+    from office_dashboard import service_editor
+    service = get_object_or_404(Service.objects.exclude(office__slug=LGU_SUPER_ADMIN_SLUG), pk=service_pk)
+    return service_editor, service_editor.Editor(service.office, is_admin=True, admin_user=request.user)
+
+
+@super_admin_required
+def admin_office_services(request, office_id=None):
+    offices = _service_offices()
+    if office_id is None:
+        picked = request.GET.get('office')
+        if picked and str(picked).isdigit() and offices.filter(pk=picked).exists():
+            return redirect('admin_dashboard:services', office_id=int(picked))
+        return render(request, "admin_dashboard/super-admin-office-services.html", {
+            "offices": offices, "editor_office": None,
+        })
+    se, ed = _office_editor(request, office_id)
+    return se.render_list(request, ed, "admin_dashboard/super-admin-office-services.html", {"offices": offices})
+
+
+@super_admin_required
+def admin_svc_add(request, office_id):
+    se, ed = _office_editor(request, office_id)
+    return se.add_service(request, ed, ed.list_url())
+
+
+@super_admin_required
+def admin_svc_edit(request, pk):
+    se, ed = _service_editor_for(request, pk)
+    return se.edit_service(request, ed, pk)
+
+
+@super_admin_required
+def admin_svc_delete(request, pk):
+    se, ed = _service_editor_for(request, pk)
+    return se.delete_service(request, ed, pk)
+
+
+@super_admin_required
+def admin_svc_steps(request, service_pk):
+    se, ed = _service_editor_for(request, service_pk)
+    return se.save_process_steps(request, ed, service_pk)
+
+
+@super_admin_required
+def admin_svc_reminders(request, service_pk):
+    se, ed = _service_editor_for(request, service_pk)
+    return se.save_reminders(request, ed, service_pk)
+
+
+@super_admin_required
+def admin_svc_requirements(request, service_pk):
+    se, ed = _service_editor_for(request, service_pk)
+    return se.save_requirements(request, ed, service_pk)
+
+
+@super_admin_required
+def admin_svc_legal_basis(request, service_pk):
+    se, ed = _service_editor_for(request, service_pk)
+    return se.save_legal_basis(request, ed, service_pk)
+
+
+@super_admin_required
+def admin_svc_schedule(request, service_pk):
+    se, ed = _service_editor_for(request, service_pk)
+    return se.save_schedule_of_service(request, ed, service_pk)
+
+
+@super_admin_required
+def admin_svc_delete_form(request, service_pk, pk):
+    se, ed = _service_editor_for(request, service_pk)
+    return se.delete_service_form(request, ed, service_pk, pk)
+
+
+@super_admin_required
+def admin_svc_upload_form(request, office_id):
+    """A PDF form for one of this office's services (Forms tab of a service).
+    Uploaded by the Super Admin = published right away."""
+    se, ed = _office_editor(request, office_id)
+    if request.method != "POST":
+        return redirect(ed.list_url())
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    title = request.POST.get('title', '').strip()
+    uploaded_file = request.FILES.get('file')
+    service_id = request.POST.get('service')
+    service = None
+    if service_id and str(service_id).isdigit():
+        service = Service.objects.filter(pk=service_id, office=ed.office).exclude(status="archive").first()
+
+    error = None
+    if not title:
+        error = "Form name is required."
+    elif not uploaded_file:
+        error = "Please attach a PDF file."
+    elif not uploaded_file.name.lower().endswith('.pdf'):
+        error = "Only PDF files are allowed."
+    elif service is None:
+        error = "Please choose the service this form belongs to."
+    if error:
+        if is_ajax:
+            return JsonResponse({"success": False, "error": error}, status=400)
+        messages.error(request, error)
+        return redirect(ed.list_url())
+
+    DownloadableForm.objects.create(
+        office=ed.office, service=service, title=title,
+        description=request.POST.get('description', '').strip(),
+        category=request.POST.get('category', '').strip(),
+        file=uploaded_file, status="published",
+        uploaded_by="Super Admin", download_count=0,
+    )
+    if is_ajax:
+        return JsonResponse({"success": True, "title": title})
+    messages.success(request, f'"{title}" was uploaded and linked to {service.name}.')
+    return redirect(ed.list_url(service.pk, tab="forms"))
+
+
+@super_admin_required
+def admin_svc_download_form(request, pk):
+    form = get_object_or_404(DownloadableForm, pk=pk)
+    try:
+        return FileResponse(form.file.open('rb'), as_attachment=True,
+                            filename=form.file.name.rsplit('/', 1)[-1])
+    except FileNotFoundError:
+        raise Http404("File not found.")

@@ -94,11 +94,11 @@
                   data-status="{{ a.get_status_display }}"
                   data-status-class="{{ a.badge_class }}"
                   data-views="{{ a.views }}"
-                  data-image="{% if a.image %}{{ a.image.url }}{% endif %}"
+                  data-image="{% if a.image %}{{ a.image.url }}{% endif %}" data-gallery="{{ a.gallery_urls_json }}" data-gallery-target="va-image-wrap"
                   data-created="{{ a.created_at|date:'F j, Y g:i A' }}"
                   data-details-url="{% url 'admin_dashboard:approval_details' 'Announcement' a.pk %}"
                 ><i class="fa-regular fa-eye"></i></button>
-                <button type="button" class="ic edit-ann-btn" title="Edit" data-photos="{{ a.extra_photos_json }}" data-photos-form="annForm"
+                <button type="button" class="ic edit-ann-btn" title="Edit" data-photos="{{ a.extra_photos_json }}" data-cover="{% if a.image %}{{ a.image.url }}{% endif %}" data-photos-form="annForm"
                   data-pk="{{ a.pk }}"
                   data-title="{{ a.title }}"
                   data-subtitle="{{ a.subtitle }}"
@@ -183,6 +183,7 @@
 
       <div class="form-group">
         <label class="form-label">Cover image</label>
+        <div class="cp-cover-current" data-cover-current hidden></div>
         <input class="form-input file-input" type="file" id="ann-image" name="image" accept="image/*">
         <span class="form-help" id="ann-image-help">Accepted formats: JPG, PNG, or WEBP.</span>
       </div>
@@ -235,6 +236,8 @@
   </div>
 </div>
 
+<link rel="stylesheet" href="{% static 'css/view-photos.css' %}?v=1">
+<script src="{% static 'js/view-photos.js' %}?v=1" defer></script>
 <div class="modal-backdrop" id="view-ann-modal">
   <div class="modal-box modal-wide">
     <div class="modal-head">

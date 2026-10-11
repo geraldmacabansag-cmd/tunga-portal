@@ -82,6 +82,13 @@
         setExisting(f, list);
         clearNew(f);
       }
+      // the item's current cover image / poster above the file box ("Create" = none)
+      var cov = form && form.querySelector('[data-cover-current]');
+      if (cov) {
+        var url = btn.getAttribute('data-cover') || '';
+        cov.innerHTML = url ? '<img src="' + esc(url) + '" alt=""><span>Current image. Choose a new file only if you want to replace it.</span>' : '';
+        cov.hidden = !url;
+      }
     }
   }, true);   // capture: these buttons stop the click from going further
 
