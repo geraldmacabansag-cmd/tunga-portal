@@ -756,10 +756,40 @@ def contact(request):
         office.card_color = color
         office.card_image = icon_image
 
+    from django.conf import settings as dj_settings
     return render(request, "portal/contactus.html", {
         "offices_for_contact": offices_for_contact,
         "directory_offices": directory_offices,
+        # Google reCAPTCHA "I'm not a robot" (empty = plain checkbox instead)
+        "recaptcha_site_key": dj_settings.RECAPTCHA_SITE_KEY if dj_settings.RECAPTCHA_SECRET_KEY else "",
     })
+
+
+@require_POST
+def contact_verify_captcha(request):
+    """Checks the Contact Us reCAPTCHA answer with Google before the email
+    is opened. Called by the form's script; answers {"ok": true/false}."""
+    from django.conf import settings as dj_settings
+    import requests
+
+    secret = dj_settings.RECAPTCHA_SECRET_KEY
+    if not secret:
+        return JsonResponse({"ok": True})   # reCAPTCHA not set up: nothing to check
+
+    token = request.POST.get("token", "").strip()
+    if not token:
+        return JsonResponse({"ok": False, "error": 'Please tick "I\'m not a robot".'}, status=400)
+    try:
+        answer = requests.post(
+            "https://www.google.com/recaptcha/api/siteverify",
+            data={"secret": secret, "response": token, "remoteip": security.client_ip(request)},
+            timeout=8,
+        ).json()
+    except Exception:
+        return JsonResponse({"ok": False, "error": "Couldn't check the reCAPTCHA right now. Please try again."}, status=502)
+    if answer.get("success"):
+        return JsonResponse({"ok": True})
+    return JsonResponse({"ok": False, "error": 'The "I\'m not a robot" check expired or failed. Please tick it again.'}, status=400)
 
 def signup(request):
     if request.method == "POST":

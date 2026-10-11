@@ -276,3 +276,17 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 60 * 60 * 24 * 30   # browsers remember "HTTPS only" for 30 days
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_REFERRER_POLICY = 'same-origin'
+
+# ---------------------------------------------------------------------------
+# Google reCAPTCHA v2 ("I'm not a robot" checkbox) on Contact Us.
+# Get the two keys free at https://www.google.com/recaptcha/admin (type:
+# "Challenge (v2) → I'm not a robot", domains: your site + 127.0.0.1) and set
+# them on the server as RECAPTCHA_SITE_KEY and RECAPTCHA_SECRET_KEY.
+# On your computer (DEBUG on) Google's public TEST keys are used, which always
+# pass and show a small "for testing purposes only" note.
+# Without keys on the live site, the form falls back to a plain checkbox.
+# ---------------------------------------------------------------------------
+_RECAPTCHA_TEST_SITE_KEY = '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'
+_RECAPTCHA_TEST_SECRET_KEY = '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe'
+RECAPTCHA_SITE_KEY = os.environ.get('RECAPTCHA_SITE_KEY') or (_RECAPTCHA_TEST_SITE_KEY if DEBUG else '')
+RECAPTCHA_SECRET_KEY = os.environ.get('RECAPTCHA_SECRET_KEY') or (_RECAPTCHA_TEST_SECRET_KEY if DEBUG else '')

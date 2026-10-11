@@ -49,7 +49,10 @@ Home | Digital Governance Portal
         </ul>
       </div>
 
-      <form class="contact-form" id="contactForm">
+      <form class="contact-form" id="contactForm"
+            data-captcha-url="{% url 'contact_verify_captcha' %}"
+            data-recaptcha-key="{{ recaptcha_site_key }}">
+        {% csrf_token %}
         <h2 class="section-title">Send Us a Message</h2>
         <select id="contactOffice" required>
           <option value="" disabled selected>Select an office to send your message to *</option>
@@ -75,11 +78,16 @@ Home | Digital Governance Portal
         <textarea id="contactMessage" rows="5" placeholder="Message *" required></textarea>
         <p id="contactFormStatus" class="contact-form__status"></p>
         <div class="contact-form__footer">
+          {% if recaptcha_site_key %}
+          <!-- Google reCAPTCHA v2 "I'm not a robot" (checked with Google on Send) -->
+          <div class="contact-recaptcha"><div class="g-recaptcha" data-sitekey="{{ recaptcha_site_key }}"></div></div>
+          {% else %}
+          <!-- reCAPTCHA keys not set: a plain checkbox instead (see settings.py) -->
           <label class="recaptcha-mock">
             <input type="checkbox" id="contactNotRobot">
             <span>I'm not a robot</span>
-            <small><i class="fa-brands fa-google"></i> reCAPTCHA <br>Privacy &middot; Terms</small>
           </label>
+          {% endif %}
           <button type="submit" class="btn btn-primary"><i class="fa-solid fa-paper-plane"></i> Send Message</button>
         </div>
       </form>
@@ -168,6 +176,7 @@ Home | Digital Governance Portal
   </div>
 </section>
 
+{% if recaptcha_site_key %}<script src="https://www.google.com/recaptcha/api.js" async defer></script>{% endif %}
 <script>
 (function () {
   var form = document.getElementById('contactForm');
@@ -179,6 +188,15 @@ Home | Digital Governance Portal
   var subjectInput = document.getElementById('contactSubject');
   var messageInput = document.getElementById('contactMessage');
   var statusEl = document.getElementById('contactFormStatus');
+  var submitBtn = form.querySelector('button[type="submit"]');
+  var recaptchaOn = !!form.dataset.recaptchaKey;
+
+  // Phones / tablets open the email APP (Gmail's website can't fill in a
+  // new email on a phone — it just shows the inbox). Computers open Gmail
+  // in a new tab.
+  var ua = navigator.userAgent || '';
+  var isIOS = /iPhone|iPad|iPod/i.test(ua) || (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
+  var isPhone = isIOS || /Android|Mobile|Opera Mini|IEMobile|Silk/i.test(ua);
 
   // the "How Can We Help You?" topics fill in the Topic box and jump to the form
   document.querySelectorAll('.help-topic').forEach(function (el) {
@@ -190,38 +208,38 @@ Home | Digital Governance Portal
     });
   });
 
-  form.addEventListener('submit', function (e) {
-    e.preventDefault();
+  function showError(text) {
+    statusEl.textContent = text;
+    statusEl.classList.add('is-error');
+  }
 
-    // The office dropdown's value IS that office's email — set that way so
-    // there's nothing else to look up once one is picked.
-    var officeEmail = officeSelect.value;
-    var officeName = officeSelect.options[officeSelect.selectedIndex]
-      ? officeSelect.options[officeSelect.selectedIndex].getAttribute('data-office-name')
-      : '';
+  function csrfToken() {
+    var el = form.querySelector('input[name="csrfmiddlewaretoken"]');
+    return el ? el.value : '';
+  }
 
-    if (!officeEmail) {
-      statusEl.textContent = 'Please select which office to send your message to.';
-      statusEl.classList.add('is-error');
-      officeSelect.focus();
-      return;
+  // Checks the reCAPTCHA answer with Google (through our server).
+  function checkRobot() {
+    if (!recaptchaOn) {
+      var box = document.getElementById('contactNotRobot');
+      return Promise.resolve(box && box.checked ? null : 'Please tick "I\'m not a robot".');
     }
-    if (!form.reportValidity()) return;
-    if (!document.getElementById('contactNotRobot').checked) {
-      statusEl.textContent = 'Please tick "I\'m not a robot".';
-      statusEl.classList.add('is-error');
-      return;
-    }
+    var token = (window.grecaptcha && grecaptcha.getResponse) ? grecaptcha.getResponse() : '';
+    if (!token) return Promise.resolve('Please tick "I\'m not a robot".');
+    var fd = new FormData();
+    fd.append('token', token);
+    fd.append('csrfmiddlewaretoken', csrfToken());
+    return fetch(form.dataset.captchaUrl, { method: 'POST', body: fd, credentials: 'same-origin' })
+      .then(function (r) { return r.json().catch(function () { return { ok: false }; }); })
+      .then(function (data) { return data.ok ? null : (data.error || 'The "I\'m not a robot" check failed. Please try again.'); })
+      .catch(function () { return 'Couldn\'t check the reCAPTCHA. Please check your internet connection and try again.'; });
+  }
 
-    // Gmail's own compose window is what actually sends the email — this
-    // page only builds the link and hands off to it, the same as clicking
-    // a mailto: link but opening Gmail's web composer specifically instead
-    // of whatever mail app (if any) is set as the system default.
+  function buildEmail(officeEmail, officeName) {
     var phone = document.getElementById('contactPhone').value.trim();
     var topic = document.getElementById('contactTopic').value;
     var now = new Date().toLocaleString('en-PH', { dateStyle: 'long', timeStyle: 'short' });
-
-    var subject = officeName ? '[' + officeName + '] ' + subjectInput.value : subjectInput.value;
+    var subject = officeName ? '[' + officeName + '] ' + subjectInput.value.trim() : subjectInput.value.trim();
     // every detail typed on the website goes into the email
     var body =
       'Good day' + (officeName ? ', ' + officeName : '') + '!\n\n' +
@@ -236,22 +254,103 @@ Home | Digital Governance Portal
       '--- Message ---\n' +
       messageInput.value.trim() + '\n\n' +
       '— Sent from the Municipality of Tunga website (Contact Us)';
+    var q = 'subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+    return {
+      // computer: Gmail's compose window in the browser
+      gmailWeb: 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(officeEmail) +
+                '&su=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body),
+      // iPhone / iPad: the Gmail app
+      gmailIOS: 'googlegmail:///co?to=' + encodeURIComponent(officeEmail) + '&' + q,
+      // any phone: the default email app (on Android that is the Gmail app)
+      mailto: 'mailto:' + encodeURIComponent(officeEmail).replace('%40', '@') + '?' + q
+    };
+  }
 
-    var gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1'
-      + '&to=' + encodeURIComponent(officeEmail)
-      + '&su=' + encodeURIComponent(subject)
-      + '&body=' + encodeURIComponent(body);
+  function openOnPhone(links) {
+    if (isIOS) {
+      // try the Gmail app; if it isn't installed the page is still showing, so use Mail
+      window.location.href = links.gmailIOS;
+      setTimeout(function () {
+        if (document.visibilityState === 'visible') window.location.href = links.mailto;
+      }, 1500);
+    } else {
+      window.location.href = links.mailto;
+    }
+  }
 
-    window.open(gmailUrl, '_blank', 'noopener');
-
-    // Not using Gmail? the same email can open in the phone's / computer's own mail app
-    var mailto = 'mailto:' + officeEmail + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+  function showDone(links, officeName) {
     statusEl.innerHTML = '';
-    statusEl.appendChild(document.createTextNode('Gmail opened in a new tab with your message and details filled in — click Send there to deliver it to ' + (officeName || 'the office') + '. '));
-    var alt = document.createElement('a');
-    alt.href = mailto; alt.textContent = 'Not using Gmail? Open in your email app';
-    statusEl.appendChild(alt);
     statusEl.classList.remove('is-error');
+    var who = officeName || 'the office';
+    statusEl.appendChild(document.createTextNode(isPhone
+      ? 'Your email app opened with your message and details filled in. Tap Send there to deliver it to ' + who + '. Didn\'t open? '
+      : 'Gmail opened in a new tab with your message and details filled in. Click Send there to deliver it to ' + who + '. '));
+    function link(text, href, newTab) {
+      var a = document.createElement('a');
+      a.href = href; a.textContent = text; a.className = 'contact-form__open';
+      if (newTab) { a.target = '_blank'; a.rel = 'noopener'; }
+      statusEl.appendChild(a);
+      statusEl.appendChild(document.createTextNode(' '));
+    }
+    if (isPhone) {
+      if (isIOS) link('Open Gmail app', links.gmailIOS);
+      link(isIOS ? 'Open Mail app' : 'Open in Gmail / email app', links.mailto);
+    } else {
+      link('Open Gmail again', links.gmailWeb, true);
+      link('Not using Gmail? Open in your email app', links.mailto);
+    }
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    // The office dropdown's value IS that office's email.
+    var officeEmail = officeSelect.value;
+    var opt = officeSelect.options[officeSelect.selectedIndex];
+    var officeName = opt ? opt.getAttribute('data-office-name') : '';
+
+    if (!officeEmail) {
+      showError('Please select which office to send your message to.');
+      officeSelect.focus();
+      return;
+    }
+    if (!form.reportValidity()) return;
+    if (recaptchaOn && !(window.grecaptcha && grecaptcha.getResponse && grecaptcha.getResponse())) {
+      showError('Please tick "I\'m not a robot".');
+      return;
+    }
+
+    var links = buildEmail(officeEmail, officeName);
+
+    // On a computer the Gmail tab is opened right away (browsers only allow
+    // new tabs straight after a click) and filled in once the check passes.
+    var tab = null;
+    if (!isPhone) {
+      tab = window.open('', '_blank');
+      if (tab) { try { tab.opener = null; tab.document.title = 'Opening Gmail…'; } catch (err) {} }
+    }
+
+    statusEl.classList.remove('is-error');
+    statusEl.textContent = 'Checking…';
+    submitBtn.disabled = true;
+
+    checkRobot().then(function (problem) {
+      submitBtn.disabled = false;
+      if (recaptchaOn && window.grecaptcha && grecaptcha.reset) grecaptcha.reset();   // one answer = one message
+      if (problem) {
+        if (tab) tab.close();
+        showError(problem);
+        return;
+      }
+      if (isPhone) {
+        openOnPhone(links);
+      } else if (tab) {
+        tab.location.href = links.gmailWeb;
+      } else {
+        window.open(links.gmailWeb, '_blank', 'noopener');   // pop-up blocked the early tab
+      }
+      showDone(links, officeName);
+    });
   });
 })();
 </script>

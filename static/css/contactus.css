@@ -424,3 +424,10 @@
   .contact-form__row { grid-template-columns: 1fr; }
 }
 .contact-form__status a { color: var(--navy, #0a2f6e); font-weight: 700; text-decoration: underline; }
+/* Google reCAPTCHA "I'm not a robot" box; shrinks a little on very small phones */
+.contact-recaptcha { min-height: 78px; }
+@media (max-width: 380px) {
+  .contact-recaptcha { transform: scale(.88); transform-origin: left top; height: 70px; }
+}
+/* links under the form after sending ("Open Gmail again", "Open in email app") */
+.contact-form__open { display: inline-block; margin: 6px 10px 0 0; font-weight: 600; }

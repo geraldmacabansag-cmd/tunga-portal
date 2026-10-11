@@ -14,6 +14,7 @@ urlpatterns = [
     path('about/', views.about, name='about'),
     path('history/', views.history, name='history'),
     path('contact/', views.contact, name='contact'),
+    path('contact/verify-captcha/', views.contact_verify_captcha, name='contact_verify_captcha'),
     path('tunga-map/', views.tunga_map_page, name='tunga_map'),
     path('robots.txt', views.robots_txt, name='robots_txt'),
     path('sitemap.xml', views.sitemap_xml, name='sitemap_xml'),
