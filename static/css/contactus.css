@@ -413,3 +413,14 @@
     padding: 22px 18px;
   }
 }
+
+/* Phones: a taller "Our Location" map, so the list sheet and the map both fit */
+@media (max-width: 600px) {
+  .loc-tmap .tmap { --tmap-height: min(78vh, 600px) !important; min-height: 500px; }
+}
+
+/* Phones: the two-box rows of the message form stack */
+@media (max-width: 600px) {
+  .contact-form__row { grid-template-columns: 1fr; }
+}
+.contact-form__status a { color: var(--navy, #0a2f6e); font-weight: 700; text-decoration: underline; }

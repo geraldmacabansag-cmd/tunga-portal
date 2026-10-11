@@ -26,6 +26,12 @@
 </head>
 
 <body>
+  {% if site_contact.maintenance_active %}{% if is_super_admin or user.is_staff or user.office_rep %}
+  <div style="background:#f4c531;color:#3b2a00;text-align:center;padding:7px 12px;font-size:.85rem;font-weight:700;">
+    Maintenance mode is ON — visitors see the maintenance page, only staff can see the website.
+    {% if is_super_admin %}<a href="{% url 'admin_dashboard:ad_web_setting' %}#maintenance" style="color:inherit;text-decoration:underline;">Turn it off</a>{% endif %}
+  </div>
+  {% endif %}{% endif %}
 
   <header class="top-bar">
   <div class="container">

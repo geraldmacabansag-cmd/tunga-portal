@@ -46,8 +46,8 @@
     /* Phones: the panel is a sheet at the bottom of the map */
     @media (max-width: 760px) {
       .content .tmap { min-height: 460px; border-radius: 12px; }
-      .content .tmap .tm-panel { max-height: 55%; }
-      .content .tmap .tm-panel.open { max-height: 92%; }
+      /* the list sheet is short on phones: the edit buttons scroll with the list */
+      .content .tmap .tm-admin-bar { position: static; box-shadow: none; }
       .content .tmap .tm-grab { position: sticky; top: 0; z-index: 3; background: var(--tmap-panel); }
       .content .tmap .tm-results-head { top: 22px; }   /* below the grab handle */
     }

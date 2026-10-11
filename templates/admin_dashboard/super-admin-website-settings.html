@@ -273,35 +273,53 @@
 
           <!-- ============ MAINTENANCE ============ -->
           <div class="settings-section" id="section-maintenance" style="display:none;">
-            <div class="form-group">
-              <label class="form-label" style="display:flex;align-items:center;gap:8px;font-weight:600;">
-                <input type="checkbox" id="maintenanceMode" onchange="toggleMaintenanceWarning()" style="width:16px;height:16px;">
-                Enable maintenance mode
-              </label>
-              <span class="form-help">While enabled, visitors will see the maintenance message below instead of the website. Admin panel access is not affected.</span>
-            </div>
-
-            <div id="maintenanceWarning" class="reminder-box" style="display:none;">
-              <i class="fa-solid fa-triangle-exclamation ic"></i>
-              <div>
-                <strong>Maintenance mode is currently OFF</strong>
-                <p>Turning this on will take the public website offline for all visitors until you turn it off again.</p>
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="section" value="maintenance">
+              <div class="form-group">
+                <label class="form-label" style="display:flex;align-items:center;gap:8px;font-weight:600;">
+                  <input type="checkbox" id="maintenanceMode" name="maintenance_mode" onchange="toggleMaintenanceWarning()" style="width:16px;height:16px;" {% if info.maintenance_mode %}checked{% endif %}>
+                  Enable maintenance mode
+                </label>
+                <span class="form-help">While enabled, visitors see the maintenance message below instead of the website. You, the office representatives and the dashboards are not affected — you can still sign in and use everything.</span>
               </div>
-            </div>
 
-            <div class="form-group">
-              <label class="form-label">Maintenance message</label>
-              <textarea class="form-input form-textarea" id="maintenanceMessage" style="min-height:90px;">We're currently performing scheduled maintenance on our website. Please check back shortly. For urgent concerns, contact the Municipal Hall at (053) 555-0123.</textarea>
-            </div>
+              <div id="maintenanceWarning" class="reminder-box{% if not info.maintenance_mode %} is-hidden{% endif %}">
+                <i class="fa-solid fa-triangle-exclamation ic"></i>
+                <div>
+                  <strong>{% if info.maintenance_active %}Maintenance mode is currently ON{% elif info.maintenance_mode %}Maintenance mode ended{% else %}Maintenance mode is currently OFF{% endif %}</strong>
+                  <p>{% if info.maintenance_active %}The public website is showing the maintenance message below to all visitors right now.{% elif info.maintenance_mode %}The "back online" time has passed, so the website is open to visitors again.{% else %}Turning this on will take the public website offline for all visitors until you turn it off again.{% endif %}</p>
+                </div>
+              </div>
 
-            <div class="form-group">
+              <div class="form-group">
+                <label class="form-label" for="maintenanceMessage">Maintenance message</label>
+                <textarea class="form-input form-textarea" id="maintenanceMessage" name="maintenance_message" maxlength="1000" style="min-height:90px;">{{ info.maintenance_message|default:info.DEFAULT_MAINTENANCE_MESSAGE }}</textarea>
+                <span class="form-help">The website's phone, email and address (General tab) are shown under the message.</span>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="maintenanceUntil">Back online at (optional)</label>
+                <input class="form-input" type="datetime-local" id="maintenanceUntil" name="maintenance_until" value="{% if info.maintenance_until %}{{ info.maintenance_until|date:'Y-m-d\TH:i' }}{% endif %}" style="max-width:280px;">
+                <span class="form-help">Shown to visitors as "Expected back". At this time the website opens again by itself. Leave empty to keep it in maintenance until you turn it off.</span>
+              </div>
+
+              <div class="modal-actions" style="justify-content:flex-start;border-top:none;padding-top:4px;flex-wrap:wrap;">
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Maintenance Settings</button>
+                <a class="btn btn-secondary" href="{% url 'home' %}?maintenance_preview=1" target="_blank" rel="noopener"><i class="fa-regular fa-eye"></i> Preview maintenance page</a>
+              </div>
+            </form>
+
+            <form method="post" class="form-group" style="margin-top:22px;">
+              {% csrf_token %}
+              <input type="hidden" name="section" value="cache">
               <label class="form-label">Website cache</label>
               <div class="footer-note" style="margin-top:0;">
                 <i class="fa-solid fa-circle-info" style="margin-right:6px;"></i>
                 Clearing the cache can help resolve outdated content showing on the public site after an update.
               </div>
-              <button type="button" class="btn btn-secondary" style="margin-top:12px;" onclick="clearCache()"><i class="fa-solid fa-broom"></i> Clear Website Cache</button>
-            </div>
+              <button type="submit" class="btn btn-secondary" style="margin-top:12px;"><i class="fa-solid fa-broom"></i> Clear Website Cache</button>
+            </form>
           </div>
 
         </div>
@@ -323,6 +341,12 @@
     document.querySelectorAll('.settings-section').forEach(function(sec){
       sec.style.display = (sec.id === 'section-' + name) ? 'block' : 'none';
     });
+    // small screens: slide the tab row so the chosen tab is fully visible
+    var bar = document.querySelector('.subtabs'), on = bar && bar.querySelector('.subtab.active');
+    if (bar && on && bar.scrollWidth > bar.clientWidth) {
+      var left = on.offsetLeft - bar.offsetLeft;
+      if (left < bar.scrollLeft || left + on.offsetWidth > bar.scrollLeft + bar.clientWidth) bar.scrollLeft = left - 16;
+    }
   }
 
   document.querySelectorAll('.subtabs .subtab').forEach(function(tabEl){
@@ -337,16 +361,13 @@
   function toggleMaintenanceWarning(){
     var on = document.getElementById('maintenanceMode').checked;
     var box = document.getElementById('maintenanceWarning');
-    box.style.display = on ? 'flex' : 'none';
+    box.classList.toggle('is-hidden', !on);
     box.querySelector('strong').textContent = on ? 'Maintenance mode is currently ON' : 'Maintenance mode is currently OFF';
     box.querySelector('p').textContent = on
       ? 'The public website is showing the maintenance message below to all visitors right now.'
       : 'Turning this on will take the public website offline for all visitors until you turn it off again.';
   }
 
-  function clearCache(){
-    showToast('Website cache cleared.');
-  }
 
   function saveSettings(){
     showToast('Website settings saved.');

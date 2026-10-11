@@ -48,6 +48,13 @@ class SiteContactInfo(models.Model):
     map_place_name = models.CharField(max_length=120, blank=True, default="Municipal Hall of Tunga")
     map_latitude = models.FloatField(null=True, blank=True)
     map_longitude = models.FloatField(null=True, blank=True)
+    # Website Settings → Maintenance: while on, visitors see the maintenance
+    # page instead of the website (staff can still use everything).
+    DEFAULT_MAINTENANCE_MESSAGE = ("We're currently performing scheduled maintenance on our website. "
+                                   "Please check back shortly. For urgent concerns, please contact the Municipal Hall.")
+    maintenance_mode = models.BooleanField(default=False)
+    maintenance_message = models.TextField(blank=True, default=DEFAULT_MAINTENANCE_MESSAGE)
+    maintenance_until = models.DateTimeField(null=True, blank=True)   # turns itself off at this time
     social_facebook = models.URLField(blank=True)
     social_twitter = models.URLField(blank=True)
     social_instagram = models.URLField(blank=True)
@@ -72,6 +79,16 @@ class SiteContactInfo(models.Model):
     @property
     def map_lng(self):
         return self.map_longitude if self.map_longitude is not None else self.DEFAULT_MAP_LNG
+
+    @property
+    def maintenance_active(self):
+        """On, and the "back online at" time (if any) hasn't passed yet."""
+        if not self.maintenance_mode:
+            return False
+        if self.maintenance_until:
+            from django.utils import timezone
+            return timezone.now() < self.maintenance_until
+        return True
 
     @property
     def ticker_interval_unit(self):

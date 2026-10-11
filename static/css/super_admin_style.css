@@ -2253,3 +2253,15 @@ input[type="date"].form-input::-webkit-calendar-picker-indicator:hover {
   .bk-row__actions{flex-basis:100%;padding-left:52px;}
   .bk-summary{columns:1;}
 }
+
+/* Sub-tabs (Website Settings, About Us page): swipe sideways on small screens */
+.subtabs{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none;scroll-behavior:smooth;}
+.subtabs::-webkit-scrollbar{display:none;}
+.subtab{flex-shrink:0;white-space:nowrap;cursor:pointer;}
+@media (max-width:600px){
+  .subtabs{gap:16px;padding:0 14px;}
+  .subtab{font-size:13px;}
+}
+
+/* Website Settings → Maintenance: the ON/OFF reminder is hidden while maintenance is off */
+.reminder-box.is-hidden{display:none;}

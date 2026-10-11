@@ -1,0 +1,52 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>Under maintenance | Municipality of Tunga</title>
+  <link rel="icon" href="{% if info.logo %}{{ info.logo.url }}{% else %}{% static 'images/tunga_leyte_logo.png' %}{% endif %}">
+  <style>
+    :root { --navy: #0a2f6e; --gold: #f4c531; --ink: #1f2937; --muted: #6b7280; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif; color: var(--ink);
+      background: linear-gradient(160deg, #0a2f6e 0%, #12408f 55%, #1d5bb8 100%);
+      display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 24px 14px;
+    }
+    .mt-card { background: #fff; border-radius: 20px; max-width: 560px; width: 100%; padding: 34px 30px; text-align: center; box-shadow: 0 24px 60px rgba(0,0,0,.25); }
+    .mt-logo { width: 84px; height: 84px; object-fit: contain; border-radius: 50%; }
+    .mt-eyebrow { margin: 14px 0 0; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+    h1 { margin: 6px 0 4px; font-size: 1.7rem; color: var(--navy); }
+    .mt-bar { width: 56px; height: 4px; background: var(--gold); border-radius: 4px; margin: 12px auto 18px; }
+    .mt-msg { font-size: 1rem; line-height: 1.65; white-space: pre-line; margin: 0; }
+    .mt-until { margin: 18px auto 0; display: inline-block; background: #eef4ff; color: var(--navy); border-radius: 999px; padding: 8px 16px; font-weight: 700; font-size: .92rem; }
+    .mt-contact { margin-top: 22px; padding-top: 18px; border-top: 1px solid #eef0f3; font-size: .9rem; color: var(--muted); line-height: 1.8; }
+    .mt-contact a { color: var(--navy); font-weight: 600; text-decoration: none; }
+    .mt-staff { display: inline-block; margin-top: 18px; font-size: .82rem; color: var(--muted); }
+    .mt-preview { position: fixed; top: 0; left: 0; right: 0; background: var(--gold); color: #3b2a00; text-align: center; padding: 8px 12px; font-weight: 700; font-size: .88rem; }
+    .mt-preview a { color: inherit; }
+    @media (max-width: 480px) { .mt-card { padding: 26px 18px; } h1 { font-size: 1.4rem; } }
+  </style>
+</head>
+<body>
+  {% if preview %}<div class="mt-preview">Preview — this is what visitors see while maintenance mode is on. <a href="{% url 'admin_dashboard:ad_web_setting' %}#maintenance">Back to Website Settings</a></div>{% endif %}
+  <main class="mt-card">
+    <img class="mt-logo" src="{% if info.logo %}{{ info.logo.url }}{% else %}{% static 'images/tunga_leyte_logo.png' %}{% endif %}" alt="Municipality of Tunga logo">
+    <p class="mt-eyebrow">Municipality of Tunga, Leyte</p>
+    <h1>We'll be back soon</h1>
+    <div class="mt-bar"></div>
+    <p class="mt-msg">{{ info.maintenance_message|default:info.DEFAULT_MAINTENANCE_MESSAGE }}</p>
+    {% if info.maintenance_until %}<div class="mt-until">Expected back: {{ info.maintenance_until|date:"F j, Y · g:i A" }}</div>{% endif %}
+    {% if info.phone or info.email or info.address %}
+    <div class="mt-contact">
+      {% if info.phone %}Phone: <a href="tel:{{ info.phone }}">{{ info.phone }}</a>{% if info.phone_local %} ({{ info.phone_local }}){% endif %}<br>{% endif %}
+      {% if info.email %}Email: <a href="mailto:{{ info.email }}">{{ info.email }}</a><br>{% endif %}
+      {% if info.address %}{{ info.address }}{% endif %}
+    </div>
+    {% endif %}
+    <a class="mt-staff" href="{% url 'login' %}">Staff sign in</a>
+  </main>
+</body>
+</html>

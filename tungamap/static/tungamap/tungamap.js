@@ -93,6 +93,7 @@
       onAdd() {
         const d = L.DomUtil.create("div", "leaflet-bar tm-tools");
         d.innerHTML =
+          '<a href="#" role="button" data-tool="more" class="tm-more" title="Map tools" aria-label="Show or hide the map tools" aria-expanded="false"><i class="fa-solid fa-layer-group"></i></a>' +
           '<a href="#" role="button" data-tool="names" title="Show / hide building names" aria-label="Show or hide building names"><i class="fa-solid fa-font"></i></a>' +
           '<a href="#" role="button" data-tool="base" title="Satellite view" aria-label="Switch between map and satellite view"><i class="fa-solid fa-satellite"></i></a>' +
           '<a href="#" role="button" data-tool="locate" title="Show my location" aria-label="Show my location"><i class="fa-solid fa-location-crosshairs"></i></a>' +
@@ -108,6 +109,7 @@
       },
     });
     map.addControl(new Tools());
+    map.on("click", () => root.querySelector(".tm-tools")?.classList.remove("expanded"));
 
     // Compass (top right): the needle always points north. Click it to face north
     // again; ⟲ ⟳ turn the map. Also: two-finger twist on phones, Shift + mouse wheel.
@@ -150,6 +152,11 @@
       if (q("base")) { q("base").classList.toggle("on", sat); q("base").title = sat ? "Map view" : "Satellite view"; q("base").innerHTML = `<i class="fa-solid ${sat ? "fa-map" : "fa-satellite"}"></i>`; }
     }
     function tool(name) {
+      if (name === "more") {   // phones: the tools fold into one button
+        const box = root.querySelector(".tm-tools"), open = box.classList.toggle("expanded");
+        box.querySelector(".tm-more").setAttribute("aria-expanded", open);
+        return;
+      }
       if (name === "names") { showNames = !showNames; store.set("tmap-names", showNames ? "1" : "0"); toast(showNames ? "Building names shown" : "Building names hidden"); }
       if (name === "base") {
         map.removeLayer(baseLayer);
@@ -397,7 +404,7 @@
     const topLeft = document.createElement("div");
     topLeft.className = "tm-tl";
     root.querySelector(".tm-mapwrap").appendChild(topLeft);
-    if (!COMPACT) {
+    {
       const hideBtn = document.createElement("button");
       hideBtn.type = "button"; hideBtn.className = "tm-hide-panel";
       hideBtn.title = "Hide the list"; hideBtn.setAttribute("aria-label", "Hide the list");
@@ -407,14 +414,17 @@
       showBtn.type = "button"; showBtn.className = "tm-show-panel";
       showBtn.innerHTML = '<i class="fa-solid fa-bars"></i> <span>Show list</span>';
       topLeft.appendChild(showBtn);
-      const setHidden = (hide) => {
+      const isPhone = () => window.matchMedia("(max-width: 760px)").matches;
+      const setHidden = (hide, remember = true) => {
         root.classList.toggle("tm-panel-hidden", hide);
-        store.set("tmap-panel-hidden", hide ? "1" : "0");
+        if (hide) root.querySelector(".tm-panel").classList.remove("open");
+        // remembered on computers only; on phones the list comes back next visit
+        if (remember && !isPhone() && !COMPACT) store.set("tmap-panel-hidden", hide ? "1" : "0");
         setTimeout(() => map.invalidateSize(), 30);
       };
       hideBtn.addEventListener("click", () => setHidden(true));
       showBtn.addEventListener("click", () => setHidden(false));
-      if (store.get("tmap-panel-hidden", "0") === "1") setHidden(true);
+      if (!COMPACT && !isPhone() && store.get("tmap-panel-hidden", "0") === "1") setHidden(true, false);
     }
     root._tmap = map;
     root.dispatchEvent(new CustomEvent("tmap:ready", { detail: { map } }));

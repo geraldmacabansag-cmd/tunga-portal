@@ -2289,6 +2289,30 @@ def admin_web_setting(request):
                 info.news_slider_seconds = max(3, min(news_secs, 120))
             info.save()
             messages.success(request, "Appearance settings were updated.")
+        elif section == 'maintenance':
+            from datetime import datetime
+            info.maintenance_mode = request.POST.get('maintenance_mode') == 'on'
+            info.maintenance_message = request.POST.get('maintenance_message', '').strip()[:1000] or SiteContactInfo.DEFAULT_MAINTENANCE_MESSAGE
+            until = request.POST.get('maintenance_until', '').strip()
+            info.maintenance_until = None
+            if until:
+                try:
+                    when = timezone.make_aware(datetime.fromisoformat(until))
+                    if info.maintenance_mode and when <= timezone.now():
+                        messages.error(request, 'The "back online" time is already past, so it was not saved.')
+                    else:
+                        info.maintenance_until = when
+                except ValueError:
+                    messages.error(request, 'The "back online" time could not be read, so it was not saved.')
+            info.save()
+            if info.maintenance_active:
+                messages.success(request, "Maintenance mode was turned on. Visitors now see the maintenance page.")
+            else:
+                messages.success(request, "Maintenance mode is off. The website is open to visitors.")
+        elif section == 'cache':
+            from django.core.cache import cache
+            cache.clear()
+            messages.success(request, "Website cache was cleared.")
         elif section == 'social':
             info.social_facebook = request.POST.get('social_facebook', '').strip()
             info.social_twitter = request.POST.get('social_twitter', '').strip()

@@ -61,12 +61,22 @@ Home | Digital Governance Portal
           <input type="text" id="contactName" placeholder="Your Name *" required>
           <input type="email" id="contactEmail" placeholder="Your Email *" required>
         </div>
+        <div class="contact-form__row">
+          <input type="tel" id="contactPhone" maxlength="30" placeholder="Mobile Number (optional)">
+          <select id="contactTopic">
+            <option value="">Topic (optional)</option>
+            <option>General Inquiry</option>
+            <option>Feedback / Suggestion</option>
+            <option>Request Information</option>
+            <option>Report a Concern</option>
+          </select>
+        </div>
         <input type="text" id="contactSubject" placeholder="Subject *" required>
         <textarea id="contactMessage" rows="5" placeholder="Message *" required></textarea>
         <p id="contactFormStatus" class="contact-form__status"></p>
         <div class="contact-form__footer">
           <label class="recaptcha-mock">
-            <input type="checkbox">
+            <input type="checkbox" id="contactNotRobot">
             <span>I'm not a robot</span>
             <small><i class="fa-brands fa-google"></i> reCAPTCHA <br>Privacy &middot; Terms</small>
           </label>
@@ -170,6 +180,16 @@ Home | Digital Governance Portal
   var messageInput = document.getElementById('contactMessage');
   var statusEl = document.getElementById('contactFormStatus');
 
+  // the "How Can We Help You?" topics fill in the Topic box and jump to the form
+  document.querySelectorAll('.help-topic').forEach(function (el) {
+    el.style.cursor = 'pointer';
+    el.addEventListener('click', function () {
+      var sel = document.getElementById('contactTopic'), name = el.textContent.trim();
+      for (var i = 0; i < sel.options.length; i++) if (sel.options[i].text === name) sel.selectedIndex = i;
+      form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+
   form.addEventListener('submit', function (e) {
     e.preventDefault();
 
@@ -187,16 +207,35 @@ Home | Digital Governance Portal
       return;
     }
     if (!form.reportValidity()) return;
+    if (!document.getElementById('contactNotRobot').checked) {
+      statusEl.textContent = 'Please tick "I\'m not a robot".';
+      statusEl.classList.add('is-error');
+      return;
+    }
 
     // Gmail's own compose window is what actually sends the email — this
     // page only builds the link and hands off to it, the same as clicking
     // a mailto: link but opening Gmail's web composer specifically instead
     // of whatever mail app (if any) is set as the system default.
+    var phone = document.getElementById('contactPhone').value.trim();
+    var topic = document.getElementById('contactTopic').value;
+    var now = new Date().toLocaleString('en-PH', { dateStyle: 'long', timeStyle: 'short' });
+
     var subject = officeName ? '[' + officeName + '] ' + subjectInput.value : subjectInput.value;
+    // every detail typed on the website goes into the email
     var body =
-      'Name: ' + nameInput.value + '\n' +
-      'Email: ' + emailInput.value + '\n\n' +
-      messageInput.value;
+      'Good day' + (officeName ? ', ' + officeName : '') + '!\n\n' +
+      '--- Message details ---\n' +
+      'To office: ' + (officeName || '') + '\n' +
+      'Name: ' + nameInput.value.trim() + '\n' +
+      'Email: ' + emailInput.value.trim() + '\n' +
+      'Mobile number: ' + (phone || '—') + '\n' +
+      'Topic: ' + (topic || '—') + '\n' +
+      'Subject: ' + subjectInput.value.trim() + '\n' +
+      'Date: ' + now + '\n\n' +
+      '--- Message ---\n' +
+      messageInput.value.trim() + '\n\n' +
+      '— Sent from the Municipality of Tunga website (Contact Us)';
 
     var gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1'
       + '&to=' + encodeURIComponent(officeEmail)
@@ -205,7 +244,13 @@ Home | Digital Governance Portal
 
     window.open(gmailUrl, '_blank', 'noopener');
 
-    statusEl.textContent = 'Opening Gmail in a new tab — send it from there to complete your message to ' + (officeName || 'the office') + '.';
+    // Not using Gmail? the same email can open in the phone's / computer's own mail app
+    var mailto = 'mailto:' + officeEmail + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+    statusEl.innerHTML = '';
+    statusEl.appendChild(document.createTextNode('Gmail opened in a new tab with your message and details filled in — click Send there to deliver it to ' + (officeName || 'the office') + '. '));
+    var alt = document.createElement('a');
+    alt.href = mailto; alt.textContent = 'Not using Gmail? Open in your email app';
+    statusEl.appendChild(alt);
     statusEl.classList.remove('is-error');
   });
 })();

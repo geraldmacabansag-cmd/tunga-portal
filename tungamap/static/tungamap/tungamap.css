@@ -288,6 +288,37 @@
   .tmap.tm-panel-hidden .tm-panel { display: none; }
   .tmap.tm-panel-hidden .tm-show-panel { display: inline-flex !important; }
 }
+
+/* ---------- small screens: map size, list sheet, right-hand buttons ---------- */
+.tmap .tm-more { display: none !important; }
+@media (min-width: 761px) {
+  .tmap.tm-compact .tm-hide-panel { display: none; }      /* compact: the drawer has its own Close */
+}
 @media (max-width: 760px) {
-  .tmap .tm-hide-panel { display: none; }   /* phones: the list is the bottom sheet */
+  /* the list (bottom sheet) can be closed with ✕ and opened again with "Show list" */
+  .tmap.tm-panel-hidden .tm-panel { display: none; }
+  .tmap.tm-panel-hidden .tm-show-panel { display: inline-flex !important; }
+  .tmap .tm-brand { padding-right: 52px; }
+  .tmap .tm-hide-panel { position: absolute; top: 0; right: 14px; }
+  .tmap .tm-panel { max-height: 45%; }
+  .tmap .tm-panel.open { max-height: 88%; }
+
+  /* right-hand buttons: zoom with your fingers; the tools fold into one button */
+  .tmap .leaflet-control-zoom { display: none; }
+  .tmap .leaflet-top.leaflet-right .leaflet-control { margin: 10px 10px 0 0; }
+  .tmap .tm-tools a, .tmap .tm-compass a { width: 36px; height: 36px; font-size: 15px; }
+  .tmap .tm-tools .tm-more { display: grid !important; }
+  .tmap .tm-tools:not(.expanded) a:not(.tm-more) { display: none; }
+  .tmap .tm-tools.expanded .tm-more { background: var(--tmap-chip); color: var(--tmap-accent); }
+  .tmap .tm-compass [data-rot="-15"], .tmap .tm-compass [data-rot="15"] { display: none; }   /* twist with two fingers */
+  .tmap .tm-compass .tm-needle-btn { height: 36px; }
+
+  /* keep the map credits and scale above the list sheet */
+  .tmap .leaflet-bottom { bottom: 45%; transition: bottom .25s ease; }
+  .tmap .tm-panel.open ~ .tm-mapwrap .leaflet-bottom { bottom: 88%; }
+  .tmap.tm-panel-hidden .leaflet-bottom, .tmap.tm-picking .leaflet-bottom, .tmap.lgu-editing .leaflet-bottom { bottom: 0; }
+  .tmap .leaflet-control-attribution { font-size: 10px; }
+
+  .tmap .tm-tl > * { padding: 8px 13px; font-size: 12.5px; }
+  .tmap .leaflet-popup-content { min-width: 0; max-width: 66vw; }
 }
