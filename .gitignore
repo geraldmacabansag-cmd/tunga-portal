@@ -3,3 +3,9 @@ __pycache__/
 *.pyc
 .env
 private_backups/
+
+# Never upload these to GitHub: they hold real user data and passwords.
+db.sqlite3
+db.sqlite3-journal
+media/
+*.env
