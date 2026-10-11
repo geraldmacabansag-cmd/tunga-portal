@@ -557,3 +557,12 @@
 }
 .history-more__title { margin: 0 0 .5rem; font-size: 1.1rem; }
 .history-more__body p { margin: 0 0 .75rem; line-height: 1.6; }
+
+/* Phones: less space inside the white cards, so the text gets more room */
+@media (max-width: 600px) {
+  .vmv-panel,
+  .history-panel,
+  .officials-panel {
+    padding: 22px 18px;
+  }
+}

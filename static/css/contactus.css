@@ -403,3 +403,13 @@
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* Phones: less space inside the white cards, so the text gets more room */
+@media (max-width: 600px) {
+  .contact-top,
+  .directory-panel,
+  .location-panel,
+  .contact-bottom {
+    padding: 22px 18px;
+  }
+}

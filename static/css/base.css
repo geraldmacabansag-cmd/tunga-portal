@@ -70,7 +70,8 @@ button {
 /* Page width: the public pages use the whole screen with only a small
    margin on the left and right (--page-gutter; smaller on phones). */
 :root { --page-gutter: 50px; }
-@media (max-width: 600px) { :root { --page-gutter: 44px; } }
+@media (max-width: 900px) { :root { --page-gutter: 24px; } }   /* tablets */
+@media (max-width: 600px) { :root { --page-gutter: 14px; } }   /* phones */
 
 .container {
   max-width: none;

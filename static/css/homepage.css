@@ -909,3 +909,10 @@
   .services-strip .service-link,
   .services-strip .service-link + .service-link { flex-basis: 86px; font-size: 0.72rem; }
 }
+
+/* Phones: less space inside the white cards, so the text gets more room */
+@media (max-width: 600px) {
+  .hero__card {
+    padding: 22px 18px;
+  }
+}

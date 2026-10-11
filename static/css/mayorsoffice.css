@@ -383,3 +383,11 @@
     font-size: 0.75rem;
   }
 }
+
+/* Phones: less space inside the white cards, so the text gets more room */
+@media (max-width: 600px) {
+  .services-offered-panel,
+  .about-office-panel {
+    padding: 22px 18px;
+  }
+}
