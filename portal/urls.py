@@ -15,6 +15,8 @@ urlpatterns = [
     path('history/', views.history, name='history'),
     path('contact/', views.contact, name='contact'),
     path('tunga-map/', views.tunga_map_page, name='tunga_map'),
+    path('robots.txt', views.robots_txt, name='robots_txt'),
+    path('sitemap.xml', views.sitemap_xml, name='sitemap_xml'),
 
     path('login/', views.login, name='login'),
     path('signup/', views.signup, name='signup'),

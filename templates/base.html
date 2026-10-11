@@ -1,10 +1,25 @@
-{% load static %}
+{% load static seo_tags %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Municipality of Tunga {% endblock %}</title>
+
+    {# Website Settings → SEO: how the site appears in Google and in shared links #}
+    {% seo_image_url as share_img %}{% page_url as this_url %}
+    <meta name="description" content="{% block meta_description %}{{ site_contact.seo_description_text }}{% endblock %}">
+    {% if not site_contact.allow_indexing %}<meta name="robots" content="noindex, nofollow">{% endif %}
+    {% if site_contact.search_console_code %}<meta name="google-site-verification" content="{{ site_contact.search_console_code }}">{% endif %}
+    <link rel="canonical" href="{{ this_url }}">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Municipality of Tunga, Leyte">
+    <meta property="og:title" content="{% block og_title %}{{ site_contact.seo_title_text }}{% endblock %}">
+    <meta property="og:description" content="{{ site_contact.seo_description_text }}">
+    <meta property="og:url" content="{{ this_url }}">
+    <meta property="og:image" content="{{ share_img }}">
+    <meta property="og:locale" content="en_PH">
+    <meta name="twitter:card" content="summary_large_image">
 
     <link rel="stylesheet" href="{% static 'css/base.css' %}">
     <link rel="stylesheet" href="{% static 'css/homepage.css' %}">

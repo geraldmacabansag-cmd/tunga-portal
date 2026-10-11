@@ -14,7 +14,7 @@ ALWAYS_OPEN = (
     "/super-admin/", "/office-dashboard/", "/admin/", "/static/", "/media/",
     "/login/", "/logout/", "/signup/", "/accounts/", "/forgot-password/",
     "/send-reset-otp/", "/send-signup-otp/", "/google-login-start/", "/google-signup-start/",
-    "/map/api/", "/favicon.ico", "/robots.txt",
+    "/map/api/", "/favicon.ico", "/robots.txt", "/sitemap.xml",
 )
 
 

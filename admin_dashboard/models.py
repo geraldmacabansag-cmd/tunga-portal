@@ -55,6 +55,16 @@ class SiteContactInfo(models.Model):
     maintenance_mode = models.BooleanField(default=False)
     maintenance_message = models.TextField(blank=True, default=DEFAULT_MAINTENANCE_MESSAGE)
     maintenance_until = models.DateTimeField(null=True, blank=True)   # turns itself off at this time
+
+    # Website Settings → SEO: how the website shows up in Google and when a
+    # link is shared on Facebook / Messenger.
+    DEFAULT_SEO_TITLE = "Municipality of Tunga, Leyte — Official Website"
+    DEFAULT_SEO_DESCRIPTION = "Official website of the LGU of Tunga, Leyte: announcements, news, events, downloadable forms and contact details of all municipal offices."
+    seo_title = models.CharField(max_length=70, blank=True, default=DEFAULT_SEO_TITLE)
+    seo_description = models.CharField(max_length=300, blank=True, default=DEFAULT_SEO_DESCRIPTION)
+    share_image = models.ImageField(upload_to="site/", blank=True, null=True)   # Facebook / Messenger preview picture
+    search_console_code = models.CharField(max_length=120, blank=True)       # Google Search Console verification
+    allow_indexing = models.BooleanField(default=True)                         # off = hide the site from Google
     social_facebook = models.URLField(blank=True)
     social_twitter = models.URLField(blank=True)
     social_instagram = models.URLField(blank=True)
@@ -79,6 +89,14 @@ class SiteContactInfo(models.Model):
     @property
     def map_lng(self):
         return self.map_longitude if self.map_longitude is not None else self.DEFAULT_MAP_LNG
+
+    @property
+    def seo_title_text(self):
+        return self.seo_title or self.DEFAULT_SEO_TITLE
+
+    @property
+    def seo_description_text(self):
+        return self.seo_description or self.DEFAULT_SEO_DESCRIPTION
 
     @property
     def maintenance_active(self):

@@ -1123,3 +1123,60 @@ def tunga_map_page(request):
     """The full-page Tunga Map for the public ("View larger map" on Contact Us):
     the places the Super Admin added on the Interactive Map, view only."""
     return render(request, "portal/tunga_map.html")
+
+
+# ---------------------------------------------------------------------------
+# For Google (Website Settings → SEO): robots.txt and sitemap.xml
+# ---------------------------------------------------------------------------
+def _site_root(request):
+    from django.conf import settings as dj_settings
+    root = request.build_absolute_uri("/").rstrip("/")
+    if not dj_settings.DEBUG and root.startswith("http://"):
+        root = "https://" + root[len("http://"):]
+    return root
+
+
+def robots_txt(request):
+    from django.http import HttpResponse
+    from admin_dashboard.models import SiteContactInfo
+    info = SiteContactInfo.get_solo()
+    if not info.allow_indexing:
+        lines = ["User-agent: *", "Disallow: /"]
+    else:
+        lines = [
+            "User-agent: *",
+            "Disallow: /super-admin/",
+            "Disallow: /office-dashboard/",
+            "Disallow: /admin/",
+            "Disallow: /accounts/",
+            "Disallow: /account/",
+            "Disallow: /search/",
+            "",
+            f"Sitemap: {_site_root(request)}{reverse('sitemap_xml')}",
+        ]
+    return HttpResponse("\n".join(lines) + "\n", content_type="text/plain")
+
+
+def sitemap_xml(request):
+    """Every public page, so Google finds new content faster."""
+    from django.http import HttpResponse
+    from django.utils.html import escape
+    root = _site_root(request)
+    pages = [
+        (reverse("home"), "daily", "1.0"),
+        (reverse("announcement"), "daily", "0.9"),
+        (reverse("offices"), "weekly", "0.8"),
+        (reverse("gallery"), "weekly", "0.6"),
+        (reverse("about"), "monthly", "0.6"),
+        (reverse("history"), "monthly", "0.5"),
+        (reverse("contact"), "monthly", "0.7"),
+        (reverse("tunga_map"), "weekly", "0.5"),
+    ]
+    for office in Office.objects.exclude(slug="lgu-super-admin").filter(is_visible=True).order_by("display_order", "name"):
+        pages.append((reverse("offices:office_detail", args=[office.slug]), "weekly", "0.7"))
+    rows = "".join(
+        f"<url><loc>{escape(root + path)}</loc><changefreq>{freq}</changefreq><priority>{prio}</priority></url>"
+        for path, freq, prio in pages
+    )
+    xml = f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{rows}</urlset>'
+    return HttpResponse(xml, content_type="application/xml")

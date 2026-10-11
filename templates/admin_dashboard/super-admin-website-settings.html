@@ -1,5 +1,5 @@
 {% extends "super-admin-base.html" %}
-{% load static %}
+{% load static seo_tags %}
 
 {% block page_title_tag %}Website Settings{% endblock %}
 {% block body_page %}website-settings{% endblock %}
@@ -25,7 +25,7 @@
           <div class="subtab active" data-section="general"><i class="fa-solid fa-gear"></i> General</div>
           <div class="subtab" data-section="appearance"><i class="fa-regular fa-image"></i> Appearance</div>
           <div class="subtab" data-section="social"><i class="fa-solid fa-share-nodes"></i> Social Media</div>
-          <div class="subtab" data-section="seo"><i class="fa-solid fa-magnifying-glass-chart"></i> SEO &amp; Integrations</div>
+          <div class="subtab" data-section="seo"><i class="fa-solid fa-magnifying-glass-chart"></i> SEO &amp; Google</div>
           <div class="subtab" data-section="maintenance"><i class="fa-solid fa-triangle-exclamation"></i> Maintenance</div>
         </div>
 
@@ -121,13 +121,13 @@
 
               <div class="form-group">
                 <label class="form-label">Hero banner image</label>
-                <img id="banner-preview" src="{% if info.hero_banner %}{{ info.hero_banner.url }}{% else %}{% static 'images/lgu_bldg.jpeg' %}{% endif %}" alt="" style="width:100%;max-width:420px;height:130px;border-radius:10px;object-fit:cover;border:1px solid var(--gray-200);margin-bottom:8px;display:block;">
+                <img id="banner-preview" src="{% if info.hero_banner %}{{ info.hero_banner.url }}{% else %}{% static 'images/lgu_tunga_bldg.jpeg' %}{% endif %}" alt="" style="width:100%;max-width:420px;height:130px;border-radius:10px;object-fit:cover;border:1px solid var(--gray-200);margin-bottom:8px;display:block;">
                 <span class="form-help" id="banner-preview-label" style="display:block;margin-bottom:8px;">{% if info.hero_banner %}Current banner{% else %}Current banner (default){% endif %}</span>
                 <input class="form-input file-input" type="file" name="hero_banner" id="banner-input" accept="image/*">
                 {% if info.hero_banner %}
-                {% comment %}Removes the uploaded banner so the homepage goes back to the default LGU building photo (static/images/lgu_bldg.jpeg).{% endcomment %}
+                {% comment %}Removes the uploaded banner so the homepage goes back to the default LGU building photo (static/images/lgu_tunga_bldg.jpeg).{% endcomment %}
                 <input type="hidden" name="reset_hero_banner" id="banner-reset-flag" value="">
-                <button type="button" class="btn btn-secondary" id="banner-reset" data-default="{% static 'images/lgu_bldg.jpeg' %}" style="margin-top:8px;"><i class="fa-solid fa-rotate-left"></i> Use default banner (LGU building)</button>
+                <button type="button" class="btn btn-secondary" id="banner-reset" data-default="{% static 'images/lgu_tunga_bldg.jpeg' %}" style="margin-top:8px;"><i class="fa-solid fa-rotate-left"></i> Use default banner (LGU building)</button>
                 {% endif %}
                 <span class="form-help">Shown as the background image at the top of the public homepage. Recommended size 1600×600px. The preview updates immediately, but nothing changes on the live site until you click Save Appearance.</span>
               </div>
@@ -234,41 +234,74 @@
           </div>
 
           <!-- ============ SEO & INTEGRATIONS ============ -->
+          <!-- ============ SEO (how the site appears in Google and in shared links) ============ -->
           <div class="settings-section" id="section-seo" style="display:none;">
-            <div class="form-group">
-              <label class="form-label">Meta title</label>
-              <input class="form-input" type="text" id="metaTitle" value="Municipality of Tunga, Leyte — Official Website">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Meta description</label>
-              <textarea class="form-input form-textarea" id="metaDescription" style="min-height:80px;">The official website of the Local Government Unit of Tunga, Leyte. Find announcements, news, events, downloadable forms, and contact information for all municipal offices.</textarea>
-            </div>
-            <div class="form-row">
+            <form method="post" enctype="multipart/form-data">
+              {% csrf_token %}
+              <input type="hidden" name="section" value="seo">
+
               <div class="form-group">
-                <label class="form-label">Google Analytics ID</label>
-                <input class="form-input" type="text" id="gaId" placeholder="G-XXXXXXXXXX">
+                <label class="form-label">Preview in Google search results</label>
+                <div class="seo-preview">
+                  <div class="seo-preview__url">{{ request.get_host }}</div>
+                  <div class="seo-preview__title" id="seoPrevTitle">{{ info.seo_title_text }}</div>
+                  <div class="seo-preview__desc" id="seoPrevDesc">{{ info.seo_description_text }}</div>
+                </div>
               </div>
+
               <div class="form-group">
-                <label class="form-label">Google Maps API key</label>
-                <input class="form-input" type="text" id="mapsApiKey" placeholder="AIza...">
+                <label class="form-label" for="seoTitle">Website title <span class="seo-count" id="seoTitleCount"></span></label>
+                <input class="form-input" type="text" id="seoTitle" name="seo_title" maxlength="70" value="{{ info.seo_title_text }}">
+                <span class="form-help">The name shown in Google and when the link is shared. Best under 60 characters.</span>
               </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Google Search Console verification code</label>
-              <input class="form-input" type="text" id="searchConsole" placeholder="google-site-verification=...">
-            </div>
-            <div class="form-group">
-              <label class="form-label" style="display:flex;align-items:center;gap:8px;font-weight:600;">
-                <input type="checkbox" id="allowIndexing" checked style="width:16px;height:16px;">
-                Allow search engines to index this website
-              </label>
-            </div>
-            <div class="form-group">
-              <label class="form-label" style="display:flex;align-items:center;gap:8px;font-weight:600;">
-                <input type="checkbox" id="enableSitemap" checked style="width:16px;height:16px;">
-                Automatically generate an XML sitemap
-              </label>
-            </div>
+
+              <div class="form-group">
+                <label class="form-label" for="seoDesc">Website description <span class="seo-count" id="seoDescCount"></span></label>
+                <textarea class="form-input form-textarea" id="seoDesc" name="seo_description" maxlength="300" style="min-height:80px;">{{ info.seo_description_text }}</textarea>
+                <span class="form-help">The 1–2 lines under your link in Google, and the preview text on Facebook / Messenger. Best between 120 and 160 characters.</span>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Share picture (Facebook / Messenger preview)</label>
+                <div class="seo-share">
+                  <img id="sharePreview" alt="Share picture preview"
+                       src="{% if info.share_image %}{{ info.share_image.url }}{% elif info.hero_banner %}{{ info.hero_banner.url }}{% else %}{% static 'images/lgu_tunga_bldg.jpeg' %}{% endif %}">
+                  <div>
+                    <input class="form-input" type="file" name="share_image" id="shareImageInput" accept="image/jpeg,image/png,image/webp">
+                    <span class="form-help">Wide picture, about 1200 × 630 pixels. {% if info.share_image %}A custom picture is set.{% else %}Not set — the homepage banner is used.{% endif %}</span>
+                    {% if info.share_image %}<label class="form-label" style="display:flex;align-items:center;gap:8px;font-weight:500;margin-top:6px;"><input type="checkbox" name="remove_share_image" style="width:16px;height:16px;"> Remove it (use the homepage banner)</label>{% endif %}
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="searchConsole">Google Search Console verification code</label>
+                <input class="form-input" type="text" id="searchConsole" name="search_console_code" maxlength="300" value="{{ info.search_console_code }}" placeholder="Paste the code or the whole &lt;meta&gt; tag from Google">
+                <span class="form-help">Free. In <a href="https://search.google.com/search-console" target="_blank" rel="noopener">Google Search Console</a> add your website as a “URL prefix” property, choose <b>HTML tag</b>, paste it here and save, then click <b>Verify</b> in Google. After that, submit your sitemap there.</span>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" style="display:flex;align-items:center;gap:8px;font-weight:600;">
+                  <input type="checkbox" name="allow_indexing" style="width:16px;height:16px;" {% if info.allow_indexing %}checked{% endif %}>
+                  Allow search engines (Google, Bing) to show this website
+                </label>
+                <span class="form-help">Untick to hide the website from search results, e.g. while it is still being tested.</span>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Sitemap &amp; robots.txt (made automatically)</label>
+                <div class="footer-note" style="margin-top:0;">
+                  <i class="fa-solid fa-sitemap" style="margin-right:6px;"></i>
+                  Lists all public pages and offices for Google. Your sitemap address:
+                  <a href="{% url 'sitemap_xml' %}" target="_blank" rel="noopener"><b>{% abs_url 'sitemap_xml' %}</b></a>
+                  · <a href="{% url 'robots_txt' %}" target="_blank" rel="noopener">robots.txt</a>
+                </div>
+              </div>
+
+              <div class="modal-actions" style="justify-content:flex-start;border-top:none;padding-top:4px;">
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save SEO Settings</button>
+              </div>
+            </form>
           </div>
 
           <!-- ============ MAINTENANCE ============ -->
@@ -357,6 +390,24 @@
   });
 
   activateTab(window.location.hash.replace('#', ''));
+
+  // SEO tab: live Google preview, character counts, share picture preview
+  (function(){
+    var title = document.getElementById('seoTitle'), desc = document.getElementById('seoDesc');
+    if (!title || !desc) return;
+    function upd(){
+      document.getElementById('seoPrevTitle').textContent = title.value || title.placeholder;
+      document.getElementById('seoPrevDesc').textContent = desc.value;
+      var tc = document.getElementById('seoTitleCount'), dc = document.getElementById('seoDescCount');
+      tc.textContent = '(' + title.value.length + '/60)'; tc.classList.toggle('is-over', title.value.length > 60);
+      dc.textContent = '(' + desc.value.length + '/160)'; dc.classList.toggle('is-over', desc.value.length > 160);
+    }
+    title.addEventListener('input', upd); desc.addEventListener('input', upd); upd();
+    var file = document.getElementById('shareImageInput');
+    if (file) file.addEventListener('change', function(){
+      if (file.files && file.files[0]) document.getElementById('sharePreview').src = URL.createObjectURL(file.files[0]);
+    });
+  })();
 
   function toggleMaintenanceWarning(){
     var on = document.getElementById('maintenanceMode').checked;

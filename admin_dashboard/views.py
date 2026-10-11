@@ -2309,6 +2309,25 @@ def admin_web_setting(request):
                 messages.success(request, "Maintenance mode was turned on. Visitors now see the maintenance page.")
             else:
                 messages.success(request, "Maintenance mode is off. The website is open to visitors.")
+        elif section == 'seo':
+            info.seo_title = request.POST.get('seo_title', '').strip()[:70] or SiteContactInfo.DEFAULT_SEO_TITLE
+            info.seo_description = request.POST.get('seo_description', '').strip()[:300] or SiteContactInfo.DEFAULT_SEO_DESCRIPTION
+            info.allow_indexing = request.POST.get('allow_indexing') == 'on'
+            # Google gives a whole tag (<meta name="google-site-verification" content="ABC…">),
+            # "google-site-verification=ABC…", or just the code — keep only the code.
+            raw = request.POST.get('search_console_code', '').strip()
+            m = re.search(r'content=["\']([^"\']+)["\']', raw) or re.search(r'google-site-verification[=:]\s*([A-Za-z0-9_\-]+)', raw)
+            code = (m.group(1) if m else raw).strip()
+            if code and not re.fullmatch(r'[A-Za-z0-9_\-]{10,100}', code):
+                messages.error(request, "The Search Console code doesn't look right, so it was not saved. Copy the code from Google Search Console again.")
+                code = info.search_console_code
+            info.search_console_code = code
+            if request.POST.get('remove_share_image') == 'on':
+                info.share_image = None
+            elif request.FILES.get('share_image'):
+                info.share_image = request.FILES['share_image']
+            info.save()
+            messages.success(request, "SEO settings were updated.")
         elif section == 'cache':
             from django.core.cache import cache
             cache.clear()
