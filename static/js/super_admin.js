@@ -738,7 +738,10 @@
     confirmAction('Are you sure you want to log out?', function () {
       toast('Logging out…');
       setTimeout(function () {
-        window.location.href = document.body.dataset.logoutUrl || '/logout/';
+        // Log out with the form (POST + security token), not a plain link.
+        var form = document.getElementById('logoutForm');
+        if (form) form.submit();
+        else window.location.href = document.body.dataset.logoutUrl || '/logout/';
       }, 500);
     }, { title: 'Log Out', okText: 'Log Out' });
   }

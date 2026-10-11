@@ -12,6 +12,9 @@
   min-height: calc(100vh - 140px);
 }
 
+/* One centred card, no picture (Log out? page) */
+.auth-wrap.auth-wrap--single { grid-template-columns: 1fr; }
+
 .auth-visual {
   position: relative;
   overflow: hidden;

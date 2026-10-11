@@ -101,7 +101,7 @@
                 <td>{{ r.rep.user.last_login|date:"M d, Y, g:i A"|default:"Never" }}</td>
                 <td>
                   <div class="action-icons">
-                    <a class="ic" href="/admin/office_dashboard/officerepresentative/{{ r.rep.id }}/change/" title="View / edit"><i class="fa-regular fa-eye"></i></a>
+                    <a class="ic" href="{% url 'admin:office_dashboard_officerepresentative_change' r.rep.id %}" title="View / edit"><i class="fa-regular fa-eye"></i></a>
                     <button type="button" class="ic toggle-active-btn" style="border:none;background:none;cursor:pointer;"
                       title="{% if r.rep.user.is_active %}Deactivate{% else %}Activate{% endif %}"
                       data-name="{{ r.rep.user.get_full_name|default:r.rep.user.username }}"

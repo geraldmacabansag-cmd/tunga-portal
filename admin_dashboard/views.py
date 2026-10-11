@@ -454,11 +454,17 @@ def admin_change_password(request):
         new_password = request.POST.get('new_password', '')
         confirm_password = request.POST.get('confirm_password', '')
 
-        if not request.user.check_password(current_password):
-            messages.error(request, "Current password is incorrect.")
+        from portal import security
+        minutes = security.locked_minutes("password", request, request.user.username)
+        if minutes:
+            messages.error(request, security.lock_message(minutes))
+        elif not request.user.check_password(current_password):
+            security.record_failure("password", request, request.user.username)
+            messages.error(request, security.wrong_message("Current password is incorrect.", "password", request, request.user.username))
         elif new_password != confirm_password:
             messages.error(request, "New password and confirmation do not match.")
         else:
+            security.clear_failures("password", request.user.username)
             try:
                 validate_password(new_password, user=request.user)
             except ValidationError as e:

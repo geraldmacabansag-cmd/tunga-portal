@@ -69,7 +69,7 @@
                 <td>{{ u.date_joined|date:"M d, Y" }}</td>
                 <td>
                   <div class="action-icons">
-                    <a class="ic" href="/admin/auth/user/{{ u.id }}/change/" title="View / edit"><i class="fa-regular fa-eye"></i></a>
+                    <a class="ic" href="{% url 'admin:auth_user_change' u.id %}" title="View / edit"><i class="fa-regular fa-eye"></i></a>
                     <form method="post" action="{% url 'admin_dashboard:admin_user_toggle_active' u.id %}" style="display:inline;">
                       {% csrf_token %}
                       <button type="button" class="ic toggle-active-btn" style="border:none;background:none;cursor:pointer;"

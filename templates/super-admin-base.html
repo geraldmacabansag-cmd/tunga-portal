@@ -125,6 +125,8 @@
 
     <div class="sidebar-footer">
       <a href="{% url 'logout' %}" class="sidebar-logout" style="color:inherit;text-decoration:none;"><i class="fa-solid fa-arrow-right-from-bracket"></i> Log Out</a>
+      {# The Log Out button/menu submit this form (POST + security token) — see doLogout() in super_admin.js. #}
+      <form id="logoutForm" method="post" action="{% url 'logout' %}" hidden>{% csrf_token %}</form>
       <div class="sidebar-copy">&copy; 2026 Municipality of Tunga, Leyte.<br>All rights reserved.</div>
     </div>
   </aside>

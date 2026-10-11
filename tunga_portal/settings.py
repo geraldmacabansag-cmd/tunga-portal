@@ -103,6 +103,7 @@ MIDDLEWARE = [
     'allauth.account.middleware.AccountMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'admin_dashboard.maintenance.MaintenanceModeMiddleware',   # Website Settings → Maintenance
+    'portal.upload_check.UploadCheckMiddleware',               # uploaded files must really be what their name says
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
@@ -152,12 +153,17 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {'min_length': 8},
     },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
     },
     {
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+    },
+    {
+        # uppercase + lowercase + number + special character (portal/password_rules.py)
+        'NAME': 'portal.password_rules.StrongPasswordValidator',
     },
 ]
 
@@ -247,3 +253,26 @@ BACKUP_ROOT = os.environ.get('BACKUP_ROOT') or (BASE_DIR / 'private_backups')
 
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'home'
+
+
+# ---------------------------------------------------------------------------
+# Django admin address. Moved away from the well-known /admin/ so it is hard
+# to find. Set your own secret address on the server with the environment
+# variable ADMIN_URL (letters, numbers and dashes, e.g. "lgu-panel-x7k29q").
+# Write it down somewhere safe — /admin/ no longer works.
+# ---------------------------------------------------------------------------
+ADMIN_URL = (os.environ.get('ADMIN_URL') or 'tunga-control-7x2k9q').strip('/') + '/'
+
+# ---------------------------------------------------------------------------
+# HTTPS-only cookies on the live site (when DEBUG is off), so the login and
+# form-security cookies are never sent over an unencrypted connection.
+# On your computer (DEBUG on, http://127.0.0.1) these stay off.
+# ---------------------------------------------------------------------------
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')   # Render / DigitalOcean pass this on
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True          # page scripts can't read the login cookie
+    SECURE_HSTS_SECONDS = 60 * 60 * 24 * 30   # browsers remember "HTTPS only" for 30 days
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_REFERRER_POLICY = 'same-origin'

@@ -27,7 +27,7 @@ tungamap_api = ([
 ], 'tungamap')
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path(settings.ADMIN_URL, admin.site.urls),   # secret address, see ADMIN_URL in settings.py
     path('', include('portal.urls')),
     path('offices/', include('offices.urls')),
     path('office-dashboard/', include('office_dashboard.urls')),

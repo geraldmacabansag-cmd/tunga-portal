@@ -96,6 +96,7 @@ Home | Digital Governance Portal
             <i class="fa-regular fa-eye toggle-password" data-target="signup-confirm-password"></i>
           </div>
         </label>
+        {% include "includes/_password_rules.html" with pw="signup-password" confirm="signup-confirm-password" %}
 
         <label class="checkbox-label">
           <input type="checkbox" required> I agree to the <a href="#" class="auth-link">Terms of Use</a> and <a href="#" class="auth-link">Privacy Policy</a>

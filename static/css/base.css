@@ -447,6 +447,9 @@ button {
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 .side-panel__logout:hover { background: #fef2f2; border-color: #e99a9a; text-decoration: none; }
+/* Log Out is now a form button (POST) — same look as the old link */
+.side-panel__logout-form { margin: 0; }
+button.side-panel__logout { font-family: inherit; cursor: pointer; }
 
 @media (max-width: 480px) {
   .side-panel { border-radius: 0; }

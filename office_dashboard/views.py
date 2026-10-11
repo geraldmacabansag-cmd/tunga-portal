@@ -32,6 +32,7 @@ from .models import OrgChartNode, OrgChartSettings
 from django import forms as dj_forms
 from portal.models import EmailOTP
 from portal.otp_utils import send_password_reset_otp
+from portal import security
 from django.template.defaultfilters import date as django_date_format
 
 from .models import (
@@ -1482,10 +1483,14 @@ def change_pass(request, rep):
         confirm_password = request.POST.get('confirm_password', '')
         email = request.user.email
 
-        if mode == 'otp' and not email:
+        minutes = security.locked_minutes("password", request, request.user.username)
+        if minutes:
+            messages.error(request, security.lock_message(minutes))
+        elif mode == 'otp' and not email:
             messages.error(request, "Your account has no email address. Ask the Super Admin to add one, then try again.")
         elif mode != 'otp' and not request.user.check_password(current_password):
-            messages.error(request, "Current password is incorrect.")
+            security.record_failure("password", request, request.user.username)
+            messages.error(request, security.wrong_message("Current password is incorrect.", "password", request, request.user.username))
         elif new_password != confirm_password:
             messages.error(request, "New password and confirmation do not match.")
         elif mode != 'otp' and new_password == current_password:
@@ -1494,9 +1499,10 @@ def change_pass(request, rep):
             for err in password_problems(new_password, request.user):
                 messages.error(request, err)
         # The code is checked last, so a typo in the new password doesn't use it up.
-        elif mode == 'otp' and not EmailOTP.verify(email, otp_code):
-            messages.error(request, "That verification code is incorrect or has expired. Please request a new one.")
+        elif mode == 'otp' and (code_error := security.check_code(request, email, otp_code, kind="reset-code")):
+            messages.error(request, code_error)   # 5 wrong codes = blocked 15 minutes
         else:
+            security.clear_failures("password", request.user.username)
             request.user.set_password(new_password)
             request.user.save()
             update_session_auth_hash(request, request.user)  # keeps them logged in here, signs out other devices
@@ -1521,11 +1527,15 @@ def send_password_otp(request, rep):
     if not email:
         return JsonResponse({"success": False, "error": "Your account has no email address. Ask the Super Admin to add one."}, status=400)
 
-    # One code per minute, so the button can't be used to flood the inbox.
+    # One code per minute (the button's countdown uses "wait"), at most 5 an
+    # hour per email and 10 an hour per device — portal/security.py.
     recent = EmailOTP.objects.filter(email=email, created_at__gte=timezone.now() - timedelta(seconds=60)).order_by('-created_at').first()
     if recent:
         wait = 60 - int((timezone.now() - recent.created_at).total_seconds())
         return JsonResponse({"success": False, "error": f"Please wait {max(wait, 1)} seconds before requesting a new code.", "wait": max(wait, 1)}, status=429)
+    limit = security.code_send_problem(request, email)
+    if limit:
+        return JsonResponse({"success": False, "error": limit}, status=429)
 
     ok, error = send_password_reset_otp(email)
     if not ok:

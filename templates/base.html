@@ -171,9 +171,13 @@
   </div>
 
   <div class="side-panel__foot">
-    <a href="{% url 'logout' %}" class="side-panel__logout">
-      <i class="fa-solid fa-right-from-bracket"></i> Log Out
-    </a>
+    {# Logging out is a form button (POST + security token), not a plain link. #}
+    <form method="post" action="{% url 'logout' %}" class="side-panel__logout-form">
+      {% csrf_token %}
+      <button type="submit" class="side-panel__logout">
+        <i class="fa-solid fa-right-from-bracket"></i> Log Out
+      </button>
+    </form>
   </div>
 </aside>
 
@@ -259,6 +263,7 @@
         <label for="settings-confirm-password">Confirm New Password</label>
         <input type="password" id="settings-confirm-password" name="confirm_password" required>
       </div>
+      {% include "includes/_password_rules.html" with pw="settings-new-password" confirm="settings-confirm-password" %}
       <div class="account-modal__actions">
         <button type="submit" class="btn btn-primary">Update Password</button>
       </div>

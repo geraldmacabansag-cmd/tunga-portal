@@ -20,6 +20,9 @@ from .models import CitizenProfile, EmailOTP
 from .otp_utils import send_signup_otp
 from django.http import JsonResponse
 from .otp_utils import send_signup_otp, send_password_reset_otp
+from . import security
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_POST
 from offices.models import Office
 from django.core.paginator import Paginator
 
@@ -783,13 +786,21 @@ def signup(request):
             messages.error(request, "An account with this email already exists.")
             return render(request, "account/signup.html")
 
-        # The form only ever collects the code — this is the one place that
-        # actually checks it against what was emailed (right email, right
-        # code, not expired, not already used). Without this call the form
-        # accepted whatever digits were typed, since nothing server-side
-        # was ever comparing them to the real EmailOTP record.
-        if not EmailOTP.verify(email, otp_code):
-            messages.error(request, "That verification code is invalid or has expired. Please request a new one.")
+        # Password requirements (settings.AUTH_PASSWORD_VALIDATORS).
+        try:
+            validate_password(password, user=User(username=email, email=email,
+                                                  first_name=first_name, last_name=last_name))
+        except ValidationError as e:
+            for err in e.messages:
+                messages.error(request, err)
+            return render(request, "account/signup.html")
+
+        # The one place that checks the code against what was emailed (right
+        # email, right code, not expired, not used). After 5 wrong codes the
+        # email is blocked for 15 minutes (portal/security.py).
+        error = security.check_code(request, email, otp_code, kind="signup-code")
+        if error:
+            messages.error(request, error)
             return render(request, "account/signup.html")
 
         user = User.objects.create_user(
@@ -818,6 +829,11 @@ def send_signup_otp_ajax(request):
     if User.objects.filter(email=email).exists():
         return JsonResponse({"success": False, "error": "An account with this email already exists."}, status=400)
 
+    # 1 code per minute, 5 per hour per email, 10 per hour per device.
+    limit = security.code_send_problem(request, email)
+    if limit:
+        return JsonResponse({"success": False, "error": limit}, status=429)
+
     success, error = send_signup_otp(email)
     if success:
         return JsonResponse({"success": True})
@@ -825,13 +841,24 @@ def send_signup_otp_ajax(request):
 
 def login(request):
     next_url = request.POST.get("next") or request.GET.get("next") or "home"
+    # Only go "next" to a page on this website (never to another site).
+    if next_url != "home" and not url_has_allowed_host_and_scheme(
+            next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
+        next_url = "home"
 
     if request.method == "POST":
         email = request.POST.get("email", "").strip().lower()
         password = request.POST.get("password", "")
 
+        # 5 wrong passwords on an account (or 20 from one device) = blocked 15 minutes.
+        minutes = security.locked_minutes("login", request, email)
+        if minutes:
+            messages.error(request, security.lock_message(minutes))
+            return render(request, "account/login.html", {"next": next_url})
+
         user = authenticate(request, username=email, password=password)
         if user is not None:
+            security.clear_failures("login", email)
             auth_login(request, user)
             if SuperAdmin.objects.filter(user=user).exists():
                 return redirect("admin_dashboard:admin_dash")
@@ -839,12 +866,24 @@ def login(request):
                 return redirect("office_dashboard:dashboard")
             return redirect(next_url or "home")
 
-        messages.error(request, "Invalid email or password.")
+        security.record_failure("login", request, email)
+        minutes = security.locked_minutes("login", request, email)
+        if minutes:
+            messages.error(request, security.lock_message(minutes))
+        else:
+            messages.error(request, security.wrong_message("Invalid email or password.", "login", request, email))
         return render(request, "account/login.html", {"next": next_url})
 
     return render(request, "account/login.html", {"next": next_url})
 
 def logout(request):
+    """Logs out only from a form button (POST, with the security token), so
+    another website can't log someone out with a plain link. Opening
+    /logout/ directly shows a small "Log out?" page with that button."""
+    if request.method != "POST":
+        if not request.user.is_authenticated:
+            return redirect("home")
+        return render(request, "account/logout_confirm.html")
     auth_logout(request)
     messages.success(request, "You have been logged out.")
     return redirect("home")
@@ -876,16 +915,27 @@ def forgot_password(request):
             messages.error(request, "Please enter the verification code sent to your email.")
             return render(request, "account/forgot_password.html", {"identifier": identifier})
 
-        if not EmailOTP.verify(user.email, otp_code):
-            messages.error(request, "That verification code is incorrect or has expired. Please request a new one.")
-            return render(request, "account/forgot_password.html", {"identifier": identifier})
-
         if not new_password or not confirm_password:
             messages.error(request, "Please enter and confirm your new password.")
             return render(request, "account/forgot_password.html", {"identifier": identifier})
 
         if new_password != confirm_password:
             messages.error(request, "Passwords do not match.")
+            return render(request, "account/forgot_password.html", {"identifier": identifier})
+
+        # Password requirements (settings.AUTH_PASSWORD_VALIDATORS).
+        try:
+            validate_password(new_password, user=user)
+        except ValidationError as e:
+            for err in e.messages:
+                messages.error(request, err)
+            return render(request, "account/forgot_password.html", {"identifier": identifier})
+
+        # Checked last, so a typo in the new password doesn't use up a try.
+        # 5 wrong codes = blocked 15 minutes (portal/security.py).
+        error = security.check_code(request, user.email, otp_code, kind="reset-code")
+        if error:
+            messages.error(request, error)
             return render(request, "account/forgot_password.html", {"identifier": identifier})
 
         user.set_password(new_password)
@@ -909,6 +959,11 @@ def send_reset_otp_ajax(request):
             or User.objects.filter(username__iexact=identifier).first())
     if not user:
         return JsonResponse({"success": False, "error": "No account found with that email or username."}, status=400)
+
+    # 1 code per minute, 5 per hour per email, 10 per hour per device.
+    limit = security.code_send_problem(request, user.email)
+    if limit:
+        return JsonResponse({"success": False, "error": limit}, status=429)
 
     success, error = send_password_reset_otp(user.email)
     if success:
@@ -956,7 +1011,7 @@ def site_search(request):
         if q_lower in haystack:
             results.append({"label": p["label"], "type": "Page", "meta": "", "url": p["url"]})
 
-    offices = Office.objects.filter(name__icontains=query).exclude(slug='lgu-super-admin').order_by('name')[:MAX_PER_TYPE]
+    offices = Office.objects.filter(name__icontains=query, is_visible=True).exclude(slug='lgu-super-admin').order_by('name')[:MAX_PER_TYPE]
     for o in offices:
         results.append({"label": o.name, "type": "Office", "meta": "Office", "url": reverse('offices:office_detail', args=[o.slug])})
 
@@ -1036,6 +1091,8 @@ def site_search(request):
 @login_required
 def account_update(request):
     next_url = request.POST.get('next') or request.GET.get('next') or reverse('home')
+    if not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+        next_url = reverse('home')   # never send people to another website
 
     if request.method == "POST":
         full_name = request.POST.get('full_name', '').strip()
@@ -1080,17 +1137,24 @@ def account_update(request):
 @login_required
 def account_change_password(request):
     next_url = request.POST.get('next') or request.GET.get('next') or reverse('home')
+    if not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+        next_url = reverse('home')   # never send people to another website
 
     if request.method == "POST":
         current_password = request.POST.get('current_password', '')
         new_password = request.POST.get('new_password', '')
         confirm_password = request.POST.get('confirm_password', '')
 
-        if not request.user.check_password(current_password):
-            messages.error(request, "Current password is incorrect.")
+        minutes = security.locked_minutes("password", request, request.user.username)
+        if minutes:
+            messages.error(request, security.lock_message(minutes))
+        elif not request.user.check_password(current_password):
+            security.record_failure("password", request, request.user.username)
+            messages.error(request, security.wrong_message("Current password is incorrect.", "password", request, request.user.username))
         elif new_password != confirm_password:
             messages.error(request, "New password and confirmation do not match.")
         else:
+            security.clear_failures("password", request.user.username)
             try:
                 validate_password(new_password, user=request.user)
             except ValidationError as e:
@@ -1147,7 +1211,6 @@ def robots_txt(request):
             "User-agent: *",
             "Disallow: /super-admin/",
             "Disallow: /office-dashboard/",
-            "Disallow: /admin/",
             "Disallow: /accounts/",
             "Disallow: /account/",
             "Disallow: /search/",

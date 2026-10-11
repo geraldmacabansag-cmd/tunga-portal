@@ -7,11 +7,12 @@ always work so you can sign in and turn it off.
 
 Added to settings.MIDDLEWARE as "admin_dashboard.maintenance.MaintenanceModeMiddleware".
 """
+from django.conf import settings
 from django.shortcuts import render
 
 # These always open, even during maintenance.
 ALWAYS_OPEN = (
-    "/super-admin/", "/office-dashboard/", "/admin/", "/static/", "/media/",
+    "/super-admin/", "/office-dashboard/", "/" + settings.ADMIN_URL, "/static/", "/media/",
     "/login/", "/logout/", "/signup/", "/accounts/", "/forgot-password/",
     "/send-reset-otp/", "/send-signup-otp/", "/google-login-start/", "/google-signup-start/",
     "/map/api/", "/favicon.ico", "/robots.txt", "/sitemap.xml",

@@ -181,7 +181,10 @@
       <p class="confirm-msg">Are you sure you want to log out?</p>
       <div class="modal-actions">
         <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
-        <a href="{% url 'logout' %}" class="btn btn-danger">Log Out</a>
+        <form method="post" action="{% url 'logout' %}" style="display:inline;margin:0;">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">Log Out</button>
+        </form>
       </div>
     </div>
   </div>

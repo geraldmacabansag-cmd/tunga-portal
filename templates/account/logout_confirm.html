@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}
+Log Out | Digital Governance Portal
+{% endblock %}
+
+{% block content %}
+{# Shown only when someone opens /logout/ directly. Logging out needs this #}
+{# button (a form with the security token), so other websites can't log    #}
+{# people out with a plain link.                                           #}
+<main class="auth-wrap auth-wrap--single">
+  <div class="auth-panel">
+    <div class="auth-card">
+      <div class="auth-card__head">
+        <img src="{% if site_contact.logo %}{{ site_contact.logo.url }}{% else %}{% static 'images/tunga_leyte_logo.png' %}{% endif %}" alt="Municipality of Tunga seal" class="auth-card__seal">
+        <h1>Log out?</h1>
+        <p>You are signed in as <strong>{{ request.user.get_full_name|default:request.user.email }}</strong>.</p>
+      </div>
+      <form class="auth-form" method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary btn-block">Log Out</button>
+        <p class="auth-switch"><a href="{% url 'home' %}">Cancel and go back</a></p>
+      </form>
+    </div>
+  </div>
+</main>
+{% endblock %}
