@@ -117,6 +117,18 @@ Home | Digital Governance Portal
 </main>
 
 <script>
+// Show / hide password (the eye icon in the Password and Confirm Password boxes)
+document.querySelectorAll('.toggle-password').forEach(function (icon) {
+  icon.addEventListener('click', function () {
+    var input = document.getElementById(icon.dataset.target);
+    if (!input) return;
+    var showing = input.type === 'text';
+    input.type = showing ? 'password' : 'text';
+    icon.classList.toggle('fa-eye', showing);
+    icon.classList.toggle('fa-eye-slash', !showing);
+  });
+});
+
 (function () {
   var sendBtn = document.getElementById('send-otp-btn');
   var emailInput = document.getElementById('signup-email');
