@@ -1622,6 +1622,7 @@ def _int_or_none(value):
 @office_rep_required
 def submissions(request, rep):
     from . import submissions as subs
+    from .models import SubmissionFeedback
     office_qs = subs.base_queryset().filter(form__office=rep.office)
     qs, current = subs.apply_filters(office_qs, request)
     page_obj = Paginator(qs, 15).get_page(request.GET.get("page"))
@@ -1630,6 +1631,7 @@ def submissions(request, rep):
         "rep": rep,
         "page_obj": page_obj,
         "counts": subs.counts(office_qs),
+        "satisfaction": subs.satisfaction(SubmissionFeedback.objects.filter(submission__form__office=rep.office)),
         "current": current,
         "status_info": subs.STATUS_INFO,
         "office_choices": subs.OFFICE_CHOICES,

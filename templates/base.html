@@ -21,7 +21,7 @@
     <meta property="og:locale" content="en_PH">
     <meta name="twitter:card" content="summary_large_image">
 
-    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=4">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=6">
     <link rel="stylesheet" href="{% static 'css/homepage.css' %}?v=3">
     <link rel="stylesheet" href="{% static 'css/offices.css' %}">
     <link rel="stylesheet" href="{% static 'css/announcements.css' %}">
@@ -30,7 +30,7 @@
     <link rel="stylesheet" href="{% static 'css/aboutus.css' %}">
     <link rel="stylesheet" href="{% static 'css/history.css' %}">
     <link rel="stylesheet" href="{% static 'css/contactus.css' %}">
-    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=4">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=6">
     <link rel="stylesheet" href="{% static 'css/auth.css' %}">
     <link rel="stylesheet" href="{% static 'css/mayorsoffice.css' %}">
 
@@ -166,6 +166,11 @@
       <span class="sp-text">Help &amp; Support<small>Contact the municipality</small></span>
       <i class="fa-solid fa-chevron-right sp-chev"></i>
     </a>
+    <button type="button" class="side-panel__link-btn sp-item" id="openPortalFeedbackBtn">
+      <span class="sp-icon"><i class="fa-regular fa-star"></i></span>
+      <span class="sp-text">Rate this website<small>{% if user.portal_feedback %}You rated it {{ user.portal_feedback.rating }}/5 · update{% else %}Tell us how we can improve{% endif %}</small></span>
+      <i class="fa-solid fa-chevron-right sp-chev"></i>
+    </button>
   </div>
 
   <div class="side-panel__foot">
@@ -237,6 +242,35 @@
     <div id="accountSubmissionsHost">
       <p class="account-modal__loading">Loading…</p>
     </div>
+  </div>
+</dialog>
+
+<!-- Rate this website: feedback on using the portal (portal.views.portal_feedback).
+     One per person; sending again updates it. -->
+<dialog id="portalFeedbackModal" class="account-modal" aria-labelledby="portalFeedbackTitle">
+  <div class="account-modal__box">
+    <button type="button" class="account-modal__close" id="portalFeedbackClose" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    <h2 id="portalFeedbackTitle" class="account-modal__title">Rate this website</h2>
+    <p class="pf-intro">How easy is it to find information and use the services on the Tunga Portal? Your feedback helps us improve it.</p>
+    {% with pf=user.portal_feedback %}
+    <form method="post" action="{% url 'portal_feedback' %}" id="portalFeedbackForm" class="sub-rate pf-form">
+      {% csrf_token %}
+      <strong class="sub-rate__q">Your rating</strong>
+      <div class="sub-rate__pick" role="radiogroup" aria-label="Rating from 1 to 5 stars">
+        <input type="radio" id="pf-5" name="rating" value="5" {% if pf.rating == 5 %}checked{% endif %} required><label for="pf-5" title="Excellent">★</label>
+        <input type="radio" id="pf-4" name="rating" value="4" {% if pf.rating == 4 %}checked{% endif %}><label for="pf-4" title="Good">★</label>
+        <input type="radio" id="pf-3" name="rating" value="3" {% if pf.rating == 3 %}checked{% endif %}><label for="pf-3" title="Okay">★</label>
+        <input type="radio" id="pf-2" name="rating" value="2" {% if pf.rating == 2 %}checked{% endif %}><label for="pf-2" title="Poor">★</label>
+        <input type="radio" id="pf-1" name="rating" value="1" {% if pf.rating == 1 %}checked{% endif %}><label for="pf-1" title="Very poor">★</label>
+      </div>
+      <span class="pf-label" id="pfLabel"></span>
+      <textarea name="comment" rows="4" maxlength="1000" placeholder="What did you like? What should we add or fix? (optional)">{{ pf.comment }}</textarea>
+      <button type="submit">{% if pf %}Update my feedback{% else %}Send feedback{% endif %}</button>
+      <p class="sub-rate__msg" hidden></p>
+    </form>
+    <div class="sub-rate sub-rate--done" id="portalFeedbackDone" hidden></div>
+    {% if pf %}<p class="pf-note">You sent feedback on {{ pf.updated_at|date:"M d, Y" }}. Sending again replaces it.</p>{% endif %}
+    {% endwith %}
   </div>
 </dialog>
 
@@ -675,6 +709,72 @@
         openMySubmissions();
       });
       if (location.hash === '#my-submissions') openMySubmissions();
+      window.addEventListener('hashchange', function () { if (location.hash === '#my-submissions') openMySubmissions(); });
+
+      // Rate this website (side menu → Help)
+      var pfModal = document.getElementById('portalFeedbackModal');
+      var pfBtn = document.getElementById('openPortalFeedbackBtn');
+      if (pfModal && pfBtn) {
+        var pfForm = document.getElementById('portalFeedbackForm');
+        var pfDone = document.getElementById('portalFeedbackDone');
+        var pfLabel = document.getElementById('pfLabel');
+        var pfNames = {5: 'Excellent', 4: 'Good', 3: 'Okay', 2: 'Poor', 1: 'Very poor'};
+        function pfSync() { var c = pfForm.querySelector('input[name=rating]:checked'); pfLabel.textContent = c ? pfNames[c.value] : ''; }
+        pfForm.addEventListener('change', pfSync); pfSync();
+        pfBtn.addEventListener('click', function () {
+          closeSidePanel();
+          pfForm.hidden = false; pfDone.hidden = true;
+          pfModal.showModal();
+        });
+        document.getElementById('portalFeedbackClose').addEventListener('click', function () { pfModal.close(); });
+        pfModal.addEventListener('click', function (e) { if (e.target === pfModal) pfModal.close(); });
+        pfForm.addEventListener('submit', function (e) {
+          e.preventDefault();
+          var msg = pfForm.querySelector('.sub-rate__msg'), btn = pfForm.querySelector('button[type=submit]');
+          if (!pfForm.querySelector('input[name=rating]:checked')) { msg.textContent = 'Please choose from 1 to 5 stars.'; msg.hidden = false; return; }
+          msg.hidden = true; btn.disabled = true;
+          fetch(pfForm.action, { method: 'POST', body: new FormData(pfForm), headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+              btn.disabled = false;
+              if (!data.ok) { msg.textContent = data.error || 'Could not send your feedback.'; msg.hidden = false; return; }
+              var stars = '';
+              for (var i = 1; i <= 5; i++) stars += '<span' + (i <= data.rating ? ' class="on"' : '') + '>★</span>';
+              pfDone.innerHTML = '<span class="sub-rate__stars">' + stars + '</span> ';
+              pfDone.appendChild(document.createTextNode((data.updated ? 'Your feedback was updated' : 'Thank you for your feedback') + ' (' + data.label + '). We read every suggestion.'));
+              pfForm.hidden = true; pfDone.hidden = false;
+              btn.textContent = 'Update my feedback';
+            })
+            .catch(function () { btn.disabled = false; msg.textContent = 'Could not send your feedback. Please try again.'; msg.hidden = false; });
+        });
+      }
+
+      // My Form Submissions → "Rate this service" (the list is loaded into
+      // the popup, so its forms are handled here). portal.views.submission_feedback
+      document.addEventListener('submit', function (e) {
+        var form = e.target.closest('.js-feedback-form');
+        if (!form) return;
+        e.preventDefault();
+        var msg = form.querySelector('.sub-rate__msg');
+        var btn = form.querySelector('button[type=submit]');
+        if (!form.querySelector('input[name=rating]:checked')) {
+          msg.textContent = 'Please choose from 1 to 5 stars.'; msg.hidden = false; return;
+        }
+        btn.disabled = true;
+        fetch(form.action, { method: 'POST', body: new FormData(form), headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            if (!data.ok) { msg.textContent = data.error || 'Could not send your rating.'; msg.hidden = false; btn.disabled = false; return; }
+            var stars = '';
+            for (var i = 1; i <= 5; i++) stars += '<span' + (i <= data.rating ? ' class="on"' : '') + '>★</span>';
+            var done = document.createElement('div');
+            done.className = 'sub-rate sub-rate--done';
+            done.innerHTML = '<span class="sub-rate__stars">' + stars + '</span> ';
+            done.appendChild(document.createTextNode('You rated this service: ' + data.label + '. Thank you!'));
+            form.replaceWith(done);
+          })
+          .catch(function () { msg.textContent = 'Could not send your rating. Please try again.'; msg.hidden = false; btn.disabled = false; });
+      });
     })();
 
     /* -------------------------------------------------------------- */

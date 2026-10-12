@@ -66,3 +66,27 @@ class AttemptLog(models.Model):
 
     def __str__(self):
         return f"{self.key} at {self.created_at:%Y-%m-%d %H:%M}"
+
+
+
+class PortalFeedback(models.Model):
+    """Feedback on using the portal itself (side menu → Rate this website):
+    1–5 stars + an optional suggestion. One per user; they can update it.
+    Results: Super Admin → Analytics & Reports → Portal Feedback."""
+    RATING_LABELS = {5: "Excellent", 4: "Good", 3: "Okay", 2: "Poor", 1: "Very poor"}
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="portal_feedback")
+    rating = models.PositiveSmallIntegerField()
+    comment = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+
+    def __str__(self):
+        return f"{self.rating}/5 — {self.user.email or self.user.username}"
+
+    @property
+    def rating_label(self):
+        return self.RATING_LABELS.get(self.rating, "")

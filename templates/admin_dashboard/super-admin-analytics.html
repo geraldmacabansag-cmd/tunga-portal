@@ -190,6 +190,109 @@
   {% endif %}
 </div>
 
+<!-- Client Satisfaction (Anti-Red Tape Act, RA 11032): citizens rate a service
+     1–5 after their online request is finished (office_dashboard.SubmissionFeedback) -->
+<div class="panel" style="margin-top:20px;">
+  <div class="panel-header">
+    <h2>Client Satisfaction <span style="font-weight:500;color:var(--gray-400);font-size:12.5px;">(RA 11032)</span></h2>
+    {% if satisfaction_overall.count %}<a class="link" href="{% url 'admin_dashboard:admin_export_satisfaction' %}"><i class="fa-solid fa-file-arrow-down"></i> Export CSV</a>{% endif %}
+  </div>
+  {% if satisfaction_overall.count %}
+  <div class="panel-body csat-top">
+    <div class="csat-score">
+      <div class="csat-score__num">{{ satisfaction_overall.average }}<small> / 5</small></div>
+      <div class="csat-score__stars">{% for i in "12345" %}<span class="{% if forloop.counter <= satisfaction_overall.average|floatformat:0|add:0 %}on{% endif %}">★</span>{% endfor %}</div>
+      <div class="csat-score__sub"><b>{{ satisfaction_overall.satisfied_pct }}%</b> satisfied (4–5 stars) · {{ satisfaction_overall.count }} rating{{ satisfaction_overall.count|pluralize }}</div>
+    </div>
+    <div class="csat-bars">
+      {% for b in satisfaction_overall.bars %}
+      <div class="csat-bar"><span class="csat-bar__k">{{ b.stars }} ★</span><span class="csat-bar__track"><span class="csat-bar__fill" data-width="{{ b.pct }}"></span></span><span class="csat-bar__v">{{ b.count }}</span></div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="table-wrap" style="border:none;border-radius:0;">
+    <table class="data-table">
+      <thead><tr><th>Office</th><th>Ratings</th><th>Average</th><th>Satisfied (4–5★)</th><th>Not satisfied (1–2★)</th></tr></thead>
+      <tbody>
+        {% for r in satisfaction_rows %}
+        <tr>
+          <td><p class="cell-primary">{{ r.office.name }}</p></td>
+          <td>{{ r.count }}</td>
+          <td><b>{{ r.average }}</b> / 5</td>
+          <td><span class="badge {% if r.satisfied_pct >= 80 %}badge-green{% elif r.satisfied_pct >= 60 %}badge-amber{% else %}badge-red{% endif %}">{{ r.satisfied_pct }}%</span></td>
+          <td>{{ r.stars.1|add:r.stars.2 }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if recent_feedback %}
+  <div class="panel-body" style="border-top:1px solid var(--gray-100);">
+    <h3 style="font-size:12.5px;color:var(--gray-500);text-transform:uppercase;letter-spacing:.03em;margin:0 0 6px;">Latest Comments</h3>
+    {% for fb in recent_feedback %}
+    <div class="info-row" {% if forloop.last %}style="border-bottom:none;"{% endif %}>
+      <span class="k">“{{ fb.comment|truncatechars:140 }}” <span style="color:var(--gray-400);">— {{ fb.submission.form.office.name }}</span></span>
+      <span class="v" style="white-space:nowrap;"><span style="color:#f59e0b;">{{ fb.rating }} ★</span> · {{ fb.created_at|date:"M d" }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% else %}
+  <div class="panel-body"><p style="color:var(--gray-400);font-size:13px;margin:0;">No ratings yet. After an office marks an online request Ready for pickup or Declined, the citizen can rate the service from 1 to 5 stars in My Account.</p></div>
+  {% endif %}
+  <style>
+    .csat-top { display: flex; gap: 28px; align-items: center; flex-wrap: wrap; border-bottom: 1px solid var(--gray-100); }
+    .csat-score { min-width: 180px; }
+    .csat-score__num { font-size: 34px; font-weight: 800; color: var(--gray-900); line-height: 1; }
+    .csat-score__num small { font-size: 15px; font-weight: 600; color: var(--gray-400); }
+    .csat-score__stars span { font-size: 20px; color: var(--gray-200, #e5e7eb); }
+    .csat-score__stars span.on { color: #f59e0b; }
+    .csat-score__sub { font-size: 12.5px; color: var(--gray-500); margin-top: 4px; }
+    .csat-bars { flex: 1 1 260px; display: flex; flex-direction: column; gap: 6px; }
+    .csat-bar { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--gray-600); }
+    .csat-bar__k { width: 34px; white-space: nowrap; }
+    .csat-bar__track { flex: 1; height: 9px; border-radius: 999px; background: var(--gray-100); overflow: hidden; }
+    .csat-bar__fill { display: block; width: 0; height: 100%; border-radius: 999px; background: #f59e0b; transition: width .3s; }
+    .csat-bar__v { width: 30px; text-align: right; }
+  </style>
+</div>
+
+<!-- Portal Feedback: how people rate using the website itself
+     (side menu → Rate this website, portal.PortalFeedback) -->
+<div class="panel" style="margin-top:20px;">
+  <div class="panel-header">
+    <h2>Portal Feedback <span style="font-weight:500;color:var(--gray-400);font-size:12.5px;">(Rate this website)</span></h2>
+    {% if portal_feedback.count %}<a class="link" href="{% url 'admin_dashboard:admin_export_portal_feedback' %}"><i class="fa-solid fa-file-arrow-down"></i> Export CSV</a>{% endif %}
+  </div>
+  {% if portal_feedback.count %}
+  <div class="panel-body csat-top">
+    <div class="csat-score">
+      <div class="csat-score__num">{{ portal_feedback.average }}<small> / 5</small></div>
+      <div class="csat-score__stars">{% for i in "12345" %}<span class="{% if forloop.counter <= portal_feedback.average|floatformat:0|add:0 %}on{% endif %}">★</span>{% endfor %}</div>
+      <div class="csat-score__sub"><b>{{ portal_feedback.satisfied_pct }}%</b> rate it good or excellent · {{ portal_feedback.count }} user{{ portal_feedback.count|pluralize }}</div>
+    </div>
+    <div class="csat-bars">
+      {% for b in portal_feedback.bars %}
+      <div class="csat-bar"><span class="csat-bar__k">{{ b.stars }} ★</span><span class="csat-bar__track"><span class="csat-bar__fill" data-width="{{ b.pct }}"></span></span><span class="csat-bar__v">{{ b.count }}</span></div>
+      {% endfor %}
+    </div>
+  </div>
+  {% if portal_comments %}
+  <div class="panel-body">
+    <h3 style="font-size:12.5px;color:var(--gray-500);text-transform:uppercase;letter-spacing:.03em;margin:0 0 6px;">Suggestions from users</h3>
+    {% for fb in portal_comments %}
+    <div class="info-row" {% if forloop.last %}style="border-bottom:none;"{% endif %}>
+      <span class="k">“{{ fb.comment|truncatechars:160 }}”</span>
+      <span class="v" style="white-space:nowrap;"><span style="color:#f59e0b;">{{ fb.rating }} ★</span> · {{ fb.updated_at|date:"M d" }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% else %}
+  <div class="panel-body"><p style="color:var(--gray-400);font-size:13px;margin:0;">No feedback yet. Signed-in users can rate the website from the side menu → Rate this website.</p></div>
+  {% endif %}
+</div>
+
 <div class="grid-2" style="margin-top:20px;">
 
   <!-- Most Viewed / Downloaded Content -->
@@ -242,6 +345,8 @@
   <div class="panel-body" style="display:flex;gap:12px;flex-wrap:wrap;">
     <a href="{% url 'admin_dashboard:admin_export_office_activity' %}" class="btn btn-secondary"><i class="fa-solid fa-file-arrow-down"></i> Office Activity (CSV)</a>
     <a href="{% url 'admin_dashboard:admin_export_approval_history' %}" class="btn btn-secondary"><i class="fa-solid fa-file-arrow-down"></i> Approval History — This Month (CSV)</a>
+    <a href="{% url 'admin_dashboard:admin_export_satisfaction' %}" class="btn btn-secondary"><i class="fa-solid fa-file-arrow-down"></i> Client Satisfaction (CSV)</a>
+    <a href="{% url 'admin_dashboard:admin_export_portal_feedback' %}" class="btn btn-secondary"><i class="fa-solid fa-file-arrow-down"></i> Portal Feedback (CSV)</a>
   </div>
 </div>
 
@@ -251,6 +356,10 @@
 <script>
   document.querySelectorAll('.bar-chart .bar[data-height]').forEach(function (bar) {
     bar.style.height = bar.dataset.height + '%';
+  });
+  // star bars of Client Satisfaction and Portal Feedback
+  document.querySelectorAll('.csat-bar__fill[data-width]').forEach(function (bar) {
+    bar.style.width = bar.dataset.width + '%';
   });
 </script>
 {% endblock %}

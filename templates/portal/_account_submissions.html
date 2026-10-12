@@ -15,6 +15,25 @@ popup opens (portal.views.account_submissions_partial).{% endcomment %}
     <div class="sub-item__note"><strong><i class="fa-regular fa-comment"></i> Note from the office{% if s.status_updated_at %} &middot; {{ s.status_updated_at|date:"M d, g:i A" }}{% endif %}</strong>{{ s.office_note|linebreaksbr }}</div>
     {% endif %}
     <a class="sub-item__dl" href="{% url 'offices:download_filled' s.pk %}" download><i class="fa-solid fa-download"></i> Download my filled form</a>
+    {% if s.fb %}
+    <div class="sub-rate sub-rate--done"><span class="sub-rate__stars" aria-label="{{ s.fb.rating }} out of 5">{% for i in "12345" %}<span class="{% if forloop.counter <= s.fb.rating %}on{% endif %}">★</span>{% endfor %}</span> You rated this service: {{ s.fb.rating_label }}. Thank you!</div>
+    {% elif s.can_rate %}
+    {% comment %}Client satisfaction (RA 11032). Sent by the script in base.html ("js-feedback-form").{% endcomment %}
+    <form class="sub-rate js-feedback-form" method="post" action="{% url 'submission_feedback' s.pk %}">
+      {% csrf_token %}
+      <strong class="sub-rate__q">How satisfied are you with this service?</strong>
+      <div class="sub-rate__pick" role="radiogroup" aria-label="Rating from 1 to 5 stars">
+        <input type="radio" id="r{{ s.pk }}-5" name="rating" value="5" required><label for="r{{ s.pk }}-5" title="Very satisfied">★</label>
+        <input type="radio" id="r{{ s.pk }}-4" name="rating" value="4"><label for="r{{ s.pk }}-4" title="Satisfied">★</label>
+        <input type="radio" id="r{{ s.pk }}-3" name="rating" value="3"><label for="r{{ s.pk }}-3" title="Neutral">★</label>
+        <input type="radio" id="r{{ s.pk }}-2" name="rating" value="2"><label for="r{{ s.pk }}-2" title="Dissatisfied">★</label>
+        <input type="radio" id="r{{ s.pk }}-1" name="rating" value="1"><label for="r{{ s.pk }}-1" title="Very dissatisfied">★</label>
+      </div>
+      <textarea name="comment" rows="2" maxlength="1000" placeholder="Comment or suggestion (optional)"></textarea>
+      <button type="submit">Send rating</button>
+      <p class="sub-rate__msg" hidden></p>
+    </form>
+    {% endif %}
   </li>
   {% endfor %}
 </ul>

@@ -93,6 +93,9 @@ def super_admin_required(view_func):
             # Automatic daily backup: starts in the background when it's due.
             from .backup import maybe_start_auto_backup
             maybe_start_auto_backup()
+            # Once a day: online requests no office has opened for 3+ days.
+            from .alerts import check_unattended
+            check_unattended()
             return view_func(request, *args, **kwargs)
 
         # Activity log: every Super Admin action already ends with a
@@ -2677,7 +2680,25 @@ def admin_analytics(request):
     # ---- 6. Service directory health ----
     recent_services = Service.objects.filter(status="published").select_related("office").order_by("-published_at")[:5]
 
+    # ---- Client satisfaction (Anti-Red Tape Act, RA 11032) ----
+    from office_dashboard import submissions as subs
+    from office_dashboard.models import SubmissionFeedback
+    satisfaction_overall = subs.satisfaction(SubmissionFeedback.objects.all())
+    satisfaction_rows = subs.satisfaction_by_office()
+    recent_feedback = (SubmissionFeedback.objects.exclude(comment="")
+                       .select_related("submission__form__office", "submission__user")[:6])
+
+    # ---- Portal feedback (side menu → Rate this website) ----
+    from portal.models import PortalFeedback
+    portal_feedback = subs.satisfaction(PortalFeedback.objects.all())
+    portal_comments = PortalFeedback.objects.exclude(comment="").select_related("user")[:8]
+
     return render(request, "admin_dashboard/super-admin-analytics.html", {
+        "satisfaction_overall": satisfaction_overall,
+        "satisfaction_rows": satisfaction_rows,
+        "recent_feedback": recent_feedback,
+        "portal_feedback": portal_feedback,
+        "portal_comments": portal_comments,
         "content_overview": content_overview,
         "total_published_content": total_published_content,
         "total_pending_content": total_pending_content,
@@ -3472,6 +3493,7 @@ def admin_svc_download_form(request, pk):
 @super_admin_required
 def admin_submissions(request):
     from office_dashboard import submissions as subs
+    from office_dashboard.models import SubmissionFeedback
     from offices.models import Office
     all_qs = subs.base_queryset()
     qs, current = subs.apply_filters(all_qs, request)
@@ -3481,6 +3503,7 @@ def admin_submissions(request):
     return render(request, "admin_dashboard/super-admin-submissions.html", {
         "page_obj": page_obj,
         "counts": subs.counts(counts_qs),
+        "satisfaction": subs.satisfaction(SubmissionFeedback.objects.filter(submission__in=counts_qs)),
         "current": current,
         "status_info": subs.STATUS_INFO,
         "office_list": Office.objects.filter(downloadable_forms__submissions__isnull=False).distinct().order_by("name"),
@@ -3492,3 +3515,41 @@ def admin_submission_pdf(request, pk):
     from office_dashboard import submissions as subs
     s = get_object_or_404(subs.base_queryset(), pk=pk)
     return subs.filled_pdf_response(s, download=request.GET.get("download") == "1")
+
+
+
+@super_admin_required
+def admin_export_satisfaction(request):
+    """Client satisfaction ratings (RA 11032) as a CSV: one row per rating."""
+    from office_dashboard.models import SubmissionFeedback
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="client-satisfaction-{timezone.localdate()}.csv"'
+    writer = csv.writer(response)
+    writer.writerow(["Date Rated", "Office", "Form / Service", "Reference No.", "Rating (1-5)", "Rating", "Comment", "Request Status"])
+    for fb in SubmissionFeedback.objects.select_related("submission__form__office", "submission__form__service"):
+        s = fb.submission
+        writer.writerow([
+            timezone.localtime(fb.created_at).strftime("%Y-%m-%d %H:%M"),
+            s.form.office.name if s.form.office else "",
+            s.form.service.name if s.form.service else s.form.title,
+            s.reference_no, fb.rating, fb.rating_label, fb.comment, s.get_status_display(),
+        ])
+    return response
+
+
+
+@super_admin_required
+def admin_export_portal_feedback(request):
+    """Feedback on using the portal (Rate this website) as a CSV."""
+    from portal.models import PortalFeedback
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="portal-feedback-{timezone.localdate()}.csv"'
+    writer = csv.writer(response)
+    writer.writerow(["Date", "Rating (1-5)", "Rating", "Comment", "User Type"])
+    for fb in PortalFeedback.objects.select_related("user"):
+        u = fb.user
+        role = ("Super Admin" if hasattr(u, "super_admin") else
+                "Office Representative" if hasattr(u, "office_rep") else "Citizen")
+        writer.writerow([timezone.localtime(fb.updated_at).strftime("%Y-%m-%d %H:%M"),
+                         fb.rating, fb.rating_label, fb.comment, role])
+    return response

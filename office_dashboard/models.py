@@ -583,6 +583,29 @@ class FormSubmission(models.Model):
         return f"TNG-{year}-{self.pk:05d}"
 
 
+class SubmissionFeedback(models.Model):
+    """Client satisfaction rating (Anti-Red Tape Act, RA 11032): the citizen
+    rates the service 1–5 with an optional comment once their online request
+    is finished (Ready for pickup or Declined). One per submission. Shown to
+    the office (Submissions) and per office in Super Admin → Analytics."""
+    RATING_LABELS = {5: "Very satisfied", 4: "Satisfied", 3: "Neutral", 2: "Dissatisfied", 1: "Very dissatisfied"}
+
+    submission = models.OneToOneField(FormSubmission, on_delete=models.CASCADE, related_name="feedback")
+    rating = models.PositiveSmallIntegerField()
+    comment = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.rating}/5 — {self.submission.reference_no}"
+
+    @property
+    def rating_label(self):
+        return self.RATING_LABELS.get(self.rating, "")
+
+
 class FormSubmissionValue(models.Model):
     submission = models.ForeignKey(FormSubmission, on_delete=models.CASCADE, related_name="values")
     field = models.ForeignKey(FormField, on_delete=models.CASCADE, related_name="submitted_values")

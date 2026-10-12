@@ -40,17 +40,26 @@ OFFICE_CHOICES = [(k, v["label"]) for k, v in STATUS_INFO.items() if k != "submi
 # the website only (My Account + the bell), to save the daily email limit.
 EMAIL_STATUSES = ("ready", "declined")
 
+# The citizen can rate the service (1–5 + comment) once the request is finished.
+FEEDBACK_STATUSES = ("ready", "declined")
+
 
 def decorate(submissions):
-    """Adds .info (STATUS_INFO entry) to each submission for the templates."""
+    """Adds to each submission for the templates: .info (STATUS_INFO entry),
+    .fb (its SubmissionFeedback or None) and .can_rate."""
     for s in submissions:
         s.info = STATUS_INFO.get(s.status, STATUS_INFO["submitted"])
+        try:
+            s.fb = s.feedback
+        except Exception:
+            s.fb = None
+        s.can_rate = s.fb is None and s.status in FEEDBACK_STATUSES
     return submissions
 
 
 def base_queryset():
     return (FormSubmission.objects
-            .select_related("form", "form__office", "user", "user__profile")
+            .select_related("form", "form__office", "user", "user__profile", "feedback")
             .order_by("-submitted_at"))
 
 
@@ -146,7 +155,8 @@ def send_status_email(submission):
              f"Your online form \"{submission.form.title}\" (reference no. {submission.reference_no}) "
              f"sent to {office} is now: {info['label']}.\n{info['citizen']}\n"
              + (f"\nNote from the office:\n{note}\n" if note else "")
-             + "\nYou can also see this in My Account → My Form Submissions on the Tunga Portal.\n")
+             + "\nYou can also see this in My Account → My Form Submissions on the Tunga Portal,"
+               " where you can also rate the service. Your rating helps us serve you better.\n")
     from django.utils.html import escape
     html = (f'<div style="font-family:sans-serif;max-width:520px;">'
             f'<p>Hi {escape(name)},</p>'
@@ -156,7 +166,8 @@ def send_status_email(submission):
             f'<p style="color:#555;">{escape(info["citizen"])}</p>'
             + (f'<div style="background:#f3f6fb;border-radius:8px;padding:12px 14px;margin:14px 0;">'
                f'<b>Note from the office:</b><br>{escape(note).replace(chr(10), "<br>")}</div>' if note else "")
-            + '<p style="color:#888;font-size:13px;">You can also see this in My Account → My Form Submissions on the Tunga Portal.</p></div>')
+            + '<p style="color:#888;font-size:13px;">You can also see this in My Account → My Form Submissions on the Tunga Portal, '
+              'where you can also <b>rate the service</b>. Your rating helps us serve you better.</p></div>')
 
     def _send():
         try:
@@ -166,3 +177,70 @@ def send_status_email(submission):
             pass   # the website notification still shows the new status
 
     threading.Thread(target=_send, daemon=True).start()
+
+
+# ---------------------------------------------------------------------------
+# Client satisfaction (Anti-Red Tape Act, RA 11032)
+# ---------------------------------------------------------------------------
+def satisfaction(feedback_qs):
+    """{count, average, satisfied_pct, stars: {5: n, 4: n, ...}} for a set of
+    SubmissionFeedback. "Satisfied" = rated 4 or 5."""
+    ratings = list(feedback_qs.values_list("rating", flat=True))
+    n = len(ratings)
+    stars = {k: ratings.count(k) for k in (5, 4, 3, 2, 1)}
+    return {
+        "count": n,
+        "average": round(sum(ratings) / n, 2) if n else None,
+        "satisfied_pct": round(100 * (stars[5] + stars[4]) / n) if n else None,
+        "stars": stars,
+        "bars": [{"stars": k, "count": stars[k], "pct": round(100 * stars[k] / n) if n else 0} for k in (5, 4, 3, 2, 1)],
+    }
+
+
+def satisfaction_by_office():
+    """One row per office that has ratings, best average first."""
+    from offices.models import Office
+    from .models import SubmissionFeedback
+    rows = []
+    for office in Office.objects.filter(downloadable_forms__submissions__feedback__isnull=False).distinct():
+        s = satisfaction(SubmissionFeedback.objects.filter(submission__form__office=office))
+        s["office"] = office
+        rows.append(s)
+    rows.sort(key=lambda r: (-(r["average"] or 0), -r["count"]))
+    return rows
+
+
+def save_feedback(submission, rating, comment):
+    """Validates and saves the citizen's rating. Returns (feedback, error)."""
+    from .models import SubmissionFeedback
+    if submission.status not in FEEDBACK_STATUSES:
+        return None, "You can rate this service once your request is finished."
+    if SubmissionFeedback.objects.filter(submission=submission).exists():
+        return None, "You already rated this service. Thank you!"
+    try:
+        rating = int(rating)
+    except (TypeError, ValueError):
+        rating = 0
+    if rating < 1 or rating > 5:
+        return None, "Please choose from 1 to 5 stars."
+    fb = SubmissionFeedback.objects.create(submission=submission, rating=rating,
+                                           comment=(comment or "").strip()[:1000])
+    _notify_office_of_feedback(fb)
+    from admin_dashboard.alerts import low_rating
+    low_rating(fb)   # 1–2 stars: the Super Admin is told too
+    return fb, None
+
+
+def _notify_office_of_feedback(fb):
+    try:
+        from django.urls import reverse
+        from .models import OfficeRepresentative
+        from .notifications import notify
+        s = fb.submission
+        rep = OfficeRepresentative.objects.filter(office=s.form.office).first()
+        notify(rep, "feedback", f"New rating: {fb.rating}/5 for {s.form.title}",
+               (f"{s.reference_no} · {fb.comment[:120]}" if fb.comment else s.reference_no),
+               level="success" if fb.rating >= 4 else ("warning" if fb.rating == 3 else "danger"),
+               link_url=reverse("office_dashboard:submissions") + f"?q={s.reference_no}")
+    except Exception:
+        pass

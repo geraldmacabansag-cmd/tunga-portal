@@ -1279,6 +1279,41 @@ def account_delete(request):
 
 
 @login_required
+@require_POST
+def submission_feedback(request, pk):
+    """My Account → My Form Submissions → "Rate this service" (1–5 stars +
+    comment), only for the citizen's own finished request, once.
+    Client satisfaction under the Anti-Red Tape Act (RA 11032)."""
+    from office_dashboard.submissions import save_feedback
+    submission = FormSubmission.objects.filter(pk=pk, user=request.user).select_related('form__office').first()
+    if submission is None:
+        return JsonResponse({"ok": False, "error": "Submission not found."}, status=404)
+    fb, error = save_feedback(submission, request.POST.get('rating'), request.POST.get('comment', ''))
+    if error:
+        return JsonResponse({"ok": False, "error": error}, status=400)
+    return JsonResponse({"ok": True, "rating": fb.rating, "label": fb.rating_label})
+
+
+@login_required
+@require_POST
+def portal_feedback(request):
+    """Side menu → "Rate this website": 1–5 stars + suggestion about using
+    the portal. One per user; sending again updates it."""
+    from .models import PortalFeedback
+    try:
+        rating = int(request.POST.get('rating', 0))
+    except (TypeError, ValueError):
+        rating = 0
+    if rating < 1 or rating > 5:
+        return JsonResponse({"ok": False, "error": "Please choose from 1 to 5 stars."}, status=400)
+    fb, created = PortalFeedback.objects.update_or_create(
+        user=request.user,
+        defaults={"rating": rating, "comment": request.POST.get('comment', '').strip()[:1000]},
+    )
+    return JsonResponse({"ok": True, "rating": fb.rating, "label": fb.rating_label, "updated": not created})
+
+
+@login_required
 def account_submissions_partial(request):
     """Lazy-loaded fragment for the My Account popup's "My Form Submissions"
     list — fetched only when the popup is actually opened, so base.html
@@ -1287,7 +1322,7 @@ def account_submissions_partial(request):
     submissions = decorate(list(
         FormSubmission.objects
         .filter(user=request.user)
-        .select_related('form', 'form__office')
+        .select_related('form', 'form__office', 'feedback')
         .order_by('-submitted_at')[:20]
     ))
     return render(request, "portal/_account_submissions.html", {"submissions": submissions})

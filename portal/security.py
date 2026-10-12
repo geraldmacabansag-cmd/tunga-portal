@@ -87,8 +87,14 @@ def tries_left(kind, request, account):
 def record_failure(kind, request, account=None):
     from .models import AttemptLog
     _cleanup()
-    for key in _keys(kind, request, account).values():
+    keys = _keys(kind, request, account)
+    for key in keys.values():
         AttemptLog.objects.create(key=key)
+    # This try locked the account: warn the Super Admin if it is a staff
+    # account (Office Representative / Super Admin). admin_dashboard/alerts.py
+    if "acct" in keys and _lock_left(keys["acct"], ACCOUNT_MAX_TRIES):
+        from admin_dashboard.alerts import account_locked
+        account_locked(kind, request, account)
 
 
 def clear_failures(kind, account):

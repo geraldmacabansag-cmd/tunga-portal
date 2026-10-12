@@ -23,14 +23,21 @@ def send_via_configured_provider(subject, plain_body, html_body, to_email):
     if ok:
         return True, None
 
+    from .alerts import email_backup_used, email_failed   # Super Admin bell
     if s.backup_ready:
         ok2, error2 = send_with_backup(s, subject, plain_body, html_body, to_email)
         if ok2:
             EmailProviderSettings.objects.filter(pk=s.pk).update(
                 backup_last_used=timezone.now(), backup_used_count=F("backup_used_count") + 1)
+            if s.is_configured:   # Brevo is set up but failed (limit reached / down)
+                email_backup_used(error or "", s.get_backup_provider_display().split(" (")[0])
             return True, None
-        return False, f"{error} | Backup ({s.get_backup_provider_display()}) also failed: {error2}"
+        full = f"{error} | Backup ({s.get_backup_provider_display()}) also failed: {error2}"
+        email_failed(full)
+        return False, full
 
+    if s.is_configured:
+        email_failed(error or "")
     return False, error
 
 

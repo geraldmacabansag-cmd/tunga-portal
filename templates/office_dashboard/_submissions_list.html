@@ -39,7 +39,9 @@ Submissions page (can_update=True) and the Super Admin's Submissions page
 <section class="panel">
   <div class="panel-header">
     <h2>{% if is_admin %}All Online Submissions{% else %}Online Submissions{% endif %}</h2>
-    <span class="sub-total">{{ counts.total }} total</span>
+    <span class="sub-total">
+      {% if satisfaction.count %}<span class="sub-csat" title="Client satisfaction (RA 11032): average of {{ satisfaction.count }} rating{{ satisfaction.count|pluralize }}"><span class="sub-csat__star">★</span> {{ satisfaction.average }} / 5 · {{ satisfaction.satisfied_pct }}% satisfied · {{ satisfaction.count }} rating{{ satisfaction.count|pluralize }}</span> · {% endif %}{{ counts.total }} total
+    </span>
   </div>
   <form method="get" class="filters-row sub-filters">
     <label class="field search" style="flex:1;"><i class="fa-solid fa-magnifying-glass"></i><input type="text" name="q" value="{{ current.q }}" placeholder="Search name, email, form or reference no..." onchange="this.form.submit()"></label>
@@ -79,6 +81,7 @@ Submissions page (can_update=True) and the Super Admin's Submissions page
             <span class="badge {{ s.info.badge }}">{{ s.info.label }}</span>
             {% if s.office_note %}<div class="cell-sub sub-note" title="{{ s.office_note }}"><i class="fa-regular fa-comment"></i> {{ s.office_note|truncatechars:60 }}</div>{% endif %}
             {% if s.status_updated_at %}<div class="cell-sub">{{ s.status_updated_at|date:"M d, g:i A" }}{% if s.status_updated_by %} · {{ s.status_updated_by }}{% endif %}</div>{% endif %}
+            {% if s.fb %}<div class="sub-fb" title="{{ s.fb.rating_label }}{% if s.fb.comment %}: {{ s.fb.comment }}{% endif %}"><span class="sub-fb__stars">{% for i in "12345" %}<span class="{% if forloop.counter <= s.fb.rating %}on{% endif %}">★</span>{% endfor %}</span>{% if s.fb.comment %} <span class="sub-fb__comment">“{{ s.fb.comment|truncatechars:50 }}”</span>{% endif %}</div>{% endif %}
           </td>
           <td>
             <div class="sub-actions">
@@ -213,7 +216,12 @@ Submissions page (can_update=True) and the Super Admin's Submissions page
   .sub-stats .sub-stat { text-decoration: none; color: inherit; transition: box-shadow .15s, transform .15s; }
   .sub-stats .sub-stat:hover { transform: translateY(-2px); }
   .sub-stats .sub-stat.is-on { outline: 2px solid var(--blue-600, #2563eb); outline-offset: -2px; }
-  .sub-total { font-size: 13px; color: var(--gray-500); }
+  .sub-total { font-size: 13px; color: var(--gray-500); text-align: right; }
+  .sub-csat { color: var(--gray-700); font-weight: 600; white-space: nowrap; }
+  .sub-csat__star, .sub-fb__stars .on { color: #f59e0b; }
+  .sub-fb { margin-top: 4px; font-size: 12px; max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--gray-500); }
+  .sub-fb__stars span { color: var(--gray-300, #d1d5db); font-size: 13px; }
+  .sub-fb__stars .on { color: #f59e0b; }
   .sub-ref { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 700; font-size: 12.5px; white-space: nowrap; }
   .sub-new { display: inline-block; margin-left: 4px; padding: 1px 7px; border-radius: 999px; background: var(--blue-600, #2563eb); color: #fff; font-size: 10.5px; font-weight: 700; vertical-align: middle; }
   .sub-row--new td { background: rgba(37, 99, 235, .04); }
