@@ -1798,7 +1798,11 @@ def admin_user_toggle_active(request, pk):
 
 @super_admin_required
 def admin_roles(request):
-    return render(request, "admin_dashboard/super-admin-roles.html")
+    """Roles & Permissions: the three built-in roles of the system and what
+    each one can do (read only — roles are fixed, see admin_dashboard/roles.py)."""
+    from .roles import built_in_roles
+    return render(request, "admin_dashboard/super-admin-roles.html", {"roles": built_in_roles()})
+
 
 @super_admin_required
 def admin_homepage(request):
