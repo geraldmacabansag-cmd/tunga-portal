@@ -101,11 +101,11 @@
                       data-contact-info="{{ e.contact_info }}"
                       data-status="{{ e.get_status_display }}"
                       data-status-class="{{ e.badge_class }}"
-                      data-image="{% if e.poster %}{{ e.poster.url }}{% endif %}" data-gallery="{{ e.gallery_urls_json }}" data-gallery-target="ve-image-wrap"
+                      data-image="{% if e.poster %}{{ e.poster.url }}{% endif %}" data-gallery="{{ e.gallery_urls_json }}" data-gallery-target="ve-image-wrap" data-video-id="{{ e.youtube_id }}" data-video-target="ve-video-wrap"
                       data-created="{{ e.created_at|date:'F j, Y g:i A' }}"
                       data-details-url="{% url 'admin_dashboard:approval_details' 'Event' e.pk %}"
                     ><i class="fa-regular fa-eye"></i></button>
-                    <button type="button" class="ic event-edit-btn" title="Edit" data-photos="{{ e.extra_photos_json }}" data-cover="{% if e.poster %}{{ e.poster.url }}{% endif %}" data-photos-form="eventForm"
+                    <button type="button" class="ic event-edit-btn" title="Edit" data-photos="{{ e.extra_photos_json }}" data-video="{{ e.video_url }}" data-cover="{% if e.poster %}{{ e.poster.url }}{% endif %}" data-photos-form="eventForm"
                       data-id="{{ e.pk }}"
                       data-title="{{ e.title }}"
                       data-category="{{ e.category }}"
@@ -216,6 +216,7 @@
           <span class="form-help" id="eventPosterHelp">JPG or PNG. Leave empty to keep the current poster when editing.</span>
         </div>
         {% include "office_dashboard/_more_photos_field.html" %}
+        {% include "office_dashboard/_video_field.html" %}
 
         <div class="form-group">
           <label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;">
@@ -245,6 +246,7 @@
       <button type="button" class="modal-x" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="modal-body">
+      <div id="ve-video-wrap" class="cv" hidden></div>
       <div id="ve-image-wrap" style="margin-bottom:16px;display:none;">
         <img id="ve-image" src="" alt="" style="width:100%;border-radius:10px;max-height:260px;object-fit:cover;">
       </div>

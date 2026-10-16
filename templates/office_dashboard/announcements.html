@@ -236,6 +236,7 @@
       </small>
     </div>
         {% include "office_dashboard/_more_photos_field.html" %}
+        {% include "office_dashboard/_video_field.html" %}
 
     <!-- Author -->
     <div class="form-group">
@@ -357,6 +358,7 @@
           <small class="form-help">Leave empty to keep the current image.</small>
         </div>
         {% include "office_dashboard/_more_photos_field.html" with obj=a %}
+        {% include "office_dashboard/_video_field.html" with obj=a %}
 
         <div class="form-group">
           <label class="form-label" for="ann-auth-{{ a.id }}">Author / Posted By</label>
@@ -408,6 +410,7 @@
     <div class="modal-body">
 
       {# main image + every extra photo (arrows / thumbnails when more than one) #}
+      {% include "portal/_video_embed.html" with item=a title=a.title %}
       {% include "includes/_view_photos.html" with item=a %}
 
       <div class="modal-view-row"><span class="k">Title</span><span class="v">{{ a.title }}</span></div>

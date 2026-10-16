@@ -44,6 +44,7 @@
           <div class="field-grid">
 
             {% if item_type == 'Announcement' %}
+              {% if obj.youtube_id %}<div class="full"><div class="fl-label">Video</div>{% include "portal/_video_embed.html" with item=obj title=obj.title %}</div>{% endif %}
               {% if obj.gallery_photos %}
               <div class="full">
                 <div class="fl-label">Photos ({{ obj.gallery_photos|length }})</div>
@@ -61,6 +62,7 @@
               <div><div class="fl-label">Views</div><div class="fl-value">{{ obj.views }}</div></div>
 
             {% elif item_type == 'News' %}
+              {% if obj.youtube_id %}<div class="full"><div class="fl-label">Video</div>{% include "portal/_video_embed.html" with item=obj title=obj.title %}</div>{% endif %}
               {% if obj.gallery_photos %}
               <div class="full">
                 <div class="fl-label">Photos ({{ obj.gallery_photos|length }})</div>
@@ -78,6 +80,7 @@
               <div><div class="fl-label">Views</div><div class="fl-value">{{ obj.views }}</div></div>
 
             {% elif item_type == 'Event' %}
+              {% if obj.youtube_id %}<div class="full"><div class="fl-label">Video</div>{% include "portal/_video_embed.html" with item=obj title=obj.title %}</div>{% endif %}
               {% if obj.gallery_photos %}
               <div class="full">
                 <div class="fl-label">Poster &amp; photos ({{ obj.gallery_photos|length }})</div>

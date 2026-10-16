@@ -289,39 +289,59 @@
      One hidden <template> per item, cloned into the dialog by the script below. -->
 {% for a in announcements %}
 <template id="tpl-ann-{{ a.pk }}">
-  <div class="ann-dlg-badges">
-    <span class="ann-badge ann-badge--{{ a.category|default:'General'|slugify }}">{{ a.category|default:"General"|upper }}</span>
-  </div>
-  {% if a.subtitle %}<p class="ann-dlg-subtitle">{{ a.subtitle }}</p>{% endif %}
-  {% include "portal/_photo_collage.html" with item=a title=a.title %}
-  <div class="ann-dlg-content">
-    {% if a.content %}{{ a.content|urlizetrunc:45|linebreaks }}{% else %}<p>No further details were provided for this announcement.</p>{% endif %}
-  </div>
-  <div class="ann-dlg-footer">
-    <div><i class="fa-regular fa-building"></i> {{ office.name }}</div>
-    <div><i class="fa-regular fa-calendar"></i> {{ a.date_posted|default:a.created_at|date:"F d, Y" }}</div>
-    {% if a.author %}<div><i class="fa-regular fa-user"></i> {{ a.author }}</div>{% endif %}
-    {% if a.priority and a.priority != "Normal" %}<div><i class="fa-solid fa-circle-exclamation"></i> {{ a.priority }} priority</div>{% endif %}
+  {# title (in the pop-up header), category and short description first; then the video, the photos, and the full description below them. #}
+  <div class="ann-dlg-grid{% if a.youtube_id or a.gallery_photos %} has-media{% endif %}">
+    <div class="ann-dlg-top">
+      <div class="ann-dlg-badges">
+        <span class="ann-badge ann-badge--{{ a.category|default:'General'|slugify }}">{{ a.category|default:"General"|upper }}</span>
+      </div>
+      {% if a.subtitle %}<p class="ann-dlg-subtitle">{{ a.subtitle }}</p>{% endif %}
+    </div>
+    {% if a.youtube_id or a.gallery_photos %}<div class="ann-dlg-media">
+    {% include "portal/_video_embed.html" with item=a title=a.title %}
+    {% include "portal/_photo_collage.html" with item=a title=a.title %}
+    </div>{% endif %}
+    <div class="ann-dlg-more">
+      <div class="ann-dlg-content">
+        {% if a.content %}{{ a.content|urlizetrunc:45|linebreaks }}{% else %}<p>No further details were provided for this announcement.</p>{% endif %}
+      </div>
+      <div class="ann-dlg-footer">
+        <div><i class="fa-regular fa-building"></i> {{ office.name }}</div>
+        <div><i class="fa-regular fa-calendar"></i> {{ a.date_posted|default:a.created_at|date:"F d, Y" }}</div>
+        {% if a.author %}<div><i class="fa-regular fa-user"></i> {{ a.author }}</div>{% endif %}
+        {% if a.priority and a.priority != "Normal" %}<div><i class="fa-solid fa-circle-exclamation"></i> {{ a.priority }} priority</div>{% endif %}
+      </div>
+    </div>
   </div>
 </template>
 {% endfor %}
 
 {% for n in news_items %}
 <template id="tpl-news-{{ n.pk }}">
-  <div class="ann-dlg-badges">
-    <span class="ann-badge ann-badge--general">{{ n.category|default:"General"|upper }}</span>
-  </div>
-  {% if n.summary %}<p class="ann-dlg-subtitle">{{ n.summary }}</p>{% endif %}
-  {% include "portal/_photo_collage.html" with item=n title=n.title %}
-  <div class="ann-dlg-content">
-    {% if n.content %}{{ n.content|urlizetrunc:45|linebreaks }}{% else %}<p>No further details were provided for this story.</p>{% endif %}
-  </div>
-  <div class="ann-dlg-footer">
-    <div><i class="fa-regular fa-building"></i> {{ office.name }}</div>
-    <div><i class="fa-regular fa-calendar"></i> {{ n.display_date|date:"F d, Y" }}</div>
-    {% if n.author %}<div><i class="fa-regular fa-user"></i> {{ n.author }}</div>{% endif %}
-    {% if n.source %}<div><i class="fa-solid fa-link"></i> {{ n.source }}</div>{% endif %}
-    {% if n.tags %}<div><i class="fa-solid fa-tags"></i> {{ n.tags }}</div>{% endif %}
+  {# title (in the pop-up header), category and short description first; then the video, the photos, and the full description below them. #}
+  <div class="ann-dlg-grid{% if n.youtube_id or n.gallery_photos %} has-media{% endif %}">
+    <div class="ann-dlg-top">
+      <div class="ann-dlg-badges">
+        <span class="ann-badge ann-badge--general">{{ n.category|default:"General"|upper }}</span>
+      </div>
+      {% if n.summary %}<p class="ann-dlg-subtitle">{{ n.summary }}</p>{% endif %}
+    </div>
+    {% if n.youtube_id or n.gallery_photos %}<div class="ann-dlg-media">
+    {% include "portal/_video_embed.html" with item=n title=n.title %}
+    {% include "portal/_photo_collage.html" with item=n title=n.title %}
+    </div>{% endif %}
+    <div class="ann-dlg-more">
+      <div class="ann-dlg-content">
+        {% if n.content %}{{ n.content|urlizetrunc:45|linebreaks }}{% else %}<p>No further details were provided for this story.</p>{% endif %}
+      </div>
+      <div class="ann-dlg-footer">
+        <div><i class="fa-regular fa-building"></i> {{ office.name }}</div>
+        <div><i class="fa-regular fa-calendar"></i> {{ n.display_date|date:"F d, Y" }}</div>
+        {% if n.author %}<div><i class="fa-regular fa-user"></i> {{ n.author }}</div>{% endif %}
+        {% if n.source %}<div><i class="fa-solid fa-link"></i> {{ n.source }}</div>{% endif %}
+        {% if n.tags %}<div><i class="fa-solid fa-tags"></i> {{ n.tags }}</div>{% endif %}
+      </div>
+    </div>
   </div>
 </template>
 {% endfor %}

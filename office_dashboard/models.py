@@ -69,6 +69,22 @@ class PhotoGalleryMixin:
         import json
         return json.dumps([p for p in self.gallery_photos if p["id"]])
 
+    # YouTube video (optional) — office_dashboard/video.py
+    @property
+    def youtube_id(self):
+        from .video import youtube_id
+        return youtube_id(getattr(self, "video_url", ""))
+
+    @property
+    def video_embed_url(self):
+        vid = self.youtube_id
+        return f"https://www.youtube-nocookie.com/embed/{vid}?rel=0&autoplay=1&playsinline=1" if vid else ""
+
+    @property
+    def video_thumb_url(self):
+        vid = self.youtube_id
+        return f"https://i.ytimg.com/vi/{vid}/hqdefault.jpg" if vid else ""
+
 
 class Announcement(PhotoGalleryMixin, models.Model):
 
@@ -150,6 +166,9 @@ class Announcement(PhotoGalleryMixin, models.Model):
     # Notice" box on the public Announcements tab, regardless of its date.
     is_pinned = models.BooleanField(default=False)
 
+    # optional YouTube video shown in the post (office_dashboard/video.py)
+    video_url = models.URLField(max_length=300, blank=True)
+
     @classmethod
     def public(cls):
         """Announcements the public may see: published and not past their
@@ -195,6 +214,7 @@ class NewsUpdate(PhotoGalleryMixin, models.Model):
     last_updated = models.DateTimeField(auto_now=True)
     source = models.CharField(max_length=255, blank=True)
     tags = models.CharField(max_length=255, blank=True)
+    video_url = models.URLField(max_length=300, blank=True)   # optional YouTube video
 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
     admin_note = models.TextField(blank=True)
@@ -236,6 +256,7 @@ class Event(PhotoGalleryMixin, models.Model):
     contact_info = models.CharField(max_length=255, blank=True)
 
     poster = models.ImageField(upload_to="events/", blank=True, null=True)
+    video_url = models.URLField(max_length=300, blank=True)   # optional YouTube video
 
     # When true, this event is pinned as the "Featured Event" hero on the
     # public Events tab instead of just falling in wherever its date puts it.

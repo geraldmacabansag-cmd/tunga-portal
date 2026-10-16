@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="{% static 'css/office_rep_style.css' %}">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="icon" href="{% if site_contact.logo %}{{ site_contact.logo.url }}{% else %}{% static 'images/tunga_leyte_logo.png' %}{% endif %}">
+  <link rel="stylesheet" href="{% static 'css/content-video.css' %}?v=4">
 </head>
 
 <body data-page="{% block body_page %}dashboard{% endblock %}">
@@ -201,5 +202,6 @@
 <script src="{% static 'js/app.js' %}"></script>
 
 {% block extra_js %}{% endblock %}
+<script src="{% static 'js/content-video.js' %}?v=2"></script>
 </body>
 </html>

@@ -1,0 +1,13 @@
+{% comment %}
+"YouTube video link" box for announcements, news and events (Office
+Representative and Super Admin add / edit forms). Saved by
+office_dashboard/video.py (called from content_photos.save_content_photos).
+Pass obj=<the item> in a server-drawn edit form; on the Super Admin pages the
+one shared form is filled by static/js/content-video.js from the button's data-video.
+{% endcomment %}
+<div class="form-group cv-field">
+  <label class="form-label"><i class="fa-brands fa-youtube" style="color:#ff0000;"></i> YouTube video link <span class="cv-optional">(optional)</span></label>
+  <input class="form-input cv-input" type="url" name="video_url" maxlength="300" value="{{ obj.video_url|default:'' }}" placeholder="https://www.youtube.com/watch?v=… or https://youtu.be/…" inputmode="url" autocomplete="off">
+  <div class="cv-preview" aria-live="polite"></div>
+  <small class="form-help">Paste the link of a <b>Public</b> or <b>Unlisted</b> YouTube video. It is shown as a video player in the post. Leave empty for no video.</small>
+</div>

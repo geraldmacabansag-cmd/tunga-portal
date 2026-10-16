@@ -28,7 +28,8 @@ def save_content_photos(request, obj):
     """Removes the photos ticked for removal and adds the newly chosen ones.
     Returns a list of problems (e.g. a file that isn't an image) to show the
     user; good photos are saved even when some others are rejected."""
-    problems = []
+    from .video import save_video
+    problems = save_video(request, obj)   # the "YouTube video link" box, if the form has one
     link = _link(obj)
 
     remove_ids = [i for i in request.POST.getlist("remove_photos") if str(i).isdigit()]

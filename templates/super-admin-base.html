@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="{% static 'css/super_admin_style.css' %}?v=2">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="icon" href="{% if site_contact.logo %}{{ site_contact.logo.url }}{% else %}{% static 'images/tunga_leyte_logo.png' %}{% endif %}">
+  <link rel="stylesheet" href="{% static 'css/content-video.css' %}?v=4">
 </head>
 <body data-page="{% block body_page %}dashboard{% endblock %}" data-logout-url="{% url 'logout' %}" data-account-url="{% url 'admin_dashboard:admin_account' %}" data-changepass-url="{% url 'admin_dashboard:admin_change_pass' %}">
 <script>
@@ -298,5 +299,6 @@
 </div>
 {% endif %}
 
+<script src="{% static 'js/content-video.js' %}?v=2"></script>
 </body>
 </html>

@@ -1,0 +1,87 @@
+/* YouTube video of an announcement / news post / event (static/js/content-video.js).
+   A 16:9 box that keeps its shape on any screen. The thumbnail is shown first;
+   the YouTube player is loaded only when someone taps play. */
+.cv { margin: 14px 0; }
+.cv:first-child { margin-top: 0; }   /* the video is the first thing in the pop-up */
+.cv-frame { position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; background: #0b1220; box-shadow: 0 6px 18px rgba(10, 47, 110, .14); }
+@supports not (aspect-ratio: 16 / 9) { .cv-frame { height: 0; padding-top: 56.25%; } }
+.cv-frame iframe, .cv-play { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.cv-play { display: block; padding: 0; margin: 0; cursor: pointer; background: #0b1220; }
+.cv-play img { width: 100%; height: 100%; object-fit: cover; display: block; opacity: .92; transition: opacity .15s; }
+.cv-play:hover img, .cv-play:focus-visible img { opacity: 1; }
+.cv-play:focus-visible { outline: 3px solid #f59e0b; outline-offset: -3px; }
+.cv-btn { position: absolute; left: 50%; top: 50%; width: 68px; height: 48px; margin: -24px 0 0 -34px; border-radius: 14px; background: rgba(220, 0, 0, .92); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0, 0, 0, .35); transition: transform .15s, background .15s; }
+.cv-btn::before { content: ""; display: block; margin-left: 4px; border-style: solid; border-width: 11px 0 11px 19px; border-color: transparent transparent transparent #fff; }
+.cv-play:hover .cv-btn { transform: scale(1.08); background: #ff0000; }
+.cv-label { position: absolute; left: 12px; bottom: 10px; padding: 4px 10px; border-radius: 999px; background: rgba(0, 0, 0, .62); color: #fff; font-size: 12px; font-weight: 600; pointer-events: none; }
+.cv-meta { display: flex; justify-content: flex-end; margin-top: 6px; }
+.cv-meta a { font-size: 12.5px; font-weight: 600; color: #b91c1c; text-decoration: none; }
+.cv-meta a:hover { text-decoration: underline; }
+@media (max-width: 480px) {
+  .cv-frame { border-radius: 10px; }
+  .cv-btn { width: 56px; height: 40px; margin: -20px 0 0 -28px; }
+}
+
+/* the "YouTube video link" box in the add / edit forms */
+.cv-field .cv-preview { display: flex; align-items: center; gap: 10px; margin-top: 8px; font-size: 12.5px; }
+.cv-field .cv-preview img { width: 112px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 6px; background: #e5e7eb; }
+.cv-field .cv-ok { color: #15803d; font-weight: 600; }
+.cv-field .cv-bad { color: #b91c1c; }
+.cv-field .cv-optional { font-weight: 400; color: #6b7280; }
+
+/* While the video plays: no extra buttons over or under it. "Open on YouTube"
+   comes back only while the mouse is over the video (YouTube's own controls
+   also hide by themselves and show on hover). */
+.cv-meta { transition: opacity .2s ease; }
+.cv.is-playing .cv-meta { opacity: 0; pointer-events: none; }
+.cv.is-playing:hover .cv-meta, .cv.is-playing .cv-meta:focus-within { opacity: 1; pointer-events: auto; }
+
+/* Public pop-ups (announcements, news, events): title in the header, then the
+   category + short description (.ann-dlg-top), the video and photos
+   (.ann-dlg-media), and the full description + details (.ann-dlg-more). */
+.ann-dlg-top .ann-dlg-subtitle:last-child { margin-bottom: 16px; }
+.ann-dlg-media { margin-bottom: 4px; }
+
+/* LANDSCAPE pop-up (side by side): video and photos on the left, category,
+   short description, full description and details on the right. The whole
+   video fits in the window, and each side scrolls on its own if it is long.
+   Used on computers, laptops and tablets (900px wide or more) and on phones
+   turned sideways. Only phones held upright / narrow screens keep the
+   one-column pop-up. Posts with no video and no photos stay one column. */
+@media (min-width: 900px), (orientation: landscape) and (max-height: 520px) {
+  .ann-dlg-body:has(> .ann-dlg-grid.has-media) { display: flex; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+  .ann-dlg-grid.has-media { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); grid-template-areas: "media top" "media more"; gap: 0 24px; }
+  .has-media > .ann-dlg-media { grid-area: media; min-height: 0; overflow-y: auto; overscroll-behavior: contain; margin: 0; padding-right: 2px; }
+  .has-media > .ann-dlg-top { grid-area: top; max-height: 38vh; overflow-y: auto; }
+  .has-media > .ann-dlg-more { grid-area: more; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; }
+  .has-media .ann-dlg-footer { grid-template-columns: 1fr; }
+  .ann-dlg-media .cv { margin: 0 0 12px; }
+  .ann-dlg-media .cv-meta { margin-top: 4px; }
+  .ann-dlg-media .pc { margin-bottom: 0; }
+}
+
+/* computers, laptops, tablets: a wide pop-up */
+@media (min-width: 900px) {
+  .ann-dialog:has(.ann-dlg-grid.has-media) { width: min(1120px, calc(100vw - 48px)); }
+  .ann-dialog:has(.ann-dlg-grid.has-media), .ann-dialog:has(.ann-dlg-grid.has-media) .ann-dlg { max-height: 90vh; }
+  /* the whole video fits in the window height */
+  .ann-dlg-media .cv-frame { width: min(100%, calc((90vh - 150px) * 16 / 9)); margin: 0 auto; }
+}
+
+/* phones turned sideways: the pop-up fills the screen, smaller header and text */
+@media (orientation: landscape) and (max-height: 520px) {
+  .ann-dialog, .ann-dialog[open] { width: calc(100vw - 12px); max-width: none; height: calc(100vh - 12px); height: calc(100dvh - 12px); max-height: none; border-radius: 12px; }
+  .ann-dlg { height: 100%; max-height: none; }
+  .ann-dlg-head { padding: 8px 14px; gap: 10px; align-items: center; }
+  .ann-dlg-head small { font-size: .68rem; margin-bottom: 1px; }
+  .ann-dlg-head h2 { font-size: 1rem; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .ann-dlg-close { width: 32px; height: 32px; }
+  .ann-dlg-body { flex: 1 1 auto; min-height: 0; padding: 12px 14px 14px; }
+  .ann-dlg-grid.has-media { gap: 0 16px; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); }
+  .has-media .ann-dlg-badges { margin-bottom: 8px; }
+  .has-media .ann-dlg-subtitle { font-size: .9rem; margin-bottom: 10px; }
+  .has-media .ann-dlg-content { font-size: .88rem; line-height: 1.6; margin-bottom: 12px; }
+  .has-media .ann-dlg-footer { gap: 8px; padding: 12px; font-size: .8rem; }
+  .ann-dlg-media .cv { margin: 0 0 10px; }
+  .ann-dlg-media .cv-frame { width: min(100%, calc((100vh - 120px) * 16 / 9)); margin: 0 auto; }
+}

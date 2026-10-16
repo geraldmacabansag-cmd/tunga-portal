@@ -181,6 +181,7 @@
           <input class="form-input" type="file" id="ev-poster" name="poster" accept="image/*">
         </div>
         {% include "office_dashboard/_more_photos_field.html" %}
+        {% include "office_dashboard/_video_field.html" %}
 
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
@@ -201,6 +202,7 @@
     <div class="modal-body">
 
       {# poster + every extra photo (arrows / thumbnails when more than one) #}
+      {% include "portal/_video_embed.html" with item=e title=e.title %}
       {% include "includes/_view_photos.html" with item=e %}
 
       <div class="modal-view-row"><span class="k">Title</span><span class="v">{{ e.title }}</span></div>
@@ -290,6 +292,7 @@
           <small class="form-help">Leave empty to keep the current poster.</small>
         </div>
         {% include "office_dashboard/_more_photos_field.html" with obj=e %}
+        {% include "office_dashboard/_video_field.html" with obj=e %}
 
         <!-- Last Updated intentionally not here — set automatically by the server on save -->
 

@@ -1,0 +1,10 @@
+{% comment %}
+YouTube video of an announcement / news post / event, in its pop-up or view
+window. Shows the thumbnail; tapping it loads the player (static/js/content-video.js,
+static/css/content-video.css). Pass: item, title. Nothing is shown without a video.
+{% endcomment %}{% with vid=item.youtube_id %}{% if vid %}
+<div class="cv" data-cv-id="{{ vid }}" data-cv-title="{{ title }}">
+  <div class="cv-frame"><button type="button" class="cv-play" aria-label="Play video: {{ title }}"><img src="https://i.ytimg.com/vi/{{ vid }}/hqdefault.jpg" alt="" loading="lazy"><span class="cv-btn" aria-hidden="true"></span><span class="cv-label">Watch video</span></button></div>
+  <div class="cv-meta"><a href="https://www.youtube.com/watch?v={{ vid }}" target="_blank" rel="noopener">Open on YouTube</a></div>
+</div>
+{% endif %}{% endwith %}

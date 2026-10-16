@@ -3,18 +3,28 @@
      announcements.html). Included once per published NewsUpdate, inside a
      hidden <template>, so opening the modal needs no extra request — the
      JS just clones this markup into #newsDlgBody. -->
-<div class="ann-dlg-badges">
-  <span class="news-badge news-badge--{{ n.category_slug }}">{{ n.category_label|upper }}</span>
-</div>
-{% if n.summary %}<p class="ann-dlg-subtitle">{{ n.summary }}</p>{% endif %}
-{% include "portal/_photo_collage.html" with item=n title=n.title %}
-<div class="ann-dlg-content">
-  {% if n.content %}{{ n.content|urlizetrunc:45|linebreaks }}{% else %}<p>No further details were provided for this story.</p>{% endif %}
-</div>
-<div class="ann-dlg-footer">
-  <div><i class="fa-regular fa-building"></i> {{ n.representative.office.name|default:"—" }}</div>
-  <div><i class="fa-regular fa-calendar"></i> {{ n.display_date|date:"F d, Y" }}</div>
-  {% if n.author %}<div><i class="fa-regular fa-user"></i> {{ n.author }}</div>{% endif %}
-  {% if n.source %}<div><i class="fa-solid fa-link"></i> {{ n.source }}</div>{% endif %}
-  {% if n.tags %}<div><i class="fa-solid fa-tags"></i> {{ n.tags }}</div>{% endif %}
+{# title (in the pop-up header), category and short description first; then the video, the photos, and the full description below them. #}
+<div class="ann-dlg-grid{% if n.youtube_id or n.gallery_photos %} has-media{% endif %}">
+  <div class="ann-dlg-top">
+    <div class="ann-dlg-badges">
+      <span class="news-badge news-badge--{{ n.category_slug }}">{{ n.category_label|upper }}</span>
+    </div>
+    {% if n.summary %}<p class="ann-dlg-subtitle">{{ n.summary }}</p>{% endif %}
+  </div>
+  {% if n.youtube_id or n.gallery_photos %}<div class="ann-dlg-media">
+  {% include "portal/_video_embed.html" with item=n title=n.title %}
+  {% include "portal/_photo_collage.html" with item=n title=n.title %}
+  </div>{% endif %}
+  <div class="ann-dlg-more">
+    <div class="ann-dlg-content">
+      {% if n.content %}{{ n.content|urlizetrunc:45|linebreaks }}{% else %}<p>No further details were provided for this story.</p>{% endif %}
+    </div>
+    <div class="ann-dlg-footer">
+      <div><i class="fa-regular fa-building"></i> {{ n.representative.office.name|default:"—" }}</div>
+      <div><i class="fa-regular fa-calendar"></i> {{ n.display_date|date:"F d, Y" }}</div>
+      {% if n.author %}<div><i class="fa-regular fa-user"></i> {{ n.author }}</div>{% endif %}
+      {% if n.source %}<div><i class="fa-solid fa-link"></i> {{ n.source }}</div>{% endif %}
+      {% if n.tags %}<div><i class="fa-solid fa-tags"></i> {{ n.tags }}</div>{% endif %}
+    </div>
+  </div>
 </div>

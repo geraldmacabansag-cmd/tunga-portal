@@ -1,0 +1,24 @@
+{% comment %}
+TEMPORARY testing-phase warning at the top of every public page (base.html).
+To remove it later: delete this file and the line
+  {% include "portal/_testing_notice.html" %}
+in templates/base.html.
+It is always shown (no close button).
+{% endcomment %}
+<div class="tn" id="testingNotice" role="alert">
+  <div class="tn-inner">
+    <i class="fa-solid fa-triangle-exclamation tn-icon" aria-hidden="true"></i>
+    <p class="tn-text"><strong>Testing phase:</strong> The Tunga Digital Governance Portal is currently in its testing phase. All content on this website, including announcements, news, events, office details, services, and forms, is sample data used for demonstration purposes only and is not official information from the Municipality of Tunga, Leyte. Forms submitted here will not be processed. For official transactions and information, please visit the Municipal Hall.</p>
+  </div>
+</div>
+<style>
+  .tn { background: #fff4d6; border-bottom: 2px solid #f0b429; color: #5c3d00; }
+  .tn-inner { max-width: 1280px; margin: 0 auto; padding: 10px 16px; display: flex; align-items: flex-start; gap: 12px; }
+  .tn-icon { flex: none; margin-top: 3px; font-size: 1.05rem; color: #c27c00; }
+  .tn-text { flex: 1; min-width: 0; margin: 0; font-size: .86rem; line-height: 1.55; }
+  .tn-text strong { color: #7a4f00; }
+  @media (max-width: 600px) {
+    .tn-inner { padding: 9px 12px; gap: 10px; }
+    .tn-text { font-size: .78rem; line-height: 1.5; }
+  }
+</style>
