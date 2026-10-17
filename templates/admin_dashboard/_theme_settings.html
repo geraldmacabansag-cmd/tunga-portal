@@ -1,0 +1,388 @@
+{% comment %}
+Theme & Colors tab of Website Settings (included in
+super-admin-website-settings.html as the "Theme & Colors" tab).
+Colors, fonts and text size of the PUBLIC website. Saved by
+admin_dashboard/views.py admin_theme; list of colors and fonts:
+admin_dashboard/theme.py; used on the website by {% site_theme %} in base.html.
+The preview on the right changes while you pick; nothing changes on the
+website until "Save theme".
+{% endcomment %}
+<form method="post" id="themeForm" action="{% url 'admin_dashboard:ad_theme' %}">
+  {% csrf_token %}
+  <input type="hidden" name="action" value="save">
+
+  <div class="th-top">
+    <div>
+      {% if theme.is_default %}
+        <span class="badge badge-green"><i class="fa-solid fa-circle-check"></i> Using the default colors and fonts</span>
+      {% else %}
+        <span class="badge badge-blue"><i class="fa-solid fa-palette"></i> Custom theme · last changed {{ theme.updated_at|date:"M d, Y g:i A" }}</span>
+      {% endif %}
+      <p class="th-muted">Changes show on the public website after you press <b>Save theme</b> (and in the dashboards too if you turn on <b>Apply to the dashboards</b> below). The current Tunga blue look is the default and can be brought back any time.</p>
+    </div>
+    <div class="th-actions">
+      <a class="btn btn-secondary" href="{% url 'home' %}" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i> View website</a>
+      <button type="submit" form="themeResetForm" class="btn btn-secondary" {% if theme.is_default %}disabled{% endif %}><i class="fa-solid fa-rotate-left"></i> Reset to default</button>
+      <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save theme</button>
+    </div>
+  </div>
+
+  <div class="th-layout">
+    <div class="th-settings">
+
+      <section class="panel">
+        <div class="panel-header"><h2>Ready-made color sets</h2></div>
+        <div class="panel-body">
+          <p class="th-muted" style="margin-top:0;">Pick one to fill in the colors below, then adjust if you like. Nothing is saved until you press Save theme.</p>
+          <div class="th-presets" id="thPresets"></div>
+        </div>
+      </section>
+
+      {% for g in groups %}
+      <section class="panel">
+        <div class="panel-header"><h2>{{ g.name }}</h2></div>
+        <div class="panel-body th-colors">
+          {% for f in g.fields %}
+          <div class="th-color" data-key="{{ f.key }}" data-default="{{ f.default }}"{% if f.follows %} data-follows="{{ f.follows }}"{% endif %}{% if f.custom %} data-custom="1"{% endif %}>
+            <input type="color" class="th-swatch" value="{{ f.value }}" aria-label="{{ f.label }}">
+            <div class="th-color-text">
+              <label class="th-label" for="c-{{ f.key }}">{{ f.label }}</label>
+              <span class="th-help">{{ f.help }}</span>
+              {% if f.follows %}<span class="th-link" title="When not changed, this follows {{ f.follows_label }}"><i class="fa-solid fa-link"></i> Same as {{ f.follows_label }}</span>{% endif %}
+            </div>
+            <input type="text" class="form-input th-hex" id="c-{{ f.key }}" name="{{ f.key }}" value="{{ f.value }}" maxlength="7" pattern="#[0-9a-fA-F]{6}" spellcheck="false" autocomplete="off">
+            <button type="button" class="th-undo" title="Back to default ({{ f.default }})" aria-label="Back to default"><i class="fa-solid fa-rotate-left"></i></button>
+          </div>
+          {% endfor %}
+        </div>
+      </section>
+      {% endfor %}
+
+      <section class="panel">
+        <div class="panel-header"><h2>Apply to the dashboards</h2></div>
+        <div class="panel-body">
+          <p class="th-muted" style="margin-top:0;">Also use the colors and fonts you <b>changed</b> above in the dashboards. The main color is used for buttons and the active menu, the dark main color for the sidebar, and the fonts for the text. Colors you didn't change keep the dashboard's own look. Text size stays the same.</p>
+          <div class="th-apply">
+            <label class="th-switch">
+              <input type="checkbox" name="apply_super_admin" id="applySA"{% if theme.apply_super_admin %} checked{% endif %}>
+              <span class="th-slider" aria-hidden="true"></span>
+              <span><b><i class="fa-solid fa-crown"></i> Apply to Super Admin dashboard</b><small>This dashboard</small></span>
+            </label>
+            <label class="th-switch">
+              <input type="checkbox" name="apply_office_rep" id="applyRep"{% if theme.apply_office_rep %} checked{% endif %}>
+              <span class="th-slider" aria-hidden="true"></span>
+              <span><b><i class="fa-solid fa-building-user"></i> Apply to Office Representative dashboard</b><small>The dashboard of every office</small></span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header"><h2>Fonts &amp; text size</h2></div>
+        <div class="panel-body">
+          <div class="th-fonts">
+            <div class="form-group">
+              <label class="form-label" for="headingFont">Heading font</label>
+              <select class="form-input" id="headingFont" name="heading_font">
+                {% for k, label, stack in fonts %}<option value="{{ k }}"{% if theme.heading_font == k %} selected{% endif %}>{{ label }}</option>{% endfor %}
+              </select>
+              <span class="form-help">Titles, headings and the TUNGA name.</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="bodyFont">Text font</label>
+              <select class="form-input" id="bodyFont" name="body_font">
+                {% for k, label, stack in fonts %}<option value="{{ k }}"{% if theme.body_font == k %} selected{% endif %}>{{ label }}</option>{% endfor %}
+              </select>
+              <span class="form-help">Menus, paragraphs, buttons and forms.</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="textSize">Text size</label>
+              <select class="form-input" id="textSize" name="text_size">
+                {% for k, label in sizes %}<option value="{{ k }}"{% if theme.text_size == k %} selected{% endif %}>{{ label }}</option>{% endfor %}
+              </select>
+              <span class="form-help">Makes most text on the website smaller or bigger.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <aside class="th-preview-wrap">
+      <div class="th-preview-label"><i class="fa-regular fa-eye"></i> Preview</div>
+      <div class="th-preview" id="thPreview">
+        <div class="pv-top"><span class="pv-tag">ANNOUNCEMENT</span><span class="pv-top-msg">Free medical mission on Saturday</span><span class="pv-top-link">Login / Sign Up</span></div>
+        <div class="pv-header">
+          <div class="pv-brand"><span class="pv-seal"></span><span><small>MUNICIPALITY OF</small><b>TUNGA</b><i>Abtik na serbisyo, masulong na bungto.</i></span></div>
+          <div class="pv-menu"><span class="on">Home</span><span>Offices</span><span>Announcements</span><span>About Us</span></div>
+        </div>
+        <div class="pv-body">
+          <div class="pv-card">
+            <div class="pv-badges"><span class="pv-new">NEW</span><span class="pv-urgent">URGENT</span><span class="pv-cat">GENERAL</span></div>
+            <h3>Road repair along the national highway</h3>
+            <p class="pv-p">Motorists are advised to take the alternate route while repairs are ongoing. Thank you for your patience.</p>
+            <p class="pv-muted">October 17, 2026 · Municipal Engineering Office</p>
+            <div class="pv-btns"><span class="pv-btn">Read more</span><span class="pv-btn pv-btn--hover">Hover</span><span class="pv-outline">Download</span><a class="pv-link">View details</a></div>
+          </div>
+          <div class="pv-soft"><span class="pv-dot"></span> Office hours: Monday – Friday, 8:00 AM – 5:00 PM</div>
+        </div>
+        <div class="pv-footer"><b>Municipality of Tunga</b><span>Quick Links · Services · Contact Us</span><small>© 2026 Municipality of Tunga, Leyte</small></div>
+      </div>
+      <div class="th-warn" id="thWarn" hidden></div>
+
+      <div class="th-dash-pv" id="thDashPv" hidden>
+        <div class="th-preview-label" style="margin-top:16px;"><i class="fa-regular fa-eye"></i> Dashboard preview</div>
+        <div class="dp">
+          <div class="dp-side"><b>TUNGA</b><span class="on">Dashboard</span><span>Announcements</span><span>Messages</span></div>
+          <div class="dp-main"><h4>Announcements</h4><div class="dp-card"><span class="dp-chip">3 waiting</span><span class="dp-btn">+ Add new</span></div></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</form>
+<form method="post" id="themeResetForm" action="{% url 'admin_dashboard:ad_theme' %}" data-skip-top-save onsubmit="return confirm('Bring back the default colors and fonts of the website?');">{% csrf_token %}<input type="hidden" name="action" value="reset"></form>
+
+<style>
+  .th-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+  .th-muted { margin: 8px 0 0; font-size: 12.5px; color: var(--gray-500); max-width: 640px; }
+  .th-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .th-layout { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 18px; align-items: start; }
+  .th-settings { min-width: 0; }
+  .th-settings .panel { margin-bottom: 16px; }
+  .th-presets { display: flex; flex-wrap: wrap; gap: 8px; }
+  .th-preset { display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px 7px 8px; border: 1px solid var(--gray-200); border-radius: 999px; background: #fff; cursor: pointer; font: inherit; font-size: 12.5px; font-weight: 600; color: var(--gray-700); }
+  .th-preset:hover { border-color: var(--gray-400); }
+  .th-preset span { display: inline-flex; }
+  .th-preset i { width: 14px; height: 14px; border-radius: 50%; margin-left: -4px; border: 2px solid #fff; display: inline-block; }
+  .th-preset i:first-child { margin-left: 0; }
+  .th-colors { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+  .th-color { display: grid; grid-template-columns: 40px minmax(0, 1fr) 92px 30px; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--gray-200); border-radius: 10px; }
+  .th-swatch { width: 40px; height: 40px; padding: 0; border: 1px solid var(--gray-300); border-radius: 8px; background: none; cursor: pointer; }
+  .th-swatch::-webkit-color-swatch-wrapper { padding: 2px; }
+  .th-swatch::-webkit-color-swatch { border: none; border-radius: 6px; }
+  .th-color-text { min-width: 0; display: flex; flex-direction: column; }
+  .th-label { font-size: 13px; font-weight: 700; color: var(--gray-800); }
+  .th-help { font-size: 11.5px; color: var(--gray-500); line-height: 1.35; }
+  .th-link { margin-top: 2px; font-size: 11px; font-weight: 600; color: #2563eb; }
+  .th-color[data-custom="1"] .th-link { display: none; }
+  .th-hex { padding: 7px 8px !important; font-family: ui-monospace, Consolas, monospace; font-size: 12.5px !important; text-transform: lowercase; }
+  .th-hex:invalid { border-color: #dc2626; }
+  .th-undo { width: 30px; height: 30px; border: none; border-radius: 50%; background: var(--gray-100); color: var(--gray-600); cursor: pointer; }
+  .th-undo:hover { background: var(--gray-200); }
+  .th-color.is-default .th-undo { visibility: hidden; }
+  .th-fonts { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0 16px; }
+
+  .th-preview-wrap { position: sticky; top: 84px; }
+  .th-preview-label { font-size: 12px; font-weight: 700; color: var(--gray-500); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
+  .th-preview { border: 1px solid var(--gray-200); border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px rgba(15, 23, 42, .08); font-family: var(--pv-font-body); font-size: var(--pv-size, 13px); background: var(--bg-white); color: var(--text-dark); }
+  .th-preview h3, .pv-brand b { font-family: var(--pv-font-head); }
+  .pv-top { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--top-bar-bg); color: var(--top-bar-text); font-size: .78em; white-space: nowrap; overflow: hidden; }
+  .pv-tag { background: var(--green-badge); color: #fff; padding: 2px 7px; border-radius: 999px; font-weight: 700; font-size: .85em; }
+  .pv-top-msg { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+  .pv-header { background: var(--header-bg); border-bottom: 1px solid var(--border-light); padding: 10px 12px; }
+  .pv-brand { display: flex; align-items: center; gap: 8px; line-height: 1.15; }
+  .pv-seal { width: 30px; height: 30px; border-radius: 50%; background: var(--gold); border: 3px solid var(--navy); flex: none; }
+  .pv-brand small { display: block; font-size: .62em; font-weight: 600; letter-spacing: .08em; color: var(--header-text); opacity: .75; }
+  .pv-brand b { display: block; font-size: 1.15em; color: var(--navy); }
+  .pv-brand i { display: block; font-size: .66em; color: var(--blue-accent); }
+  .pv-menu { display: flex; gap: 12px; margin-top: 9px; font-size: .85em; color: var(--header-text); }
+  .pv-menu .on { color: var(--navy); font-weight: 600; border-bottom: 2px solid var(--gold); }
+  .pv-body { padding: 12px; background: var(--bg-white); }
+  .pv-card { border: 1px solid var(--border-light); border-radius: 10px; padding: 12px; background: var(--bg-white); }
+  .pv-badges { display: flex; gap: 5px; margin-bottom: 7px; }
+  .pv-badges span { font-size: .66em; font-weight: 800; padding: 2px 7px; border-radius: 999px; }
+  .pv-new { background: var(--green-badge); color: #fff; }
+  .pv-urgent { background: var(--red-badge); color: #fff; }
+  .pv-cat { background: var(--bg-light); color: var(--text-muted); }
+  .th-preview h3 { margin: 0 0 6px; font-size: 1.12em; font-weight: 700; color: var(--text-dark); line-height: 1.3; }
+  .pv-p { margin: 0 0 6px; color: var(--text-body); line-height: 1.5; }
+  .pv-muted { margin: 0 0 10px; font-size: .82em; color: var(--text-muted); }
+  .pv-btns { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .pv-btn { background: var(--btn-bg); color: var(--btn-text); padding: 6px 12px; border-radius: 7px; font-weight: 600; font-size: .85em; }
+  .pv-btn--hover { background: var(--btn-hover); }
+  .pv-outline { border: 1px solid var(--border-light); color: var(--navy); padding: 5px 11px; border-radius: 7px; font-weight: 600; font-size: .85em; background: var(--bg-white); }
+  .pv-link { color: var(--navy); font-weight: 600; font-size: .85em; text-decoration: underline; }
+  .pv-soft { margin-top: 10px; padding: 9px 10px; border-radius: 8px; background: var(--bg-light); color: var(--text-body); font-size: .82em; display: flex; align-items: center; gap: 7px; }
+  .pv-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--gold); flex: none; }
+  .pv-footer { background: var(--footer-bg); color: var(--footer-text); padding: 12px; display: flex; flex-direction: column; gap: 3px; font-size: .82em; }
+  .pv-footer small { opacity: .8; }
+  .th-apply { display: grid; gap: 10px; }
+  .th-switch { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--gray-200); border-radius: 10px; cursor: pointer; }
+  .th-switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .th-slider { position: relative; flex: none; width: 40px; height: 22px; border-radius: 999px; background: var(--gray-300); transition: background .15s; }
+  .th-slider::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .15s; }
+  .th-switch input:checked + .th-slider { background: #16a34a; }
+  .th-switch input:checked + .th-slider::after { transform: translateX(18px); }
+  .th-switch input:focus-visible + .th-slider { outline: 2px solid #2563eb; outline-offset: 2px; }
+  .th-switch b { display: block; font-size: 13px; color: var(--gray-800); }
+  .th-switch b i { margin-right: 4px; color: var(--gray-500); }
+  .th-switch small { display: block; font-size: 11.5px; color: var(--gray-500); }
+  .dp { display: flex; height: 150px; border: 1px solid var(--gray-200); border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px rgba(15, 23, 42, .08); font-family: var(--dp-font, inherit); font-size: 12px; }
+  .dp-side { width: 120px; flex: none; background: var(--dp-side, #0b1330); color: #c6cbe0; padding: 10px 8px; display: flex; flex-direction: column; gap: 4px; }
+  .dp-side b { color: #fff; font-family: var(--dp-head, inherit); margin: 0 0 6px 4px; }
+  .dp-side span { padding: 5px 7px; border-radius: 6px; }
+  .dp-side .on { background: var(--dp-blue, #2f5bea); color: #fff; }
+  .dp-main { flex: 1; background: #f6f7fb; padding: 10px 12px; }
+  .dp-main h4 { margin: 0 0 8px; font-size: 14px; color: #181c27; font-family: var(--dp-head, inherit); }
+  .dp-card { background: #fff; border: 1px solid #dcdfe8; border-radius: 8px; padding: 10px; display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  .dp-chip { background: var(--dp-blue50, #eaf0ff); color: var(--dp-blue, #2f5bea); padding: 2px 8px; border-radius: 999px; font-weight: 700; font-size: 11px; }
+  .dp-btn { background: var(--dp-blue, #2f5bea); color: #fff; padding: 5px 10px; border-radius: 6px; font-weight: 600; }
+  .th-warn { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; font-size: 12px; line-height: 1.5; }
+  .th-warn ul { margin: 4px 0 0; padding-left: 18px; list-style: disc; }
+
+  @media (max-width: 1200px) {
+    .th-layout { grid-template-columns: minmax(0, 1fr); }
+    .th-preview-wrap { position: static; order: -1; }
+  }
+  @media (max-width: 520px) {
+    .th-colors { grid-template-columns: 1fr; }
+    .th-color { grid-template-columns: 36px minmax(0, 1fr) 84px 28px; gap: 8px; }
+    .th-swatch { width: 36px; height: 36px; }
+  }
+</style>
+
+{{ theme_data|json_script:"theme-data" }}
+<script>
+(function () {
+  var DATA = JSON.parse(document.getElementById('theme-data').textContent);
+  var PRESETS = DATA.presets, DEFAULTS = DATA.defaults, FOLLOWS = DATA.follows;
+  var STACKS = DATA.stacks, FONT_URLS = DATA.font_urls;
+  var SIZES = { '': '13px', small: '12.2px', large: '13.8px', xlarge: '14.6px' };   // preview only (scaled down)
+  // preview variable for each color
+  var PV = { navy: '--navy', navy_deep: '--navy-deep', navy_light: '--navy-light', blue_accent: '--blue-accent', gold: '--gold',
+             gold_dark: '--gold-dark', text_dark: '--text-dark', text_body: '--text-body', text_muted: '--text-muted',
+             bg_white: '--bg-white', bg_light: '--bg-light', border_light: '--border-light', green_badge: '--green-badge',
+             red_badge: '--red-badge', top_bar_bg: '--top-bar-bg', top_bar_text: '--top-bar-text', header_bg: '--header-bg',
+             header_text: '--header-text', btn_bg: '--btn-bg', btn_hover: '--btn-hover', btn_text: '--btn-text',
+             footer_bg: '--footer-bg', footer_text: '--footer-text' };
+  var preview = document.getElementById('thPreview');
+  var rows = {};
+  document.querySelectorAll('.th-color').forEach(function (r) { rows[r.dataset.key] = r; });
+
+  function hexOk(v) { return /^#[0-9a-f]{6}$/.test(v); }
+  function norm(v) {
+    v = (v || '').trim().toLowerCase();
+    if (v && v[0] !== '#') v = '#' + v;
+    if (/^#[0-9a-f]{3}$/.test(v)) v = '#' + v[1] + v[1] + v[2] + v[2] + v[3] + v[3];
+    return v;
+  }
+  function get(k) { return rows[k].querySelector('.th-hex').value; }
+  function set(k, v, fromUser) {
+    var r = rows[k];
+    r.querySelector('.th-hex').value = v;
+    if (hexOk(v)) r.querySelector('.th-swatch').value = v;
+    if (fromUser && r.dataset.follows) r.dataset.custom = (v === get(r.dataset.follows)) ? '' : '1';
+  }
+  // colors that follow another one (e.g. Footer = Dark main color) move with it
+  function syncFollowers() {
+    Object.keys(FOLLOWS).forEach(function (k) {
+      if (rows[k].dataset.custom !== '1') set(k, get(FOLLOWS[k]));
+    });
+  }
+  function refresh() {
+    syncFollowers();
+    Object.keys(rows).forEach(function (k) {
+      var v = get(k), r = rows[k];
+      if (hexOk(v)) preview.style.setProperty(PV[k], v);
+      r.classList.toggle('is-default', FOLLOWS[k] ? r.dataset.custom !== '1' : v === DEFAULTS[k]);
+    });
+    fonts(); warn(); dash();
+  }
+
+  // fonts + size
+  var loaded = {};
+  function fonts() {
+    ['headingFont', 'bodyFont'].forEach(function (id) {
+      var k = document.getElementById(id).value;
+      if (FONT_URLS[k] && !loaded[k]) {
+        loaded[k] = 1;
+        var l = document.createElement('link'); l.rel = 'stylesheet';
+        l.href = 'https://fonts.googleapis.com/css2?family=' + FONT_URLS[k] + '&display=swap';
+        document.head.appendChild(l);
+      }
+    });
+    var hk = document.getElementById('headingFont').value, bk = document.getElementById('bodyFont').value;
+    preview.style.setProperty('--pv-font-head', STACKS[hk] || STACKS[bk] || "'Segoe UI', system-ui, sans-serif");
+    preview.style.setProperty('--pv-font-body', STACKS[bk] || "'Segoe UI', system-ui, sans-serif");
+    preview.style.setProperty('--pv-size', SIZES[document.getElementById('textSize').value] || '13px');
+  }
+
+  // readability check (WCAG contrast)
+  function lum(hex) {
+    var c = [1, 3, 5].map(function (i) { var x = parseInt(hex.substr(i, 2), 16) / 255; return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); });
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  }
+  function ratio(a, b) { var x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
+  var PAIRS = [['text_dark', 'bg_white', 'Headings & main text on the page background'],
+               ['text_body', 'bg_white', 'Paragraph text on the page background'],
+               ['navy', 'bg_white', 'Links (main color) on the page background'],
+               ['btn_text', 'btn_bg', 'Button text on the buttons'],
+               ['top_bar_text', 'top_bar_bg', 'Announcement bar text on its background'],
+               ['header_text', 'header_bg', 'Menu text on the header'],
+               ['footer_text', 'footer_bg', 'Footer text on the footer']];
+  function warn() {
+    var bad = PAIRS.filter(function (p) { var a = get(p[0]), b = get(p[1]); return hexOk(a) && hexOk(b) && ratio(a, b) < 4.5; });
+    var box = document.getElementById('thWarn');
+    box.hidden = !bad.length;
+    box.innerHTML = bad.length ? '<b><i class="fa-solid fa-triangle-exclamation"></i> Hard to read:</b><ul>' +
+      bad.map(function (p) { return '<li>' + p[2] + ' (' + ratio(get(p[0]), get(p[1])).toFixed(1) + ':1, needs 4.5:1)</li>'; }).join('') +
+      '</ul>You can still save, but some visitors may not be able to read it.' : '';
+  }
+
+  // events
+  document.querySelectorAll('.th-color').forEach(function (r) {
+    var k = r.dataset.key, sw = r.querySelector('.th-swatch'), hex = r.querySelector('.th-hex');
+    sw.addEventListener('input', function () { set(k, sw.value, true); refresh(); });
+    hex.addEventListener('input', function () { var v = norm(hex.value); if (hexOk(v)) { set(k, v, true); hex.value = v; refresh(); } });
+    hex.addEventListener('blur', function () { var v = norm(hex.value); if (!hexOk(v)) v = sw.value; hex.value = v; refresh(); });
+    r.querySelector('.th-undo').addEventListener('click', function () {
+      if (r.dataset.follows) { r.dataset.custom = ''; set(k, get(r.dataset.follows)); }
+      else set(k, DEFAULTS[k], true);
+      refresh();
+    });
+  });
+  ['headingFont', 'bodyFont', 'textSize'].forEach(function (id) { document.getElementById(id).addEventListener('change', function () { fonts(); dash(); }); });
+
+  // dashboard preview: same rules as admin_dashboard/theme.py dashboard_vars()
+  function mix(a, b, t) {
+    var out = '#';
+    for (var i = 1; i < 7; i += 2) {
+      var x = parseInt(a.substr(i, 2), 16), y = parseInt(b.substr(i, 2), 16);
+      out += ('0' + Math.round(x + (y - x) * t).toString(16)).slice(-2);
+    }
+    return out;
+  }
+  function dash() {
+    var on = document.getElementById('applySA').checked || document.getElementById('applyRep').checked;
+    var box = document.getElementById('thDashPv'), dp = box.querySelector('.dp');
+    box.hidden = !on;
+    var navy = get('navy'), deep = get('navy_deep');
+    var navyChanged = hexOk(navy) && navy !== DEFAULTS.navy, deepChanged = hexOk(deep) && deep !== DEFAULTS.navy_deep;
+    dp.style.setProperty('--dp-blue', navyChanged ? navy : '#2f5bea');
+    dp.style.setProperty('--dp-blue50', navyChanged ? mix(navy, '#ffffff', 0.9) : '#eaf0ff');
+    dp.style.setProperty('--dp-side', deepChanged ? mix(deep, '#000000', 0.55) : '#0b1330');
+    var bk = document.getElementById('bodyFont').value, hk = document.getElementById('headingFont').value;
+    dp.style.setProperty('--dp-font', STACKS[bk] || 'inherit');
+    dp.style.setProperty('--dp-head', STACKS[hk] || STACKS[bk] || 'inherit');
+  }
+  ['applySA', 'applyRep'].forEach(function (id) { document.getElementById(id).addEventListener('change', dash); });
+
+  // ready-made color sets
+  var box = document.getElementById('thPresets');
+  Object.keys(PRESETS).forEach(function (name) {
+    var p = PRESETS[name], b = document.createElement('button');
+    b.type = 'button'; b.className = 'th-preset';
+    var dots = ['navy', 'navy_deep', 'gold'].map(function (k) { return '<i style="background:' + (p[k] || DEFAULTS[k]) + '"></i>'; }).join('');
+    b.innerHTML = '<span>' + dots + '</span>' + name;
+    b.addEventListener('click', function () {
+      Object.keys(rows).forEach(function (k) {
+        if (FOLLOWS[k]) { rows[k].dataset.custom = ''; return; }
+        if (['navy', 'navy_deep', 'navy_light', 'blue_accent', 'gold', 'gold_dark', 'footer_text'].indexOf(k) !== -1) set(k, p[k] || DEFAULTS[k]);
+      });
+      refresh();
+    });
+    box.appendChild(b);
+  });
+
+  refresh();
+})();
+</script>

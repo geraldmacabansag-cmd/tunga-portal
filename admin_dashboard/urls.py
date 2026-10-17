@@ -133,6 +133,7 @@ urlpatterns = [
     path('Admin-Notifications/<int:pk>/delete/', views.admin_notification_delete, name='ad_notification_delete'),
     path('Admin-Notifications/read-all/', views.admin_notifications_read_all, name='ad_notifications_read_all'),
     path('Admin-System-Settings/', views.admin_system_setting, name='ad_system_settings'),
+    path('Admin-Theme/', views.admin_theme, name='ad_theme'),
 
     path('Admin-Messages/', views.admin_messages, name='ad_messages'),
     path('Admin-Messages/data/', views.admin_messages_data, name='ad_messages_data'),

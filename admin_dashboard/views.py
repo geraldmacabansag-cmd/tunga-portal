@@ -2520,6 +2520,7 @@ def admin_web_setting(request):
     return render(request, "admin_dashboard/super-admin-website-settings.html", {
         "info": info,
         "legal_pages": LegalPage.all_pages(),
+        **_theme_context(),     # "Theme & Colors" tab
     })
 
 
@@ -3042,6 +3043,60 @@ def admin_backup_status(request):
     from .models import BackupSettings
     s = BackupSettings.get_solo()
     return JsonResponse({"busy": backup.is_busy(), "restore_status": s.restore_status})
+
+
+def _theme_context():
+    """Data for the "Theme & Colors" tab of Website Settings
+    (templates/admin_dashboard/_theme_settings.html)."""
+    from .models import SiteTheme
+    from . import theme as T
+    obj = SiteTheme.get_solo()
+    eff = T.effective(obj.colors or {})
+    labels = {k: (l, h, f) for k, _v, l, _d, h, f in T.COLORS}
+    groups = [{"name": g, "fields": [{"key": k, "label": labels[k][0], "help": labels[k][1],
+                                       "value": eff[k], "default": T.DEFAULTS[k],
+                                       "follows": labels[k][2],
+                                       "follows_label": labels[labels[k][2]][0] if labels[k][2] else "",
+                                       "custom": k in (obj.colors or {})} for k in keys]}
+              for g, keys in T.GROUPS]
+    return {
+        "theme": obj, "groups": groups,
+        "fonts": [(k, v[0], v[2]) for k, v in T.FONTS.items()],
+        "sizes": [(k, v[0]) for k, v in T.TEXT_SIZES.items()],
+        # read by the tab's script through {{ theme_data|json_script:"theme-data" }}
+        "theme_data": {"presets": T.PRESETS, "defaults": T.DEFAULTS, "follows": T.FOLLOWS,
+                       "stacks": {k: v[2] for k, v in T.FONTS.items()},
+                       "font_urls": {k: v[1] for k, v in T.FONTS.items() if v[1]}},
+    }
+
+
+@super_admin_required
+def admin_theme(request):
+    """Saves the "Theme & Colors" tab of Website Settings: colors, fonts and
+    text size of the public website (admin_dashboard/theme.py). Only changed
+    colors are saved; "Reset to default" brings back the original look.
+    Opening this address goes to Website Settings → Theme & Colors."""
+    from .models import SiteTheme
+    from . import theme as T
+    obj = SiteTheme.get_solo()
+    if request.method == "POST":
+        if request.POST.get("action") == "reset":
+            obj.colors, obj.heading_font, obj.body_font, obj.text_size = {}, "", "", ""
+            obj.apply_super_admin = obj.apply_office_rep = False
+            obj.save()
+            messages.success(request, "Website theme was reset to the default colors and fonts.")
+        else:
+            obj.colors = T.changed_only(request.POST)
+            hf, bf, ts = (request.POST.get("heading_font", ""), request.POST.get("body_font", ""),
+                          request.POST.get("text_size", ""))
+            obj.heading_font = hf if hf in T.FONTS else ""
+            obj.body_font = bf if bf in T.FONTS else ""
+            obj.text_size = ts if ts in T.TEXT_SIZES else ""
+            obj.apply_super_admin = request.POST.get("apply_super_admin") == "on"
+            obj.apply_office_rep = request.POST.get("apply_office_rep") == "on"
+            obj.save()
+            messages.success(request, "Website theme (colors and fonts) was updated.")
+    return redirect(reverse("admin_dashboard:ad_web_setting") + "#theme")
 
 
 @super_admin_required

@@ -857,9 +857,9 @@
 
 .news-feature-card--small { min-height: 100px; }
 
-.news-feature-card--bg1 { background: linear-gradient(135deg, #1e9c73 0%, #0d3a86 100%); }
-.news-feature-card--bg2 { background: linear-gradient(135deg, #1e9c73 0%, #0a2f6e 100%); }
-.news-feature-card--bg3 { background: linear-gradient(135deg, #e0332f 0%, #0a2f6e 100%); }
+.news-feature-card--bg1 { background: linear-gradient(135deg, #1e9c73 0%, var(--navy, #0d3a86) 100%); }
+.news-feature-card--bg2 { background: linear-gradient(135deg, #1e9c73 0%, var(--navy-deep, #0a2f6e) 100%); }
+.news-feature-card--bg3 { background: linear-gradient(135deg, var(--red-badge, #e0332f) 0%, var(--navy-deep, #0a2f6e) 100%); }
 
 .news-feature-card__img {
   position: absolute;
@@ -903,8 +903,8 @@
 .news-feature-card__badge--general { background: var(--text-muted); }
 
 /* Fallback gradient for a featured/grid card whose post has no image yet. */
-.news-feature-card--placeholder { background: linear-gradient(135deg, #1450b8 0%, #0a2f6e 100%); }
-.news-card__img--placeholder { background: linear-gradient(135deg, #1450b8, #0a2f6e); }
+.news-feature-card--placeholder { background: linear-gradient(135deg, var(--navy-light, #1450b8) 0%, var(--navy-deep, #0a2f6e) 100%); }
+.news-card__img--placeholder { background: linear-gradient(135deg, var(--navy-light, #1450b8), var(--navy-deep, #0a2f6e)); }
 
 .news-feature-card__info {
   position: relative;
@@ -971,12 +971,12 @@
   font-size: 1.6rem;
 }
 
-.news-card__img--bg4 { background: linear-gradient(135deg, #1450b8, #0a2f6e); }
-.news-card__img--bg5 { background: linear-gradient(135deg, #f4c531, #e0af1a); }
-.news-card__img--bg6 { background: linear-gradient(135deg, #e0332f, #e07a25); }
-.news-card__img--bg7 { background: linear-gradient(135deg, #3fae4a, #147d63); }
+.news-card__img--bg4 { background: linear-gradient(135deg, var(--navy-light, #1450b8), var(--navy-deep, #0a2f6e)); }
+.news-card__img--bg5 { background: linear-gradient(135deg, var(--gold, #f4c531), var(--gold-dark, #e0af1a)); }
+.news-card__img--bg6 { background: linear-gradient(135deg, var(--red-badge, #e0332f), #e07a25); }
+.news-card__img--bg7 { background: linear-gradient(135deg, var(--green-badge, #3fae4a), #147d63); }
 .news-card__img--bg8 { background: linear-gradient(135deg, #7a4fc7, #4a2f8a); }
-.news-card__img--bg9 { background: linear-gradient(135deg, #0d3a86, #1e9c73); }
+.news-card__img--bg9 { background: linear-gradient(135deg, var(--navy, #0d3a86), #1e9c73); }
 
 .news-card__body { padding: 16px; }
 
@@ -1143,7 +1143,7 @@
 .event-hero__img {
   position: relative;
   min-height: 340px;
-  background: linear-gradient(135deg, #1450b8 0%, #e0332f 100%);
+  background: linear-gradient(135deg, var(--navy-light, #1450b8) 0%, var(--red-badge, #e0332f) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1272,14 +1272,14 @@
 }
 
 .event-card__img--agri { background: linear-gradient(135deg, #6fcf5f, #1e9c73); }
-.event-card__img--youth { background: linear-gradient(135deg, #1450b8, #6f97e0); }
-.event-card__img--safety { background: linear-gradient(135deg, #0a2f6e, #1a2340); }
+.event-card__img--youth { background: linear-gradient(135deg, var(--navy-light, #1450b8), #6f97e0); }
+.event-card__img--safety { background: linear-gradient(135deg, var(--navy-deep, #0a2f6e), #1a2340); }
 .event-card__img--health { background: linear-gradient(135deg, #147d63, #6fd6c1); }
-.event-card__img--festival { background: linear-gradient(135deg, #e0332f, #e07a25); }
-.event-card__img--livelihood { background: linear-gradient(135deg, #e07a25, #f4c531); }
+.event-card__img--festival { background: linear-gradient(135deg, var(--red-badge, #e0332f), #e07a25); }
+.event-card__img--livelihood { background: linear-gradient(135deg, #e07a25, var(--gold, #f4c531)); }
 /* Default gradient for a real (data-driven) event that has no poster
    uploaded yet — used instead of guessing a color from its category text. */
-.event-card__img--placeholder { background: linear-gradient(135deg, #1450b8, #0a2f6e); }
+.event-card__img--placeholder { background: linear-gradient(135deg, var(--navy-light, #1450b8), var(--navy-deep, #0a2f6e)); }
 
 .event-badge {
   position: absolute;
@@ -1364,7 +1364,7 @@
   width: 90px;
   height: 70px;
   border-radius: 8px;
-  background: linear-gradient(135deg, #0a2f6e, #4a2f8a);
+  background: linear-gradient(135deg, var(--navy-deep, #0a2f6e), #4a2f8a);
   display: flex;
   align-items: center;
   justify-content: center;

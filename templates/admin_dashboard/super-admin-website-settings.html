@@ -24,6 +24,7 @@
         <div class="subtabs">
           <div class="subtab active" data-section="general"><i class="fa-solid fa-gear"></i> General</div>
           <div class="subtab" data-section="appearance"><i class="fa-regular fa-image"></i> Appearance</div>
+          <div class="subtab" data-section="theme"><i class="fa-solid fa-palette"></i> Theme &amp; Colors</div>
           <div class="subtab" data-section="social"><i class="fa-solid fa-share-nodes"></i> Social Media</div>
           <div class="subtab" data-section="seo"><i class="fa-solid fa-magnifying-glass-chart"></i> SEO &amp; Google</div>
           <div class="subtab" data-section="maintenance"><i class="fa-solid fa-triangle-exclamation"></i> Maintenance</div>
@@ -224,6 +225,11 @@
                 <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Appearance</button>
               </div>
             </form>
+          </div>
+
+          <!-- ============ THEME & COLORS (colors, fonts, text size of the public website) ============ -->
+          <div class="settings-section" id="section-theme" style="display:none;">
+            {% include "admin_dashboard/_theme_settings.html" %}
           </div>
 
           <!-- ============ SOCIAL MEDIA (real, per-platform visibility) ============ -->
@@ -449,7 +455,7 @@
 
 {% block extra_js %}
 <script>
-  var TAB_NAMES = ['general', 'appearance', 'social', 'seo', 'maintenance', 'legal'];
+  var TAB_NAMES = ['general', 'appearance', 'theme', 'social', 'seo', 'maintenance', 'legal'];
 
   function activateTab(name){
     if (TAB_NAMES.indexOf(name) === -1) name = 'general';
@@ -514,6 +520,7 @@
     if (!section) return;
     var forms = Array.prototype.filter.call(section.querySelectorAll('form'), function (f) {
       var sec = f.querySelector('input[name="section"]');
+      if (f.hasAttribute('data-skip-top-save')) return false;   // e.g. Theme "Reset to default"
       return !(sec && sec.value === 'cache');
     });
     if (forms.length === 1) {

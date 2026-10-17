@@ -621,3 +621,34 @@ class LegalPage(models.Model):
     def url_name(self):
         from portal.legal_defaults import PAGES
         return next(u for k, _t, u, _x in PAGES if k == self.key)
+
+
+class SiteTheme(models.Model):
+    """Colors, fonts and text size of the public website (Super Admin →
+    Theme & Colors). Only what was changed is stored; empty = the original
+    look. See admin_dashboard/theme.py."""
+    colors = models.JSONField(default=dict, blank=True)
+    heading_font = models.CharField(max_length=30, blank=True)
+    body_font = models.CharField(max_length=30, blank=True)
+    text_size = models.CharField(max_length=10, blank=True)
+    # also use the changed colors / fonts in the dashboards
+    apply_super_admin = models.BooleanField(default=False)
+    apply_office_rep = models.BooleanField(default=False)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Website theme"
+        verbose_name_plural = "Website theme"
+
+    def __str__(self):
+        return "Website theme"
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    @property
+    def is_default(self):
+        return not (self.colors or self.heading_font or self.body_font or self.text_size
+                    or self.apply_super_admin or self.apply_office_rep)

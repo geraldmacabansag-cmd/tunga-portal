@@ -1,4 +1,4 @@
-{% load static message_tags admin_notif %}
+{% load static message_tags admin_notif theme_tags %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,6 +9,8 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="icon" href="{% if site_contact.logo %}{{ site_contact.logo.url }}{% else %}{% static 'images/tunga_leyte_logo.png' %}{% endif %}">
   <link rel="stylesheet" href="{% static 'css/content-video.css' %}?v=4">
+  {# Website Settings → Theme & Colors, when "Apply to Super Admin dashboard" is ticked #}
+  {% dashboard_theme "super_admin" %}
 </head>
 <body data-page="{% block body_page %}dashboard{% endblock %}" data-logout-url="{% url 'logout' %}" data-account-url="{% url 'admin_dashboard:admin_account' %}" data-changepass-url="{% url 'admin_dashboard:admin_change_pass' %}">
 <script>
