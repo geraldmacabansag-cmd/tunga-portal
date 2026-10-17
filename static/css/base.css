@@ -1811,3 +1811,10 @@ button.side-panel__logout { font-family: inherit; cursor: pointer; }
 .pf-form .sub-rate__pick label { font-size: 2rem; }
 .pf-label { margin-left: 8px; font-weight: 600; font-size: .85rem; color: #92400e; vertical-align: super; }
 .pf-note { margin: 10px 0 0; font-size: .75rem; color: var(--text-muted, #5d667f); }
+
+/* Side menu → Language (static/js/i18n.js) */
+.sp-lang { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 2px 4px 6px; padding: 4px; background: #fff; border: 1px solid var(--border-light); border-radius: 12px; }
+.sp-lang__btn { border: 0; background: transparent; border-radius: 9px; padding: 8px 4px; font: inherit; font-size: 0.8rem; font-weight: 600; color: var(--text-body); cursor: pointer; transition: background 0.15s ease, color 0.15s ease; }
+.sp-lang__btn:hover { background: var(--bg-light); color: var(--navy); }
+.sp-lang__btn.is-active { background: var(--navy); color: #fff; }
+.sp-lang__btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }

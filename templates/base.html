@@ -2,6 +2,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    {# Language (side menu → Language): hide the page for a moment while it is translated, so English doesn't flash first. static/js/i18n.js #}
+    <script>(function(){if(/(?:^|;\s*)tunga_lang=(tl|war)/.test(document.cookie)){var h=document.documentElement;h.classList.add('i18n-pending');setTimeout(function(){h.classList.remove('i18n-pending')},1500);}})();</script>
+    <style>html.i18n-pending body{visibility:hidden}</style>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Municipality of Tunga {% endblock %}</title>
@@ -21,7 +24,7 @@
     <meta property="og:locale" content="en_PH">
     <meta name="twitter:card" content="summary_large_image">
 
-    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=6">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=7">
     <link rel="stylesheet" href="{% static 'css/homepage.css' %}?v=3">
     <link rel="stylesheet" href="{% static 'css/offices.css' %}">
     <link rel="stylesheet" href="{% static 'css/announcements.css' %}">
@@ -30,7 +33,7 @@
     <link rel="stylesheet" href="{% static 'css/aboutus.css' %}">
     <link rel="stylesheet" href="{% static 'css/history.css' %}">
     <link rel="stylesheet" href="{% static 'css/contactus.css' %}">
-    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=6">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=7">
     <link rel="stylesheet" href="{% static 'css/auth.css' %}">
     <link rel="stylesheet" href="{% static 'css/mayorsoffice.css' %}">
 
@@ -164,6 +167,14 @@
       {% else %}
       <p class="notif-empty">No new updates in the last 30 days.</p>
       {% endif %}
+    </div>
+
+    {# Language of the website's own words (menus, buttons, labels). Content written by the offices stays as written. static/js/i18n.js #}
+    <div class="side-panel__group">Language</div>
+    <div class="sp-lang" role="group" aria-label="Language" data-no-translate>
+      <button type="button" class="sp-lang__btn" data-lang-choice="en" aria-pressed="true">English</button>
+      <button type="button" class="sp-lang__btn" data-lang-choice="tl" aria-pressed="false">Tagalog</button>
+      <button type="button" class="sp-lang__btn" data-lang-choice="war" aria-pressed="false">Waray-Waray</button>
     </div>
 
     <div class="side-panel__group">Help</div>
@@ -1080,5 +1091,6 @@
 
 
 <script src="{% static 'js/content-video.js' %}?v=2"></script>
+<script src="{% static 'js/i18n.js' %}?v=1"></script>
 </body>
 </html>
