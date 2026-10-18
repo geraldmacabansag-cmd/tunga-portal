@@ -1,0 +1,108 @@
+# DigitalOcean App Platform: the whole app in one file.
+# How to use it (details in DEPLOY.md, part A):
+#   1. Change the 3 lines marked  <-- CHANGE  (GitHub repo and your domain)
+#   2. Either: DigitalOcean -> Create -> Apps -> pick the GitHub repo -> finish,
+#      then your app -> Settings -> App Spec -> Edit -> paste this file -> Save.
+#      Or with the doctl command line:  doctl apps create --spec .do/app.yaml
+#   3. Replace every value "CHANGE-ME" in Settings -> Environment Variables
+#      (they are encrypted secrets).
+name: tunga-portal
+region: sgp                      # Singapore, closest to the Philippines
+
+# settings shared by the website and the setup job
+envs:
+  - key: PRODUCTION
+    value: "1"
+  - key: SITE_DOMAIN
+    value: tungaleyte.com        # <-- CHANGE: your Namecheap domain (without www)
+  - key: APP_DOMAIN
+    value: ${APP_DOMAIN}         # the free ...ondigitalocean.app address (filled in by DigitalOcean)
+  - key: DATABASE_URL
+    value: ${db.DATABASE_URL}
+  - key: SECRET_KEY
+    type: SECRET
+    value: CHANGE-ME             # python -c "import secrets; print(secrets.token_urlsafe(50))"
+  - key: OTP_ENCRYPTION_KEY
+    type: SECRET
+    value: CHANGE-ME             # python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+  - key: ADMIN_URL
+    type: SECRET
+    value: CHANGE-ME             # secret Django admin address, e.g. lgu-panel-x7k29q
+  - key: MEDIA_STORAGE
+    value: cloudinary            # or "spaces" (then fill the SPACES_* values below)
+  - key: CLOUDINARY_CLOUD_NAME
+    type: SECRET
+    value: CHANGE-ME
+  - key: CLOUDINARY_API_KEY
+    type: SECRET
+    value: CHANGE-ME
+  - key: CLOUDINARY_API_SECRET
+    type: SECRET
+    value: CHANGE-ME
+  - key: RECAPTCHA_SITE_KEY
+    type: SECRET
+    value: CHANGE-ME
+  - key: RECAPTCHA_SECRET_KEY
+    type: SECRET
+    value: CHANGE-ME
+  - key: DJANGO_SUPERUSER_USERNAME
+    type: SECRET
+    value: CHANGE-ME
+  - key: DJANGO_SUPERUSER_EMAIL
+    type: SECRET
+    value: CHANGE-ME
+  - key: DJANGO_SUPERUSER_PASSWORD
+    type: SECRET
+    value: CHANGE-ME
+  # DigitalOcean Spaces (only when MEDIA_STORAGE is "spaces"; also keeps the backups)
+  # - key: SPACES_BUCKET
+  #   value: tunga-files
+  # - key: SPACES_REGION
+  #   value: sgp1
+  # - key: SPACES_KEY
+  #   type: SECRET
+  #   value: CHANGE-ME
+  # - key: SPACES_SECRET
+  #   type: SECRET
+  #   value: CHANGE-ME
+
+services:
+  - name: web
+    github:
+      repo: YOUR-GITHUB-USERNAME/tunga_sample   # <-- CHANGE: your GitHub repository
+      branch: main
+      deploy_on_push: true                      # every push to main updates the live site
+    environment_slug: python
+    build_command: python manage.py collectstatic --noinput
+    run_command: gunicorn tunga_portal.wsgi --config gunicorn.conf.py
+    http_port: 8080
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-1gb
+    health_check:
+      http_path: /healthz/
+      initial_delay_seconds: 20
+
+jobs:
+  # runs before each new version goes live: updates the database tables,
+  # creates the first superuser, sets the site address
+  - name: setup
+    kind: PRE_DEPLOY
+    github:
+      repo: YOUR-GITHUB-USERNAME/tunga_sample   # <-- CHANGE: same repository
+      branch: main
+    environment_slug: python
+    run_command: python manage.py migrate --noinput && python manage.py setup_production
+    instance_size_slug: apps-s-1vcpu-0.5gb
+
+databases:
+  - name: db
+    engine: PG
+    version: "16"
+    production: false        # small "dev" database; change to a managed cluster later
+
+domains:
+  - domain: tungaleyte.com          # <-- CHANGE (same as SITE_DOMAIN)
+    type: PRIMARY
+    # zone: tungaleyte.com          # uncomment if Namecheap nameservers point to DigitalOcean
+  - domain: www.tungaleyte.com      # <-- CHANGE
+    type: ALIAS

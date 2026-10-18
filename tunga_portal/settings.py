@@ -19,10 +19,21 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Load variables from a .env file in the project root (if one exists).
-# This only affects local development — on Render, environment
-# variables are set directly in the dashboard and this call is a no-op
-# there since no .env file is deployed.
+# On your computer this is where your settings live. On a server (Render,
+# DigitalOcean App Platform or a Droplet) the variables are set on the
+# server instead — see .env.example for the full list and DEPLOY.md.
 load_dotenv(BASE_DIR / '.env')
+
+
+def _env_bool(name, default=False):
+    value = os.environ.get(name)
+    if value is None or value.strip() == '':
+        return default
+    return value.strip().lower() in ('1', 'true', 'yes', 'on')
+
+
+def _env_list(name):
+    return [x.strip() for x in os.environ.get(name, '').split(',') if x.strip()]
 
 STATICFILES_DIRS = [
     BASE_DIR / "static",
@@ -31,13 +42,46 @@ STATICFILES_DIRS = [
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-*u35x1%04wmt)-r3ko4(gt85oao8^a(16sj=&3d*l86az4s10^')
-DEBUG = 'RENDER' not in os.environ
+# ---------------------------------------------------------------------------
+# Live site or your computer?
+#   DEBUG=0 (or PRODUCTION=1) on the server -> live mode: real secret key,
+#   HTTPS cookies, Cloudinary / Spaces for uploads, no error pages with code.
+#   On Render it is detected automatically. Nothing set -> your computer.
+# ---------------------------------------------------------------------------
+IS_PRODUCTION = _env_bool('PRODUCTION') or 'RENDER' in os.environ
+DEBUG = _env_bool('DEBUG', default=not IS_PRODUCTION)
 
-ALLOWED_HOSTS = []
-RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
-if RENDER_EXTERNAL_HOSTNAME:
-    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+SECRET_KEY = os.environ.get('SECRET_KEY', '')
+if not SECRET_KEY:
+    if not DEBUG:
+        from django.core.exceptions import ImproperlyConfigured
+        raise ImproperlyConfigured("Set the SECRET_KEY environment variable on the server (see .env.example).")
+    SECRET_KEY = 'django-insecure-local-only-*u35x1%04wmt)-r3ko4(gt85oao8^a(16sj=&3d*l86az4s10^'
+
+# ---------------------------------------------------------------------------
+# Website addresses that may open the site.
+#   SITE_DOMAIN     your own domain from Namecheap, e.g. tungaleyte.com
+#                   (www.tungaleyte.com is added automatically)
+#   ALLOWED_HOSTS   extra addresses, comma separated (e.g. the Droplet's IP)
+#   APP_DOMAIN      set automatically on DigitalOcean App Platform (.do/app.yaml)
+#   RENDER_EXTERNAL_HOSTNAME   set automatically on Render
+# ---------------------------------------------------------------------------
+SITE_DOMAIN = os.environ.get('SITE_DOMAIN', '').strip().lower().removeprefix('https://').removeprefix('http://').strip('/')
+if SITE_DOMAIN.startswith('www.'):
+    SITE_DOMAIN = SITE_DOMAIN[4:]
+
+ALLOWED_HOSTS = _env_list('ALLOWED_HOSTS')
+for _host in (os.environ.get('RENDER_EXTERNAL_HOSTNAME'), os.environ.get('APP_DOMAIN'),
+              SITE_DOMAIN, ('www.' + SITE_DOMAIN) if SITE_DOMAIN else ''):
+    if _host and _host not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(_host)
+if DEBUG:
+    ALLOWED_HOSTS += ['127.0.0.1', 'localhost', '[::1]']
+
+# Forms (login, sign up, every POST) only accepted from these https addresses
+CSRF_TRUSTED_ORIGINS = ['https://' + h for h in ALLOWED_HOSTS
+                        if h not in ('127.0.0.1', 'localhost', '[::1]') and not h.startswith('.')]
+CSRF_TRUSTED_ORIGINS += _env_list('CSRF_TRUSTED_ORIGINS')
 
 
 # Application definition
@@ -94,6 +138,7 @@ SOCIALACCOUNT_PROVIDERS = {
 }
 
 MIDDLEWARE = [
+    'tunga_portal.health.HealthCheckMiddleware',   # /healthz/ for the server's health check (first, on purpose)
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -136,10 +181,14 @@ WSGI_APPLICATION = 'tunga_portal.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
+# DATABASE_URL on the server (DigitalOcean / Render PostgreSQL), e.g.
+#   postgresql://user:password@host:25060/dbname?sslmode=require
+# Without it (your computer) the local db.sqlite3 file is used.
 DATABASES = {
     'default': dj_database_url.config(
         default=f'sqlite:///{BASE_DIR / "db.sqlite3"}',
         conn_max_age=600,
+        conn_health_checks=True,
     )
 }
 
@@ -190,44 +239,39 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 MEDIA_URL = '/media/'
 
+# ---------------------------------------------------------------------------
+# Where uploaded files (photos, PDFs, logos) are kept. MEDIA_STORAGE =
+#   cloudinary  Cloudinary (default on the live site; CLOUDINARY_* variables)
+#   spaces      DigitalOcean Spaces (SPACES_* variables, see below)
+#   local       the server's own disk (a Droplet; nginx serves /media/).
+#               Not for App Platform: its disk is wiped on every deploy.
+# On your computer (DEBUG on) files go to the "media" folder.
+# ---------------------------------------------------------------------------
+MEDIA_STORAGE = (os.environ.get('MEDIA_STORAGE')
+                 or ('spaces' if os.environ.get('USE_SPACES') == '1' else ('local' if DEBUG else 'cloudinary'))).strip().lower()
+MEDIA_ROOT = Path(os.environ.get('MEDIA_ROOT') or (BASE_DIR / 'media'))
 
-if not DEBUG:
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage" if DEBUG
+                    else "whitenoise.storage.CompressedStaticFilesStorage"},
+}
+if MEDIA_STORAGE == 'cloudinary':
     CLOUDINARY_STORAGE = {
         'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
         'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
         'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
     }
-    STORAGES = {
-        "default": {
-            "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
-        },
-        "staticfiles": {
-            "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
-        },
-    }
-    STATICFILES_STORAGE = STORAGES["staticfiles"]["BACKEND"]
-else:
-    MEDIA_ROOT = BASE_DIR / 'media'
-    STORAGES = {
-        "default": {
-            "BACKEND": "django.core.files.storage.FileSystemStorage",
-        },
-        "staticfiles": {
-            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
-        },
-    }
-    STATICFILES_STORAGE = STORAGES["staticfiles"]["BACKEND"]
+    STORAGES["default"] = {"BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage"}
 
 # ---------------------------------------------------------------------------
-# DigitalOcean Spaces (for later, when the site moves to DigitalOcean).
-# Turn it on with the environment variable USE_SPACES=1 plus:
+# DigitalOcean Spaces: MEDIA_STORAGE=spaces (or the older USE_SPACES=1) plus
 #   SPACES_BUCKET, SPACES_KEY, SPACES_SECRET,
 #   SPACES_REGION (e.g. sgp1), SPACES_CDN_DOMAIN (optional)
-# Needs: pip install "django-storages[s3]" boto3   (add both to requirements.txt)
 # Uploaded files go to <bucket>/media (public) and backups to
-# <bucket>/backups (private). Nothing here runs until USE_SPACES=1.
+# <bucket>/backups (private).
 # ---------------------------------------------------------------------------
-if os.environ.get('USE_SPACES') == '1':
+if MEDIA_STORAGE == 'spaces':
     _spaces_region = os.environ.get('SPACES_REGION', 'sgp1')
     _spaces = {
         "bucket_name": os.environ.get('SPACES_BUCKET'),
@@ -246,6 +290,7 @@ if os.environ.get('USE_SPACES') == '1':
         "BACKEND": "storages.backends.s3.S3Storage",
         "OPTIONS": {**_spaces, "location": "backups", "default_acl": "private", "querystring_auth": True},
     }
+STATICFILES_STORAGE = STORAGES["staticfiles"]["BACKEND"]
 
 # Where backups are kept when there is no STORAGES["backups"] (a private
 # folder the website never serves). See admin_dashboard/backup.py.
@@ -290,3 +335,16 @@ _RECAPTCHA_TEST_SITE_KEY = '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'
 _RECAPTCHA_TEST_SECRET_KEY = '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe'
 RECAPTCHA_SITE_KEY = os.environ.get('RECAPTCHA_SITE_KEY') or (_RECAPTCHA_TEST_SITE_KEY if DEBUG else '')
 RECAPTCHA_SECRET_KEY = os.environ.get('RECAPTCHA_SECRET_KEY') or (_RECAPTCHA_TEST_SECRET_KEY if DEBUG else '')
+
+# ---------------------------------------------------------------------------
+# Errors on the live site are written to the server log (DigitalOcean →
+# your app → Runtime Logs, or `journalctl -u tunga` on a Droplet), because
+# visitors only see a plain error page.
+# ---------------------------------------------------------------------------
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {'console': {'class': 'logging.StreamHandler'}},
+    'root': {'handlers': ['console'], 'level': 'WARNING'},
+    'loggers': {'django': {'handlers': ['console'], 'level': os.environ.get('DJANGO_LOG_LEVEL', 'INFO'), 'propagate': False}},
+}

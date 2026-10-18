@@ -1,0 +1,7 @@
+# Shell scripts must keep Linux line endings (LF) even when edited on Windows,
+# otherwise the server can't run them ("bad interpreter" / "\r: command not found").
+*.sh text eol=lf
+Procfile text eol=lf
+.python-version text eol=lf
+*.py text
+*.html text

@@ -167,16 +167,25 @@
           <input class="form-input" type="text" id="news-title" name="title" placeholder="e.g. New Health Program Launched" required>
         </div>
         <div class="form-group">
-          <label class="form-label" for="news-cat">Category</label>
-          <input class="form-input" type="text" id="news-cat" name="category" placeholder="e.g. Community">
+          <label class="form-label" for="news-cat">Category <span class="req">*</span></label>
+          <select class="form-input" id="news-cat" name="category" required>
+                <option value="">Choose a category</option>
+                <option>Community</option>
+                <option>Governance</option>
+                <option>Infrastructure &amp; Development</option>
+                <option>Health &amp; Wellness</option>
+                <option>Agriculture</option>
+                <option>Education</option>
+                <option>Tourism</option>
+          </select>
         </div>
         <div class="form-group">
-          <label class="form-label" for="news-summary">Summary</label>
-          <input class="form-input" type="text" id="news-summary" name="summary" placeholder="One-line summary">
+          <label class="form-label" for="news-summary">Summary <span class="req">*</span></label>
+          <input class="form-input" type="text" id="news-summary" name="summary" placeholder="One-line summary" maxlength="255" required>
         </div>
         <div class="form-group">
-          <label class="form-label" for="news-content">Full News Content</label>
-          <textarea class="form-input form-textarea" id="news-content" name="content" rows="5" placeholder="Full story..."></textarea>
+          <label class="form-label" for="news-content">Full News Content <span class="req">*</span></label>
+          <textarea class="form-input form-textarea" id="news-content" name="content" rows="5" placeholder="Full story..." required></textarea>
         </div>
         <div class="form-group">
           <label class="form-label" for="news-image">Featured Image</label>
@@ -185,8 +194,8 @@
         {% include "office_dashboard/_more_photos_field.html" %}
         {% include "office_dashboard/_video_field.html" %}
         <div class="form-group">
-          <label class="form-label" for="news-author">Author / Reporter</label>
-          <input class="form-input" type="text" id="news-author" name="author" placeholder="e.g. Juan Dela Cruz">
+          <label class="form-label" for="news-author">Author / Reporter <span class="req">*</span></label>
+          <input class="form-input" type="text" id="news-author" name="author" placeholder="e.g. Juan Dela Cruz" required>
         </div>
         <!-- Date Published is no longer entered here — it's set automatically
              to the date the Super Admin approves and publishes this post. -->
@@ -266,16 +275,25 @@
           <input class="form-input" type="text" id="news-title-{{ n.id }}" name="title" value="{{ n.title }}" required>
         </div>
         <div class="form-group">
-          <label class="form-label" for="news-cat-{{ n.id }}">Category</label>
-          <input class="form-input" type="text" id="news-cat-{{ n.id }}" name="category" value="{{ n.category }}">
+          <label class="form-label" for="news-cat-{{ n.id }}">Category <span class="req">*</span></label>
+          <select class="form-input" id="news-cat-{{ n.id }}" name="category" required data-current="{{ n.category }}">
+                <option value="">Choose a category</option>
+                <option>Community</option>
+                <option>Governance</option>
+                <option>Infrastructure &amp; Development</option>
+                <option>Health &amp; Wellness</option>
+                <option>Agriculture</option>
+                <option>Education</option>
+                <option>Tourism</option>
+          </select>
         </div>
         <div class="form-group">
-          <label class="form-label" for="news-summary-{{ n.id }}">Summary</label>
-          <input class="form-input" type="text" id="news-summary-{{ n.id }}" name="summary" value="{{ n.summary }}">
+          <label class="form-label" for="news-summary-{{ n.id }}">Summary <span class="req">*</span></label>
+          <input class="form-input" type="text" id="news-summary-{{ n.id }}" name="summary" value="{{ n.summary }}" maxlength="255" required>
         </div>
         <div class="form-group">
-          <label class="form-label" for="news-content-{{ n.id }}">Full News Content</label>
-          <textarea class="form-input form-textarea" id="news-content-{{ n.id }}" name="content" rows="5">{{ n.content }}</textarea>
+          <label class="form-label" for="news-content-{{ n.id }}">Full News Content <span class="req">*</span></label>
+          <textarea class="form-input form-textarea" id="news-content-{{ n.id }}" name="content" rows="5" required>{{ n.content }}</textarea>
         </div>
         <div class="form-group">
           <label class="form-label" for="news-image-{{ n.id }}">Featured Image</label>
@@ -288,8 +306,8 @@
         {% include "office_dashboard/_more_photos_field.html" with obj=n %}
         {% include "office_dashboard/_video_field.html" with obj=n %}
         <div class="form-group">
-          <label class="form-label" for="news-author-{{ n.id }}">Author / Reporter</label>
-          <input class="form-input" type="text" id="news-author-{{ n.id }}" name="author" value="{{ n.author }}">
+          <label class="form-label" for="news-author-{{ n.id }}">Author / Reporter <span class="req">*</span></label>
+          <input class="form-input" type="text" id="news-author-{{ n.id }}" name="author" value="{{ n.author }}" required>
         </div>
         <div class="form-group">
           <label class="form-label">Date Published</label>
@@ -340,4 +358,15 @@
 </div>
 {% endfor %}
 
+<script>
+/* Edit News: select the post's saved category; an older category that is not
+   in the list is added to the list so it isn't lost. */
+document.querySelectorAll('select[name="category"][data-current]').forEach(function (sel) {
+  var cur = sel.getAttribute('data-current');
+  if (!cur) return;
+  var has = Array.prototype.some.call(sel.options, function (o) { return o.value === cur; });
+  if (!has) sel.add(new Option(cur, cur));
+  sel.value = cur;
+});
+</script>
 {% endblock %}

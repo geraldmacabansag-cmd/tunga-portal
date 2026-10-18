@@ -141,32 +141,33 @@
           <input class="form-input" type="text" id="ev-title" name="title" placeholder="e.g. Barangay Sports Fest" required>
         </div>
         <div class="form-group">
-          <label class="form-label" for="ev-category">Event Category</label>
-          <input class="form-input" type="text" id="ev-category" name="category" placeholder="e.g. Sports">
+          <label class="form-label" for="ev-category">Event Category <span class="req">*</span></label>
+          <input class="form-input" type="text" id="ev-category" name="category" placeholder="e.g. Sports" list="event-category-options" required>
+          <datalist id="event-category-options"><option value="Community"><option value="Sports"><option value="Health"><option value="Education"><option value="Cultural / Festival"><option value="Livelihood"><option value="Environment"><option value="Youth"><option value="Safety / Disaster Preparedness"><option value="Meeting / Assembly"></datalist>
         </div>
         <div class="form-group">
-          <label class="form-label" for="ev-description">Description</label>
-          <textarea class="form-input form-textarea" id="ev-description" name="description" rows="4" placeholder="Details about the event..."></textarea>
+          <label class="form-label" for="ev-description">Description <span class="req">*</span></label>
+          <textarea class="form-input form-textarea" id="ev-description" name="description" rows="4" placeholder="Details about the event..." required></textarea>
         </div>
         <div class="form-group">
-          <label class="form-label" for="ev-date">Event Date</label>
+          <label class="form-label" for="ev-date">Event Date <span class="req">*</span></label>
           <input class="form-input" type="date" id="ev-date" name="event_date" required>
         </div>
         <div class="form-group">
-          <label class="form-label" for="ev-start">Start Time</label>
-          <input class="form-input" type="time" id="ev-start" name="start_time">
+          <label class="form-label" for="ev-start">Start Time <span class="req">*</span></label>
+          <input class="form-input" type="time" id="ev-start" name="start_time" required>
         </div>
         <div class="form-group">
           <label class="form-label" for="ev-end">End Time</label>
           <input class="form-input" type="time" id="ev-end" name="end_time">
         </div>
         <div class="form-group">
-          <label class="form-label" for="ev-location">Location / Venue</label>
-          <input class="form-input" type="text" id="ev-location" name="location" placeholder="e.g. Municipal Grounds">
+          <label class="form-label" for="ev-location">Location / Venue <span class="req">*</span></label>
+          <input class="form-input" type="text" id="ev-location" name="location" placeholder="e.g. Municipal Grounds" required>
         </div>
         <div class="form-group">
-          <label class="form-label" for="ev-organizer">Organizer</label>
-          <input class="form-input" type="text" id="ev-organizer" name="organizer" placeholder="e.g. SB Office">
+          <label class="form-label" for="ev-organizer">Organizer <span class="req">*</span></label>
+          <input class="form-input" type="text" id="ev-organizer" name="organizer" placeholder="e.g. SB Office" required>
         </div>
         <div class="form-group">
           <label class="form-label" for="ev-contact-person">Contact Person</label>
@@ -248,32 +249,32 @@
           <input class="form-input" type="text" id="ev-title-{{ e.id }}" name="title" value="{{ e.title }}" required>
         </div>
         <div class="form-group">
-          <label class="form-label" for="ev-category-{{ e.id }}">Event Category</label>
-          <input class="form-input" type="text" id="ev-category-{{ e.id }}" name="category" value="{{ e.category }}">
+          <label class="form-label" for="ev-category-{{ e.id }}">Event Category <span class="req">*</span></label>
+          <input class="form-input" type="text" id="ev-category-{{ e.id }}" name="category" value="{{ e.category }}" list="event-category-options" required>
         </div>
         <div class="form-group">
-          <label class="form-label" for="ev-description-{{ e.id }}">Description</label>
-          <textarea class="form-input form-textarea" id="ev-description-{{ e.id }}" name="description" rows="4">{{ e.description }}</textarea>
+          <label class="form-label" for="ev-description-{{ e.id }}">Description <span class="req">*</span></label>
+          <textarea class="form-input form-textarea" id="ev-description-{{ e.id }}" name="description" rows="4" required>{{ e.description }}</textarea>
         </div>
         <div class="form-group">
-          <label class="form-label" for="ev-date-{{ e.id }}">Event Date</label>
+          <label class="form-label" for="ev-date-{{ e.id }}">Event Date <span class="req">*</span></label>
           <input class="form-input" type="date" id="ev-date-{{ e.id }}" name="event_date" value="{{ e.event_date|date:'Y-m-d' }}" required>
         </div>
         <div class="form-group">
-          <label class="form-label" for="ev-start-{{ e.id }}">Start Time</label>
-          <input class="form-input" type="time" id="ev-start-{{ e.id }}" name="start_time" value="{{ e.start_time|time:'H:i' }}">
+          <label class="form-label" for="ev-start-{{ e.id }}">Start Time <span class="req">*</span></label>
+          <input class="form-input" type="time" id="ev-start-{{ e.id }}" name="start_time" value="{{ e.start_time|time:'H:i' }}" required>
         </div>
         <div class="form-group">
           <label class="form-label" for="ev-end-{{ e.id }}">End Time</label>
           <input class="form-input" type="time" id="ev-end-{{ e.id }}" name="end_time" value="{{ e.end_time|time:'H:i' }}">
         </div>
         <div class="form-group">
-          <label class="form-label" for="ev-location-{{ e.id }}">Location / Venue</label>
-          <input class="form-input" type="text" id="ev-location-{{ e.id }}" name="location" value="{{ e.location }}">
+          <label class="form-label" for="ev-location-{{ e.id }}">Location / Venue <span class="req">*</span></label>
+          <input class="form-input" type="text" id="ev-location-{{ e.id }}" name="location" value="{{ e.location }}" required>
         </div>
         <div class="form-group">
-          <label class="form-label" for="ev-organizer-{{ e.id }}">Organizer</label>
-          <input class="form-input" type="text" id="ev-organizer-{{ e.id }}" name="organizer" value="{{ e.organizer }}">
+          <label class="form-label" for="ev-organizer-{{ e.id }}">Organizer <span class="req">*</span></label>
+          <input class="form-input" type="text" id="ev-organizer-{{ e.id }}" name="organizer" value="{{ e.organizer }}" required>
         </div>
         <div class="form-group">
           <label class="form-label" for="ev-contact-person-{{ e.id }}">Contact Person</label>
@@ -326,4 +327,25 @@
 </div>
 {% endfor %}
 
+<script>
+/* Events: the End Time can't be earlier than the Start Time (both dashboards). */
+(function () {
+  function sync(form) {
+    if (!form) return;
+    var s = form.querySelector('[name="start_time"]'), e = form.querySelector('[name="end_time"]');
+    if (!s || !e) return;
+    e.min = s.value || '';
+    e.setCustomValidity(s.value && e.value && e.value <= s.value ? 'The end time must be later than the start time.' : '');
+  }
+  document.addEventListener('input', function (ev) {
+    var n = ev.target.name;
+    if (n === 'start_time' || n === 'end_time') sync(ev.target.form);
+  });
+  // values filled in by the Edit button don't fire "input": check right before sending
+  document.addEventListener('click', function (ev) {
+    var b = ev.target.closest && ev.target.closest('button[type="submit"], input[type="submit"]');
+    if (b && b.form) sync(b.form);
+  }, true);
+})();
+</script>
 {% endblock %}

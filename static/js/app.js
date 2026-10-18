@@ -1279,6 +1279,11 @@ function wireOfficeProfileToggle() {
   /* Page: Office profile page - powers the icon picker                                */
   /* ------------------------------------------------------------------ */
   function wireServiceIconPicker() {
+    // The Services page has its own picker script (templates/office_dashboard/
+    // _service_icon_picker.html + _service_editor_extras.html). Before, this
+    // grabbed the FIRST picker on the page (Edit Service's) and the Add
+    // Service icons could not be selected.
+    if (document.querySelector('.svc-icon-field')) return;
     var picker = document.querySelector('.icon-picker');
     if (!picker) return;
     var hiddenInput = document.getElementById('svc-icon-input');

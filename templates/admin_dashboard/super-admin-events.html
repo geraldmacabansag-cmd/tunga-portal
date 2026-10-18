@@ -145,18 +145,19 @@
       <form id="eventForm" method="post" enctype="multipart/form-data" data-url-template="{% url 'admin_dashboard:admin_event_save' 0 %}">
         {% csrf_token %}
         <div class="form-group">
-          <label class="form-label">Event Title <span class="req">*</span></label>
-          <input class="form-input" type="text" name="title" id="eventTitle" placeholder="e.g. Barangay Sports Fest">
+          <label class="form-label" for="eventTitle">Event Title <span class="req">*</span></label>
+          <input class="form-input" type="text" name="title" id="eventTitle" placeholder="e.g. Barangay Sports Fest" required>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Event Category</label>
-            <input class="form-input" type="text" name="category" id="eventCategory" placeholder="e.g. Sports">
+            <label class="form-label" for="eventCategory">Event Category <span class="req">*</span></label>
+            <input class="form-input" type="text" name="category" id="eventCategory" placeholder="e.g. Sports" list="event-category-options" required>
+            <datalist id="event-category-options"><option value="Community"><option value="Sports"><option value="Health"><option value="Education"><option value="Cultural / Festival"><option value="Livelihood"><option value="Environment"><option value="Youth"><option value="Safety / Disaster Preparedness"><option value="Meeting / Assembly"></datalist>
           </div>
           <div class="form-group">
-            <label class="form-label">Organized by (office)<span class="req">*</span></label>
-            <select class="form-input" name="representative" id="eventRepresentative">
+            <label class="form-label" for="eventRepresentative">Organized by (office) <span class="req">*</span></label>
+            <select class="form-input" name="representative" id="eventRepresentative" required>
               <option value="">Select office</option>
               <option value="super_admin" selected>{{ lgu_office_name }}</option>
               {% for rep in office_reps %}
@@ -167,36 +168,36 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">Description</label>
-          <textarea class="form-input form-textarea" name="description" id="eventDescription" rows="4" placeholder="Details about the event..."></textarea>
+          <label class="form-label" for="eventDescription">Description <span class="req">*</span></label>
+          <textarea class="form-input form-textarea" name="description" id="eventDescription" rows="4" placeholder="Details about the event..." required></textarea>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Event Date</label>
+            <label class="form-label" for="eventDate">Event Date <span class="req">*</span></label>
             <input class="form-input" type="date" name="event_date" id="eventDate" required>
           </div>
           <div class="form-group">
-            <label class="form-label">Start Time</label>
-            <input class="form-input" type="time" name="start_time" id="eventStart">
+            <label class="form-label" for="eventStart">Start Time <span class="req">*</span></label>
+            <input class="form-input" type="time" name="start_time" id="eventStart" required>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">End Time</label>
+            <label class="form-label" for="eventEnd">End Time</label>
             <input class="form-input" type="time" name="end_time" id="eventEnd">
           </div>
           <div class="form-group">
-            <label class="form-label">Location / Venue</label>
-            <input class="form-input" type="text" name="location" id="eventLocation" placeholder="e.g. Municipal Grounds">
+            <label class="form-label" for="eventLocation">Location / Venue <span class="req">*</span></label>
+            <input class="form-input" type="text" name="location" id="eventLocation" placeholder="e.g. Municipal Grounds" required>
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Organizer</label>
-            <input class="form-input" type="text" name="organizer" id="eventOrganizer" placeholder="e.g. SB Office">
+            <label class="form-label" for="eventOrganizer">Organizer <span class="req">*</span></label>
+            <input class="form-input" type="text" name="organizer" id="eventOrganizer" placeholder="e.g. SB Office" required>
           </div>
           <div class="form-group">
             <label class="form-label">Contact Person</label>
@@ -454,4 +455,25 @@
 })();
 </script>
 
+<script>
+/* Events: the End Time can't be earlier than the Start Time (both dashboards). */
+(function () {
+  function sync(form) {
+    if (!form) return;
+    var s = form.querySelector('[name="start_time"]'), e = form.querySelector('[name="end_time"]');
+    if (!s || !e) return;
+    e.min = s.value || '';
+    e.setCustomValidity(s.value && e.value && e.value <= s.value ? 'The end time must be later than the start time.' : '');
+  }
+  document.addEventListener('input', function (ev) {
+    var n = ev.target.name;
+    if (n === 'start_time' || n === 'end_time') sync(ev.target.form);
+  });
+  // values filled in by the Edit button don't fire "input": check right before sending
+  document.addEventListener('click', function (ev) {
+    var b = ev.target.closest && ev.target.closest('button[type="submit"], input[type="submit"]');
+    if (b && b.form) sync(b.form);
+  }, true);
+})();
+</script>
 {% endblock %}

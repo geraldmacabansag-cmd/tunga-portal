@@ -152,6 +152,17 @@ def render_list(request, ed, template, extra=None):
 # Saving
 # ---------------------------------------------------------------------------
 
+VALID_ICONS = {value for value, _label in Service.ICON_CHOICES}
+
+
+def _missing_fields(name, description, classification, transaction_types, who_may_avail):
+    """The required fields of Add / Edit Service that are empty (the windows
+    also check this in the browser before sending)."""
+    checks = [("Service Name", name), ("Description", description), ("Classification", classification),
+              ("Type of Transaction", transaction_types), ("Who May Avail", who_may_avail)]
+    return [label for label, value in checks if not value]
+
+
 def add_service(request, ed, fallback_url):
     """fallback_url: where to go when the form didn't come from the Services
     page (the Office Profile page also has an "Add Service" button)."""
@@ -160,6 +171,8 @@ def add_service(request, ed, fallback_url):
         name = request.POST.get('name', '').strip()
         description = request.POST.get('description', '').strip()
         icon = request.POST.get('icon') or 'fa-solid fa-file-signature'
+        if icon not in VALID_ICONS:
+            icon = 'fa-solid fa-file-signature'
 
         division = request.POST.get('division', '').strip() or ed.office.name
         classification = request.POST.get('classification', '').strip()
@@ -170,8 +183,9 @@ def add_service(request, ed, fallback_url):
         if service_scope not in ('internal', 'external'):
             service_scope = ''
 
-        if not name:
-            messages.error(request, "Service name is required.")
+        missing = _missing_fields(name, description, classification, transaction_types, who_may_avail)
+        if missing:
+            messages.error(request, "Please fill in: " + ", ".join(missing) + ".")
         else:
             extra = {}
             if ed.is_admin:
@@ -217,6 +231,8 @@ def edit_service(request, ed, pk):
         name = request.POST.get('name', '').strip()
         description = request.POST.get('description', '').strip()
         icon = request.POST.get('icon') or service.icon
+        if icon not in VALID_ICONS:
+            icon = service.icon
 
         division = request.POST.get('division', '').strip() or ed.office.name
         classification = request.POST.get('classification', '').strip()
@@ -227,8 +243,9 @@ def edit_service(request, ed, pk):
         if service_scope not in ('internal', 'external'):
             service_scope = ''
 
-        if not name:
-            messages.error(request, "Service name is required.")
+        missing = _missing_fields(name, description, classification, transaction_types, who_may_avail)
+        if missing:
+            messages.error(request, "Please fill in: " + ", ".join(missing) + ".")
         else:
             service.name = name
             service.description = description

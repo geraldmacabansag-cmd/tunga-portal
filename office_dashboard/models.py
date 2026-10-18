@@ -368,22 +368,85 @@ class Service(models.Model):
         ("other", "Other"),
     ]
 
+    # Icons for a service (Office Representative / Super Admin → Services →
+    # Add / Edit Service). Font Awesome 6 free icons. To add one: put another
+    # ("fa-solid fa-NAME", "Label") line here, then run makemigrations + migrate.
     ICON_CHOICES = [
+        # documents & certificates
         ("fa-solid fa-file-signature", "Document / Signature"),
+        ("fa-solid fa-file-lines", "Records / Documents"),
+        ("fa-solid fa-certificate", "Certificate"),
+        ("fa-solid fa-stamp", "Permit / Approval"),
+        ("fa-solid fa-clipboard-check", "Clearance"),
         ("fa-solid fa-id-card", "ID Card"),
-        ("fa-solid fa-hands-holding-circle", "Public Assistance"),
-        ("fa-solid fa-comments", "Complaints / Inquiries"),
-        ("fa-solid fa-star", "Special Requests"),
-        ("fa-solid fa-bullhorn", "Proclamations / Announcements"),
-        ("fa-regular fa-calendar-check", "Appointments"),
+        ("fa-solid fa-print", "Printing / Copies"),
+        # civil registry
+        ("fa-solid fa-baby", "Birth Registration"),
+        ("fa-solid fa-ring", "Marriage"),
+        ("fa-solid fa-dove", "Death / Burial"),
+        # business, money, taxes
         ("fa-solid fa-briefcase", "Business / Permits"),
-        ("fa-solid fa-house", "Housing / Residency"),
-        ("fa-solid fa-heart-pulse", "Health Services"),
-        ("fa-solid fa-graduation-cap", "Education / Scholarship"),
-        ("fa-solid fa-tree", "Environment / Agriculture"),
-        ("fa-solid fa-shield-halved", "Peace & Order"),
+        ("fa-solid fa-store", "Market / Stalls"),
         ("fa-solid fa-money-check-dollar", "Financial / Treasury"),
+        ("fa-solid fa-coins", "Taxes / Payments"),
+        ("fa-solid fa-receipt", "Official Receipt"),
+        ("fa-solid fa-hand-holding-dollar", "Financial Assistance"),
+        # land, building, engineering
+        ("fa-solid fa-building", "Building Permit"),
+        ("fa-solid fa-helmet-safety", "Engineering / Construction"),
+        ("fa-solid fa-trowel-bricks", "Infrastructure"),
+        ("fa-solid fa-road", "Roads"),
+        ("fa-solid fa-map-location-dot", "Land / Zoning"),
+        ("fa-solid fa-ruler-combined", "Survey / Assessment"),
+        ("fa-solid fa-house", "Housing / Residency"),
+        # health
+        ("fa-solid fa-heart-pulse", "Health Services"),
+        ("fa-solid fa-hospital", "Hospital / Clinic"),
+        ("fa-solid fa-syringe", "Vaccination"),
+        ("fa-solid fa-pills", "Medicine"),
+        ("fa-solid fa-truck-medical", "Ambulance"),
+        ("fa-solid fa-person-pregnant", "Maternal Health"),
+        # social welfare
+        ("fa-solid fa-hands-holding-circle", "Public Assistance"),
+        ("fa-solid fa-people-roof", "Family / Social Welfare"),
+        ("fa-solid fa-person-cane", "Senior Citizens"),
+        ("fa-solid fa-wheelchair", "Persons with Disability"),
+        ("fa-solid fa-children", "Children / Youth"),
+        ("fa-solid fa-box-open", "Relief Goods"),
+        ("fa-solid fa-users", "Community"),
+        # education & employment
+        ("fa-solid fa-graduation-cap", "Education / Scholarship"),
+        ("fa-solid fa-book", "Library"),
+        ("fa-solid fa-user-tie", "Employment / HR"),
+        # agriculture & environment
+        ("fa-solid fa-tree", "Environment / Agriculture"),
+        ("fa-solid fa-seedling", "Farming / Crops"),
+        ("fa-solid fa-cow", "Livestock"),
+        ("fa-solid fa-fish", "Fisheries"),
+        ("fa-solid fa-recycle", "Waste Management"),
+        ("fa-solid fa-droplet", "Water"),
+        ("fa-solid fa-bolt", "Electricity"),
+        # safety & disaster
+        ("fa-solid fa-shield-halved", "Peace & Order"),
+        ("fa-solid fa-fire-extinguisher", "Fire Safety"),
+        ("fa-solid fa-house-flood-water", "Disaster / Evacuation"),
+        ("fa-solid fa-magnifying-glass", "Inspection"),
+        # legal & government
         ("fa-solid fa-gavel", "Legal Services"),
+        ("fa-solid fa-scale-balanced", "Justice / Mediation"),
+        ("fa-solid fa-landmark", "Municipal Hall / Government"),
+        ("fa-solid fa-handshake", "Partnership / Barangay"),
+        ("fa-solid fa-bullhorn", "Proclamations / Announcements"),
+        # requests & contact
+        ("fa-solid fa-comments", "Complaints / Inquiries"),
+        ("fa-solid fa-envelope", "Letters / Requests"),
+        ("fa-solid fa-phone", "Hotline"),
+        ("fa-solid fa-laptop", "Online Services"),
+        ("fa-regular fa-calendar-check", "Appointments"),
+        ("fa-solid fa-calendar-days", "Events / Venue Booking"),
+        ("fa-solid fa-car", "Vehicles / Transport"),
+        ("fa-solid fa-umbrella-beach", "Tourism"),
+        ("fa-solid fa-star", "Special Requests"),
     ]
 
     SERVICE_SCOPE_CHOICES = [

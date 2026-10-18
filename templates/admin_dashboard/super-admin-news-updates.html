@@ -132,15 +132,15 @@
       <form id="newsForm" method="post" enctype="multipart/form-data" data-url-template="{% url 'admin_dashboard:admin_news_save' 0 %}">
         {% csrf_token %}
           <div class="form-group">
-            <label class="form-label">Headline<span class="req">*</span></label>
-            <input class="form-input" type="text" name="title" id="newsTitle" placeholder="e.g. Tunga Celebrates 61st Founding Anniversary">
+            <label class="form-label" for="newsTitle">Headline <span class="req">*</span></label>
+            <input class="form-input" type="text" name="title" id="newsTitle" placeholder="e.g. Tunga Celebrates 61st Founding Anniversary" required>
           </div>
 
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">Category</label>
-              <select class="form-input" name="category" id="newsCategory">
-                <option value="">—</option>
+              <label class="form-label" for="newsCategory">Category <span class="req">*</span></label>
+              <select class="form-input" name="category" id="newsCategory" required>
+                <option value="">Choose a category</option>
                 <option>Community</option>
                 <option>Governance</option>
                 <option>Infrastructure &amp; Development</option>
@@ -151,8 +151,8 @@
               </select>
             </div>
             <div class="form-group">
-              <label class="form-label">Posted by (office)<span class="req">*</span></label>
-              <select class="form-input" name="representative" id="newsRepresentative">
+              <label class="form-label" for="newsRepresentative">Posted by (office) <span class="req">*</span></label>
+              <select class="form-input" name="representative" id="newsRepresentative" required>
                 <option value="">Select office</option>
                 <option value="super_admin" selected>{{ lgu_office_name }}</option>
                 {% for rep in office_reps %}
@@ -172,18 +172,18 @@
         {% include "office_dashboard/_video_field.html" %}
 
           <div class="form-group">
-            <label class="form-label">Short summary</label>
-            <textarea class="form-input form-textarea" name="summary" id="newsSummary" style="min-height:70px;" placeholder="One or two sentences shown in the list and homepage preview."></textarea>
+            <label class="form-label" for="newsSummary">Short summary <span class="req">*</span></label>
+            <textarea class="form-input form-textarea" name="summary" id="newsSummary" style="min-height:70px;" placeholder="One or two sentences shown in the list and homepage preview." maxlength="255" required></textarea>
           </div>
 
           <div class="form-group">
-            <label class="form-label">Full article</label>
-            <textarea class="form-input form-textarea" name="content" id="newsContent" style="min-height:170px;" placeholder="Write the full article text here."></textarea>
+            <label class="form-label" for="newsContent">Full article <span class="req">*</span></label>
+            <textarea class="form-input form-textarea" name="content" id="newsContent" style="min-height:170px;" placeholder="Write the full article text here." required></textarea>
           </div>
 
           <div class="form-group">
-            <label class="form-label">Author / Reporter</label>
-            <input class="form-input" type="text" name="author" id="newsAuthor" placeholder="e.g. Juan Dela Cruz">
+            <label class="form-label" for="newsAuthor">Author / Reporter <span class="req">*</span></label>
+            <input class="form-input" type="text" name="author" id="newsAuthor" placeholder="e.g. Juan Dela Cruz" required>
           </div>
 
           <!-- Date Published is no longer entered here — publishing this
@@ -317,7 +317,13 @@
       modalTitle.textContent = 'Edit Article';
       form.action = form.dataset.urlTemplate.replace('/0/', '/' + d.id + '/');
       document.getElementById('newsTitle').value = d.title || '';
-      document.getElementById('newsCategory').value = d.category || '';
+      // an older category that is not in the list is added so it isn't lost
+      var catSel = document.getElementById('newsCategory');
+      if (d.category && !Array.prototype.some.call(catSel.options, function (o) { return o.value === d.category; })) {
+        catSel.add(new Option(d.category, d.category));
+      }
+      catSel.value = d.category || '';
+      document.getElementById('newsAuthor').value = d.author || '';
       document.getElementById('newsSummary').value = d.summary || '';
       document.getElementById('newsContent').value = d.content || '';
       document.getElementById('newsSource').value = d.source || '';

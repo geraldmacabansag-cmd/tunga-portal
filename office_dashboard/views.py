@@ -248,15 +248,28 @@ def dashboard(request, rep):
         "services": available_services_for_forms(rep),
     })
 
+NEWS_REQUIRED = [("title", "News Headline"), ("category", "Category"), ("summary", "Summary"),
+                 ("content", "Full News Content"), ("author", "Author / Reporter")]
+
+
+def news_missing_message(post):
+    """Add / Edit News (Office Representative and Super Admin): the required
+    fields that are empty, as one message, or "" when all are filled in.
+    The windows also check this in the browser before sending."""
+    missing = [label for name, label in NEWS_REQUIRED if not post.get(name, '').strip()]
+    return ("Please fill in: " + ", ".join(missing) + ".") if missing else ""
+
+
 @office_rep_required
 def news_update(request, rep):
     if request.method == "POST":
         is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
         title = request.POST.get('title', '').strip()
-        if not title:
+        problem = news_missing_message(request.POST)
+        if problem:
             if is_ajax:
-                return JsonResponse({"success": False, "error": "News headline is required."}, status=400)
-            messages.error(request, "News headline is required.")
+                return JsonResponse({"success": False, "error": problem}, status=400)
+            messages.error(request, problem)
         else:
             news = NewsUpdate.objects.create(
                 representative=rep,
@@ -330,8 +343,9 @@ def edit_news(request, rep, pk):
 
     if request.method == "POST":
         title = request.POST.get('title', '').strip()
-        if not title:
-            messages.error(request, "News headline is required.")
+        problem = news_missing_message(request.POST)
+        if problem:
+            messages.error(request, problem)
         else:
             news.title = title
             news.category = request.POST.get('category', '')
@@ -365,15 +379,34 @@ def delete_news(request, rep, pk):
 
     return redirect('office_dashboard:news_update')
 
+EVENT_REQUIRED = [("title", "Event Title"), ("category", "Event Category"), ("description", "Description"),
+                  ("event_date", "Event Date"), ("start_time", "Start Time"), ("location", "Location / Venue"),
+                  ("organizer", "Organizer")]
+
+
+def event_problem(post):
+    """Add / Edit Event (Office Representative and Super Admin): what is
+    wrong with the form as one message, or "" when it's fine. The windows
+    also check this in the browser before sending."""
+    missing = [label for name, label in EVENT_REQUIRED if not post.get(name, '').strip()]
+    if missing:
+        return "Please fill in: " + ", ".join(missing) + "."
+    start, end = post.get('start_time', '').strip(), post.get('end_time', '').strip()
+    if start and end and end <= start:
+        return "The end time must be later than the start time."
+    return ""
+
+
 @office_rep_required
 def events(request, rep):
     if request.method == "POST":
         is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
         title = request.POST.get('title', '').strip()
-        if not title:
+        problem = event_problem(request.POST)
+        if problem:
             if is_ajax:
-                return JsonResponse({"success": False, "error": "Event title is required."}, status=400)
-            messages.error(request, "Event title is required.")
+                return JsonResponse({"success": False, "error": problem}, status=400)
+            messages.error(request, problem)
         else:
             def parse_date(value):
                 try:
@@ -470,8 +503,9 @@ def edit_event(request, rep, pk):
 
     if request.method == "POST":
         title = request.POST.get('title', '').strip()
-        if not title:
-            messages.error(request, "Event title is required.")
+        problem = event_problem(request.POST)
+        if problem:
+            messages.error(request, problem)
         else:
             event.title = title
             event.category = request.POST.get('category', '')

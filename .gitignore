@@ -1,4 +1,6 @@
-﻿staticfiles/
+﻿# Files that must never go to GitHub (first line is a comment on purpose:
+# some Windows editors add an invisible mark at the start of the file).
+staticfiles/
 __pycache__/
 *.pyc
 .env
@@ -9,3 +11,12 @@ db.sqlite3
 db.sqlite3-journal
 media/
 *.env
+
+# Python / editors / server files
+venv/
+.venv/
+env/
+*.log
+.DS_Store
+.idea/
+.vscode/

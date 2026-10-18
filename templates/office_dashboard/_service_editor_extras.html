@@ -171,20 +171,20 @@
           <input class="form-input" type="text" id="edit-svc-name" name="name" required>
         </div>
         <div class="form-group">
-          <label class="form-label" for="edit-svc-description">Description</label>
-          <textarea class="form-input" id="edit-svc-description" name="description" rows="3"></textarea>
+          <label class="form-label" for="edit-svc-description">Description <span class="req">*</span></label>
+          <textarea class="form-input" id="edit-svc-description" name="description" rows="3" required></textarea>
         </div>
         <div class="form-group">
           <label class="form-label" for="edit-svc-division">Office or Division</label>
           <input class="form-input" type="text" id="edit-svc-division" name="division" placeholder="{{ editor_office.name }}">
         </div>
         <div class="form-group">
-          <label class="form-label" for="edit-svc-classification">Classification</label>
-          <input class="form-input" type="text" id="edit-svc-classification" name="classification" placeholder="Simple/Complex">
+          <label class="form-label" for="edit-svc-classification">Classification <span class="req">*</span></label>
+          <input class="form-input" type="text" id="edit-svc-classification" name="classification" placeholder="Simple, Complex or Highly Technical" list="svc-classification-options" required>
         </div>
         <div class="form-group">
-          <label class="form-label">Type of Transaction</label>
-          <div style="display:flex;gap:16px;flex-wrap:wrap;">
+          <label class="form-label">Type of Transaction <span class="req">*</span> <small class="svc-hint">(choose at least one)</small></label>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;" data-need-one="transaction_type">
             <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
               <input type="checkbox" name="transaction_type" value="G2G" id="edit-svc-txn-g2g"> G2G – Government to Government
             </label>
@@ -197,8 +197,8 @@
           </div>
         </div>
         <div class="form-group">
-          <label class="form-label" for="edit-svc-who-may-avail">Who May Avail</label>
-          <input class="form-input" type="text" id="edit-svc-who-may-avail" name="who_may_avail">
+          <label class="form-label" for="edit-svc-who-may-avail">Who May Avail <span class="req">*</span></label>
+          <input class="form-input" type="text" id="edit-svc-who-may-avail" name="who_may_avail" placeholder="e.g. Transacting public, Senior citizens" required>
         </div>
         <div class="form-group">
           <label class="form-label">Internal/External Services</label>
@@ -214,17 +214,7 @@
             </label>
           </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Icon</label>
-          <input type="hidden" name="icon" id="edit-svc-icon-input" value="{{ icon_choices.0.0 }}">
-          <div class="icon-picker" id="edit-svc-icon-picker">
-            {% for value, label in icon_choices %}
-            <button type="button" class="icon-picker__item" data-icon-value="{{ value }}" title="{{ label }}">
-              <i class="{{ value }}"></i>
-            </button>
-            {% endfor %}
-          </div>
-        </div>
+        {% include "office_dashboard/_service_icon_picker.html" with input_id="edit-svc-icon-input" picker_id="edit-svc-icon-picker" first_selected=False %}
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
           <button type="submit" class="btn btn-primary">Save Changes</button>
@@ -252,8 +242,8 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="svc-description">Description</label>
-          <textarea class="form-input" id="svc-description" name="description" rows="3" placeholder="What this service is for and who can avail of it"></textarea>
+          <label class="form-label" for="svc-description">Description <span class="req">*</span></label>
+          <textarea class="form-input" id="svc-description" name="description" rows="3" placeholder="What this service is for and who can avail of it" required></textarea>
         </div>
 
         <div class="form-group">
@@ -262,13 +252,14 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="svc-classification">Classification</label>
-          <input class="form-input" type="text" id="svc-classification" name="classification" placeholder="Simple/Complex">
+          <label class="form-label" for="svc-classification">Classification <span class="req">*</span></label>
+          <input class="form-input" type="text" id="svc-classification" name="classification" placeholder="Simple, Complex or Highly Technical" list="svc-classification-options" required>
+          <datalist id="svc-classification-options"><option value="Simple"><option value="Complex"><option value="Highly Technical"></datalist>
         </div>
 
         <div class="form-group">
-          <label class="form-label">Type of Transaction</label>
-          <div style="display:flex;gap:16px;flex-wrap:wrap;">
+          <label class="form-label">Type of Transaction <span class="req">*</span> <small class="svc-hint">(choose at least one)</small></label>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;" data-need-one="transaction_type">
             <label style="display:flex;align-items:center;gap:6px;font-weight:400;">
               <input type="checkbox" name="transaction_type" value="G2G"> G2G – Government to Government
             </label>
@@ -282,8 +273,8 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="svc-who-may-avail">Who May Avail</label>
-          <input class="form-input" type="text" id="svc-who-may-avail" name="who_may_avail" placeholder="e.g. Transacting public, Senior citizens">
+          <label class="form-label" for="svc-who-may-avail">Who May Avail <span class="req">*</span></label>
+          <input class="form-input" type="text" id="svc-who-may-avail" name="who_may_avail" placeholder="e.g. Transacting public, Senior citizens" required>
         </div>
 
         <div class="form-group">
@@ -301,17 +292,7 @@
           </div>
         </div>
 
-        <div class="form-group">
-          <label class="form-label">Icon</label>
-          <input type="hidden" name="icon" id="svc-icon-input" value="{{ icon_choices.0.0 }}">
-          <div class="icon-picker">
-            {% for value, label in icon_choices %}
-            <button type="button" class="icon-picker__item {% if forloop.first %}selected{% endif %}" data-icon-value="{{ value }}" title="{{ label }}">
-              <i class="{{ value }}"></i>
-            </button>
-            {% endfor %}
-          </div>
-        </div>
+        {% include "office_dashboard/_service_icon_picker.html" with input_id="svc-icon-input" picker_id="svc-icon-picker" first_selected=True %}
 
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
@@ -1180,7 +1161,7 @@
   if (addServiceConfirmBtn) {
     addServiceConfirmBtn.addEventListener('click', function () {
       if (!addServiceForm) return;
-      if (!addServiceForm.reportValidity()) return;
+      if (!checkNeedOne(addServiceForm) || !addServiceForm.reportValidity()) return;
 
       var draft = buildAddServiceDraft();
       addServiceModal.classList.remove('open');
@@ -1237,6 +1218,78 @@
     });
   }
 
+  /* ---- Icon picker (Add + Edit Service, _service_icon_picker.html) ----
+     Clicking an icon selects it and fills the hidden "icon" input of the
+     same window; the search box filters the icons by name. */
+  function syncIconField(field) {
+    if (!field) return;
+    var input = field.querySelector('input[name="icon"]');
+    var chosen = null;
+    field.querySelectorAll('.icon-picker__item').forEach(function (b) {
+      var on = b.dataset.iconValue === input.value;
+      b.classList.toggle('selected', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+      if (on) chosen = b;
+    });
+    var label = field.querySelector('.svc-icons__chosen');
+    if (label && chosen) {
+      label.innerHTML = '<i class="' + chosen.dataset.iconValue + '"></i> <span class="svc-icon-name"></span>';
+      label.querySelector('.svc-icon-name').textContent = chosen.title;
+    }
+  }
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest && e.target.closest('.svc-icon-field .icon-picker__item');
+    if (!btn) return;
+    var field = btn.closest('.svc-icon-field');
+    field.querySelector('input[name="icon"]').value = btn.dataset.iconValue;
+    syncIconField(field);
+  });
+  document.addEventListener('input', function (e) {
+    if (!e.target.classList || !e.target.classList.contains('svc-icons__search')) return;
+    var field = e.target.closest('.svc-icon-field'), q = e.target.value.trim().toLowerCase(), shown = 0;
+    field.querySelectorAll('.icon-picker__item').forEach(function (b) {
+      var hit = !q || b.title.toLowerCase().indexOf(q) !== -1;
+      b.hidden = !hit; if (hit) shown++;
+    });
+    field.querySelector('.svc-icons__none').hidden = shown > 0;
+  });
+  // Enter in the icon search box must not submit the form
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && e.target.classList && e.target.classList.contains('svc-icons__search')) e.preventDefault();
+  });
+  document.querySelectorAll('.svc-icon-field').forEach(function (field) {
+    var form = field.closest('form');
+    if (form) form.addEventListener('reset', function () {
+      setTimeout(function () {
+        var s = field.querySelector('.svc-icons__search');
+        if (s) { s.value = ''; s.dispatchEvent(new Event('input', { bubbles: true })); }
+        syncIconField(field);
+      }, 0);
+    });
+    syncIconField(field);
+  });
+
+  /* ---- "Choose at least one" groups (Type of Transaction) ---- */
+  function checkNeedOne(form) {
+    var ok = true;
+    if (!form) return ok;
+    form.querySelectorAll('[data-need-one]').forEach(function (group) {
+      var boxes = group.querySelectorAll('input[name="' + group.dataset.needOne + '"]');
+      var any = Array.prototype.some.call(boxes, function (b) { return b.checked; });
+      if (boxes[0]) boxes[0].setCustomValidity(any ? '' : 'Please choose at least one type of transaction.');
+      if (!any && ok && boxes[0]) { ok = false; boxes[0].reportValidity(); }
+    });
+    return ok;
+  }
+  document.addEventListener('change', function (e) {
+    var group = e.target.closest && e.target.closest('[data-need-one]');
+    if (group && e.target.checked) checkNeedOne(group.closest('form'));
+  });
+  var editFormForCheck = document.getElementById('edit-service-form');
+  if (editFormForCheck) editFormForCheck.addEventListener('submit', function (e) {
+    if (!checkNeedOne(editFormForCheck)) e.preventDefault();
+  });
+
   /* ---- for edit service modal ---- */
 
   var editServiceModal = document.getElementById('edit-service-modal');
@@ -1291,6 +1344,7 @@
         editSvcIconPicker.querySelectorAll('.icon-picker__item').forEach(function (btn) {
           btn.classList.toggle('selected', btn.dataset.iconValue === iconValue);
         });
+        syncIconField(editSvcIconPicker.closest('.svc-icon-field'));
       }
 
       editServiceModal.classList.add('open');
@@ -1616,6 +1670,19 @@
 
 
 <style>
+  /* Icon picker of Add / Edit Service (same look on both dashboards) */
+  .svc-icon-field .svc-icons__top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+  .svc-icon-field .svc-icons__chosen { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--gray-700, #374151); }
+  .svc-icon-field .svc-icons__chosen i { width: 30px; height: 30px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; background: var(--blue-50, #eff6ff); color: var(--blue-600, #2563eb); font-size: 14px; }
+  .svc-icon-field .svc-icons__search { flex: 1 1 200px; min-width: 0; max-width: 300px; margin-left: auto; padding: 7px 10px !important; font-size: 13px !important; }
+  .svc-icon-field .svc-icons { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 6px; max-height: 214px; overflow-y: auto; padding: 2px; }
+  .svc-icon-field .icon-picker__item { width: auto; height: auto; aspect-ratio: 1; min-height: 40px; border: 1px solid var(--gray-200, #e5e7eb); border-radius: 8px; background: #fff; color: var(--gray-600, #4b5563); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; transition: border-color .15s, background .15s, color .15s; }
+  .svc-icon-field .icon-picker__item[hidden] { display: none; }
+  .svc-icon-field .icon-picker__item:hover { border-color: var(--blue-600, #2563eb); background: var(--blue-50, #eff6ff); color: var(--blue-600, #2563eb); }
+  .svc-icon-field .icon-picker__item.selected { border: 2px solid var(--blue-600, #2563eb); background: var(--blue-50, #eff6ff); color: var(--blue-600, #2563eb); }
+  .svc-icon-field .icon-picker__item:focus-visible { outline: 2px solid var(--blue-600, #2563eb); outline-offset: 1px; }
+  .svc-icon-field .svc-icons__none { margin: 6px 0 0; font-size: 12.5px; color: var(--gray-500, #6b7280); }
+  .svc-hint { font-weight: 400; color: var(--gray-500, #6b7280); }
   .view-service-btn { font: inherit; padding: 0; outline: none; }
   .view-service-btn:focus-visible { outline: 2px solid var(--blue-600); outline-offset: 2px; }
 

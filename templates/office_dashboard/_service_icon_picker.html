@@ -1,0 +1,23 @@
+{% comment %}
+Icon picker of the Add Service and Edit Service windows (Office Representative
+and Super Admin use the same one). The list of icons is Service.ICON_CHOICES
+in office_dashboard/models.py. Clicking an icon fills the hidden "icon" input
+(script in _service_editor_extras.html, "Icon picker").
+Pass: input_id, picker_id, first_selected (True for Add Service).
+{% endcomment %}
+<div class="form-group svc-icon-field">
+  <label class="form-label">Icon <span class="req">*</span></label>
+  <input type="hidden" name="icon" id="{{ input_id }}" value="{{ icon_choices.0.0 }}">
+  <div class="svc-icons__top">
+    <span class="svc-icons__chosen"><i class="{{ icon_choices.0.0 }}"></i> <span class="svc-icon-name">{{ icon_choices.0.1 }}</span></span>
+    <input type="search" class="form-input svc-icons__search" placeholder="Search icons (e.g. health, permit, tax)" aria-label="Search icons">
+  </div>
+  <div class="icon-picker svc-icons" id="{{ picker_id }}" role="listbox" aria-label="Icon">
+    {% for value, label in icon_choices %}
+    <button type="button" class="icon-picker__item{% if first_selected and forloop.first %} selected{% endif %}" data-icon-value="{{ value }}" title="{{ label }}" aria-label="{{ label }}">
+      <i class="{{ value }}"></i>
+    </button>
+    {% endfor %}
+  </div>
+  <p class="svc-icons__none" hidden>No icon matches your search.</p>
+</div>

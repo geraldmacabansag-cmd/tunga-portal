@@ -911,8 +911,12 @@ def admin_news_save(request, pk):
     else:
         representative = OfficeRepresentative.objects.filter(pk=rep_choice).first() if rep_choice else None
 
-    if not title or not representative:
-        messages.error(request, "Headline and posting office are required.")
+    from office_dashboard.views import news_missing_message
+    problem = news_missing_message(request.POST)
+    if not representative:
+        problem = (problem + " " if problem else "") + "Please choose the posting office."
+    if problem:
+        messages.error(request, problem)
         return redirect('admin_dashboard:ad_news_update')
 
     if pk:
@@ -1018,8 +1022,12 @@ def admin_event_save(request, pk):
     else:
         representative = OfficeRepresentative.objects.filter(pk=rep_choice).first() if rep_choice else None
 
-    if not title or not representative:
-        messages.error(request, "Title and organizing office are required.")
+    from office_dashboard.views import event_problem
+    problem = event_problem(request.POST)
+    if not representative:
+        problem = (problem + " " if problem else "") + "Please choose the organizing office."
+    if problem:
+        messages.error(request, problem)
         return redirect('admin_dashboard:ad_events')
 
     if pk:

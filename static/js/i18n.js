@@ -18,13 +18,13 @@
 
   var T = {
     /* ---------- header, menu, footer ---------- */
-    "Home": ["Tahanan", "Balay"],
+    "Home": ["Pangunahing Pahina", "Panguna nga Pahina "],
     "About": ["Tungkol", "Mahitungod"],
     "About Us": ["Tungkol sa Amin", "Mahitungod ha Amon"],
     "Offices": ["Mga Tanggapan", "Mga Opisina"],
     "All Offices": ["Lahat ng Tanggapan", "Ngatanan nga Opisina"],
-    "Announcements": ["Mga Anunsiyo", "Mga Pahibaro"],
-    "Announcement": ["Anunsiyo", "Pahibaro"],
+    "Announcements": ["Mga Anunsyo", "Mga Pahibaro"],
+    "Announcement": ["Anunsyo", "Pahibaro"],
     "Gallery": ["Galeriya", "Galeriya"],
     "Contact Us": ["Makipag-ugnayan", "Kontaka Kami"],
     "Contact us": ["Makipag-ugnayan sa amin", "Kontaka kami"],
@@ -39,11 +39,11 @@
     "Terms of Use": ["Mga Tuntunin ng Paggamit", "Mga Termino han Paggamit"],
     "Terms Of Use": ["Mga Tuntunin ng Paggamit", "Mga Termino han Paggamit"],
     "Accessibility Statement": ["Pahayag sa Accessibility", "Pahayag han Accessibility"],
-    "Accessibility": ["Accessibility", "Accessibility"],
+    "Accessibility": ["Aksesibilidad", "Aksesibilidad"],
     "Have any questions or need help? We're here for you.": ["May tanong o kailangan ng tulong? Narito kami para sa iyo.", "May-ada pakiana o kinahanglan hin bulig? Ania kami para ha imo."],
     "© Municipality of Tunga. All Rights Reserved.": ["© Bayan ng Tunga. Nakalaan ang Lahat ng Karapatan.", "© Bungto han Tunga. Reserbado an Ngatanan nga Katungod."],
-    "Search the site...": ["Maghanap sa website...", "Bilnga ha website..."],
-    "Search": ["Maghanap", "Bilnga"],
+    "Search the site...": ["Maghanap sa website...", "Pamilnga ha website..."],
+    "Search": ["Maghanap", "Pamilnga"],
 
     /* ---------- testing notice ---------- */
     "Testing phase:": ["Sinusubukan pa:", "Ginsusulay pa:"],
