@@ -291,6 +291,14 @@ Home | Digital Governance Portal
     <!-- ===================== TAB: News (now wired to real published NewsUpdate data) ===================== -->
     <div class="tab-panel" data-tab-panel="news">
 
+      {% if news_filtering %}
+      <div class="panel news-results-bar">
+        <span><i class="fa-solid fa-magnifying-glass"></i>
+          <strong>{{ news_result_count }}</strong> result{{ news_result_count|pluralize }}{% if news_q %} for &ldquo;{{ news_q }}&rdquo;{% endif %}{% if news_topic %} in <strong>{{ news_topic }}</strong>{% endif %}
+        </span>
+        <a href="?{{ news_office_qs|slice:'1:' }}#news" class="news-results-bar__clear"><i class="fa-solid fa-xmark"></i> Clear</a>
+      </div>
+      {% else %}
       <div class="news-featured-grid">
         {% if news_main_story %}
         <a href="#" class="news-feature-card news-feature-card--main js-news-open{% if not news_main_story.image %} news-feature-card--placeholder{% endif %}{% if news_main_story.gallery_photos %} pcc-host{% endif %}" data-news="{{ news_main_story.id }}" data-news-title="{{ news_main_story.title }}" data-news-office="{{ news_main_story.representative.office.name|default:'—' }}" data-search-text="{{ news_main_story.title|lower }}" data-search-category="{{ news_main_story.category_slug }}" data-search-category-label="{{ news_main_story.category_label }}" {% if news_main_story.image %}style="background-image:url('{{ news_main_story.image.url }}');background-size:cover;background-position:center;"{% endif %}>
@@ -325,13 +333,13 @@ Home | Digital Governance Portal
         </div>
         {% endif %}
       </div>
+      {% endif %}
 
       <div class="announcements-grid">
         <div class="announcements-main">
 
           <div class="section-title--row" style="margin-bottom:14px;">
-            <h2 class="section-title" style="margin:0;padding:0;">Latest News</h2>
-            <a href="#" class="view-all">View Archive</a>
+            <h2 class="section-title" style="margin:0;padding:0;">{% if news_filtering %}Search Results{% else %}Latest News{% endif %}</h2>
           </div>
 
           <div class="news-grid">
@@ -348,7 +356,9 @@ Home | Digital Governance Portal
             </a>
             <template id="tpl-news-{{ n.id }}">{% include "portal/_news_detail.html" %}</template>
             {% empty %}
-            {% if news_main_story %}
+            {% if news_filtering %}
+            <div class="panel ann-placeholder">No news matches your search. Try other words or <a href="?{{ news_office_qs|slice:'1:' }}#news">show all news</a>.</div>
+            {% elif news_main_story %}
             <div class="panel ann-placeholder">No additional news yet.</div>
             {% endif %}
             {% endfor %}
@@ -359,17 +369,17 @@ Home | Digital Governance Portal
           {% if news_page_obj.paginator.num_pages > 1 %}
           <div class="news-pagination">
             {% if news_page_obj.has_previous %}
-            <a href="?news_page={{ news_page_obj.previous_page_number }}#news" class="news-page-btn"><i class="fa-solid fa-chevron-left"></i></a>
+            <a href="?news_page={{ news_page_obj.previous_page_number }}{{ news_qs }}#news" class="news-page-btn"><i class="fa-solid fa-chevron-left"></i></a>
             {% else %}
             <span class="news-page-btn disabled"><i class="fa-solid fa-chevron-left"></i></span>
             {% endif %}
 
             {% for num in news_page_obj.paginator.page_range %}
-            <a href="?news_page={{ num }}#news" class="news-page-btn {% if num == news_page_obj.number %}active{% endif %}">{{ num }}</a>
+            <a href="?news_page={{ num }}{{ news_qs }}#news" class="news-page-btn {% if num == news_page_obj.number %}active{% endif %}">{{ num }}</a>
             {% endfor %}
 
             {% if news_page_obj.has_next %}
-            <a href="?news_page={{ news_page_obj.next_page_number }}#news" class="news-page-btn"><i class="fa-solid fa-chevron-right"></i></a>
+            <a href="?news_page={{ news_page_obj.next_page_number }}{{ news_qs }}#news" class="news-page-btn"><i class="fa-solid fa-chevron-right"></i></a>
             {% else %}
             <span class="news-page-btn disabled"><i class="fa-solid fa-chevron-right"></i></span>
             {% endif %}
@@ -379,43 +389,50 @@ Home | Digital Governance Portal
         </div>
 
         <aside class="announcements-side">
+          {% comment %}News sidebar: real data (portal/views.py, announcement()). Search and
+          Topics reload the page with ?news_q= / ?news_topic= and search every
+          published news post.{% endcomment %}
           <div class="panel ann-side-panel">
             <h3>Search News</h3>
-            <div class="ann-search">
-              <input type="text" placeholder="Type a keyword...">
-              <button type="button" class="news-search-btn"><i class="fa-solid fa-magnifying-glass"></i></button>
-            </div>
+            <form class="ann-search" method="get" action="#news" role="search">
+              {% if filter_office %}<input type="hidden" name="office" value="{{ filter_office.slug }}">{% endif %}
+              {% if news_topic %}<input type="hidden" name="news_topic" value="{{ news_topic }}">{% endif %}
+              <input type="search" name="news_q" value="{{ news_q }}" placeholder="Type a keyword..." aria-label="Search news" maxlength="100">
+              <button type="submit" class="news-search-btn" aria-label="Search"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </form>
           </div>
 
           <div class="panel ann-side-panel">
             <h3>Most Read</h3>
+            {% if news_most_read %}
             <ol class="news-mostread">
-              <li><span class="news-mostread__num">1</span><div><a href="#">Tunga LGU Distributes Farm Inputs to 150 Local Farmers</a><span class="news-mostread__date">Sep 24, 2026</span></div></li>
-              <li><span class="news-mostread__num">2</span><div><a href="#">Municipality Conducts Community Clean-Up Drive</a><span class="news-mostread__date">Jul 9, 2026</span></div></li>
-              <li><span class="news-mostread__num">3</span><div><a href="#">EVSU-CC Students Present Municipal Website Prototype</a><span class="news-mostread__date">Aug 27, 2026</span></div></li>
-              <li><span class="news-mostread__num">4</span><div><a href="#">MDRRMO Leads Earthquake Drill in Public Schools</a><span class="news-mostread__date">Sep 5, 2026</span></div></li>
+              {% for n in news_most_read %}
+              <li><span class="news-mostread__num">{{ forloop.counter }}</span><div><a href="#" class="js-news-open" data-news="{{ n.id }}" data-news-title="{{ n.title }}" data-news-office="{{ n.representative.office.name|default:'—' }}">{{ n.title }}</a><span class="news-mostread__date">{{ n.display_date|date:"M j, Y" }} &middot; {{ n.views }} view{{ n.views|pluralize }}</span></div></li>
+              {% endfor %}
             </ol>
+            {% for n in news_most_read_extra %}
+            <template id="tpl-news-{{ n.id }}">{% include "portal/_news_detail.html" %}</template>
+            {% endfor %}
+            {% else %}
+            <p class="news-side-empty">No views yet. The most-read news will show here.</p>
+            {% endif %}
           </div>
 
           <div class="panel ann-side-panel">
             <h3>Topics</h3>
+            {% if news_topics %}
             <div class="news-topics">
-              <span class="news-topic-pill">Agriculture</span>
-              <span class="news-topic-pill">Health</span>
-              <span class="news-topic-pill">Governance</span>
-              <span class="news-topic-pill">Education</span>
-              <span class="news-topic-pill">Environment</span>
-              <span class="news-topic-pill">Infrastructure</span>
-              <span class="news-topic-pill">Sports</span>
-              <span class="news-topic-pill">Tourism</span>
-              <span class="news-topic-pill">MDRRMO</span>
+              {% for t in news_topics %}
+              {% if t.active %}
+              <a href="?{{ news_office_qs|slice:'1:' }}{% if news_q %}{% if filter_office %}&amp;{% endif %}news_q={{ news_q|urlencode }}{% endif %}#news" class="news-topic-pill is-active" title="Show all topics">{{ t.label }} <span>{{ t.count }}</span> <i class="fa-solid fa-xmark"></i></a>
+              {% else %}
+              <a href="?news_topic={{ t.label|urlencode }}{{ news_office_qs }}#news" class="news-topic-pill">{{ t.label }} <span>{{ t.count }}</span></a>
+              {% endif %}
+              {% endfor %}
             </div>
-          </div>
-
-          <div class="panel ann-side-panel ann-assist">
-            <h3>Have a Story to Share?</h3>
-            <p>Send news tips and photos from your barangay to the Public Information Office.</p>
-            <a href="{% url 'contact' %}" class="btn btn-block">Contact PIO</a>
+            {% else %}
+            <p class="news-side-empty">No topics yet.</p>
+            {% endif %}
           </div>
         </aside>
       </div>

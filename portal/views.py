@@ -345,8 +345,7 @@ def announcement(request):
 
     # Full list for the "News" tab — every published news post, newest
     # first. The featured row (1 big + 2 small cards) takes the 3 newest;
-    # everything else goes in the "Latest News" grid below it. Pagination,
-    # the sidebar (Search/Most Read/Topics/Share box) stay hardcoded for now.
+    # everything else goes in the "Latest News" grid below it (6 per page).
     all_news = list(
         only_office(NewsUpdate.objects.filter(status='published'))
         .select_related('representative__office')
@@ -359,10 +358,52 @@ def announcement(request):
         slug = slugify(n.category_label) or "general"
         n.category_slug = slug if slug in KNOWN_NEWS_CATEGORY_SLUGS else "general"
 
-    featured_news = all_news[:3]
+    # News tab sidebar, all from the real published news (of the chosen
+    # office, if any):
+    #   "Topics"     every category in use, with how many posts it has
+    #   "Most Read"  the 5 most viewed posts (views counted when a post's
+    #                details window is opened, see count_view)
+    topic_counts = {}
+    for n in all_news:
+        topic_counts[n.category_label] = topic_counts.get(n.category_label, 0) + 1
+    news_topics = sorted(
+        ({"label": label, "count": count} for label, count in topic_counts.items()),
+        key=lambda t: (-t["count"], t["label"].lower()),
+    )
+    news_most_read = sorted(
+        (n for n in all_news if n.views), key=lambda n: (-n.views, -n.created_at.timestamp())
+    )[:5]
+
+    # "Search News" box (?news_q=) and a picked topic (?news_topic=) search
+    # ALL published news on the server, not only the cards on this page.
+    # While either is used, the results are shown as one list (no featured row).
+    news_q = request.GET.get('news_q', '').strip()[:100]
+    news_topic = request.GET.get('news_topic', '').strip()[:100]
+    news_filtering = bool(news_q or news_topic)
+    news_results = all_news
+    if news_topic:
+        news_results = [n for n in news_results if n.category_label.lower() == news_topic.lower()]
+    if news_q:
+        words = news_q.lower().split()
+        news_results = [
+            n for n in news_results
+            if all(w in f"{n.title} {n.summary} {n.content} {n.category_label}".lower() for w in words)
+        ]
+    for t in news_topics:
+        t["active"] = t["label"].lower() == news_topic.lower()
+
+    # Keeps the office / search / topic in the News tab's page links.
+    from urllib.parse import urlencode
+    news_params = {k: v for k, v in (
+        ('office', filter_office.slug if filter_office is not None else ''),
+        ('news_q', news_q), ('news_topic', news_topic)) if v}
+    news_qs = ('&' + urlencode(news_params)) if news_params else ''
+    news_office_qs = ('&office=' + filter_office.slug) if filter_office is not None else ''
+
+    featured_news = [] if news_filtering else all_news[:3]
     news_main_story = featured_news[0] if len(featured_news) > 0 else None
     news_side_stories = featured_news[1:3]
-    news_grid_items_all = all_news[3:]
+    news_grid_items_all = news_results if news_filtering else all_news[3:]
 
     # "Latest News" grid pagination — 6 per page (3 rows of the 2-column
     # grid). Uses its own ?news_page= query param (not the Events tab's
@@ -380,6 +421,9 @@ def announcement(request):
     news_items = all_news[:5]
     _covered_news_ids = {n.id for n in featured_news} | {n.id for n in news_grid_items}
     news_items_extra = [n for n in news_items if n.id not in _covered_news_ids]
+    # "Most Read" posts that have no details <template> on the page yet
+    _covered_news_ids |= {n.id for n in news_items_extra}
+    news_most_read_extra = [n for n in news_most_read if n.id not in _covered_news_ids]
 
     # For the "Events" tab — the Super Admin can mark a specific event as
     # "Featured" (Event.is_featured) so it becomes the big "Featured Event"
@@ -551,6 +595,15 @@ def announcement(request):
         "news_side_stories": news_side_stories,
         "news_grid_items": news_grid_items,
         "news_page_obj": news_page_obj,
+        "news_topics": news_topics,
+        "news_most_read": news_most_read,
+        "news_most_read_extra": news_most_read_extra,
+        "news_q": news_q,
+        "news_topic": news_topic,
+        "news_filtering": news_filtering,
+        "news_result_count": len(news_grid_items_all),
+        "news_qs": news_qs,
+        "news_office_qs": news_office_qs,
         "featured_event": featured_event,
         "upcoming_events": upcoming_events,
         "past_events": past_events,
