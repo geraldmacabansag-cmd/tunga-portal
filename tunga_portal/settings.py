@@ -259,11 +259,14 @@ MEDIA_STORAGE = (os.environ.get('MEDIA_STORAGE')
 MEDIA_ROOT = Path(os.environ.get('MEDIA_ROOT') or (BASE_DIR / 'media'))
 
 # django-cloudinary-storage is only switched on when uploads really go to
-# Cloudinary. It replaces `collectstatic` and expects the CLOUDINARY_*
-# settings, so it is left out on a Droplet (MEDIA_STORAGE=local) or with Spaces.
-# It must come before django.contrib.staticfiles.
+# Cloudinary (it expects the CLOUDINARY_* settings), so it is left out on a
+# Droplet (MEDIA_STORAGE=local) or with Spaces.
+# It must come AFTER django.contrib.staticfiles: placed before it, its own
+# `collectstatic` replaces Django's and copies nothing (it only uploads static
+# files to Cloudinary), so the build fails with "No such file or directory".
+# Static files (CSS/JS) are served by WhiteNoise; Cloudinary is only for uploads.
 if MEDIA_STORAGE == 'cloudinary':
-    INSTALLED_APPS.insert(INSTALLED_APPS.index('django.contrib.staticfiles'), 'cloudinary_storage')
+    INSTALLED_APPS.insert(INSTALLED_APPS.index('django.contrib.staticfiles') + 1, 'cloudinary_storage')
 
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
