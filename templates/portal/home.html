@@ -7,20 +7,60 @@ Home | Digital Governance Portal
 
 {% block content %}
 
-<section class="hero">
-  <img src="{% if site_contact.hero_banner %}{{ site_contact.hero_banner.url }}{% else %}{% static 'images/lgu_tunga_bldg.jpeg' %}{% endif %}" alt="Tunga Municipal Hall" class="hero__bg">
-  <div class="hero__scrim"></div>
-  <div class="hero__content container">
-    <div class="hero__card">
-      <p class="hero__script">Building a Better</p>
-      <h1>Tunga</h1>
-      <p class="hero__sub">Your government is here to serve you. Transparent. Accessible. Reliable.</p>
-      <div class="hero__actions">
-        <a href="#services" class="btn btn-primary"><i class="fa-solid fa-border-all"></i> Discover Services</a>
-        <a href="{% url 'announcement' %}" class="btn btn-outline"><i class="fa-solid fa-bullhorn"></i> View Announcements</a>
+{% comment %}
+Banner carousel. Slide 1 is the welcome banner; the other slides are the
+newest announcements and news & updates that have a picture (hero_slides,
+from _hero_slides() in portal/views.py). It moves on by itself every
+data-interval milliseconds (6000 = 6 seconds) and stops while the mouse is
+over it. Script and styles: static/js/hero-carousel.js, static/css/homepage.css.
+{% endcomment %}
+<section class="hero hero-carousel" data-interval="6000" aria-roledescription="carousel" aria-label="Highlights">
+  <div class="hero-slide is-active" aria-roledescription="slide" aria-label="1 of {{ hero_slides|length|add:1 }}">
+    <img src="{% if site_contact.hero_banner %}{{ site_contact.hero_banner.url }}{% else %}{% static 'images/lgu_tunga_bldg.jpeg' %}{% endif %}" alt="Tunga Municipal Hall" class="hero__bg">
+    <div class="hero__scrim"></div>
+    <div class="hero__content container">
+      <div class="hero__card">
+        <p class="hero__script">Building a Better</p>
+        <h1>Tunga</h1>
+        <p class="hero__sub">Your government is here to serve you. Transparent. Accessible. Reliable.</p>
+        <div class="hero__actions">
+          <a href="#services" class="btn btn-primary"><i class="fa-solid fa-border-all"></i> Discover Services</a>
+          <a href="{% url 'announcement' %}" class="btn btn-outline"><i class="fa-solid fa-bullhorn"></i> View Announcements</a>
+        </div>
       </div>
     </div>
   </div>
+
+  {% for s in hero_slides %}
+  <div class="hero-slide hero-slide--post" aria-roledescription="slide" aria-label="{{ forloop.counter|add:1 }} of {{ hero_slides|length|add:1 }}" aria-hidden="true">
+    <img src="{{ s.image }}" alt="{{ s.title }}" class="hero-slide__bg" loading="lazy">
+    <div class="hero-slide__shade"></div>
+    <div class="hero__content container hero-slide__inner">
+      <div class="hero-slide__text">
+        <div class="hero-slide__tags">
+          <span class="hero-slide__kind hero-slide__kind--{{ s.kind }}"><i class="fa-solid {% if s.kind == 'news' %}fa-newspaper{% else %}fa-bullhorn{% endif %}"></i> {{ s.kind_label }}</span>
+          <span class="hero-slide__cat">{{ s.category }}</span>
+        </div>
+        <h2 class="hero-slide__title">{{ s.title }}</h2>
+        {% if s.text %}<p class="hero-slide__sub">{{ s.text }}</p>{% endif %}
+        <p class="hero-slide__meta"><i class="fa-solid fa-building-columns"></i> {{ s.office }} <span>&middot;</span> <i class="fa-regular fa-calendar"></i> {{ s.date|date:"F j, Y" }}</p>
+        <a href="{{ s.url }}" class="btn btn-primary hero-slide__btn" tabindex="-1">Read more <i class="fa-solid fa-arrow-right"></i></a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+
+  {% if hero_slides %}
+  <div class="hero-carousel__controls">
+    <button type="button" class="hero-carousel__nav hero-carousel__nav--prev" aria-label="Previous slide"><i class="fa-solid fa-chevron-left"></i></button>
+    <div class="hero-carousel__dots" role="tablist" aria-label="Choose slide">
+      <button type="button" class="hero-carousel__dot is-active" role="tab" aria-selected="true" aria-label="Slide 1: Welcome"></button>
+      {% for s in hero_slides %}<button type="button" class="hero-carousel__dot" role="tab" aria-selected="false" aria-label="Slide {{ forloop.counter|add:1 }}: {{ s.title }}"></button>{% endfor %}
+    </div>
+    <button type="button" class="hero-carousel__nav hero-carousel__nav--next" aria-label="Next slide"><i class="fa-solid fa-chevron-right"></i></button>
+  </div>
+  <div class="hero-carousel__progress"><span></span></div>
+  {% endif %}
 </section>
 
 <section class="services-strip" id="services">
@@ -279,6 +319,8 @@ Home | Digital Governance Portal
   go(0);
 })();
 </script>
+
+<script src="{% static 'js/hero-carousel.js' %}?v=1"></script>
 
 <script>
 // Quick Links: when the links wrap onto a second row, the first link of

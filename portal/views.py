@@ -159,6 +159,41 @@ def events_calendar_partial(request):
 
 
 # Create your views here.
+HERO_SLIDES_MAX = 8  # how many posts the home page banner slides through
+
+
+def _hero_slides():
+    """Home page banner carousel: the newest published announcements and
+    news & updates that have a picture (their main image, or else the first
+    of their "More photos"). Posts without any picture are left out."""
+    slides = []
+    sources = [
+        ("announcement", "Announcement", Announcement.public(), "date_posted", "subtitle", "open_announcement", "announcements"),
+        ("news", "News & Updates", NewsUpdate.objects.filter(status="published"), "date_published", "summary", "open_news", "news"),
+    ]
+    for kind, label, qs, date_field, sub_field, param, tab in sources:
+        qs = (qs.select_related("representative__office").prefetch_related("extra_photos")
+                .order_by(f"-{date_field}", "-last_updated", "-created_at"))
+        for obj in qs:
+            image = obj.image if obj.image else next((p.image for p in obj.extra_photos.all() if p.image), None)
+            if not image:
+                continue
+            day = getattr(obj, date_field) or obj.created_at.date()
+            slides.append({
+                "kind": kind, "kind_label": label, "title": obj.title,
+                "text": getattr(obj, sub_field, "") or "",
+                "category": obj.category or "General",
+                "office": obj.representative.office.name if obj.representative and obj.representative.office_id else "LGU Tunga",
+                "image": image.url, "date": day,
+                "sort": (day, obj.last_updated or obj.created_at),
+                "url": f"{reverse('announcement')}?{param}={obj.pk}#{tab}",
+            })
+            if len([s for s in slides if s["kind"] == kind]) >= HERO_SLIDES_MAX:
+                break
+    slides.sort(key=lambda s: s["sort"], reverse=True)
+    return slides[:HERO_SLIDES_MAX]
+
+
 def home(request):
     # The home page always shows the most recent content: newest published
     # first. Things published on the same day are ordered by when they were
@@ -210,6 +245,7 @@ def home(request):
     latest_news = news_slides[0] if news_slides else None
 
     return render(request, "portal/home.html", {
+        "hero_slides": _hero_slides(),
         "emergency_contacts": EmergencyContact.objects.all(),
         "home_announcements": home_announcements,
         "upcoming_event": upcoming_event,
