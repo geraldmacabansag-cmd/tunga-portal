@@ -1,9 +1,22 @@
-{% load static seo_tags theme_tags %}
+{% load static seo_tags theme_tags safe_links %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     {# Language (side menu → Language): hide the page for a moment while it is translated, so English doesn't flash first. static/js/i18n.js #}
     <script>(function(){if(/(?:^|;\s*)tunga_lang=(tl|war)/.test(document.cookie)){var h=document.documentElement;h.classList.add('i18n-pending');setTimeout(function(){h.classList.remove('i18n-pending')},1500);}})();</script>
+    <script>
+      // Counts one view of an announcement / news post when its details pop-up
+      // is opened (portal.views.count_view). kind: "announcement" or "news".
+      window.tungaCountView = function (kind, id) {
+        if (!id || (kind !== 'announcement' && kind !== 'news')) return;
+        try {
+          var body = new FormData();
+          body.append('kind', kind);
+          body.append('id', id);
+          fetch('{% url "count_view" %}', { method: 'POST', body: body, keepalive: true }).catch(function () {});
+        } catch (e) { /* counting must never break the page */ }
+      };
+    </script>
     <style>html.i18n-pending body{visibility:hidden}</style>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -437,16 +450,16 @@
           <p>Tunga, Leyte Philippines</p>
           <div class="footer-social-icons">
             {% if site_contact.social_facebook and site_contact.show_facebook_footer %}
-              <a href="{{ site_contact.social_facebook }}" target="_blank" rel="noopener" class="footer-social-link footer-social-link--facebook" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i><span class="footer-social-link__name">Facebook</span></a>
+              <a href="{{ site_contact.social_facebook|safe_href }}" target="_blank" rel="noopener" class="footer-social-link footer-social-link--facebook" aria-label="Facebook"><i class="fa-brands fa-facebook-f"></i><span class="footer-social-link__name">Facebook</span></a>
             {% endif %}
             {% if site_contact.social_twitter and site_contact.show_twitter_footer %}
-              <a href="{{ site_contact.social_twitter }}" target="_blank" rel="noopener" class="footer-social-link footer-social-link--twitter" aria-label="X (Twitter)"><i class="fa-brands fa-square-x-twitter"></i><span class="footer-social-link__name">X (Twitter)</span></a>
+              <a href="{{ site_contact.social_twitter|safe_href }}" target="_blank" rel="noopener" class="footer-social-link footer-social-link--twitter" aria-label="X (Twitter)"><i class="fa-brands fa-square-x-twitter"></i><span class="footer-social-link__name">X (Twitter)</span></a>
             {% endif %}
             {% if site_contact.social_instagram and site_contact.show_instagram_footer %}
-              <a href="{{ site_contact.social_instagram }}" target="_blank" rel="noopener" class="footer-social-link footer-social-link--instagram" aria-label="Instagram"><i class="fa-brands fa-instagram"></i><span class="footer-social-link__name">Instagram</span></a>
+              <a href="{{ site_contact.social_instagram|safe_href }}" target="_blank" rel="noopener" class="footer-social-link footer-social-link--instagram" aria-label="Instagram"><i class="fa-brands fa-instagram"></i><span class="footer-social-link__name">Instagram</span></a>
             {% endif %}
             {% if site_contact.social_youtube and site_contact.show_youtube_footer %}
-              <a href="{{ site_contact.social_youtube }}" target="_blank" rel="noopener" class="footer-social-link footer-social-link--youtube" aria-label="YouTube"><i class="fa-brands fa-youtube"></i><span class="footer-social-link__name">YouTube</span></a>
+              <a href="{{ site_contact.social_youtube|safe_href }}" target="_blank" rel="noopener" class="footer-social-link footer-social-link--youtube" aria-label="YouTube"><i class="fa-brands fa-youtube"></i><span class="footer-social-link__name">YouTube</span></a>
             {% endif %}
           </div>
       </div>

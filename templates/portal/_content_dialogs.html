@@ -52,6 +52,7 @@
     body.appendChild(tpl.content.cloneNode(true));
     body.scrollTop = 0;
     if (!dlg.open) dlg.showModal();
+    if (window.tungaCountView) window.tungaCountView(el.dataset.kind, el.dataset.id);
     document.body.classList.add('lock');
     return true;
   }

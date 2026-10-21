@@ -742,6 +742,7 @@ Home | Digital Governance Portal
       annDlgBody.appendChild(tpl.content.cloneNode(true));
       annDlgBody.scrollTop = 0;
       if (!annDialog.open) annDialog.showModal();
+      if (window.tungaCountView) window.tungaCountView('announcement', id);
       document.body.classList.add('lock');
     }
 
@@ -784,6 +785,7 @@ Home | Digital Governance Portal
       newsDlgBody.appendChild(tpl.content.cloneNode(true));
       newsDlgBody.scrollTop = 0;
       if (!newsDialog.open) newsDialog.showModal();
+      if (window.tungaCountView) window.tungaCountView('news', id);
       document.body.classList.add('lock');
     }
 

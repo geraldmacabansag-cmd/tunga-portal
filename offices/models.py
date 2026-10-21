@@ -108,7 +108,9 @@ class Office(models.Model):
         links = []
         for key, platform, icon in self.SOCIAL_PLATFORMS:
             url = getattr(self, f"{key}_url", "")
-            if not url:
+            # only real web links (never "javascript:…") — portal/url_safety.py
+            from portal.url_safety import is_safe_link
+            if not url or not is_safe_link(url):
                 continue
             name = ((getattr(self, f"{key}_name", "") or "").strip()
                     or self.account_name_from_url(url, handle=key in ("twitter", "instagram"))

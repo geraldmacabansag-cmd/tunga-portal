@@ -2,11 +2,12 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import redirect_to_login
 from django.contrib import messages
-from django.http import FileResponse, JsonResponse, Http404, HttpResponse
+from django.http import FileResponse, JsonResponse, HttpResponse
 from .pdf_serve import pdf_response
 from office_dashboard.form_fields import field_to_dict, to_json
 from office_dashboard.gallery_items import photo_items, content_items
 from django.urls import reverse
+from django.db.models import F
 from .models import Office
 from office_dashboard.models import (
     Announcement, DownloadableForm, NewsUpdate, Photo, Service,
@@ -15,21 +16,28 @@ from office_dashboard.models import (
 )
 import re
 import io
-import json
 
 def serve_form_pdf(request, pk):
     """Original PDF of a published form (View / Download links and the
     pdf.js preview in Fill Out Online)."""
     form_obj = get_object_or_404(DownloadableForm, pk=pk, status="published")
-    # Downloading a form needs an account (Fill Out Online needs one too).
+    # The PDF file itself (View / Download) needs an account, like Fill Out
+    # Online. Anyone may still look at the form in our own viewer page
+    # (view_form), which gets the pages as ?as=json for pdf.js.
     # After logging in, the visitor comes back to the form's page.
-    if request.GET.get("download") == "1" and not request.user.is_authenticated:
+    as_json = request.GET.get("as") == "json"
+    download = request.GET.get("download") == "1"
+    if not as_json and not request.user.is_authenticated:
         messages.info(request, "Please log in or create an account to download this form.")
         return redirect_to_login(reverse("offices:view_form", args=[pk]))
+    if download:
+        # Downloads by citizens (the Download buttons) — shown to the office
+        # and the Super Admin as "Total Downloads".
+        DownloadableForm.objects.filter(pk=pk).update(download_count=F("download_count") + 1)
     return pdf_response(
         request, form_obj.file,
         filename=_pdf_filename(form_obj.title, ""),
-        as_attachment=request.GET.get("download") == "1",
+        as_attachment=download,
     )
 
 def _pdf_filename(title, suffix="_filled"):
@@ -226,6 +234,9 @@ def fill_form(request, pk):
     })
 
 
+ANSWER_MAX_LENGTH = 500   # = FormSubmissionValue.value max_length
+
+
 @login_required
 def submit_form(request, pk):
     form_obj = get_object_or_404(DownloadableForm, pk=pk, status="published")
@@ -236,6 +247,7 @@ def submit_form(request, pk):
 
     values_by_field = {}
     missing_labels = []
+    too_long_labels = []
 
     for f in fields:
         if f.field_type == "checkbox":
@@ -244,10 +256,20 @@ def submit_form(request, pk):
             value = request.POST.get(f"field_{f.id}", "").strip()
             if f.required and not value:
                 missing_labels.append(f.label)
+            # FormSubmissionValue.value holds at most 500 characters (the
+            # live PostgreSQL database refuses anything longer).
+            if len(value) > ANSWER_MAX_LENGTH:
+                too_long_labels.append(f.label)
         values_by_field[f.id] = value
 
-    if missing_labels:
-        error_text = "Please fill in: " + ", ".join(missing_labels)
+    if missing_labels or too_long_labels:
+        parts = []
+        if missing_labels:
+            parts.append("Please fill in: " + ", ".join(missing_labels) + ".")
+        if too_long_labels:
+            parts.append(f"These answers are longer than {ANSWER_MAX_LENGTH} characters, please shorten them: "
+                         + ", ".join(too_long_labels) + ".")
+        error_text = " ".join(parts)
         if _is_ajax(request):
             return JsonResponse({"error": error_text}, status=400)
         messages.error(request, error_text)
@@ -313,7 +335,8 @@ def download_filled(request, pk):
         v.field_id: v.value
         for v in submission.values.all()
     }
-    fields = list(form_obj.fields.all().order_by("page_number", "order", "id"))
+    # all_objects: also fields taken off the form later, so old answers still show
+    fields = list(FormField.all_objects.filter(form=form_obj).order_by("page_number", "order", "id"))
 
     try:
         pdf_bytes = _stamp_pdf(form_obj, fields, values_by_field)

@@ -9,6 +9,8 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="icon" href="{% if site_contact.logo %}{{ site_contact.logo.url }}{% else %}{% static 'images/tunga_leyte_logo.png' %}{% endif %}">
   <link rel="stylesheet" href="{% static 'css/content-video.css' %}?v=4">
+  <link rel="stylesheet" href="{% static 'css/content-form-modal.css' %}?v=6">  {# Add / Edit windows: landscape on laptops #}
+  <script src="{% static 'js/content-form-modal.js' %}?v=5" defer></script>
   {# Website Settings → Theme & Colors, when "Apply to Office Representative dashboard" is ticked #}
   {% dashboard_theme "office_rep" %}
 </head>

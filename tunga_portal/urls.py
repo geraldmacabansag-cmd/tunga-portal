@@ -16,6 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.views.generic import RedirectView
 from django.conf import settings
 from django.conf.urls.static import static
 from tungamap import views as tungamap_views
@@ -32,6 +33,12 @@ urlpatterns = [
     path('offices/', include('offices.urls')),
     path('office-dashboard/', include('office_dashboard.urls')),
     path('super-admin/', include('admin_dashboard.urls')),
+    # allauth's own email/password pages are not used: the portal has its
+    # own login, sign-up (with email code) and forgot-password pages with
+    # the wrong-try limits. Only Google sign-in goes through allauth.
+    path('accounts/login/', RedirectView.as_view(pattern_name='login', query_string=True)),
+    path('accounts/signup/', RedirectView.as_view(pattern_name='signup', query_string=True)),
+    path('accounts/password/reset/', RedirectView.as_view(pattern_name='forgot_password')),
     path('accounts/', include('allauth.urls')),
     path('map/', include(tungamap_api)),
 ]

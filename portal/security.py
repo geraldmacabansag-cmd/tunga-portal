@@ -28,11 +28,27 @@ CODES_PER_HOUR_PER_COMPUTER = 10
 
 
 def client_ip(request):
-    """The visitor's IP address. On Render / DigitalOcean the site sits behind
-    a proxy, which puts the real address first in X-Forwarded-For."""
-    forwarded = request.META.get("HTTP_X_FORWARDED_FOR", "")
+    """The visitor's real IP address, in a way the visitor can't fake.
+
+    The FIRST address in X-Forwarded-For is typed by the visitor's own
+    browser/program, so it can be anything (that let someone dodge the
+    per-computer limits by sending a new fake address every time). Instead:
+
+    - settings.CLIENT_IP_HEADER, when set, is a header our own proxy writes:
+        Droplet (nginx):            HTTP_X_REAL_IP          (deploy/setup_droplet.sh)
+        DigitalOcean App Platform:  HTTP_DO_CONNECTING_IP   (.do/app.yaml)
+    - otherwise the address our proxy ADDED to X-Forwarded-For: the last one,
+      or settings.TRUSTED_PROXY_COUNT places from the end.
+    - with no proxy at all (your computer): REMOTE_ADDR.
+    """
+    from django.conf import settings
+    header = getattr(settings, "CLIENT_IP_HEADER", "")
+    if header and request.META.get(header):
+        return request.META[header].split(",")[0].strip()[:60]
+    forwarded = [p.strip() for p in request.META.get("HTTP_X_FORWARDED_FOR", "").split(",") if p.strip()]
     if forwarded:
-        return forwarded.split(",")[0].strip()[:60]
+        hops = max(1, int(getattr(settings, "TRUSTED_PROXY_COUNT", 1) or 1))
+        return forwarded[-min(hops, len(forwarded))][:60]
     return (request.META.get("REMOTE_ADDR") or "unknown")[:60]
 
 
@@ -151,13 +167,13 @@ def code_send_problem(request, email):
     now = timezone.now()
     email = _clean(email)
 
-    last = EmailOTP.objects.filter(email=email).order_by("-created_at").values_list("created_at", flat=True).first()
+    last = EmailOTP.objects.filter(email__iexact=email).order_by("-created_at").values_list("created_at", flat=True).first()
     if last and now - last < timedelta(minutes=1):
         seconds = max(1, 60 - int((now - last).total_seconds()))
         return f"A code was just sent. Please wait {seconds} seconds before asking for another one."
 
     hour_ago = now - timedelta(hours=1)
-    sent = list(EmailOTP.objects.filter(email=email, created_at__gte=hour_ago)
+    sent = list(EmailOTP.objects.filter(email__iexact=email, created_at__gte=hour_ago)
                 .order_by("created_at").values_list("created_at", flat=True))
     if len(sent) >= CODES_PER_HOUR:
         minutes = max(1, math.ceil((sent[0] + timedelta(hours=1) - now).total_seconds() / 60))

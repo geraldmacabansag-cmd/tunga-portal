@@ -67,6 +67,9 @@ class Command(BaseCommand):
             missing += [n for n in ("CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET") if not os.environ.get(n)]
         elif storage == "spaces":
             missing += [n for n in ("SPACES_BUCKET", "SPACES_KEY", "SPACES_SECRET") if not os.environ.get(n)]
+        from admin_dashboard.backup import disk_is_temporary
+        if "backups" not in settings.STORAGES and disk_is_temporary():
+            missing.append("SPACES_BUCKET / SPACES_KEY / SPACES_SECRET (backups would be kept on a disk that is erased on every deploy)")
         if not settings.ALLOWED_HOSTS:
             missing.append("SITE_DOMAIN or ALLOWED_HOSTS")
         if missing:

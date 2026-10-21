@@ -151,7 +151,7 @@
   </div>
 </div>
 
-<div class="modal-backdrop" id="create-announcement-modal">
+<div class="modal-backdrop cf-modal" id="create-announcement-modal">
   <div class="modal-box">
     <div class="modal-head">
       <h3>Create Announcement</h3>
@@ -311,7 +311,7 @@
 
 
 {% for a in announcements %}
-<div class="modal-backdrop" id="edit-modal-{{ a.id }}">
+<div class="modal-backdrop cf-modal" id="edit-modal-{{ a.id }}">
   <div class="modal-box">
     <div class="modal-head">
       <h3>Edit Announcement</h3>
@@ -401,7 +401,7 @@
 {% endfor %}
 
 {% for a in announcements %}
-<div class="modal-backdrop" id="view-modal-{{ a.id }}">
+<div class="modal-backdrop cf-modal cf-view" id="view-modal-{{ a.id }}">
   <div class="modal-box">
     <div class="modal-head">
       <h3>Announcement Details</h3>

@@ -71,7 +71,7 @@ def built_in_roles():
                 _row("Dashboard", Y, N, N, N, "Summary of the office"),
                 _row("Announcements, News, Events", Y, Y, Y, Y, "Sent for approval; edit only before publishing"),
                 _row("Gallery (photos and albums)", Y, Y, Y, Y, "Photos sent for approval"),
-                _row("Services (Citizen's Charter)", Y, Y, Y, Y, "Steps, requirements, fees, schedule"),
+                _row("Services (Citizen's Charter)", Y, Y, Y, Y, "Add / edit only while the Super Admin allows service editing; delete only before publishing"),
                 _row("Downloadable Forms", Y, Y, Y, Y, "Upload PDFs, make them fillable online"),
                 _row("Submissions", Y, N, Y, N, "Open filled forms, update the status, write a note"),
                 _row("Office Profile, Page Settings, Org Chart", Y, N, Y, N),

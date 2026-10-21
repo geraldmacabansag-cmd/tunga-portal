@@ -12,6 +12,12 @@ from portal.models import CitizenProfile
 
 
 class AccountAdapter(DefaultAccountAdapter):
+    def is_open_for_signup(self, request):
+        """allauth's own sign-up page (/accounts/signup/) is closed: citizens
+        sign up on /signup/ (portal.views.signup), which checks the emailed
+        verification code. Google sign-up is allowed by SocialAccountAdapter."""
+        return False
+
     def get_login_redirect_url(self, request):
         user = request.user
         if SuperAdmin.objects.filter(user=user).exists():
@@ -22,6 +28,10 @@ class AccountAdapter(DefaultAccountAdapter):
 
 
 class SocialAccountAdapter(DefaultSocialAccountAdapter):
+    def is_open_for_signup(self, request, sociallogin):
+        """Signing up with Google stays open (Google has already checked the email)."""
+        return True
+
     def pre_social_login(self, request, sociallogin):
         intent = request.session.get('google_intent')
 
@@ -48,16 +58,6 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
                 'email': email,
             }
             raise ImmediateHttpResponse(redirect('signup'))
-
-    def save_user(self, request, sociallogin, form=None):
-        user = super().save_user(request, sociallogin, form)
-
-        if user.email and user.username != user.email:
-            user.username = user.email
-            user.save(update_fields=["username"])
-
-        CitizenProfile.objects.get_or_create(user=user)
-        return user
 
     def save_user(self, request, sociallogin, form=None):
         user = super().save_user(request, sociallogin, form)

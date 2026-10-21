@@ -504,12 +504,14 @@ class Service(models.Model):
         return self.name
 
 class ServiceEditSettings(models.Model):
-    """Site-wide switch, not per-service: controls whether ANY office
-    representative can edit a service's basic info (name, description,
-    division, classification, type of transaction, who may avail,
-    internal/external, icon) across the whole site. Toggled from a single
-    switch on the Super Admin's Services page. Singleton — always use
-    get_solo() rather than querying/creating rows directly."""
+    """Site-wide switch, not per-service ("Allow Service Editing" on the
+    Super Admin's Services page). ON: every office representative can add
+    and edit their services and everything in them (details,
+    requirements, client steps, reminders, legal basis, schedule of service,
+    forms). OFF: they can only view. Enforced in service_editor.Editor.locked.
+    (Deleting a service is separate: offices may delete only services that
+    are not yet published — service_editor.Editor.can_delete.)
+    Singleton — always use get_solo() rather than querying/creating rows."""
     editing_enabled = models.BooleanField(default=True)
     last_updated = models.DateTimeField(auto_now=True)
 
@@ -580,6 +582,15 @@ class DownloadableForm(models.Model):
         return self.title
 
 
+class ActiveFormFieldManager(models.Manager):
+    """FormField.objects / form.fields: only the fields still on the form.
+    A field the office removed in the builder after citizens had already
+    answered it is kept (removed=True) so those answers aren't lost; it is
+    only reachable through FormField.all_objects."""
+    def get_queryset(self):
+        return super().get_queryset().filter(removed=False)
+
+
 class FormField(models.Model):
     """
     One input field positioned on top of a specific page of a
@@ -621,6 +632,13 @@ class FormField(models.Model):
     text_color = models.CharField(max_length=7, default="#000000")
     uppercase = models.BooleanField(default=False)
     placeholder = models.CharField(max_length=100, blank=True, default="")
+
+    # Taken off the form in the builder, but kept because citizens already
+    # answered it (office_dashboard/form_fields.save_fields).
+    removed = models.BooleanField(default=False)
+
+    objects = ActiveFormFieldManager()     # the default: fields on the form
+    all_objects = models.Manager()         # also the removed ones (old submissions)
 
     class Meta:
         ordering = ["page_number", "order", "id"]

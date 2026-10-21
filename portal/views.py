@@ -16,10 +16,9 @@ from admin_dashboard.models import SuperAdmin, EmergencyContact, QuickLink
 from django.utils import timezone
 from django.utils.text import slugify
 from django.http import JsonResponse
-from .models import CitizenProfile, EmailOTP
+from .models import EmailOTP
 from .otp_utils import send_signup_otp
-from django.http import JsonResponse
-from .otp_utils import send_signup_otp, send_password_reset_otp
+from .otp_utils import send_password_reset_otp
 from . import security
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
@@ -70,8 +69,6 @@ def _get_featured_event(today, office=None):
         event_base.filter(event_date__isnull=True)
         .order_by('-created_at')
     )
-    upcoming_qs = dated_upcoming + undated_upcoming
-
     featured_dated = [e for e in dated_upcoming if e.is_featured]
     featured_undated = [e for e in undated_upcoming if e.is_featured]
     featured_candidates = featured_dated + featured_undated
@@ -88,7 +85,8 @@ def _build_month_calendar(request, today, featured_event, month_param_name='even
     month_param = request.GET.get(month_param_name, '').strip()
     try:
         cal_year, cal_month = [int(part) for part in month_param.split('-')]
-        if not (1 <= cal_month <= 12):
+        # years 1..9998 only, so the "‹ ›" months around it still exist
+        if not (1 <= cal_month <= 12) or not (2 <= cal_year <= 9998):
             raise ValueError
     except (ValueError, TypeError):
         cal_year, cal_month = today.year, today.month
@@ -415,8 +413,6 @@ def announcement(request):
     # whole page, but this same helper builds the calendar for the initial
     # page load too, so both stay in sync.
     calendar_ctx = _build_month_calendar(request, today, featured_event)
-    cal_year = calendar_ctx["cal_year"]
-    cal_month = calendar_ctx["cal_month"]
     month_events = calendar_ctx["month_events"]
     calendar_weeks = calendar_ctx["calendar_weeks"]
 
@@ -617,6 +613,8 @@ def gallery(request):
 
     current_category = request.GET.get('category', '').strip()
     current_album = request.GET.get('album', '').strip()
+    if not current_album.isdigit():
+        current_album = ""          # ?album=abc used to crash the page
     # "Show" filter: gallery photos only, or one kind of content image.
     SOURCE_CHOICES = [("photo", "Gallery Photos"), ("announcement", "Announcements"),
                       ("news", "News"), ("event", "Event Posters")]
@@ -961,10 +959,6 @@ def forgot_password(request):
         user = (User.objects.filter(email__iexact=identifier).first()
                 or User.objects.filter(username__iexact=identifier).first())
 
-        if not user:
-            messages.error(request, "No account found with that email or username.")
-            return render(request, "account/forgot_password.html", {"identifier": identifier})
-
         if not otp_code:
             messages.error(request, "Please enter the verification code sent to your email.")
             return render(request, "account/forgot_password.html", {"identifier": identifier})
@@ -983,6 +977,14 @@ def forgot_password(request):
         except ValidationError as e:
             for err in e.messages:
                 messages.error(request, err)
+            return render(request, "account/forgot_password.html", {"identifier": identifier})
+
+        if not user or not user.email:
+            # No such account: answer exactly like a wrong code (and count it
+            # as a wrong try), so nobody can find out which accounts exist.
+            security.record_failure("reset-code", request, identifier)
+            messages.error(request, security.wrong_message(
+                "That verification code is incorrect or has expired.", "reset-code", request, identifier))
             return render(request, "account/forgot_password.html", {"identifier": identifier})
 
         # Checked last, so a typo in the new password doesn't use up a try.
@@ -1011,8 +1013,12 @@ def send_reset_otp_ajax(request):
 
     user = (User.objects.filter(email__iexact=identifier).first()
             or User.objects.filter(username__iexact=identifier).first())
-    if not user:
-        return JsonResponse({"success": False, "error": "No account found with that email or username."}, status=400)
+    # Same answer whether or not the account exists, so this page can't be
+    # used to find out who has an account.
+    sent_message = ("If an account with that email or username exists, a code was sent to its email. "
+                    "Check your inbox (it may take a minute).")
+    if not user or not user.email:
+        return JsonResponse({"success": True, "message": sent_message})
 
     # 1 code per minute, 5 per hour per email, 10 per hour per device.
     limit = security.code_send_problem(request, user.email)
@@ -1021,7 +1027,7 @@ def send_reset_otp_ajax(request):
 
     success, error = send_password_reset_otp(user.email)
     if success:
-        return JsonResponse({"success": True})
+        return JsonResponse({"success": True, "message": sent_message})
     return JsonResponse({"success": False, "error": error or "Could not send the code. Please try again."}, status=500)
 
 
@@ -1390,3 +1396,32 @@ def sitemap_xml(request):
     )
     xml = f'<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{rows}</urlset>'
     return HttpResponse(xml, content_type="application/xml")
+
+
+# ---------------------------------------------------------------------------
+# "Views" of announcements and news: counted when a visitor opens the
+# details pop-up (Announcements page, Home page, office pages). Shown to the
+# office ("Views", "Total Views") and the Super Admin ("Most viewed").
+# The same visitor opening the same post again within 6 hours isn't counted
+# twice. Counting a view changes nothing else, so it needs no login or
+# security token (csrf_exempt).
+# ---------------------------------------------------------------------------
+from django.views.decorators.csrf import csrf_exempt  # noqa: E402
+
+VIEW_COUNT_REPEAT_SECONDS = 6 * 60 * 60
+
+
+@csrf_exempt
+@require_POST
+def count_view(request):
+    from django.core.cache import cache
+    from django.db.models import F
+    models_by_kind = {"announcement": Announcement, "news": NewsUpdate}
+    model = models_by_kind.get(request.POST.get("kind", ""))
+    pk = request.POST.get("id", "")
+    if model is None or not pk.isdigit():
+        return JsonResponse({"ok": False}, status=400)
+    key = f"viewed:{request.POST['kind']}:{pk}:{security.client_ip(request)}"
+    if cache.add(key, 1, VIEW_COUNT_REPEAT_SECONDS):      # False = seen recently
+        model.objects.filter(pk=int(pk), status="published").update(views=F("views") + 1)
+    return JsonResponse({"ok": True})

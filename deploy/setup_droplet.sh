@@ -84,6 +84,8 @@ SECRET_KEY=$SECRET
 SITE_DOMAIN=$DOMAIN
 ALLOWED_HOSTS=$IP
 ADMIN_URL=$ADMINURL
+# the visitor's real IP address, written by nginx (can't be faked by visitors)
+CLIENT_IP_HEADER=HTTP_X_REAL_IP
 DATABASE_URL=postgresql://tunga:$DB_PASS@127.0.0.1:5432/tunga
 OTP_ENCRYPTION_KEY=$OTPKEY
 

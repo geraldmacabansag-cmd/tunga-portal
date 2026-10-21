@@ -54,17 +54,23 @@ envs:
   - key: DJANGO_SUPERUSER_PASSWORD
     type: SECRET
     value: CHANGE-ME
-  # DigitalOcean Spaces (only when MEDIA_STORAGE is "spaces"; also keeps the backups)
-  # - key: SPACES_BUCKET
-  #   value: tunga-files
-  # - key: SPACES_REGION
-  #   value: sgp1
-  # - key: SPACES_KEY
-  #   type: SECRET
-  #   value: CHANGE-ME
-  # - key: SPACES_SECRET
-  #   type: SECRET
-  #   value: CHANGE-ME
+  # DigitalOcean Spaces: REQUIRED here, because this is where the backups are
+  # kept (App Platform erases its own disk on every deploy). Also holds the
+  # uploaded files when MEDIA_STORAGE is "spaces".
+  - key: SPACES_BUCKET
+    value: tunga-files             # <-- CHANGE: your Spaces bucket name
+  - key: SPACES_REGION
+    value: sgp1
+  - key: SPACES_KEY
+    type: SECRET
+    value: CHANGE-ME
+  - key: SPACES_SECRET
+    type: SECRET
+    value: CHANGE-ME
+  # the visitor's real IP address (for the wrong-password limits), written
+  # by App Platform's own proxy, so visitors can't fake it
+  - key: CLIENT_IP_HEADER
+    value: HTTP_DO_CONNECTING_IP
 
 services:
   - name: web

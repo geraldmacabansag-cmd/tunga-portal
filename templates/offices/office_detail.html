@@ -780,6 +780,7 @@
       bodyEl.scrollTop = 0;
       if (!dlg.open) dlg.showModal();
       document.body.classList.add('lock');
+      if (window.tungaCountView) window.tungaCountView(kind === 'ann' ? 'announcement' : 'news', row.getAttribute(attr));
     }
 
     document.querySelectorAll(rowSel).forEach(function (row) {

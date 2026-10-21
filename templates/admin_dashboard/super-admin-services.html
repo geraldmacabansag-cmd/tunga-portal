@@ -19,7 +19,20 @@
       <a class="btn btn-primary" href="{% url 'admin_dashboard:office_services_pick' %}" title="Choose an office, then add or edit its services with the same editor the office uses"><i class="fa-solid fa-plus"></i> Add services to an office</a>
       <!-- Allow Service Editing switch, under the button -->
       <div style="display:flex;align-items:center;gap:10px;">
-        <span style="font-size:12.5px;font-weight:700;color:var(--gray-700);text-align:right;white-space:nowrap;">Allow Service Editing<br><span style="font-weight:500;color:var(--gray-400);font-size:11px;">Applies to all offices</span></span>
+        {# "?" — how the switch works (hover, focus or click) #}
+        <span class="help-tip" id="svcEditHelp" tabindex="0" role="button" aria-label="How Allow Service Editing works" aria-expanded="false" aria-controls="svcEditHelpPop">
+          <i class="fa-solid fa-circle-question"></i>
+          <span class="help-tip__pop" id="svcEditHelpPop" role="tooltip">
+            <strong>How "Allow Service Editing" works</strong>
+            <span class="help-tip__row"><b class="on">ON</b> Every Office Representative can add and edit their own office's services and everything in them:</span>
+            <span class="help-tip__list">• Details (name, description, division, classification, type of transaction, who may avail, internal/external, icon)<br>• Requirements<br>• Client Steps (agency actions, fees, processing time, person responsible)<br>• Important Reminders<br>• Legal Basis and Schedule of Service<br>• Downloadable Forms of the service</span>
+            <span class="help-tip__row">This includes services that are already published; their changes show on the website right away.</span>
+            <span class="help-tip__row"><b class="off">OFF</b> Office Representatives can only <b>view</b> their services. Adding and editing are locked for every office, including requirements, client steps and forms.</span>
+            <span class="help-tip__row"><b class="del">DELETE</b> Not controlled by this switch: an Office Representative can delete a service only while it is <b>not yet published</b> (pending or returned). Published services can only be deleted by you.</span>
+            <span class="help-tip__row help-tip__note"><i class="fa-solid fa-circle-info"></i> It applies to all offices at once, and each office is notified when you change it. You (Super Admin) can always add and edit services of any office.</span>
+          </span>
+        </span>
+        <span style="font-size:12.5px;font-weight:700;color:var(--gray-700);text-align:right;white-space:nowrap;">Allow Service Editing<br><span style="font-weight:500;color:var(--gray-400);font-size:11px;">{% if editing_enabled %}On · offices can edit{% else %}Off · offices can only view{% endif %}</span></span>
         <label class="toggle-switch" title="{% if editing_enabled %}Turn off editing for every office representative{% else %}Turn editing back on for every office representative{% endif %}">
           <input type="checkbox" {% if editing_enabled %}checked{% endif %} onclick="event.preventDefault(); document.getElementById('toggle-service-editing-modal').classList.add('open'); document.body.classList.add('modal-open');">
           <span class="slider"></span>
@@ -31,7 +44,7 @@
   {% if not editing_enabled %}
   <div class="reminder-box" style="margin-bottom:18px;">
     <span class="ic"><i class="fa-solid fa-lock"></i></span>
-    <div><strong>Service editing is turned off</strong><p>No office representative can currently edit a service's basic info (name, description, division, classification, type of transaction, who may avail, internal/external, icon). Requirements, Client Steps, and Other Details are unaffected.</p></div>
+    <div><strong>Service editing is turned off</strong><p>Office representatives can only view their services. They can't add or edit services, or change their details, requirements, client steps, reminders, legal basis, schedule of service or forms, until you turn it back on. They can still delete their services that are not yet published. You can still edit any service.</p></div>
   </div>
   {% endif %}
 
@@ -148,9 +161,11 @@
       </div>
       <div class="modal-body">
         {% if editing_enabled %}
-          <p>Are you sure you want to turn off service editing for <strong>all offices</strong>? No office representative will be able to edit a service's name, description, division, classification, type of transaction, who may avail, internal/external, or icon until you turn it back on.</p>
+          <p>Turn off service editing for <strong>all offices</strong>?</p>
+          <p style="color:var(--gray-600);font-size:13px;">Office representatives will only be able to view their services. Adding and editing will be locked — details, requirements, client steps, reminders, legal basis, schedule of service and forms — until you turn it back on. Each office is notified. (Deleting is separate: offices can delete only services that are not yet published.)</p>
         {% else %}
-          <p>Are you sure you want to turn service editing back on for <strong>all offices</strong>? Every office representative will be able to edit their services' basic info again.</p>
+          <p>Turn on service editing for <strong>all offices</strong>?</p>
+          <p style="color:var(--gray-600);font-size:13px;">Every office representative will be able to add and edit their services and everything in them (details, requirements, client steps, reminders, legal basis, schedule of service and forms), including published services. Each office is notified. (Deleting is separate: offices can delete only services that are not yet published.)</p>
         {% endif %}
         <form method="post" action="{% url 'admin_dashboard:admin_toggle_service_editing' %}">
           {% csrf_token %}
@@ -163,4 +178,37 @@
     </div>
   </div>
 
+<style>
+  /* "?" next to Allow Service Editing */
+  .help-tip { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; color: var(--gray-400); cursor: pointer; font-size: 16px; outline: none; }
+  .help-tip:hover, .help-tip:focus-visible, .help-tip.open { color: var(--blue-600); }
+  .help-tip:focus-visible { box-shadow: 0 0 0 2px var(--blue-600); }
+  .help-tip__pop { display: none; position: absolute; top: calc(100% + 10px); right: -8px; z-index: 50; width: 360px; max-width: calc(100vw - 32px); padding: 14px 16px; background: #fff; border: 1px solid var(--gray-200); border-radius: 12px; box-shadow: 0 12px 32px rgba(15, 23, 42, .16); text-align: left; font-size: 12.5px; line-height: 1.5; color: var(--gray-700); font-weight: 400; cursor: default; white-space: normal; }
+  .help-tip__pop::before { content: ""; position: absolute; top: -6px; right: 14px; width: 10px; height: 10px; background: #fff; border-left: 1px solid var(--gray-200); border-top: 1px solid var(--gray-200); transform: rotate(45deg); }
+  .help-tip:hover .help-tip__pop, .help-tip:focus-within .help-tip__pop, .help-tip.open .help-tip__pop { display: block; }
+  .help-tip__pop strong { display: block; margin-bottom: 8px; font-size: 13px; color: var(--gray-900); }
+  .help-tip__row { display: block; margin-bottom: 8px; }
+  .help-tip__list { display: block; margin: -4px 0 8px 12px; color: var(--gray-600); }
+  .help-tip__row b.on, .help-tip__row b.off { display: inline-block; min-width: 34px; margin-right: 4px; padding: 1px 6px; border-radius: 6px; font-size: 11px; text-align: center; color: #fff; }
+  .help-tip__row b.on { background: #16a34a; }
+  .help-tip__row b.off { background: #6b7280; }
+  .help-tip__row b.del { display: inline-block; margin-right: 4px; padding: 1px 6px; border-radius: 6px; font-size: 11px; color: #fff; background: #dc2626; }
+  .help-tip__note { margin-bottom: 0; padding-top: 8px; border-top: 1px solid var(--gray-100); color: var(--gray-500); }
+</style>
+<script>
+/* "?" popup: opens on hover / keyboard focus, and stays open on click or tap
+   (for phones) until you click elsewhere or press Esc. */
+(function () {
+  var tip = document.getElementById('svcEditHelp');
+  if (!tip) return;
+  function set(open) { tip.classList.toggle('open', open); tip.setAttribute('aria-expanded', open ? 'true' : 'false'); }
+  tip.addEventListener('click', function (e) {
+    if (e.target.closest('.help-tip__pop')) return;
+    set(!tip.classList.contains('open'));
+  });
+  tip.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); set(!tip.classList.contains('open')); } });
+  document.addEventListener('click', function (e) { if (!tip.contains(e.target)) set(false); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { set(false); } });
+})();
+</script>
 {% endblock %}

@@ -175,7 +175,7 @@
         </section>
       </div>
 
-      <div class="modal-backdrop" id="create-announcement-modal">
+      <div class="modal-backdrop cf-modal" id="create-announcement-modal">
         <div class="modal-box">
           <div class="modal-head">
             <h3>Create Announcement</h3>
@@ -252,6 +252,8 @@
               Accepted formats: JPG, PNG, or WEBP.
             </small>
           </div>
+          {% include "office_dashboard/_more_photos_field.html" %}
+          {% include "office_dashboard/_video_field.html" %}
 
           <div class="form-group">
             <label class="form-label" for="dash-ann-auth">
@@ -305,7 +307,7 @@
       </div>
       </div>
 
-      <div class="modal-backdrop" id="add-news-modal">
+      <div class="modal-backdrop cf-modal" id="add-news-modal">
         <div class="modal-box">
           <div class="modal-head">
             <h3>Add News</h3>
@@ -320,24 +322,35 @@
                 <input class="form-input" type="text" id="dash-news-title" name="title" placeholder="e.g. New Health Program Launched" required>
               </div>
               <div class="form-group">
-                <label class="form-label" for="dash-news-cat">Category</label>
-                <input class="form-input" type="text" id="dash-news-cat" name="category" placeholder="e.g. Community">
+                <label class="form-label" for="dash-news-cat">Category <span class="req">*</span></label>
+                <select class="form-input" id="dash-news-cat" name="category" required>
+                  <option value="">Choose a category</option>
+                  <option>Community</option>
+                  <option>Governance</option>
+                  <option>Infrastructure &amp; Development</option>
+                  <option>Health &amp; Wellness</option>
+                  <option>Agriculture</option>
+                  <option>Education</option>
+                  <option>Tourism</option>
+                </select>
               </div>
               <div class="form-group">
-                <label class="form-label" for="dash-news-summary">Summary</label>
-                <input class="form-input" type="text" id="dash-news-summary" name="summary" placeholder="One-line summary">
+                <label class="form-label" for="dash-news-summary">Summary <span class="req">*</span></label>
+                <input class="form-input" type="text" id="dash-news-summary" name="summary" placeholder="One-line summary" maxlength="255" required>
               </div>
               <div class="form-group">
-                <label class="form-label" for="dash-news-content">Full News Content</label>
-                <textarea class="form-input form-textarea" id="dash-news-content" name="content" rows="5" placeholder="Full story..."></textarea>
+                <label class="form-label" for="dash-news-content">Full News Content <span class="req">*</span></label>
+                <textarea class="form-input form-textarea" id="dash-news-content" name="content" rows="5" placeholder="Full story..." required></textarea>
               </div>
               <div class="form-group">
                 <label class="form-label" for="dash-news-image">Featured Image</label>
                 <input class="form-input" type="file" id="dash-news-image" name="image" accept="image/*">
               </div>
+          {% include "office_dashboard/_more_photos_field.html" %}
+          {% include "office_dashboard/_video_field.html" %}
               <div class="form-group">
-                <label class="form-label" for="dash-news-author">Author / Reporter</label>
-                <input class="form-input" type="text" id="dash-news-author" name="author" placeholder="e.g. Juan Dela Cruz">
+                <label class="form-label" for="dash-news-author">Author / Reporter <span class="req">*</span></label>
+                <input class="form-input" type="text" id="dash-news-author" name="author" placeholder="e.g. Juan Dela Cruz" required>
               </div>
               <!-- Date Published is no longer entered here — it's set automatically
                    to the date the Super Admin approves and publishes this post. -->
@@ -359,7 +372,7 @@
         </div>
       </div>
 
-      <div class="modal-backdrop" id="add-event-modal">
+      <div class="modal-backdrop cf-modal" id="add-event-modal">
         <div class="modal-box">
           <div class="modal-head">
             <h3>Add Event</h3>
@@ -373,32 +386,33 @@
                 <input class="form-input" type="text" id="dash-ev-title" name="title" placeholder="e.g. Barangay Sports Fest" required>
               </div>
               <div class="form-group">
-                <label class="form-label" for="dash-ev-category">Event Category</label>
-                <input class="form-input" type="text" id="dash-ev-category" name="category" placeholder="e.g. Sports">
+                <label class="form-label" for="dash-ev-category">Event Category <span class="req">*</span></label>
+                <input class="form-input" type="text" id="dash-ev-category" name="category" placeholder="e.g. Sports" list="dash-event-category-options" required>
+                <datalist id="dash-event-category-options"><option value="Community"><option value="Sports"><option value="Health"><option value="Education"><option value="Cultural / Festival"><option value="Livelihood"><option value="Environment"><option value="Youth"><option value="Safety / Disaster Preparedness"><option value="Meeting / Assembly"></datalist>
               </div>
               <div class="form-group">
-                <label class="form-label" for="dash-ev-description">Description</label>
-                <textarea class="form-input form-textarea" id="dash-ev-description" name="description" rows="4" placeholder="Details about the event..."></textarea>
+                <label class="form-label" for="dash-ev-description">Description <span class="req">*</span></label>
+                <textarea class="form-input form-textarea" id="dash-ev-description" name="description" rows="4" placeholder="Details about the event..." required></textarea>
               </div>
               <div class="form-group">
-                <label class="form-label" for="dash-ev-date">Event Date</label>
+                <label class="form-label" for="dash-ev-date">Event Date <span class="req">*</span></label>
                 <input class="form-input" type="date" id="dash-ev-date" name="event_date" required>
               </div>
               <div class="form-group">
-                <label class="form-label" for="dash-ev-start">Start Time</label>
-                <input class="form-input" type="time" id="dash-ev-start" name="start_time">
+                <label class="form-label" for="dash-ev-start">Start Time <span class="req">*</span></label>
+                <input class="form-input" type="time" id="dash-ev-start" name="start_time" required>
               </div>
               <div class="form-group">
                 <label class="form-label" for="dash-ev-end">End Time</label>
                 <input class="form-input" type="time" id="dash-ev-end" name="end_time">
               </div>
               <div class="form-group">
-                <label class="form-label" for="dash-ev-location">Location / Venue</label>
-                <input class="form-input" type="text" id="dash-ev-location" name="location" placeholder="e.g. Municipal Grounds">
+                <label class="form-label" for="dash-ev-location">Location / Venue <span class="req">*</span></label>
+                <input class="form-input" type="text" id="dash-ev-location" name="location" placeholder="e.g. Municipal Grounds" required>
               </div>
               <div class="form-group">
-                <label class="form-label" for="dash-ev-organizer">Organizer</label>
-                <input class="form-input" type="text" id="dash-ev-organizer" name="organizer" placeholder="e.g. SB Office">
+                <label class="form-label" for="dash-ev-organizer">Organizer <span class="req">*</span></label>
+                <input class="form-input" type="text" id="dash-ev-organizer" name="organizer" placeholder="e.g. SB Office" required>
               </div>
               <div class="form-group">
                 <label class="form-label" for="dash-ev-contact-person">Contact Person</label>
@@ -412,6 +426,8 @@
                 <label class="form-label" for="dash-ev-poster">Event Poster / Image</label>
                 <input class="form-input" type="file" id="dash-ev-poster" name="poster" accept="image/*">
               </div>
+          {% include "office_dashboard/_more_photos_field.html" %}
+          {% include "office_dashboard/_video_field.html" %}
 
               <div class="modal-actions">
                 <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
@@ -422,7 +438,7 @@
         </div>
       </div>
 
-      <div class="modal-backdrop" id="qa-upload-form-modal">
+      <div class="modal-backdrop cf-modal" id="qa-upload-form-modal">
         <div class="modal-box">
           <div class="modal-head">
             <h3>Add Form</h3>
@@ -477,7 +493,7 @@
         </div>
       </div>
 
-      <div class="modal-backdrop" id="qa-upload-photo-modal">
+      <div class="modal-backdrop cf-modal" id="qa-upload-photo-modal">
         <div class="modal-box">
           <div class="modal-head">
             <h3>Upload Photo</h3>
@@ -936,5 +952,24 @@
 
   wireSimpleAjaxModal('qa-upload-form-modal', 'qa-upload-form-form');
   wireSimpleAjaxModal('qa-upload-photo-modal', 'qa-upload-photo-form');
+</script>
+<script>
+/* Quick Actions → Add Event: the End Time can't be earlier than the Start Time. */
+(function () {
+  function sync(form) {
+    if (!form) return;
+    var s = form.querySelector('[name="start_time"]'), e = form.querySelector('[name="end_time"]');
+    if (!s || !e) return;
+    e.min = s.value || '';
+    e.setCustomValidity(s.value && e.value && e.value <= s.value ? 'The end time must be later than the start time.' : '');
+  }
+  document.addEventListener('input', function (ev) {
+    if (ev.target.name === 'start_time' || ev.target.name === 'end_time') sync(ev.target.form);
+  });
+  document.addEventListener('click', function (ev) {
+    var b = ev.target.closest && ev.target.closest('button[type="submit"]');
+    if (b && b.form) sync(b.form);
+  }, true);
+})();
 </script>
 {% endblock %}

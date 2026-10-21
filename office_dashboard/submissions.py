@@ -104,7 +104,9 @@ def filled_pdf_response(submission, download=False):
     from offices.views import _stamp_pdf, _pdf_filename
     form_obj = submission.form
     values = {v.field_id: v.value for v in submission.values.all()}
-    fields = list(form_obj.fields.all().order_by("page_number", "order", "id"))
+    # all_objects: also fields taken off the form later, so old answers still show
+    from .models import FormField
+    fields = list(FormField.all_objects.filter(form=form_obj).order_by("page_number", "order", "id"))
     try:
         data = _stamp_pdf(form_obj, fields, values)
     except Exception:

@@ -62,7 +62,10 @@ DNS changes take from a few minutes up to 24 hours.
 
 > Uploaded files: App Platform's own disk is erased on every deploy, so keep
 > `MEDIA_STORAGE=cloudinary` (or `spaces`). Backups made in Super Admin are
-> kept only when Spaces is used — otherwise download each backup.
+> kept in your Spaces bucket (private `backups/` folder) as soon as the
+> `SPACES_*` settings are filled in — even when photos stay on Cloudinary.
+> Without them the Backup page shows a red warning, because backups on the
+> App Platform disk are erased on the next deploy.
 
 ---
 

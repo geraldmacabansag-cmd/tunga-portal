@@ -127,7 +127,7 @@
     </main>
   </div>
 </div>
-<div class="modal-backdrop" id="add-event-modal">
+<div class="modal-backdrop cf-modal" id="add-event-modal">
   <div class="modal-box">
     <div class="modal-head">
       <h3>Add Event</h3>
@@ -194,7 +194,7 @@
 </div>
 
 {% for e in events %}
-<div class="modal-backdrop" id="view-event-modal-{{ e.id }}">
+<div class="modal-backdrop cf-modal cf-view" id="view-event-modal-{{ e.id }}">
   <div class="modal-box">
     <div class="modal-head">
       <h3>Event Details</h3>
@@ -234,7 +234,7 @@
   </div>
 </div>
 
-<div class="modal-backdrop" id="edit-event-modal-{{ e.id }}">
+<div class="modal-backdrop cf-modal" id="edit-event-modal-{{ e.id }}">
   <div class="modal-box">
     <div class="modal-head">
       <h3>Edit Event</h3>

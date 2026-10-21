@@ -9,13 +9,23 @@ and the same saving code below. The differences live in `Editor`:
                         Office Representative        Super Admin
   which office          their own office             the office picked on the page
   new services          "Pending Approval"           "Published" right away
-  published services    locked (can't be edited)     can always be edited
-  "editing off" switch  applies                      doesn't apply
+  "Allow Service        ON: can add and edit         can always add and edit
+   Editing" switch      everything (details,
+  (Super Admin →        requirements, client steps,
+   Services)            reminders, legal basis,
+                        schedule, forms), published
+                        services too.
+                        OFF: view only, nothing can
+                        be added or changed
+  deleting a service    only while not yet published can always delete
+                        (pending / returned); not
+                        affected by the switch
 """
 import json
 from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
+from django.db import transaction
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -24,7 +34,8 @@ from django.utils import timezone
 from .models import (DownloadableForm, Notification, ProcessStep, Requirement,
                      Service, ServiceEditSettings)
 
-LOCKED_MESSAGE = "This service is already published and can no longer be edited."
+LOCKED_MESSAGE = ("The Super Admin has turned off service editing for all offices. "
+                  "Ask the Super Admin to turn it on if changes are needed.")
 
 
 class Editor:
@@ -62,8 +73,16 @@ class Editor:
         """A service of THIS office only (anything else = 404)."""
         return get_object_or_404(Service, pk=pk, office=self.office)
 
-    def locked(self, service):
-        return (not self.is_admin) and service.status == "published"
+    def locked(self, service=None):
+        """True when this person may not change services right now: an Office
+        Representative while "Allow Service Editing" is off."""
+        return not self.editing_enabled()
+
+    def can_delete(self, service):
+        """Office Representatives may delete a service only while it is not
+        yet published (pending / returned) — the "Allow Service Editing"
+        switch doesn't change this. The Super Admin can always delete."""
+        return self.is_admin or service.status != "published"
 
     def editing_enabled(self):
         return True if self.is_admin else ServiceEditSettings.get_solo().editing_enabled
@@ -167,18 +186,21 @@ def add_service(request, ed, fallback_url):
     """fallback_url: where to go when the form didn't come from the Services
     page (the Office Profile page also has an "Add Service" button)."""
     next_page = request.POST.get('next') or request.GET.get('next')
-    if request.method == "POST":
-        name = request.POST.get('name', '').strip()
+    if request.method == "POST" and ed.locked():
+        messages.error(request, LOCKED_MESSAGE)
+    elif request.method == "POST":
+        name = request.POST.get('name', '').strip()[:150]
         description = request.POST.get('description', '').strip()
         icon = request.POST.get('icon') or 'fa-solid fa-file-signature'
         if icon not in VALID_ICONS:
             icon = 'fa-solid fa-file-signature'
 
-        division = request.POST.get('division', '').strip() or ed.office.name
-        classification = request.POST.get('classification', '').strip()
-        transaction_types = request.POST.getlist('transaction_type')
+        division = (request.POST.get('division', '').strip() or ed.office.name)[:150]
+        classification = request.POST.get('classification', '').strip()[:50]
+        # only the three known types (the field holds at most 50 characters)
+        transaction_types = [t for t in request.POST.getlist('transaction_type') if t in Service.TRANSACTION_TYPE_LABELS]
         transaction_type = ",".join(transaction_types)
-        who_may_avail = request.POST.get('who_may_avail', '').strip()
+        who_may_avail = request.POST.get('who_may_avail', '').strip()[:255]
         service_scope = request.POST.get('service_scope', '').strip()
         if service_scope not in ('internal', 'external'):
             service_scope = ''
@@ -224,21 +246,22 @@ def edit_service(request, ed, pk):
     service = ed.service(pk)
 
     if request.method == "POST":
-        if not ed.editing_enabled():
-            messages.error(request, "The Super Admin has turned off editing of services for all offices.")
+        if ed.locked(service):
+            messages.error(request, LOCKED_MESSAGE)
             return redirect(ed.list_url(service.pk))
 
-        name = request.POST.get('name', '').strip()
+        name = request.POST.get('name', '').strip()[:150]
         description = request.POST.get('description', '').strip()
         icon = request.POST.get('icon') or service.icon
         if icon not in VALID_ICONS:
             icon = service.icon
 
-        division = request.POST.get('division', '').strip() or ed.office.name
-        classification = request.POST.get('classification', '').strip()
-        transaction_types = request.POST.getlist('transaction_type')
+        division = (request.POST.get('division', '').strip() or ed.office.name)[:150]
+        classification = request.POST.get('classification', '').strip()[:50]
+        # only the three known types (the field holds at most 50 characters)
+        transaction_types = [t for t in request.POST.getlist('transaction_type') if t in Service.TRANSACTION_TYPE_LABELS]
         transaction_type = ",".join(transaction_types)
-        who_may_avail = request.POST.get('who_may_avail', '').strip()
+        who_may_avail = request.POST.get('who_may_avail', '').strip()[:255]
         service_scope = request.POST.get('service_scope', '').strip()
         if service_scope not in ('internal', 'external'):
             service_scope = ''
@@ -264,7 +287,10 @@ def edit_service(request, ed, pk):
 def delete_service(request, ed, pk):
     service = ed.service(pk)
 
-    if request.method == "POST":
+    if request.method == "POST" and not ed.can_delete(service):
+        messages.error(request, f'"{service.name}" is already published and can no longer be deleted. '
+                                "Ask the Super Admin if it should be removed.")
+    elif request.method == "POST":
         name = service.name
         service.delete()
         messages.success(request, f'"{name}" was deleted.')
@@ -278,13 +304,29 @@ def delete_service(request, ed, pk):
 def delete_service_form(request, ed, service_pk, pk):
     form = get_object_or_404(DownloadableForm, pk=pk, office=ed.office, service_id=service_pk)
 
-    if request.method == "POST":
+    if request.method == "POST" and ed.locked():
+        messages.error(request, LOCKED_MESSAGE)
+    elif request.method == "POST":
         title = form.title
         form.file.delete(save=False)
         form.delete()
         messages.success(request, f'"{title}" was deleted.')
 
     return redirect(ed.list_url(service_pk))
+
+
+def _step_number(raw, fallback):
+    """The Client Step Number typed by the person (1, 1.1, 2.5 …). It is saved
+    in a DecimalField(max_digits=6, decimal_places=2), so it must be a normal
+    number from 0 to 9999.99 — anything else ("NaN", "1e9", "abc", 10000)
+    becomes the step's position instead of crashing the save."""
+    try:
+        number = Decimal(raw) if raw else Decimal(fallback)
+    except InvalidOperation:
+        number = Decimal(fallback)
+    if not number.is_finite() or number < 0 or number >= Decimal("10000"):
+        number = Decimal(fallback) if Decimal(fallback) < 10000 else Decimal("9999")
+    return number.quantize(Decimal("0.01"))
 
 
 def save_process_steps(request, ed, service_pk):
@@ -301,38 +343,41 @@ def save_process_steps(request, ed, service_pk):
         processing_times = request.POST.getlist('processing_time[]')
         persons = request.POST.getlist('person[]')
 
-        service.steps.all().delete()
+        # Delete-and-recreate happens in ONE transaction: if anything goes
+        # wrong (or no step has a name), the old steps are kept as they were.
+        with transaction.atomic():
+            service.steps.all().delete()
 
-        fallback_order = 1
-        created_any = False
-        for i, title in enumerate(titles):
-            title = title.strip()
-            if not title:
-                continue
-            step_number_raw = step_numbers[i].strip() if i < len(step_numbers) else ""
-            try:
-                order = Decimal(step_number_raw) if step_number_raw else Decimal(fallback_order)
-            except InvalidOperation:
-                order = Decimal(fallback_order)
-            agency_action = agency_actions[i].strip() if i < len(agency_actions) else ""
-            fee = fees[i].strip() if i < len(fees) else ""
-            processing_time = processing_times[i].strip() if i < len(processing_times) else ""
-            person = persons[i].strip() if i < len(persons) else ""
+            fallback_order = 1
+            created_any = False
+            for i, title in enumerate(titles):
+                title = title.strip()
+                if not title:
+                    continue
+                step_number_raw = step_numbers[i].strip() if i < len(step_numbers) else ""
+                order = _step_number(step_number_raw, fallback_order)
+                agency_action = agency_actions[i].strip() if i < len(agency_actions) else ""
+                fee = fees[i].strip() if i < len(fees) else ""
+                processing_time = processing_times[i].strip() if i < len(processing_times) else ""
+                person = persons[i].strip() if i < len(persons) else ""
 
-            ProcessStep.objects.create(
-                service=service,
-                order=order,
-                title=title,
-                agency_action=agency_action,
-                fee=fee,
-                processing_time=processing_time,
-                person_responsible=person,
-            )
-            fallback_order += 1
-            created_any = True
+                ProcessStep.objects.create(
+                    service=service,
+                    order=order,
+                    title=title,
+                    agency_action=agency_action,
+                    fee=fee,
+                    processing_time=processing_time[:150],
+                    person_responsible=person[:150],
+                )
+                fallback_order += 1
+                created_any = True
+
+            if not created_any:
+                transaction.set_rollback(True)   # keep the old steps
 
         if not created_any:
-            messages.error(request, "Add at least one step with a name.")
+            messages.error(request, "Add at least one step with a name. Nothing was changed.")
         else:
             messages.success(request, "Client steps updated.")
 
@@ -364,26 +409,32 @@ def save_requirements(request, ed, service_pk):
         wheres = request.POST.getlist('where[]')
         txns = request.POST.getlist('txn[]')
 
-        service.requirements.all().delete()
+        # One transaction: on any problem (or no named requirement) the old
+        # requirements are kept as they were.
+        with transaction.atomic():
+            service.requirements.all().delete()
 
-        order = 1
-        for i, title in enumerate(titles):
-            title = title.strip()
-            if not title:
-                continue
-            where = wheres[i].strip() if i < len(wheres) else ""
-            transaction_type = txns[i].strip() if i < len(txns) else ""
-            Requirement.objects.create(
-                service=service,
-                order=order,
-                title=title,
-                where_to_secure=where,
-                transaction_type=transaction_type,
-            )
-            order += 1
+            order = 1
+            for i, title in enumerate(titles):
+                title = title.strip()
+                if not title:
+                    continue
+                where = wheres[i].strip() if i < len(wheres) else ""
+                transaction_type = txns[i].strip() if i < len(txns) else ""
+                Requirement.objects.create(
+                    service=service,
+                    order=order,
+                    title=title[:150],
+                    where_to_secure=where[:200],
+                    transaction_type=transaction_type[:100],
+                )
+                order += 1
+
+            if order == 1:
+                transaction.set_rollback(True)
 
         if order == 1:
-            messages.error(request, "Add at least one requirement with a name.")
+            messages.error(request, "Add at least one requirement with a name. Nothing was changed.")
         else:
             messages.success(request, "Requirements updated.")
 
@@ -408,7 +459,7 @@ def save_schedule_of_service(request, ed, service_pk):
     if request.method == "POST":
         if ed.locked(service):
             return HttpResponse(LOCKED_MESSAGE, status=403)
-        service.schedule_of_service = request.POST.get('schedule_of_service', '').strip()
+        service.schedule_of_service = request.POST.get('schedule_of_service', '').strip()[:255]
         service.save()
 
     return redirect(ed.list_url())

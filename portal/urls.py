@@ -12,6 +12,7 @@ urlpatterns = [
     path('account/rate-portal/', views.portal_feedback, name='portal_feedback'),
     path('account/submissions/', views.account_submissions_partial, name='account_submissions_partial'),
     path('announcement/events-calendar/', views.events_calendar_partial, name='events_calendar_partial'),
+    path('announcement/view/', views.count_view, name='count_view'),
     path('gallery/', views.gallery, name='gallery'),
     path('offices/', views.offices, name='offices'),
     path('about/', views.about, name='about'),

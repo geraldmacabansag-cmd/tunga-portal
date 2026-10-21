@@ -78,6 +78,14 @@ for _host in (os.environ.get('RENDER_EXTERNAL_HOSTNAME'), os.environ.get('APP_DO
 if DEBUG:
     ALLOWED_HOSTS += ['127.0.0.1', 'localhost', '[::1]']
 
+# How the visitor's real IP address is found behind the server's proxy (for
+# the wrong-password / code-email limits, portal/security.py client_ip).
+#   Droplet (nginx):           CLIENT_IP_HEADER=HTTP_X_REAL_IP
+#   App Platform:              CLIENT_IP_HEADER=HTTP_DO_CONNECTING_IP
+# Empty = the last address in X-Forwarded-For (TRUSTED_PROXY_COUNT from the end).
+CLIENT_IP_HEADER = os.environ.get('CLIENT_IP_HEADER', '').strip()
+TRUSTED_PROXY_COUNT = int(os.environ.get('TRUSTED_PROXY_COUNT', '1') or 1)
+
 # Forms (login, sign up, every POST) only accepted from these https addresses
 CSRF_TRUSTED_ORIGINS = ['https://' + h for h in ALLOWED_HOSTS
                         if h not in ('127.0.0.1', 'localhost', '[::1]') and not h.startswith('.')]
@@ -95,7 +103,6 @@ INSTALLED_APPS = [
     'django.contrib.humanize',
     'django.contrib.sites',
 
-    'cloudinary_storage',
     'django.contrib.staticfiles',
     'cloudinary',
 
@@ -251,6 +258,13 @@ MEDIA_STORAGE = (os.environ.get('MEDIA_STORAGE')
                  or ('spaces' if os.environ.get('USE_SPACES') == '1' else ('local' if DEBUG else 'cloudinary'))).strip().lower()
 MEDIA_ROOT = Path(os.environ.get('MEDIA_ROOT') or (BASE_DIR / 'media'))
 
+# django-cloudinary-storage is only switched on when uploads really go to
+# Cloudinary. It replaces `collectstatic` and expects the CLOUDINARY_*
+# settings, so it is left out on a Droplet (MEDIA_STORAGE=local) or with Spaces.
+# It must come before django.contrib.staticfiles.
+if MEDIA_STORAGE == 'cloudinary':
+    INSTALLED_APPS.insert(INSTALLED_APPS.index('django.contrib.staticfiles'), 'cloudinary_storage')
+
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage" if DEBUG
@@ -271,21 +285,27 @@ if MEDIA_STORAGE == 'cloudinary':
 # Uploaded files go to <bucket>/media (public) and backups to
 # <bucket>/backups (private).
 # ---------------------------------------------------------------------------
+_spaces_region = os.environ.get('SPACES_REGION', 'sgp1')
+_spaces = {
+    "bucket_name": os.environ.get('SPACES_BUCKET'),
+    "access_key": os.environ.get('SPACES_KEY'),
+    "secret_key": os.environ.get('SPACES_SECRET'),
+    "region_name": _spaces_region,
+    "endpoint_url": f"https://{_spaces_region}.digitaloceanspaces.com",
+    "file_overwrite": False,
+}
+SPACES_CONFIGURED = all(_spaces[k] for k in ("bucket_name", "access_key", "secret_key"))
 if MEDIA_STORAGE == 'spaces':
-    _spaces_region = os.environ.get('SPACES_REGION', 'sgp1')
-    _spaces = {
-        "bucket_name": os.environ.get('SPACES_BUCKET'),
-        "access_key": os.environ.get('SPACES_KEY'),
-        "secret_key": os.environ.get('SPACES_SECRET'),
-        "region_name": _spaces_region,
-        "endpoint_url": f"https://{_spaces_region}.digitaloceanspaces.com",
-        "file_overwrite": False,
-    }
     STORAGES["default"] = {
         "BACKEND": "storages.backends.s3.S3Storage",
         "OPTIONS": {**_spaces, "location": "media", "default_acl": "public-read",
                     "querystring_auth": False, "custom_domain": os.environ.get('SPACES_CDN_DOMAIN') or None},
     }
+if SPACES_CONFIGURED:
+    # Backups go to a PRIVATE folder of the Spaces bucket whenever the
+    # SPACES_* settings are filled in — also when uploads stay on Cloudinary.
+    # (On App Platform the server's own disk is erased on every deploy, so
+    # backups kept there would be lost. See admin_dashboard/backup.py.)
     STORAGES["backups"] = {
         "BACKEND": "storages.backends.s3.S3Storage",
         "OPTIONS": {**_spaces, "location": "backups", "default_acl": "private", "querystring_auth": True},

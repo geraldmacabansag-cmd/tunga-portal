@@ -86,6 +86,10 @@ def save_fields(form, incoming):
         keep_ids.add(field.id)
         order += 1
 
-    # Fields the user removed in the builder.
-    form.fields.exclude(id__in=keep_ids).delete()
+    # Fields the user removed in the builder. A field that citizens already
+    # answered is only hidden (removed=True), so their submitted answers and
+    # filled PDFs stay complete; a field nobody answered is deleted.
+    taken_off = form.fields.exclude(id__in=keep_ids)
+    taken_off.filter(submitted_values__isnull=False).update(removed=True)
+    taken_off.filter(removed=False).delete()
     return order

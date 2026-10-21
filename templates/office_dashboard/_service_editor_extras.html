@@ -155,7 +155,7 @@
   </div>
 </div>
 
-<div class="modal-backdrop" id="edit-service-modal">
+<div class="modal-backdrop cf-modal" id="edit-service-modal">
   <div class="modal-box">
     <div class="modal-head">
       <h3>Edit Service</h3>
@@ -225,7 +225,7 @@
 </div>
 
 <!-- add service modal form -->
-<div class="modal-backdrop" id="add-service-modal">
+<div class="modal-backdrop cf-modal" id="add-service-modal">
   <div class="modal-box">
     <div class="modal-head">
       <h3>Add Service</h3>
@@ -905,7 +905,7 @@
       btn.disabled = false;
     });
     var currentFormTrigger = document.getElementById('add-form-trigger-' + data.id);
-    if (currentFormTrigger) currentFormTrigger.disabled = isPublished;
+    if (currentFormTrigger) currentFormTrigger.disabled = !svcIsAdmin && !editingGloballyEnabled;
 
     var remindersHost = document.getElementById('reminders-host');
     var reminderLines = (data.reminders || '').split('\n').map(function (s) { return s.trim(); }).filter(Boolean);
@@ -943,11 +943,12 @@
       }
     });
 
-    // A published service has already been approved and gone live —
-    // office reps can no longer edit its process steps, requirements,
-    // fees, or reminders. Disable the controls up front instead of
-    // letting them try and hit a 403 from the server.
-    var isPublished = !svcIsAdmin && data.status === 'published';
+    // Super Admin → Services → "Allow Service Editing": when it is OFF an
+    // Office Representative can only view (details, requirements, client
+    // steps, reminders, legal basis, schedule and forms are all locked).
+    // When it is ON everything can be edited, published services too.
+    // The Super Admin can always edit. The server checks the same rule.
+    var isPublished = !svcIsAdmin && !editingGloballyEnabled;
 
     // A brand-new service previewed from the Add Service modal (see
     // confirmAddServiceDraft() below) — nothing has been written to the
@@ -975,7 +976,7 @@
       lockedNote.id = 'detail-locked-note';
       lockedNote.className = 'reminder-box';
       lockedNote.style.marginBottom = '14px';
-      lockedNote.innerHTML = '<span class="ic"><i class="fa-solid fa-lock"></i></span><div><strong>Published</strong><p>This service is live and can no longer be edited. Contact the Super Admin if changes are needed.</p></div>';
+      lockedNote.innerHTML = '<span class="ic"><i class="fa-solid fa-lock"></i></span><div><strong>Editing turned off</strong><p>The Super Admin has turned off service editing for all offices, so this service can only be viewed: its details, requirements, client steps, reminders, legal basis, schedule and forms can\'t be changed. Contact the Super Admin if changes are needed.</p></div>';
       var subtabsEl = document.querySelector('.subtabs');
       if (subtabsEl && subtabsEl.parentNode) subtabsEl.parentNode.insertBefore(lockedNote, subtabsEl.nextSibling);
     }
@@ -1003,7 +1004,7 @@
     // it stays clickable even after the service is published, so the Super
     // Admin can let an office fix a published service's basic info when needed.
     var editServiceBtnEl = document.getElementById('edit-service-btn');
-    if (editServiceBtnEl) editServiceBtnEl.disabled = !editingGloballyEnabled || isDraft;
+    if (editServiceBtnEl) editServiceBtnEl.disabled = isPublished || isDraft;
 
     if (previewBtn) previewBtn.disabled = isDraft;
 
@@ -1017,7 +1018,7 @@
       var subtabsEl2 = document.querySelector('.subtabs');
       if (subtabsEl2 && subtabsEl2.parentNode) subtabsEl2.parentNode.insertBefore(editLockedNote, subtabsEl2.nextSibling);
     }
-    editLockedNote.style.display = !editingGloballyEnabled ? '' : 'none';
+    editLockedNote.style.display = 'none';   // the note above already says it
 
     var noteBox = document.getElementById('detail-admin-note-box');
     var noteText = document.getElementById('detail-admin-note-text');

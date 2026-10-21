@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static safe_links %}
 
 {% block title %}
 Home | Digital Governance Portal
@@ -26,7 +26,7 @@ Home | Digital Governance Portal
 <section class="services-strip" id="services">
   <div class="container services-strip__row">
     {% for link in quick_links %}
-    <a href="{{ link.url }}" class="service-link" {% if link.open_in_new_tab %}target="_blank" rel="noopener"{% endif %}><i class="fa-solid {{ link.icon }}"></i> {{ link.label }}</a>
+    <a href="{{ link.url|safe_href }}" class="service-link" {% if link.open_in_new_tab %}target="_blank" rel="noopener"{% endif %}><i class="fa-solid {{ link.icon }}"></i> {{ link.label }}</a>
     {% empty %}
     <a href="{% url 'offices' %}" class="service-link"><i class="fa-solid fa-building"></i> Browse Offices</a>
     {% endfor %}

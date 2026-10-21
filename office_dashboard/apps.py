@@ -6,4 +6,4 @@ class OfficeDashboardConfig(AppConfig):
     name = 'office_dashboard'
 
     def ready(self):
-        import office_dashboard.signals
+        import office_dashboard.signals  # noqa: F401  (connects the signal handlers)

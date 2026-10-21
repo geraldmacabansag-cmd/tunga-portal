@@ -148,7 +148,7 @@
     </main>
   </div>
 </div>
-<div class="modal-backdrop" id="add-news-modal">
+<div class="modal-backdrop cf-modal" id="add-news-modal">
   <div class="modal-box">
     <div class="modal-head">
       <h3>Add News</h3>
@@ -219,7 +219,7 @@
 </div>
 
 {% for n in news_items %}
-<div class="modal-backdrop" id="view-news-modal-{{ n.id }}">
+<div class="modal-backdrop cf-modal cf-view" id="view-news-modal-{{ n.id }}">
   <div class="modal-box">
     <div class="modal-head">
       <h3>News Details</h3>
@@ -260,7 +260,7 @@
 {% endfor %}
 
 {% for n in news_items %}
-<div class="modal-backdrop" id="edit-news-modal-{{ n.id }}">
+<div class="modal-backdrop cf-modal" id="edit-news-modal-{{ n.id }}">
   <div class="modal-box">
     <div class="modal-head">
       <h3>Edit News</h3>

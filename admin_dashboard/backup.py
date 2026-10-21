@@ -85,12 +85,20 @@ def get_backup_storage():
     return FileSystemStorage(location=str(root))
 
 
+def disk_is_temporary():
+    """True on hosts that erase the server's disk on every deploy/restart:
+    Render and DigitalOcean App Platform (APP_DOMAIN is set by .do/app.yaml).
+    Backups kept on such a disk are lost — use DigitalOcean Spaces instead.
+    A Droplet keeps its disk (BACKUP_DISK_IS_TEMPORARY=1 forces the warning)."""
+    return ("RENDER" in os.environ or bool(os.environ.get("APP_DOMAIN"))
+            or os.environ.get("BACKUP_DISK_IS_TEMPORARY") == "1")
+
+
 def storage_description():
     """(label, is_temporary) for the page."""
     storage = get_backup_storage()
     if isinstance(storage, FileSystemStorage):
-        temporary = "RENDER" in os.environ   # Render erases the disk on every deploy
-        return "This server's disk (private folder)", temporary
+        return "This server's disk (private folder)", disk_is_temporary()
     name = type(storage).__name__
     if "S3" in name:
         endpoint = getattr(storage, "endpoint_url", "") or ""
@@ -542,6 +550,10 @@ def start_restore(record, restored_by=""):
 def backup_health():
     """A warning for the dashboard / Backup page, or None if all is well."""
     try:
+        if isinstance(get_backup_storage(), FileSystemStorage) and disk_is_temporary():
+            return {"level": "danger",
+                    "text": "Backups are being kept on this server's temporary disk, which is erased on every "
+                            "deploy. Fill in the SPACES_* settings (DigitalOcean Spaces) so backups are kept safely."}
         last = SiteBackup.objects.exclude(kind="uploaded").exclude(status="running").first()
         last_ok = SiteBackup.objects.filter(status="success").exclude(kind__in=["uploaded", "safety"]).first()
         if last is not None and last.status == "failed":

@@ -33,6 +33,7 @@ window.TungaFill = window.TungaFill || (function () {
         input.style.cssText = 'display:block;width:100%;height:100%;margin:0;cursor:pointer;';
       } else {
         input.type = f.field_type === 'date' ? 'date' : (f.field_type === 'number' ? 'number' : 'text');
+        if (input.type === 'text') input.maxLength = 500;   // the server keeps at most 500 characters
         input.value = f.initial_value || '';
         input.title = f.label || '';
         input.placeholder = f.placeholder || '';

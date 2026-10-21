@@ -1,12 +1,10 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
-from .models import OfficeRepresentative, Announcement, NewsUpdate, Event, Photo, Album, Service, ProcessStep, Requirement, DownloadableForm, Notification, FormField, ServiceEditSettings, Message
+from .models import OfficeRepresentative, Announcement, NewsUpdate, Event, Photo, Album, Service, DownloadableForm, Notification, ServiceEditSettings, Message
 
 import json
-import io
 import re
-from decimal import Decimal, InvalidOperation
 from functools import wraps
 from django.contrib import messages
 from django.core.paginator import Paginator
@@ -18,8 +16,8 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 
 from datetime import datetime
-from django.db.models import Count, F, Sum
-from django.http import FileResponse, Http404, JsonResponse, HttpResponse
+from django.db.models import Sum
+from django.http import FileResponse, Http404, JsonResponse
 from offices.pdf_serve import pdf_response
 from .form_fields import fields_json, save_fields
 from .notifications import maybe_send_weekly_summary, PREFERENCES as NOTIFY_PREFERENCES
@@ -37,8 +35,7 @@ from portal import security
 from django.template.defaultfilters import date as django_date_format
 
 from .models import (
-    OfficeRepresentative, Announcement, NewsUpdate, Event, Photo, Album,
-    Notification, ActivityLog, log_activity,
+    log_activity,
 )
 
 from itertools import groupby
@@ -384,6 +381,25 @@ EVENT_REQUIRED = [("title", "Event Title"), ("category", "Event Category"), ("de
                   ("organizer", "Organizer")]
 
 
+def parse_event_date(value):
+    """"2026-10-20" -> date, or None when empty / not a real date."""
+    try:
+        return datetime.strptime(value.strip(), '%Y-%m-%d').date() if value and value.strip() else None
+    except ValueError:
+        return None
+
+
+def parse_event_time(value):
+    """"14:30" (or "14:30:00") -> time, or None when empty / not a real time."""
+    value = (value or "").strip()
+    for fmt in ('%H:%M', '%H:%M:%S'):
+        try:
+            return datetime.strptime(value, fmt).time()
+        except ValueError:
+            continue
+    return None
+
+
 def event_problem(post):
     """Add / Edit Event (Office Representative and Super Admin): what is
     wrong with the form as one message, or "" when it's fine. The windows
@@ -391,6 +407,12 @@ def event_problem(post):
     missing = [label for name, label in EVENT_REQUIRED if not post.get(name, '').strip()]
     if missing:
         return "Please fill in: " + ", ".join(missing) + "."
+    if parse_event_date(post.get('event_date')) is None:
+        return "The event date is not a valid date."
+    if parse_event_time(post.get('start_time')) is None:
+        return "The start time is not a valid time."
+    if post.get('end_time', '').strip() and parse_event_time(post.get('end_time')) is None:
+        return "The end time is not a valid time."
     start, end = post.get('start_time', '').strip(), post.get('end_time', '').strip()
     if start and end and end <= start:
         return "The end time must be later than the start time."
@@ -408,21 +430,9 @@ def events(request, rep):
                 return JsonResponse({"success": False, "error": problem}, status=400)
             messages.error(request, problem)
         else:
-            def parse_date(value):
-                try:
-                    return datetime.strptime(value, '%Y-%m-%d').date() if value else None
-                except ValueError:
-                    return None
-
-            def parse_time(value):
-                try:
-                    return datetime.strptime(value, '%H:%M').time() if value else None
-                except ValueError:
-                    return None
-
-            event_date = parse_date(request.POST.get('event_date'))
-            start_time = parse_time(request.POST.get('start_time'))
-            end_time = parse_time(request.POST.get('end_time'))
+            event_date = parse_event_date(request.POST.get('event_date'))
+            start_time = parse_event_time(request.POST.get('start_time'))
+            end_time = parse_event_time(request.POST.get('end_time'))
 
             event = Event.objects.create(
                 representative=rep,
@@ -478,7 +488,10 @@ def events(request, rep):
     page_obj = paginator.get_page(request.GET.get('page'))
 
     upcoming_count = rep.events.filter(status="published", event_date__gte=today).count()
-    completed_this_year_count = rep.events.filter(status="completed", event_date__year=today.year).count()
+    # "Completed": published events of this year whose date has passed
+    # (there is no separate "completed" status).
+    completed_this_year_count = rep.events.filter(status="published", event_date__year=today.year,
+                                                  event_date__lt=today).count()
     pending_count = rep.events.filter(status="pending").count()
 
     return render(request, "office_dashboard/events.html", {
@@ -510,9 +523,9 @@ def edit_event(request, rep, pk):
             event.title = title
             event.category = request.POST.get('category', '')
             event.description = request.POST.get('description', '')
-            event.event_date = request.POST.get('event_date') or None
-            event.start_time = request.POST.get('start_time') or None
-            event.end_time = request.POST.get('end_time') or None
+            event.event_date = parse_event_date(request.POST.get('event_date'))
+            event.start_time = parse_event_time(request.POST.get('start_time'))
+            event.end_time = parse_event_time(request.POST.get('end_time'))
             event.location = request.POST.get('location', '')
             event.organizer = request.POST.get('organizer', '')
             event.contact_person = request.POST.get('contact_person', '')
@@ -615,6 +628,9 @@ def upload_form(request, rep):
             error = "Only PDF files are allowed."
         elif service is None:
             error = "Please choose the service this form belongs to."
+        elif not ServiceEditSettings.get_solo().editing_enabled:
+            # forms are part of a service: Super Admin → Services → "Allow Service Editing"
+            error = service_editor.LOCKED_MESSAGE
 
         if error:
             if is_ajax:
@@ -660,7 +676,7 @@ def delete_form(request, rep, pk):
 def download_form(request, rep, pk):
     form = get_object_or_404(DownloadableForm, pk=pk, office=rep.office)
 
-    DownloadableForm.objects.filter(pk=pk).update(download_count=F('download_count') + 1)
+    # (not counted in download_count: that number is citizens' downloads)
 
     try:
         filename = form.file.name.rsplit('/', 1)[-1]
@@ -752,6 +768,8 @@ def gallery(request, rep):
         image = request.FILES.get('image')
         category = request.POST.get('category', '').strip()
         album_id = request.POST.get('album') or None
+        if album_id not in (None, '__new__') and not str(album_id).isdigit():
+            album_id = None
         new_album_name = request.POST.get('new_album_name', '').strip()
 
         error = None
@@ -833,6 +851,8 @@ def gallery(request, rep):
             if q:
                 photos = [p for p in photos if q.lower() in p.title.lower()]
         else:
+            if not album_param.isdigit():
+                raise Http404("Album not found.")
             selected_album = get_object_or_404(Album, pk=album_param, representative=rep)
             selected_album_name = selected_album.name
             photos = Photo.objects.filter(representative=rep, album=selected_album)
@@ -977,10 +997,22 @@ def office_profile(request, rep):
 
     if request.method == "POST":
         if request.POST.get('form_name') == 'social_media':
+            from portal.url_safety import clean_link
+            cleaned = {}
             for field in SOCIAL_LINK_FIELDS:
                 value = request.POST.get(field, '').strip()
                 if field.endswith('_name'):
                     value = value[:100]   # account names are short
+                else:
+                    # only real https:// links (never "javascript:…")
+                    value, problem = clean_link(value)
+                    if not problem and len(value) > 200:
+                        problem = "A social media link is too long (200 characters at most)."
+                    if problem:
+                        messages.error(request, problem + " Nothing was saved.")
+                        return redirect('office_dashboard:profile')
+                cleaned[field] = value
+            for field, value in cleaned.items():
                 setattr(office, field, value)
             office.save(update_fields=SOCIAL_LINK_FIELDS)
             messages.success(request, "Social media links updated.")
@@ -1332,7 +1364,7 @@ def mark_notification_read(request, rep, pk):
     if not notif.is_read:
         notif.is_read = True
         notif.save()
-    if notif.link_url:
+    if notif.link_url.startswith("/") and not notif.link_url.startswith("//"):
         return redirect(notif.link_url)
     return redirect('office_dashboard:notification')
 
@@ -1366,6 +1398,8 @@ def activity_log(request, rep):
         logs = logs.filter(category=category)
 
     range_ = request.GET.get('range', '7')
+    if range_ != 'all' and not (range_.isdigit() and 1 <= int(range_) <= 3650):
+        range_ = '7'                # ?range=abc used to crash the page
     if range_ != 'all':
         since = timezone.now() - timedelta(days=int(range_))
         logs = logs.filter(created_at__gte=since)
@@ -1703,7 +1737,9 @@ def submission_update(request, rep, pk):
                                       f"{s.user.get_full_name() or s.user.email} was notified {how}.")
         else:
             messages.info(request, "Nothing changed.")
-    back = request.POST.get("next") or reverse("office_dashboard:submissions")
-    if not back.startswith("/"):
+    # only back to a page on this website ("//other-site.com" is refused too)
+    from django.utils.http import url_has_allowed_host_and_scheme
+    back = request.POST.get("next") or ""
+    if not url_has_allowed_host_and_scheme(back, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
         back = reverse("office_dashboard:submissions")
     return redirect(back)

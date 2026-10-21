@@ -6,9 +6,9 @@ from .models import AdminNotification
 from .models import SuperAdmin, SiteContactInfo, EmergencyContact, EmailProviderSettings, QuickLink, AboutPageContent, HistoryMilestone, AboutOfficial, Barangay, HeritageItem
 from django.core.paginator import Paginator
 from django.contrib.auth.models import User
-from django.db.models import Count, Sum, Q, F
+from django.db.models import Count, Sum, Q
 from django.utils import timezone
-from office_dashboard.models import Announcement, NewsUpdate, Event, DownloadableForm, FormField, Photo, Album, Service, OfficeRepresentative, Notification, ServiceEditSettings, ActivityLog, Message
+from office_dashboard.models import Announcement, NewsUpdate, Event, DownloadableForm, Photo, Album, Service, OfficeRepresentative, Notification, ServiceEditSettings, ActivityLog, Message
 from office_dashboard.models import log_activity
 from office_dashboard.notifications import notify, notify_all_reps
 from office_dashboard.announcement_rules import clean_announcement
@@ -18,14 +18,10 @@ from offices.pdf_serve import pdf_response
 from office_dashboard.form_fields import fields_json, save_fields
 from datetime import timedelta
 import csv
-import io
 from office_dashboard.views import FORM_CATEGORY_CHOICES, serialize_chat_message, MESSAGE_MAX_LENGTH
 from office_dashboard.views import org_chart_page
 from office_dashboard.content_photos import save_content_photos
 from office_dashboard.models import OrgChartNode
-from django.db.models import Count
-from django.utils.text import slugify
-import secrets
 import json
 import re
 from django.urls import reverse
@@ -72,15 +68,25 @@ LGU_SUPER_ADMIN_SLUG = "lgu-super-admin"
 
 
 def get_or_create_lgu_rep(user):
+    """The Super Admin's own record on the "LGU Super Admin" office, which
+    everything the Super Admin posts is linked to. Only one representative
+    can belong to an office, so when the Super Admin account is replaced by
+    a different user, the existing record (and all the LGU's posts) is
+    handed over to the new Super Admin instead of creating a second one
+    (which used to crash with a database error)."""
     office, _ = Office.objects.get_or_create(
-        slug="lgu-super-admin",
+        slug=LGU_SUPER_ADMIN_SLUG,
         defaults={"name": "LGU Super Admin"}
     )
-    rep, _ = OfficeRepresentative.objects.get_or_create(
-        user=user,
-        defaults={"office": office, "position": "Super Administrator"}
-    )
-    return rep
+    rep = OfficeRepresentative.objects.filter(user=user).first()
+    if rep:
+        return rep
+    rep = OfficeRepresentative.objects.filter(office=office).first()
+    if rep is not None:
+        rep.user = user
+        rep.save(update_fields=["user"])
+        return rep
+    return OfficeRepresentative.objects.create(user=user, office=office, position="Super Administrator")
 
 def super_admin_required(view_func):
     @wraps(view_func)
@@ -758,7 +764,7 @@ def admin_create_announcement(request):
         if office_choice == 'super_admin':
             rep = get_or_create_lgu_rep(request.user)
         else:
-            office = Office.objects.filter(pk=office_choice).select_related('representative').first() if office_choice else None
+            office = Office.objects.filter(pk=office_choice).select_related('representative').first() if office_choice and office_choice.isdigit() else None
             rep = getattr(office, 'representative', None) if office else None
 
         errors, data = clean_announcement(request.POST, is_new=True)
@@ -804,7 +810,7 @@ def admin_edit_announcement(request, pk):
         if office_choice == 'super_admin':
             rep = get_or_create_lgu_rep(request.user)
         else:
-            office = Office.objects.filter(pk=office_choice).select_related('representative').first() if office_choice else None
+            office = Office.objects.filter(pk=office_choice).select_related('representative').first() if office_choice and office_choice.isdigit() else None
             rep = getattr(office, 'representative', None) if office else None
 
         errors, data = clean_announcement(request.POST, is_new=False, current_expiration=announcement.expiration_date)
@@ -909,7 +915,7 @@ def admin_news_save(request, pk):
     if rep_choice == 'super_admin':
         representative = get_or_create_lgu_rep(request.user)
     else:
-        representative = OfficeRepresentative.objects.filter(pk=rep_choice).first() if rep_choice else None
+        representative = OfficeRepresentative.objects.filter(pk=rep_choice).first() if rep_choice and rep_choice.isdigit() else None
 
     from office_dashboard.views import news_missing_message
     problem = news_missing_message(request.POST)
@@ -1020,7 +1026,7 @@ def admin_event_save(request, pk):
     if rep_choice == 'super_admin':
         representative = get_or_create_lgu_rep(request.user)
     else:
-        representative = OfficeRepresentative.objects.filter(pk=rep_choice).first() if rep_choice else None
+        representative = OfficeRepresentative.objects.filter(pk=rep_choice).first() if rep_choice and rep_choice.isdigit() else None
 
     from office_dashboard.views import event_problem
     problem = event_problem(request.POST)
@@ -1039,9 +1045,10 @@ def admin_event_save(request, pk):
     e.title = title
     e.category = request.POST.get('category', '').strip()
     e.description = request.POST.get('description', '').strip()
-    e.event_date = request.POST.get('event_date') or None
-    e.start_time = request.POST.get('start_time') or None
-    e.end_time = request.POST.get('end_time') or None
+    from office_dashboard.views import parse_event_date, parse_event_time
+    e.event_date = parse_event_date(request.POST.get('event_date'))
+    e.start_time = parse_event_time(request.POST.get('start_time'))
+    e.end_time = parse_event_time(request.POST.get('end_time'))
     e.location = request.POST.get('location', '').strip()
     e.organizer = request.POST.get('organizer', '').strip()
     e.contact_person = request.POST.get('contact_person', '').strip()
@@ -1116,7 +1123,7 @@ def admin_form_save(request, pk):
     if office_choice == 'super_admin':
         office = get_or_create_lgu_rep(request.user).office
     else:
-        office = Office.objects.filter(pk=office_choice).first() if office_choice else None
+        office = Office.objects.filter(pk=office_choice).first() if office_choice and office_choice.isdigit() else None
 
     if pk:
         f = get_object_or_404(DownloadableForm, pk=pk)
@@ -1157,7 +1164,7 @@ def admin_form_delete(request, pk):
 def admin_download_form_file(request, pk):
     form = get_object_or_404(DownloadableForm, pk=pk)
 
-    DownloadableForm.objects.filter(pk=pk).update(download_count=F('download_count') + 1)
+    # (not counted in download_count: that number is citizens' downloads)
 
     try:
         filename = form.file.name.rsplit('/', 1)[-1]
@@ -1289,7 +1296,7 @@ def admin_photo_save(request, pk):
     if office_choice == 'super_admin':
         representative = get_or_create_lgu_rep(request.user)
     else:
-        office = Office.objects.filter(pk=office_choice).select_related('representative').first() if office_choice else None
+        office = Office.objects.filter(pk=office_choice).select_related('representative').first() if office_choice and office_choice.isdigit() else None
         representative = getattr(office, 'representative', None) if office else None
 
     if not title or not representative:
@@ -1299,7 +1306,7 @@ def admin_photo_save(request, pk):
     else:
         if album_choice == '__new__' and new_album_name:
             album, _ = Album.objects.get_or_create(representative=representative, name=new_album_name)
-        elif album_choice and album_choice != '__new__':
+        elif album_choice and album_choice.isdigit():
             album = Album.objects.filter(pk=album_choice, representative=representative).first()
         else:
             album = None
@@ -1358,7 +1365,7 @@ def admin_album_toggle_featured(request, pk):
                 request,
                 f'"{album.name}" was {"added to" if album.is_featured else "removed from"} Featured Albums.'
             )
-    return redirect(request.POST.get('next') or 'admin_dashboard:ad_gallery')
+    return redirect(_safe_next(request, reverse('admin_dashboard:ad_gallery')))
 
 
 @super_admin_required
@@ -1368,7 +1375,7 @@ def admin_photo_archive_toggle(request, pk):
         photo.status = 'archive' if photo.status == 'published' else 'published'
         photo.save()
         messages.success(request, f'"{photo.title}" was {"archived" if photo.status == "archive" else "restored"}.')
-    return redirect('admin_dashboard:ad_album_detail', pk=photo.album_id)
+    return _back_to_album(photo)
 
 
 @super_admin_required
@@ -1380,7 +1387,15 @@ def admin_photo_delete(request, pk):
         photo.save()
         messages.success(request, f'"{title}" was archived.')
         return redirect('admin_dashboard:ad_archive')
-    return redirect('admin_dashboard:ad_album_detail', pk=photo.album_id)
+    return _back_to_album(photo)
+
+
+def _back_to_album(photo):
+    """The photo's album page, or the Gallery when it has no album
+    (redirecting to an album page with no album used to crash)."""
+    if photo.album_id:
+        return redirect('admin_dashboard:ad_album_detail', pk=photo.album_id)
+    return redirect('admin_dashboard:ad_gallery')
 
 @super_admin_required
 def admin_offices(request):
@@ -1551,6 +1566,8 @@ def admin_office_rep(request):
 
     q = request.GET.get('q', '').strip()
     office_id = request.GET.get('office', '')
+    if not office_id.isdigit():
+        office_id = ''
     status_filter = request.GET.get('status', '')
 
     if q:
@@ -1599,8 +1616,8 @@ def admin_assign_representative(request):
         mobile_number = request.POST.get('mobile_number', '').strip()
         photo = request.FILES.get('photo')
 
-        user = User.objects.filter(pk=user_id, office_rep__isnull=True).first() if user_id else None
-        office = Office.objects.filter(pk=office_id, representative__isnull=True).first() if office_id else None
+        user = User.objects.filter(pk=user_id, office_rep__isnull=True).first() if user_id and user_id.isdigit() else None
+        office = Office.objects.filter(pk=office_id, representative__isnull=True).first() if office_id and office_id.isdigit() else None
 
         if not user or not office:
             messages.error(request, "Please choose a user and an office that don't already have a representative assigned.")
@@ -1620,7 +1637,7 @@ def admin_rep_replace_user(request, pk):
     rep = get_object_or_404(OfficeRepresentative, pk=pk)
     if request.method == "POST":
         new_user_id = request.POST.get('new_user')
-        new_user = User.objects.filter(pk=new_user_id, office_rep__isnull=True).first() if new_user_id else None
+        new_user = User.objects.filter(pk=new_user_id, office_rep__isnull=True).first() if new_user_id and new_user_id.isdigit() else None
 
         if not new_user:
             messages.error(request, "Please choose a user who isn't already assigned to another office.")
@@ -1739,19 +1756,33 @@ def admin_service_delete(request, pk):
         messages.success(request, f'"{name}" was deleted.')
     return redirect('admin_dashboard:ad_services')
 
+def _tell_reps_service_editing(title, description, level="info"):
+    """Bell notification to every office representative (not the LGU's own record)."""
+    for rep in OfficeRepresentative.objects.exclude(office__slug=LGU_SUPER_ADMIN_SLUG):
+        notify(rep, "services", title, description, level=level,
+               link_url=reverse("office_dashboard:services"))
+
+
 @super_admin_required
 def admin_toggle_service_editing(request):
-    """Single site-wide switch (not per-service): turns the office
-    representatives' ability to edit a service's basic info on/off for
-    every office at once."""
+    """Single site-wide switch (not per-service), for every office at once.
+    ON: office representatives can add and edit their services and
+    everything in them (details, requirements, client steps, reminders, legal
+    basis, schedule of service, forms), published services too.
+    OFF: they can only view their services. The Super Admin can always edit.
+    Enforced in office_dashboard/service_editor.py (Editor.locked)."""
     settings_obj = ServiceEditSettings.get_solo()
     if request.method == "POST":
         settings_obj.editing_enabled = not settings_obj.editing_enabled
         settings_obj.save(update_fields=["editing_enabled"])
         if settings_obj.editing_enabled:
-            messages.success(request, "Service editing was turned back on for all offices.")
+            messages.success(request, "Service editing was turned on for all offices.")
+            _tell_reps_service_editing("Service editing is turned on",
+                                       "You can now add and edit your office's services: details, requirements, client steps, reminders, legal basis, schedule and forms.")
         else:
-            messages.success(request, "Service editing was turned off for all offices. Representatives can no longer edit a service's basic info until you turn it back on.")
+            messages.success(request, "Service editing was turned off for all offices. Office representatives can only view their services until you turn it back on.")
+            _tell_reps_service_editing("Service editing is turned off",
+                                       "The Super Admin turned off service editing. You can view your services but can't add, change or delete anything for now.", "warning")
     return redirect('admin_dashboard:ad_services')
 
 @super_admin_required
@@ -1882,8 +1913,10 @@ def admin_quicklink_save(request, pk):
             # they typed is in the paired text field shown only in that case.
             url = request.POST.get('url_custom', '').strip()
 
+        from portal.url_safety import clean_link
+        url, url_problem = clean_link(url, allow_relative=True)
         if not label or not url:
-            messages.error(request, "Please fill in both the label and the link destination.")
+            messages.error(request, url_problem or "Please fill in both the label and the link destination.")
         else:
             is_create = link.pk is None
             link.label = label
@@ -2488,10 +2521,15 @@ def admin_web_setting(request):
             cache.clear()
             messages.success(request, "Website cache was cleared.")
         elif section == 'social':
-            info.social_facebook = request.POST.get('social_facebook', '').strip()
-            info.social_twitter = request.POST.get('social_twitter', '').strip()
-            info.social_instagram = request.POST.get('social_instagram', '').strip()
-            info.social_youtube = request.POST.get('social_youtube', '').strip()
+            from portal.url_safety import clean_link
+            links = {}
+            for key in ('social_facebook', 'social_twitter', 'social_instagram', 'social_youtube'):
+                links[key], problem = clean_link(request.POST.get(key, ''))
+                if problem:
+                    messages.error(request, problem + " The social media links were not saved.")
+                    return redirect(reverse('admin_dashboard:ad_web_setting') + '#social')
+            for key, value in links.items():
+                setattr(info, key, value)
             info.show_facebook_footer = request.POST.get('show_facebook_footer') == 'on'
             info.show_twitter_footer = request.POST.get('show_twitter_footer') == 'on'
             info.show_instagram_footer = request.POST.get('show_instagram_footer') == 'on'
@@ -2505,7 +2543,12 @@ def admin_web_setting(request):
             info.email_secondary = request.POST.get('email_secondary', '').strip()
             info.address = request.POST.get('address', '').strip()
             info.facebook_name = request.POST.get('facebook_name', '').strip()
-            info.facebook_url = request.POST.get('facebook_url', '').strip()
+            from portal.url_safety import clean_link
+            fb_url, problem = clean_link(request.POST.get('facebook_url', ''))
+            if problem:
+                messages.error(request, problem + " The Facebook link was not changed.")
+            else:
+                info.facebook_url = fb_url
             info.office_hours = request.POST.get('office_hours', '').strip()
             # "Our Location" map pin (Contact Us page). Kept inside a box
             # around Leyte so a slip of the mouse can't put it at sea.
@@ -2733,6 +2776,28 @@ def admin_analytics(request):
     })
 
 
+class _SafeCsvWriter:
+    """csv.writer for the exports that Excel opens safely: a cell that starts
+    with = + - @ (or a tab / line break) would be run by Excel as a formula —
+    for example a citizen comment "=HYPERLINK(...)". Such cells get a ' in
+    front, so Excel shows them as plain text."""
+    def __init__(self, response):
+        self._w = csv.writer(response)
+
+    @staticmethod
+    def _cell(value):
+        if isinstance(value, str) and value[:1] in ("=", "+", "-", "@", "\t", "\r"):
+            return "'" + value
+        return value
+
+    def writerow(self, row):
+        return self._w.writerow([self._cell(v) for v in row])
+
+
+def _csv_writer(response):
+    return _SafeCsvWriter(response)
+
+
 @super_admin_required
 def admin_export_office_activity(request):
     """Downloads the Office Performance table (all offices, not just the
@@ -2740,7 +2805,7 @@ def admin_export_office_activity(request):
     offices = Office.objects.exclude(slug=LGU_SUPER_ADMIN_SLUG)
     response = HttpResponse(content_type="text/csv")
     response["Content-Disposition"] = f'attachment; filename="office-activity-{timezone.localdate()}.csv"'
-    writer = csv.writer(response)
+    writer = _csv_writer(response)
     writer.writerow(["Office", "Services Listed", "Published Content", "Pending Items", "Status"])
     for office in offices:
         services_count = Service.objects.filter(office=office).count()
@@ -2776,7 +2841,7 @@ def admin_export_approval_history(request):
 
     response = HttpResponse(content_type="text/csv")
     response["Content-Disposition"] = f'attachment; filename="approval-history-{today.strftime("%Y-%m")}.csv"'
-    writer = csv.writer(response)
+    writer = _csv_writer(response)
     writer.writerow(["Type", "Title", "Office", "Submitted", "Status"])
 
     rows = []
@@ -2891,8 +2956,12 @@ def admin_notifications(request):
 
 
 def _safe_next(request, fallback):
+    """The ?next= page, only when it is a page on this website."""
+    from django.utils.http import url_has_allowed_host_and_scheme
     nxt = request.POST.get("next") or request.GET.get("next") or ""
-    return nxt if nxt.startswith("/") and not nxt.startswith("//") else fallback
+    if nxt and url_has_allowed_host_and_scheme(nxt, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
+        return nxt
+    return fallback
 
 
 @super_admin_required
@@ -2902,7 +2971,7 @@ def admin_notification_open(request, pk):
     if not note.is_read:
         note.is_read = True
         note.save(update_fields=["is_read"])
-    if note.link_url.startswith("/"):
+    if note.link_url.startswith("/") and not note.link_url.startswith("//"):
         return redirect(note.link_url)
     return redirect("admin_dashboard:ad_notifications")
 
@@ -3591,7 +3660,7 @@ def admin_export_satisfaction(request):
     from office_dashboard.models import SubmissionFeedback
     response = HttpResponse(content_type="text/csv")
     response["Content-Disposition"] = f'attachment; filename="client-satisfaction-{timezone.localdate()}.csv"'
-    writer = csv.writer(response)
+    writer = _csv_writer(response)
     writer.writerow(["Date Rated", "Office", "Form / Service", "Reference No.", "Rating (1-5)", "Rating", "Comment", "Request Status"])
     for fb in SubmissionFeedback.objects.select_related("submission__form__office", "submission__form__service"):
         s = fb.submission
@@ -3611,7 +3680,7 @@ def admin_export_portal_feedback(request):
     from portal.models import PortalFeedback
     response = HttpResponse(content_type="text/csv")
     response["Content-Disposition"] = f'attachment; filename="portal-feedback-{timezone.localdate()}.csv"'
-    writer = csv.writer(response)
+    writer = _csv_writer(response)
     writer.writerow(["Date", "Rating (1-5)", "Rating", "Comment", "User Type"])
     for fb in PortalFeedback.objects.select_related("user"):
         u = fb.user
