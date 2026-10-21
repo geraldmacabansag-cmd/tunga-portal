@@ -1068,7 +1068,8 @@
   font-family: var(--font-display);
   font-size: clamp(1.5rem, 2.5vw, 2.2rem);
   font-weight: 700;
-  line-height: 1.18;
+  line-height: 1.25;
+  padding-bottom: 0.08em;      /* so the bottoms of g, y, p are not cut off */
   margin-bottom: 10px;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   display: -webkit-box;
@@ -1081,14 +1082,17 @@
   display: block;
   font-size: clamp(2.2rem, 4.6vw, 3.9rem);
   font-weight: 800;
-  line-height: 1.05;
+  line-height: 1.15;
   letter-spacing: -0.01em;
   margin-bottom: 12px;
+  padding-bottom: 0.05em;
+  overflow: visible;           /* never cut the letters of the big title */
 }
 .hc__title--big span { color: var(--gold, #f4c531); }
 .hc__sub {
   color: #e6edfa;
   font-size: 1.02rem;
+  line-height: 1.5;
   max-width: 640px;
   margin-bottom: 20px;
   display: -webkit-box;
