@@ -1,20 +1,45 @@
-/* Home page banner carousel (templates/portal/home.html, styles in
-   static/css/homepage.css). Moves to the next slide by itself every
-   data-interval milliseconds (set on the <section>, 6000 = 6 seconds).
-   It waits while the mouse is over the banner, while a button in it has the
-   keyboard focus, and while the browser tab is hidden.
-   Arrows / dots / swipe / Left-Right keys move it by hand. */
+/* Home page banner slider (templates/portal/home.html, styles in
+   static/css/homepage.css, "Banner slider"). Moves to the next slide by itself
+   every data-interval milliseconds (set on the <section>, 6000 = 6 seconds).
+   It waits while the mouse is over the banner, while someone moves through it
+   with the Tab key, and while the browser tab is hidden.
+   Every element with data-slide-to="N" (the dots) shows slide N when clicked.
+   Arrows / swipe / Left-Right keys also move it. */
 (function () {
   var root = document.querySelector('.hero-carousel');
   if (!root) return;
   var slides = Array.prototype.slice.call(root.querySelectorAll('.hero-slide'));
   if (slides.length < 2) return;
 
-  var dots = Array.prototype.slice.call(root.querySelectorAll('.hero-carousel__dot'));
-  var bar = root.querySelector('.hero-carousel__progress span');
+  var pickers = Array.prototype.slice.call(root.querySelectorAll('[data-slide-to]'));
+  var list = root.querySelector('.hc__list');
+  var counter = root.querySelector('.js-hc-now');
+  var mainBar = root.querySelector('.hero-carousel__progress span');
   var interval = parseInt(root.getAttribute('data-interval'), 10) || 6000;
   var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var current = 0, timer = null, started = 0, left = interval, paused = false;
+
+  // timer bars: the one at the bottom of the picture + the one in the
+  // selected "Highlights" item
+  function bars() {
+    var b = [];
+    if (mainBar) b.push(mainBar);
+    var item = list && list.querySelector('.hc__item.is-active .hc__bar span');
+    if (item) b.push(item);
+    return b;
+  }
+  function resetBars() {
+    root.querySelectorAll('.hc__bar span').forEach(function (s) { s.style.transition = 'none'; s.style.width = '0'; });
+  }
+
+  // keep the selected item visible inside the list (scrolls only the list,
+  // never the page)
+  function revealItem(item) {
+    if (!list || !item) return;
+    var top = item.offsetTop, bottom = top + item.offsetHeight;   // the list is position: relative
+    if (top < list.scrollTop) list.scrollTop = top - 6;
+    else if (bottom > list.scrollTop + list.clientHeight) list.scrollTop = bottom - list.clientHeight + 6;
+  }
 
   function show(i) {
     current = (i + slides.length) % slides.length;
@@ -25,25 +50,34 @@
       // only the visible slide's links can be reached with Tab
       s.querySelectorAll('a, button').forEach(function (el) { el.tabIndex = on ? 0 : -1; });
     });
-    dots.forEach(function (d, n) {
-      d.classList.toggle('is-active', n === current);
-      d.setAttribute('aria-selected', n === current ? 'true' : 'false');
+    pickers.forEach(function (p) {
+      var on = parseInt(p.getAttribute('data-slide-to'), 10) === current;
+      p.classList.toggle('is-active', on);
+      if (p.hasAttribute('aria-selected')) p.setAttribute('aria-selected', on ? 'true' : 'false');
+      if (p.classList.contains('hc__item')) {
+        if (on) { p.setAttribute('aria-current', 'true'); revealItem(p); } else p.removeAttribute('aria-current');
+      }
     });
+    if (counter) counter.textContent = current + 1;
+    resetBars();
     restart();
   }
 
   function runBar(ms) {
-    if (!bar || reduceMotion) return;
-    bar.style.transition = 'none';
-    bar.style.width = ((interval - ms) / interval * 100) + '%';
-    void bar.offsetWidth;                       // apply the start width first
-    bar.style.transition = 'width ' + ms + 'ms linear';
-    bar.style.width = '100%';
+    if (reduceMotion) return;
+    bars().forEach(function (bar) {
+      bar.style.transition = 'none';
+      bar.style.width = ((interval - ms) / interval * 100) + '%';
+      void bar.offsetWidth;                     // apply the start width first
+      bar.style.transition = 'width ' + ms + 'ms linear';
+      bar.style.width = '100%';
+    });
   }
   function freezeBar() {
-    if (!bar) return;
-    bar.style.transition = 'none';
-    bar.style.width = ((interval - left) / interval * 100) + '%';
+    bars().forEach(function (bar) {
+      bar.style.transition = 'none';
+      bar.style.width = ((interval - left) / interval * 100) + '%';
+    });
   }
 
   function schedule(ms) {
@@ -66,9 +100,13 @@
     schedule(left || interval);
   }
 
-  root.querySelector('.hero-carousel__nav--prev').addEventListener('click', function () { show(current - 1); });
-  root.querySelector('.hero-carousel__nav--next').addEventListener('click', function () { show(current + 1); });
-  dots.forEach(function (d, n) { d.addEventListener('click', function () { show(n); }); });
+  var prev = root.querySelector('.hero-carousel__nav--prev');
+  var next = root.querySelector('.hero-carousel__nav--next');
+  if (prev) prev.addEventListener('click', function () { show(current - 1); });
+  if (next) next.addEventListener('click', function () { show(current + 1); });
+  pickers.forEach(function (p) {
+    p.addEventListener('click', function () { show(parseInt(p.getAttribute('data-slide-to'), 10) || 0); });
+  });
 
   // wait while a mouse is over it (not on touch screens, where a tap would
   // otherwise stop it for good)

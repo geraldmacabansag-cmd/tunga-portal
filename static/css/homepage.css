@@ -993,59 +993,112 @@
   .emergency__card--gray:hover { box-shadow: 0 14px 28px rgba(77, 84, 104, .22); }
   .emergency__card--black:hover { box-shadow: 0 14px 28px rgba(17, 24, 39, .22); }
 }
+
 /* ==========================================================================
-   Banner carousel (templates/portal/home.html, static/js/hero-carousel.js)
-   Slide 1 = welcome banner, then announcements / news that have a picture.
-   All slides sit on top of each other (same grid cell), so the banner is as
-   tall as its tallest slide; only the active one is visible (fade).
+   Banner slider (templates/portal/home.html, static/js/hero-carousel.js)
+   Every slide's picture fills the banner. Welcome slide: the text sits on the
+   photo at the left over a dark fade. Post slides: the details are on the
+   right. The Quick Links card below overlaps the bottom 40px of the banner,
+   so the text keeps that space free.
    ========================================================================== */
-.hero-carousel {
+.hero.hc {
+  height: 470px;
   display: grid;
-  height: 400px;
   background: var(--navy-deep, #0a2f6e);
 }
-.hero-slide {
-  grid-area: 1 / 1;
+.hc__slide {
+  grid-area: 1 / 1;            /* all slides in the same place; the active one fades in */
   position: relative;
-  min-height: 100%;
+  min-width: 0;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.7s ease, visibility 0s linear 0.7s;
+  transition: opacity 0.8s ease, visibility 0s linear 0.8s;
 }
-.hero-slide.is-active {
+.hc__slide.is-active {
   opacity: 1;
   visibility: visible;
-  transition: opacity 0.7s ease, visibility 0s;
+  transition: opacity 0.8s ease, visibility 0s;
   z-index: 1;
 }
-.hero-slide .hero__content { min-height: 100%; }
-
-/* post slides: the picture fills the whole banner; the details sit on the
-   right over a dark shade so the text stays readable */
-.hero-slide__bg {
+.hc__bg {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center;
 }
-.hero-slide__shade {
+/* welcome: dark fade from the left and the bottom, under the text */
+.hc__slide--welcome .hc__shade {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(8, 30, 72, 0.88) 0%, rgba(8, 30, 72, 0.62) 42%, rgba(8, 30, 72, 0.12) 75%, rgba(8, 30, 72, 0) 100%),
+    linear-gradient(0deg, rgba(8, 30, 72, 0.55) 0%, rgba(8, 30, 72, 0) 45%);
+}
+/* posts: dark fade from the right, under the details */
+.hc__slide--post .hc__shade {
   position: absolute;
   inset: 0;
   background: linear-gradient(270deg, rgba(10, 47, 110, 0.93) 0%, rgba(10, 47, 110, 0.84) 45%, rgba(10, 47, 110, 0.3) 70%, rgba(10, 47, 110, 0.05) 100%);
 }
-.hero-slide__inner.container {
+
+.hc__caption.container {
+  position: relative;
+  height: 100%;
   display: flex;
-  justify-content: flex-end;   /* details on the right */
-  align-items: center;
-  padding-top: 20px;
-  padding-bottom: 116px;     /* room for the floating Quick Links below */
+  flex-direction: column;
+  justify-content: center;
+  padding-top: 10px;
+  padding-bottom: 60px;        /* room for the Quick Links card */
+  color: #fff;
 }
-.hero-slide__text { color: #fff; width: 100%; max-width: 520px; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35); }
-.hero-slide__tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
-.hero-slide__kind,
-.hero-slide__cat {
+.hc__slide--welcome .hc__caption { align-items: flex-start; }
+.hc__slide--post .hc__caption { align-items: flex-end; }
+.hc__slide--post .hc__caption > * { width: 100%; max-width: 520px; }
+
+.hc__eyebrow {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gold, #f4c531);
+  margin-bottom: 6px;
+}
+.hc__title {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 2.5vw, 2.2rem);
+  font-weight: 700;
+  line-height: 1.18;
+  margin-bottom: 10px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.hc__title--big {
+  display: block;
+  font-size: clamp(2.2rem, 4.6vw, 3.9rem);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  margin-bottom: 12px;
+}
+.hc__title--big span { color: var(--gold, #f4c531); }
+.hc__sub {
+  color: #e6edfa;
+  font-size: 1.02rem;
+  max-width: 640px;
+  margin-bottom: 20px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.hc__tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.hc__kind, .hc__cat {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1056,77 +1109,84 @@
   padding: 5px 11px;
   border-radius: 999px;
 }
-.hero-slide__kind { background: var(--gold, #f4c531); color: var(--navy-deep, #0a2f6e); }
-.hero-slide__kind--news { background: #3fae4a; color: #fff; }
-.hero-slide__cat { background: rgba(255, 255, 255, 0.14); border: 1px solid rgba(255, 255, 255, 0.28); color: #fff; }
-.hero-slide__title {
-  font-family: var(--font-display);
-  font-size: clamp(1.5rem, 2.6vw, 2.3rem);
-  line-height: 1.2;
-  font-weight: 700;
-  margin-bottom: 10px;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.hero-slide__sub {
-  color: #dbe6fb;
-  font-size: 0.98rem;
-  margin-bottom: 12px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.hero-slide__meta { color: #c9d6f0; font-size: 0.85rem; margin-bottom: 20px; }
-.hero-slide__meta i { color: var(--gold, #f4c531); margin-right: 3px; }
-.hero-slide__meta span { margin: 0 6px; }
-.hero-slide .hero-slide__btn { background: var(--gold, #f4c531); border-color: var(--gold, #f4c531); color: var(--navy-deep, #0a2f6e); text-shadow: none; }
-.hero-slide .hero-slide__btn:hover { background: #ffd54f; border-color: #ffd54f; color: var(--navy-deep, #0a2f6e); }
+.hc__kind { background: var(--gold, #f4c531); color: var(--navy-deep, #0a2f6e); }
+.hc__kind--news { background: #3fae4a; color: #fff; }
+.hc__cat { background: rgba(255, 255, 255, 0.14); border: 1px solid rgba(255, 255, 255, 0.3); color: #fff; }
+.hc__meta { color: #c9d6f0; font-size: 0.86rem; margin-bottom: 18px; }
+.hc__meta i { color: var(--gold, #f4c531); margin-right: 4px; }
+.hc__meta span { margin: 0 8px; }
 
-/* arrows + dots, in one bar at the bottom right, under the details (kept
-   above the Quick Links box that overlaps the bottom of the banner on wide
-   screens, and clear of the picture on the left) */
-.hero-carousel__controls {
+.hc__actions { display: flex; flex-wrap: wrap; gap: 14px; }
+.hc .hc__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 30px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 1rem;
+  border: 1.5px solid transparent;
+  transition: background 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+}
+.hc .hc__btn--gold { background: var(--gold, #f4c531); color: var(--navy-deep, #0a2f6e); }
+.hc .hc__btn--gold:hover { background: #ffd54f; color: var(--navy-deep, #0a2f6e); transform: translateY(-1px); }
+.hc .hc__btn--ghost {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.6);
+  color: #fff;
+  backdrop-filter: blur(4px);
+}
+.hc .hc__btn--ghost:hover { background: rgba(255, 255, 255, 0.2); color: #fff; border-color: #fff; }
+.hc__slide--post .hc__btn { padding: 11px 22px; font-size: 0.92rem; }
+
+/* arrows + small dots: centered just above the Quick Links card, on a
+   blurred see-through bar */
+.hc__controls {
   position: absolute;
-  right: var(--page-gutter, 50px);
-  bottom: 58px;
+  left: 50%;
+  bottom: 52px;
+  transform: translateX(-50%);
   z-index: 3;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 5px;
+  gap: 6px;
+  padding: 3px;
   border-radius: 999px;
-  background: rgba(10, 47, 110, 0.45);
-  backdrop-filter: blur(4px);
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
 }
 .hero-carousel__nav {
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
   border: 0;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.9);
-  color: var(--navy, #0d3a86);
-  font-size: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 10px;
   cursor: pointer;
-  transition: background 0.15s ease, transform 0.15s ease;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  transition: background 0.15s ease, color 0.15s ease;
 }
-.hero-carousel__nav:hover { background: #fff; transform: scale(1.08); }
-.hero-carousel__dots { display: flex; gap: 7px; }
+.hero-carousel__nav:hover { background: rgba(255, 255, 255, 0.9); color: var(--navy, #0d3a86); }
+.hero-carousel__dots { display: flex; align-items: center; gap: 5px; padding: 0 2px; }
 .hero-carousel__dot {
-  width: 9px;
-  height: 9px;
+  width: 6px;
+  height: 6px;
   padding: 0;
   border: 0;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.5);
   cursor: pointer;
   transition: width 0.25s ease, background 0.25s ease;
 }
-.hero-carousel__dot.is-active { width: 26px; background: var(--gold, #f4c531); }
+.hero-carousel__dot:hover { background: rgba(255, 255, 255, 0.85); }
+.hero-carousel__dot.is-active { width: 16px; background: var(--gold, #f4c531); }
+.hero-carousel__nav:focus-visible, .hero-carousel__dot:focus-visible { outline: 3px solid var(--gold, #f4c531); outline-offset: 2px; }
 .hero-carousel__progress {
   position: absolute;
   left: 0;
@@ -1136,82 +1196,40 @@
   z-index: 3;
   background: rgba(255, 255, 255, 0.15);
 }
-.hero-carousel__progress span {
-  display: block;
-  height: 100%;
-  width: 0;
-  background: var(--gold, #f4c531);
-}
-.hero-carousel__nav:focus-visible,
-.hero-carousel__dot:focus-visible { outline: 3px solid var(--gold, #f4c531); outline-offset: 2px; }
+.hero-carousel__progress span { display: block; width: 0; height: 100%; background: var(--gold, #f4c531); }
 
+/* tablets and phones: height follows the text; details at the bottom over a
+   fade from below; dots only */
 @media (max-width: 900px) {
-  .hero.hero-carousel { padding: 0; }
-  .hero-slide { padding: 40px 0 56px; }
-  .hero-slide--post { padding-top: 90px; }   /* leave the top of the picture visible */
-  .hero-slide__inner.container { justify-content: flex-start; padding-top: 0; padding-bottom: 0; }
-  .hero-slide__shade { background: linear-gradient(0deg, rgba(10, 47, 110, 0.95) 0%, rgba(10, 47, 110, 0.75) 55%, rgba(10, 47, 110, 0.2) 100%); }
-  .hero.hero-carousel { height: auto; }
-  .hero-carousel__controls { right: auto; left: 50%; transform: translateX(-50%); bottom: 12px; }
-  .hero-carousel__nav { display: none; }   /* swipe or tap the dots instead */
+  .hero.hc { height: auto; padding: 0; }
+  .hc__caption.container { padding-top: 60px; padding-bottom: 56px; height: auto; min-height: 100%; justify-content: flex-end; }
+  .hc__slide--post .hc__caption.container { padding-top: 120px; align-items: flex-start; }
+  .hc__slide--post .hc__shade {
+    background: linear-gradient(0deg, rgba(10, 47, 110, 0.95) 0%, rgba(10, 47, 110, 0.75) 55%, rgba(10, 47, 110, 0.2) 100%);
+  }
+  .hc__slide--welcome .hc__shade {
+    background: linear-gradient(0deg, rgba(8, 30, 72, 0.9) 0%, rgba(8, 30, 72, 0.6) 55%, rgba(8, 30, 72, 0.25) 100%);
+  }
+  .hc__controls { bottom: 12px; }
 }
 @media (max-width: 600px) {
-  .hero-slide { padding: 22px 0 50px; }
-  .hero-slide--post { padding-top: 70px; }
-  .hero-slide__title { font-size: 1.3rem; }
-  .hero-slide__sub { font-size: 0.86rem; }
-  .hero-slide__meta { font-size: 0.78rem; margin-bottom: 14px; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .hero-slide, .hero-slide.is-active { transition: none; }
+  .hc__caption.container { padding-top: 70px; padding-bottom: 46px; }
+  .hc__slide--post .hc__caption.container { padding-top: 110px; }
+  .hc__eyebrow { font-size: 0.72rem; }
+  .hc__title { font-size: 1.3rem; }
+  .hc__title--big { font-size: 2rem; }
+  .hc__sub { font-size: 0.86rem; margin-bottom: 14px; }
+  .hc__meta { font-size: 0.78rem; margin-bottom: 14px; }
+  .hc__actions { gap: 10px; }
+  .hc .hc__btn { padding: 11px 18px; font-size: 0.86rem; }
 }
 
 /* ==========================================================================
-   Above the fold on laptops: Quick Links float inside the banner (bottom
-   right, under the "Read more" button) and the Emergency Contact cards are
-   compact, so the hotlines show without scrolling.
+   Emergency Contact cards, compact on laptops / desktops (icon, name +
+   number and CALL in one row), so the hotlines show with less scrolling.
    ========================================================================== */
 @media (min-width: 901px) {
-  /* the strip takes no space of its own; its white card is pinned to the
-     bottom right of the banner just above it */
-  .services-strip {
-    position: relative;
-    height: 0;
-    margin-top: 0;
-    padding: 0;
-    z-index: 6;
-  }
-  .services-strip .services-strip__row {
-    position: absolute;
-    right: var(--page-gutter, 50px);
-    bottom: 22px;
-    margin: 0;
-    width: auto;
-    max-width: min(560px, calc(100% - 2 * var(--page-gutter, 20px)));
-    justify-content: flex-start;
-    padding: 12px 8px;
-    border-radius: 14px;
-    background: rgba(255, 255, 255, 0.96);
-    backdrop-filter: blur(6px);
-  }
-  .services-strip .service-link { padding: 4px 20px; font-size: 0.88rem; }
-  .services-strip .service-link i { font-size: 1.2rem; }
-
-  /* arrows + dots: bottom left of the banner, away from the details and
-     the Quick Links on the right */
-  .hero-carousel__controls { left: var(--page-gutter, 50px); right: auto; bottom: 22px; }
-
-  /* welcome slide: a shorter card so it fits the lower banner */
-  .hero-slide .hero__card { padding: 26px 30px; max-width: 470px; }
-  .hero-slide .hero__script { font-size: 1.35rem; }
-  .hero-slide .hero__card h1 { font-size: 2.4rem; margin-bottom: 8px; }
-  .hero-slide .hero__sub { margin-bottom: 16px; }
-  .hero-slide .hero__actions { flex-wrap: nowrap; }
-  .hero-slide .hero__actions .btn { white-space: nowrap; }
-  .hero-slide .hero__content { align-items: flex-start; padding-top: 24px; }
-
-  /* compact emergency cards: icon, name + number, CALL in one row */
-  .emergency { padding: 12px 0 6px; }
+  .emergency { padding: 18px 0 6px; }
   .emergency h2 { font-size: 1.05rem; margin-bottom: 10px; }
   .emergency__grid { gap: 12px; }
   .emergency__grid > .emergency__card { flex: 0 1 calc((100% - 36px) / 4); }
