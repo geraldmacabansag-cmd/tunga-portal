@@ -12,10 +12,11 @@ from .models import CitizenProfile
 from office_dashboard.models import OfficeRepresentative, Announcement, NewsUpdate, Event, Photo, Album, Service, DownloadableForm, FormSubmission
 from django.db.models import Count, Q
 from office_dashboard.gallery_items import photo_items, content_items
-from admin_dashboard.models import SuperAdmin, EmergencyContact, QuickLink
+from admin_dashboard.models import SuperAdmin, EmergencyContact, QuickLink, SiteContactInfo
+from .hero_slides import hero_slides
 from django.utils import timezone
 from django.utils.text import slugify
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from .models import EmailOTP
 from .otp_utils import send_signup_otp
 from .otp_utils import send_password_reset_otp
@@ -159,41 +160,6 @@ def events_calendar_partial(request):
 
 
 # Create your views here.
-HERO_SLIDES_MAX = 8  # how many posts the home page banner slides through
-
-
-def _hero_slides():
-    """Home page banner carousel: the newest published announcements and
-    news & updates that have a picture (their main image, or else the first
-    of their "More photos"). Posts without any picture are left out."""
-    slides = []
-    sources = [
-        ("announcement", "Announcement", Announcement.public(), "date_posted", "subtitle", "open_announcement", "announcements"),
-        ("news", "News & Updates", NewsUpdate.objects.filter(status="published"), "date_published", "summary", "open_news", "news"),
-    ]
-    for kind, label, qs, date_field, sub_field, param, tab in sources:
-        qs = (qs.select_related("representative__office").prefetch_related("extra_photos")
-                .order_by(f"-{date_field}", "-last_updated", "-created_at"))
-        for obj in qs:
-            image = obj.image if obj.image else next((p.image for p in obj.extra_photos.all() if p.image), None)
-            if not image:
-                continue
-            day = getattr(obj, date_field) or obj.created_at.date()
-            slides.append({
-                "kind": kind, "kind_label": label, "title": obj.title,
-                "text": getattr(obj, sub_field, "") or "",
-                "category": obj.category or "General",
-                "office": obj.representative.office.name if obj.representative and obj.representative.office_id else "LGU Tunga",
-                "image": image.url, "date": day,
-                "sort": (day, obj.last_updated or obj.created_at),
-                "url": f"{reverse('announcement')}?{param}={obj.pk}#{tab}",
-            })
-            if len([s for s in slides if s["kind"] == kind]) >= HERO_SLIDES_MAX:
-                break
-    slides.sort(key=lambda s: s["sort"], reverse=True)
-    return slides[:HERO_SLIDES_MAX]
-
-
 def home(request):
     # The home page always shows the most recent content: newest published
     # first. Things published on the same day are ordered by when they were
@@ -245,7 +211,7 @@ def home(request):
     latest_news = news_slides[0] if news_slides else None
 
     return render(request, "portal/home.html", {
-        "hero_slides": _hero_slides(),
+        "hero_slides": hero_slides(SiteContactInfo.get_solo()),
         "emergency_contacts": EmergencyContact.objects.all(),
         "home_announcements": home_announcements,
         "upcoming_event": upcoming_event,
@@ -790,7 +756,7 @@ def offices(request):
     })
 
 def about(request):
-    from admin_dashboard.models import AboutPageContent, HistoryMilestone, AboutOfficial, Barangay, HeritageItem
+    from admin_dashboard.models import AboutPageContent, HistoryMilestone, AboutOfficial, Barangay, HeritageItem, AboutItem
 
     about_content = AboutPageContent.get_solo()
     barangays_poblacion = list(Barangay.objects.filter(group="poblacion"))
@@ -803,18 +769,66 @@ def about(request):
     if OrgChartSettings.objects.filter(office__slug="lgu-super-admin", show_on_office_page=True).exists():
         org_nodes = list(OrgChartNode.objects.filter(office__slug="lgu-super-admin").order_by("order", "id"))
 
+    # "Our Officials": when every official has the same term, it is also
+    # shown once next to the heading ("Term 2025 – 2028").
+    about_officials = list(AboutOfficial.objects.all())
+    terms = {o.term_label for o in about_officials}
+    officials_common_term = terms.pop() if len(terms) == 1 else ""
+
+    # Newer, optional sections (Super Admin → About Us Page, one tab each):
+    # each one only shows when it has content.
+    c = about_content
+    items = list(AboutItem.objects.all())
+    by = {k: [i for i in items if i.section == k] for k, _l in AboutItem.SECTION_CHOICES}
+    documents = [d for d in by["document"] if d.file]
+    doc_years = sorted({d.year for d in documents if d.year}, reverse=True)
+    about_new = {
+        "location": bool(c.location_intro or c.location_neighbors or c.location_distance or c.location_terrain),
+        "transparency": bool(documents),
+        "seal": bool(c.seal_intro or by["seal"]),
+        "fiesta": bool(c.fiesta_title or by["fiesta"]),
+        "places": bool(by["place"]),
+        "agenda": bool(by["goal"]),
+        "awards": bool(by["award"]),
+        "hymn": bool(c.hymn_title),
+        "visit": bool(c.visit_hours.strip() or c.visit_directions.strip()),
+    }
+
     return render(request, "portal/about.html", {
+        "about_new": about_new,
+        "seal_items": by["seal"],
+        "fiesta_items": by["fiesta"],
+        "place_items": by["place"],
+        "goal_items": by["goal"],
+        "award_items": sorted(by["award"], key=lambda a: (-(a.year or 0), a.order)),
+        "documents": documents,
+        "doc_years": doc_years,
         "org_nodes": org_nodes,
+        "officials_common_term": officials_common_term,
         "about_content": about_content,
         "core_values": about_content.core_values_list(),
         "history_paragraphs": about_content.history_intro_paragraphs(),
         "milestones": HistoryMilestone.objects.all(),
-        "about_officials": AboutOfficial.objects.all(),
+        "about_officials": about_officials,
         "heritage_items": HeritageItem.objects.all(),
         "barangays_poblacion": barangays_poblacion,
         "barangays_rural": barangays_rural,
         "barangays_total": len(barangays_poblacion) + len(barangays_rural),
     })
+
+def about_document(request, pk):
+    """A Full Disclosure document (About Us page): the PDF in the browser,
+    or saved with ?download=1."""
+    from admin_dashboard.models import AboutItem
+    from django.shortcuts import get_object_or_404
+    from offices.pdf_serve import pdf_response
+    doc = get_object_or_404(AboutItem, pk=pk, section="document")
+    if not doc.file:
+        raise Http404
+    name = slugify(f"{doc.title} {doc.year or ''} {doc.extra}") or "document"
+    return pdf_response(request, doc.file, filename=f"{name}.pdf",
+                        as_attachment=request.GET.get("download") == "1")
+
 
 def history(request):
     """The separate History page was removed — History is a section of the

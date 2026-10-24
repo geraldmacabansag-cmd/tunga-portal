@@ -9,18 +9,31 @@
 
 {% block content %}
 
-<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;">
+<div class="ap-head">
   <div>
     <h2 style="margin:0;font-size:16px;font-weight:800;color:var(--gray-900);">About Us Page</h2>
-    <p style="margin:3px 0 0;font-size:12.5px;color:var(--gray-500);">Controls the About Us, History, Heritage, Municipal Officials, Barangays and "At a Glance" sections of the public site</p>
+    <p style="margin:3px 0 0;font-size:12.5px;color:var(--gray-500);">Controls every section of the public About Us page. The newer tabs (Location to Visit Us) are optional: a section only shows on the site once it has content</p>
   </div>
-  <div style="display:flex;gap:10px;">
+  <div class="ap-head__actions">
     <button type="button" class="btn btn-secondary" onclick="openResetModal()"><i class="fa-solid fa-rotate-left"></i> Reset Tab to Default</button>
     <a href="{% url 'about' %}" target="_blank" class="btn btn-secondary"><i class="fa-solid fa-up-right-from-square"></i> View Public Page</a>
   </div>
 </div>
 
 <div class="panel">
+  {# phones / small screens: pick the tab from a list (the row of tabs is too long) #}
+  <div class="ap-tabpick">
+    <label for="apTabSelect"><i class="fa-solid fa-layer-group"></i> Section</label>
+    <select id="apTabSelect" class="form-input">
+      <optgroup label="Page sections">
+        <option value="about">About Us</option><option value="history">History</option><option value="heritage">Heritage</option>
+        <option value="officials">Municipal Officials</option><option value="barangays">Barangays</option><option value="glance">At a Glance</option>
+      </optgroup>
+      <optgroup label="Optional sections">
+        {% for key, label, icon in about_tabs %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+      </optgroup>
+    </select>
+  </div>
   <div class="subtabs">
     <div class="subtab active" data-section="about"><i class="fa-regular fa-file-lines"></i> About Us</div>
     <div class="subtab" data-section="history"><i class="fa-solid fa-landmark"></i> History</div>
@@ -28,6 +41,9 @@
     <div class="subtab" data-section="officials"><i class="fa-solid fa-users"></i> Municipal Officials</div>
     <div class="subtab" data-section="barangays"><i class="fa-solid fa-map-location-dot"></i> Barangays</div>
     <div class="subtab" data-section="glance"><i class="fa-solid fa-chart-simple"></i> At a Glance</div>
+    <span class="subtab-sep" aria-hidden="true">Optional</span>
+    {% for key, label, icon in about_tabs %}<div class="subtab" data-section="{{ key }}"><i class="{{ icon }}"></i> {{ label }}</div>
+    {% endfor %}
   </div>
 
   <div class="panel-body">
@@ -198,7 +214,7 @@
         <h2><i class="fa-solid fa-users" style="color:var(--amber-600,#c07f0a);margin-right:8px;"></i>Officials Strip</h2>
         <span class="ic" onclick="document.getElementById('add-official-modal').classList.add('open')" style="background:var(--blue-600);color:#fff;padding:8px 14px;border-radius:8px;cursor:pointer;"><i class="fa-solid fa-plus"></i> Add Official</span>
       </div>
-      <p class="form-help" style="margin:0 0 14px;">Photo cards shown in the "Our Officials" section of the About Us page.</p>
+      <p class="form-help" style="margin:0 0 14px;">Photo cards shown in the "Our Officials" section of the About Us page, with each official's term of office.</p>
       <div class="table-wrap">
         <table class="data-table">
           <thead>
@@ -206,6 +222,7 @@
               <th>Photo</th>
               <th>Name</th>
               <th>Position</th>
+              <th>Term</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -215,6 +232,7 @@
               <td><img src="{% if o.photo %}{{ o.photo.url }}{% else %}{% static 'images/avatar-male-1.svg' %}{% endif %}" alt="" style="width:40px;height:40px;border-radius:50%;object-fit:cover;"></td>
               <td><p class="cell-primary">{{ o.name }}</p></td>
               <td>{{ o.position }}</td>
+              <td>{{ o.term_label|default:"—" }}</td>
               <td>
                 <div class="action-icons">
                   <span class="ic" title="Edit" onclick="document.getElementById('edit-official-modal-{{ o.pk }}').classList.add('open')"><i class="fa-regular fa-pen-to-square"></i></span>
@@ -223,7 +241,7 @@
               </td>
             </tr>
             {% empty %}
-            <tr class="no-results-row"><td colspan="4">No officials yet. Click "Add Official" to create one.</td></tr>
+            <tr class="no-results-row"><td colspan="5">No officials yet. Click "Add Official" to create one.</td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -353,6 +371,225 @@
       </form>
     </div>
 
+    {% comment %}
+    ===== Newer sections (one tab each). Every one is optional: it only shows
+    on the public About Us page once it has content. Lists use
+    admin_dashboard/_about_items.html; fields: admin_dashboard/about_sections.py.
+    {% endcomment %}
+
+    <!-- ============ LOCATION ============ -->
+    <div class="settings-section" id="section-location" style="display:none;">
+      <p class="ab-tab-help"><i class="fa-solid fa-circle-info"></i> "Where Is Tunga?" on the About Us page. It shows once any field below is filled in.</p>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="section" value="location">
+        <div class="form-group">
+          <label class="form-label">Short description</label>
+          <textarea class="form-input form-textarea" name="location_intro" style="min-height:70px;" placeholder="e.g. Tunga is in the northern part of Leyte, Eastern Visayas (Region VIII)…">{{ content.location_intro }}</textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Neighboring towns</label>
+          <input class="form-input" type="text" name="location_neighbors" maxlength="300" value="{{ content.location_neighbors }}" placeholder="e.g. Barugo, Jaro, Carigara">
+          <span class="form-help">Separate the names with commas.</span>
+        </div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <div class="form-group" style="flex:1 1 260px;">
+            <label class="form-label">Distance from Tacloban City</label>
+            <input class="form-input" type="text" name="location_distance" maxlength="150" value="{{ content.location_distance }}" placeholder="e.g. About 40 km · 1 hour by land">
+          </div>
+          <div class="form-group" style="flex:1 1 260px;">
+            <label class="form-label">Land &amp; terrain</label>
+            <input class="form-input" type="text" name="location_terrain" maxlength="255" value="{{ content.location_terrain }}" placeholder="e.g. Plains, rice fields and rivers">
+          </div>
+        </div>
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:13.5px;">
+            <input type="checkbox" name="location_show_map" {% if content.location_show_map %}checked{% endif %} style="width:16px;height:16px;"> Show the Tunga Interactive Map in this section
+          </label>
+          <span class="form-help">The same map as Content Management → Interactive Map, view only, opened on the Municipal Hall pin (Website Settings → General).</span>
+        </div>
+        <div class="modal-actions" style="justify-content:flex-start;border-top:none;padding-top:4px;">
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Location</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- ============ FULL DISCLOSURE ============ -->
+    <div class="settings-section" id="section-transparency" style="display:none;">
+      <p class="ab-tab-help"><i class="fa-solid fa-circle-info"></i> "Full Disclosure Documents" (DILG Full Disclosure Policy): PDF files visitors can view and download, grouped by fiscal year. It shows once a document is added.</p>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="section" value="transparency">
+        <div class="form-group">
+          <label class="form-label">Intro line</label>
+          <input class="form-input" type="text" name="disclosure_intro" maxlength="300" value="{{ content.disclosure_intro }}" placeholder="e.g. Public financial and planning documents of the LGU, posted under the DILG Full Disclosure Policy.">
+        </div>
+        <div class="modal-actions" style="justify-content:flex-start;border-top:none;padding-top:4px;">
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Intro</button>
+        </div>
+      </form>
+      {% include "admin_dashboard/_about_items.html" with s=item_by_tab.transparency part="table" %}
+    </div>
+
+    <!-- ============ OFFICIAL SEAL ============ -->
+    <div class="settings-section" id="section-seal" style="display:none;">
+      <p class="ab-tab-help"><i class="fa-solid fa-circle-info"></i> "The Official Seal": the website logo (Website Settings → Appearance) with what each part means. It shows once there is a description or a symbol.</p>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="section" value="seal">
+        <div class="form-group">
+          <label class="form-label">About the seal</label>
+          <textarea class="form-input form-textarea" name="seal_intro" style="min-height:70px;" placeholder="e.g. The official seal of Tunga was adopted in … It shows …">{{ content.seal_intro }}</textarea>
+        </div>
+        <div class="modal-actions" style="justify-content:flex-start;border-top:none;padding-top:4px;">
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Description</button>
+        </div>
+      </form>
+      {% include "admin_dashboard/_about_items.html" with s=item_by_tab.seal part="table" %}
+    </div>
+
+    <!-- ============ FIESTA & CULTURE ============ -->
+    <div class="settings-section" id="section-fiesta" style="display:none;">
+      <p class="ab-tab-help"><i class="fa-solid fa-circle-info"></i> "Fiesta &amp; Culture": the town fiesta (big card) and other celebrations. It shows once the fiesta name or a celebration is added.</p>
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" name="section" value="fiesta">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <div class="form-group" style="flex:2 1 300px;">
+            <label class="form-label">Town fiesta</label>
+            <input class="form-input" type="text" name="fiesta_title" maxlength="200" value="{{ content.fiesta_title }}" placeholder="e.g. Feast of Saint …">
+          </div>
+          <div class="form-group" style="flex:1 1 180px;">
+            <label class="form-label">Date</label>
+            <input class="form-input" type="text" name="fiesta_date" maxlength="100" value="{{ content.fiesta_date }}" placeholder="e.g. June 13">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea class="form-input form-textarea" name="fiesta_description" style="min-height:80px;" placeholder="How the fiesta is celebrated: procession, masses, parade, programs…">{{ content.fiesta_description }}</textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Photo</label>
+          {% if content.fiesta_image %}<img class="heritage-preview" src="{{ content.fiesta_image.url }}" alt="">{% endif %}
+          <input class="form-input file-input" type="file" name="fiesta_image" accept="image/*">
+          {% if content.fiesta_image %}<label style="display:flex;align-items:center;gap:6px;font-weight:400;font-size:13px;margin-top:6px;"><input type="checkbox" name="remove_fiesta_image"> Remove this photo</label>{% endif %}
+          <span class="form-help">Optional. Without a photo the card uses a festive red background.</span>
+        </div>
+        <div class="modal-actions" style="justify-content:flex-start;border-top:none;padding-top:4px;">
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Town Fiesta</button>
+        </div>
+      </form>
+      {% include "admin_dashboard/_about_items.html" with s=item_by_tab.fiesta part="table" %}
+    </div>
+
+    <!-- ============ PLACES TO VISIT ============ -->
+    <div class="settings-section" id="section-places" style="display:none;">
+      <p class="ab-tab-help"><i class="fa-solid fa-circle-info"></i> "Places to Visit": landmarks, nature spots, food and local products, each with a photo. It shows once a place is added.</p>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="section" value="places">
+        <div class="form-group">
+          <label class="form-label">Intro line</label>
+          <input class="form-input" type="text" name="places_intro" maxlength="255" value="{{ content.places_intro }}" placeholder="e.g. Landmarks, nature spots and local products of Tunga.">
+        </div>
+        <div class="modal-actions" style="justify-content:flex-start;border-top:none;padding-top:4px;">
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Intro</button>
+        </div>
+      </form>
+      {% include "admin_dashboard/_about_items.html" with s=item_by_tab.places part="table" %}
+    </div>
+
+    <!-- ============ DEVELOPMENT AGENDA ============ -->
+    <div class="settings-section" id="section-agenda" style="display:none;">
+      <p class="ab-tab-help"><i class="fa-solid fa-circle-info"></i> "Development Agenda": the main goals of the administration (Executive-Legislative Agenda). It shows once a goal is added.</p>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="section" value="agenda">
+        <div class="form-group">
+          <label class="form-label">Intro line</label>
+          <input class="form-input" type="text" name="agenda_intro" maxlength="255" value="{{ content.agenda_intro }}" placeholder="e.g. Executive-Legislative Agenda 2025 – 2028">
+        </div>
+        <div class="modal-actions" style="justify-content:flex-start;border-top:none;padding-top:4px;">
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Intro</button>
+        </div>
+      </form>
+      {% include "admin_dashboard/_about_items.html" with s=item_by_tab.agenda part="table" %}
+    </div>
+
+    <!-- ============ AWARDS ============ -->
+    <div class="settings-section" id="section-awards" style="display:none;">
+      <p class="ab-tab-help"><i class="fa-solid fa-circle-info"></i> "Awards &amp; Recognition": add only awards Tunga has actually received. It shows once an award is added.</p>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="section" value="awards">
+        <div class="form-group">
+          <label class="form-label">Intro line</label>
+          <input class="form-input" type="text" name="awards_intro" maxlength="255" value="{{ content.awards_intro }}" placeholder="e.g. Recognitions received by the Municipality of Tunga.">
+        </div>
+        <div class="modal-actions" style="justify-content:flex-start;border-top:none;padding-top:4px;">
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Intro</button>
+        </div>
+      </form>
+      {% include "admin_dashboard/_about_items.html" with s=item_by_tab.awards part="table" %}
+    </div>
+
+    <!-- ============ HYMN ============ -->
+    <div class="settings-section" id="section-hymn" style="display:none;">
+      <p class="ab-tab-help"><i class="fa-solid fa-circle-info"></i> "The Tunga Hymn". It shows once the title is filled in.</p>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="section" value="hymn">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <div class="form-group" style="flex:1 1 260px;">
+            <label class="form-label">Hymn title</label>
+            <input class="form-input" type="text" name="hymn_title" maxlength="200" value="{{ content.hymn_title }}" placeholder="e.g. Tunga Hymn">
+          </div>
+          <div class="form-group" style="flex:1 1 260px;">
+            <label class="form-label">Music and lyrics by</label>
+            <input class="form-input" type="text" name="hymn_composer" maxlength="200" value="{{ content.hymn_composer }}" placeholder="Composer's name">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Listen link</label>
+          <input class="form-input" type="url" name="hymn_link" maxlength="500" value="{{ content.hymn_link }}" placeholder="https://www.youtube.com/watch?v=…">
+          <span class="form-help">A YouTube or Facebook video of the hymn. Leave empty to hide the Listen button.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Lyrics (optional)</label>
+          <textarea class="form-input form-textarea" name="hymn_lyrics" style="min-height:120px;" placeholder="Only if the LGU allows the lyrics to be posted. Leave an empty line between verses.">{{ content.hymn_lyrics }}</textarea>
+        </div>
+        <div class="modal-actions" style="justify-content:flex-start;border-top:none;padding-top:4px;">
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Hymn</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- ============ VISIT US ============ -->
+    <div class="settings-section" id="section-visit" style="display:none;">
+      <p class="ab-tab-help"><i class="fa-solid fa-circle-info"></i> "Visit the Municipal Hall". The address, phone and email come from Website Settings → General. It shows once office hours or directions are filled in.</p>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="section" value="visit">
+        <div class="form-group">
+          <label class="form-label">Office hours</label>
+          <textarea class="form-input form-textarea" name="visit_hours" style="min-height:90px;" placeholder="Monday – Friday | 8:00 AM – 5:00 PM&#10;Saturday – Sunday | Closed&#10;Holidays | Closed">{{ content.visit_hours }}</textarea>
+          <span class="form-help">One line per row: the days, then <b>|</b>, then the time.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">How to get here</label>
+          <textarea class="form-input form-textarea" name="visit_directions" style="min-height:90px;" placeholder="From Tacloban: ride a van at the … terminal going to …&#10;By car: take the … road">{{ content.visit_directions }}</textarea>
+          <span class="form-help">One step per line.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Directions link (optional)</label>
+          <input class="form-input" type="url" name="visit_map_link" maxlength="500" value="{{ content.visit_map_link }}" placeholder="https://maps.app.goo.gl/…">
+          <span class="form-help">Leave empty to open Google Maps to the Municipal Hall pin set in Website Settings.</span>
+        </div>
+        <div class="modal-actions" style="justify-content:flex-start;border-top:none;padding-top:4px;">
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Visit Us</button>
+        </div>
+      </form>
+    </div>
   </div>
 </div>
 
@@ -535,6 +772,33 @@
 {% endfor %}
 
 <style>
+  .ab-tab-help { display: flex; gap: 8px; align-items: flex-start; margin: 0 0 16px; padding: 10px 14px; border-radius: 10px; background: var(--blue-50, #eff6ff); color: var(--gray-700, #374151); font-size: 12.5px; line-height: 1.5; }
+  .ab-tab-help i { color: var(--blue-600, #2563eb); margin-top: 2px; }
+  /* header: title on the left, buttons on the right; stacked on small screens */
+  .ap-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; flex-wrap: wrap; }
+  .ap-head > div:first-child { flex: 1 1 320px; min-width: 0; }
+  .ap-head__actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  /* tabs: wrap onto rows on laptops, with a small "Optional" label before the newer ones */
+  .subtabs { flex-wrap: wrap; row-gap: 0; }
+  .subtab-sep { align-self: center; flex-shrink: 0; font-size: 10.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--gray-400, #9ca3af); padding: 2px 8px; border-left: 1px solid var(--gray-200, #e5e7eb); }
+  .ap-tabpick { display: none; }
+  @media (max-width: 760px) {
+    .ap-head { flex-direction: column; align-items: stretch; gap: 12px; }
+    .ap-head > div:first-child { flex: none; }
+    .ap-head__actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .ap-head__actions .btn { justify-content: center; padding-left: 8px; padding-right: 8px; font-size: 12.5px; white-space: nowrap; }
+    .subtabs { display: none; }
+    .ap-tabpick { display: flex; align-items: center; gap: 10px; padding: 14px 14px 12px; border-bottom: 1px solid var(--gray-100, #f3f4f6); }
+    .ap-tabpick label { font-size: 12.5px; font-weight: 700; color: var(--gray-600, #4b5563); white-space: nowrap; }
+    .ap-tabpick label i { color: var(--blue-600, #2563eb); margin-right: 4px; }
+    .ap-tabpick select { flex: 1; min-width: 0; font-weight: 600; }
+    #section-about, .settings-section { min-width: 0; }
+    .settings-section .panel-header { flex-wrap: wrap; gap: 10px; padding-left: 0; padding-right: 0; }
+    .settings-section .panel-header h2 { font-size: 14px; }
+    .settings-section .form-group[style*="flex"] { flex-basis: 100% !important; }
+    .modal-box { max-height: 92vh; overflow-y: auto; }
+    .ab-tab-help { font-size: 12px; }
+  }
   .heritage-preview { display: block; width: 100%; max-width: 320px; height: 150px; object-fit: cover; border-radius: 10px; border: 1px solid var(--gray-200); margin-bottom: 8px; }
 </style>
 
@@ -555,6 +819,16 @@
         <div class="form-group">
           <label class="form-label">Position <span class="req">*</span></label>
           <input class="form-input" type="text" name="position" placeholder="e.g. Municipal Mayor" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Term of office</label>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <input class="form-input" type="number" name="term_start" min="1900" max="2100" step="1" placeholder="e.g. 2025" value="" style="width:120px;" aria-label="Term starts (year)">
+            <span style="color:var(--gray-500);">to</span>
+            <input class="form-input" type="number" name="term_end" min="1900" max="2100" step="1" placeholder="e.g. 2028" value="" style="width:120px;" aria-label="Term ends (year)">
+          </div>
+          <label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12.5px;color:var(--gray-600);"><input type="checkbox" name="term_all"> Use this term for all officials</label>
+          <span class="form-help">Years only, shown on the About Us page (e.g. "Term 2025 – 2028"). Leave empty to show no term.</span>
         </div>
         <div class="form-group">
           <label class="form-label">Photo</label>
@@ -586,6 +860,16 @@
         <div class="form-group">
           <label class="form-label">Position <span class="req">*</span></label>
           <input class="form-input" type="text" name="position" value="{{ o.position }}" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Term of office</label>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <input class="form-input" type="number" name="term_start" min="1900" max="2100" step="1" placeholder="e.g. 2025" value="{{ o.term_start|default_if_none:'' }}" style="width:120px;" aria-label="Term starts (year)">
+            <span style="color:var(--gray-500);">to</span>
+            <input class="form-input" type="number" name="term_end" min="1900" max="2100" step="1" placeholder="e.g. 2028" value="{{ o.term_end|default_if_none:'' }}" style="width:120px;" aria-label="Term ends (year)">
+          </div>
+          <label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12.5px;color:var(--gray-600);"><input type="checkbox" name="term_all"> Use this term for all officials</label>
+          <span class="form-help">Years only, shown on the About Us page (e.g. "Term 2025 – 2028"). Leave empty to show no term.</span>
         </div>
         <div class="form-group">
           <label class="form-label">Photo</label>
@@ -773,6 +1057,9 @@
      openResetModal() (in extra_js below) fills in #reset-tab-input and
      #reset-tab-label right before this opens, so the confirmation message
      and the POST both target only that one tab. -->
+<!-- ======================= NEWER TABS: list windows ======================= -->
+{% for s in item_sections %}{% include "admin_dashboard/_about_items.html" with s=s part="modals" %}{% endfor %}
+
 <div class="modal-backdrop" id="reset-defaults-modal">
   <div class="modal-box">
     <div class="modal-head">
@@ -797,7 +1084,8 @@
 
 {% block extra_js %}
 <script>
-  var TAB_NAMES = ['about', 'history', 'heritage', 'officials', 'barangays', 'glance'];
+  // every tab (the newer ones come from admin_dashboard/about_sections.py)
+  var TAB_NAMES = Array.prototype.map.call(document.querySelectorAll('.subtabs .subtab'), function (t) { return t.dataset.section; });
 
   function activateTab(name){
     if (TAB_NAMES.indexOf(name) === -1) name = 'about';
@@ -807,7 +1095,19 @@
     document.querySelectorAll('.settings-section').forEach(function(sec){
       sec.style.display = (sec.id === 'section-' + name) ? 'block' : 'none';
     });
+    var pick = document.getElementById('apTabSelect');
+    if (pick) pick.value = name;
   }
+
+  // phones: the "Section" list does the same as clicking a tab
+  (function () {
+    var pick = document.getElementById('apTabSelect');
+    if (!pick) return;
+    pick.addEventListener('change', function () {
+      activateTab(pick.value);
+      history.replaceState(null, '', '#' + pick.value);
+    });
+  })();
 
   document.querySelectorAll('.subtabs .subtab').forEach(function(tabEl){
     tabEl.addEventListener('click', function(){
@@ -830,7 +1130,7 @@
   function openResetModal(){
     var activeTabEl = document.querySelector('.subtabs .subtab.active');
     var tab = activeTabEl ? activeTabEl.dataset.section : 'about';
-    var label = TAB_LABELS[tab] || 'this tab';
+    var label = TAB_LABELS[tab] || (activeTabEl ? activeTabEl.textContent.trim() : 'this tab');
     document.getElementById('reset-tab-input').value = tab;
     document.getElementById('reset-tab-label').textContent = '"' + label + '"';
     document.getElementById('reset-tab-label-2').textContent = label;

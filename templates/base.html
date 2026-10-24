@@ -37,16 +37,16 @@
     <meta property="og:locale" content="en_PH">
     <meta name="twitter:card" content="summary_large_image">
 
-    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=7">
-    <link rel="stylesheet" href="{% static 'css/homepage.css' %}?v=8">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=10">
+    <link rel="stylesheet" href="{% static 'css/homepage.css' %}?v=10">
     <link rel="stylesheet" href="{% static 'css/offices.css' %}">
     <link rel="stylesheet" href="{% static 'css/announcements.css' %}?v=2">
     <link rel="stylesheet" href="{% static 'css/photo-collage.css' %}?v=1">
     <link rel="stylesheet" href="{% static 'css/gallery.css' %}">
-    <link rel="stylesheet" href="{% static 'css/aboutus.css' %}">
+    <link rel="stylesheet" href="{% static 'css/aboutus.css' %}?v=7">
     <link rel="stylesheet" href="{% static 'css/history.css' %}">
     <link rel="stylesheet" href="{% static 'css/contactus.css' %}">
-    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=7">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}?v=10">
     <link rel="stylesheet" href="{% static 'css/auth.css' %}">
     <link rel="stylesheet" href="{% static 'css/mayorsoffice.css' %}">
 
@@ -60,26 +60,34 @@
 </head>
 
 <body>
-  {% if site_contact.maintenance_active %}{% if is_super_admin or user.is_staff or user.office_rep %}
-  <div style="background:#f4c531;color:#3b2a00;text-align:center;padding:7px 12px;font-size:.85rem;font-weight:700;">
-    Maintenance mode is ON — visitors see the maintenance page, only staff can see the website.
-    {% if is_super_admin %}<a href="{% url 'admin_dashboard:ad_web_setting' %}#maintenance" style="color:inherit;text-decoration:underline;">Turn it off</a>{% endif %}
-  </div>
-  {% endif %}{% endif %}
-
   {# TEMPORARY: testing-phase warning. Remove this line when the portal goes live. #}
   {% include "portal/_testing_notice.html" %}
 
-  <header class="top-bar">
+  {% comment %}Top bar. Empty on the left (only the login / account links on the
+  right) unless maintenance mode is on (Website Settings → Maintenance): then
+  the maintenance message shows here, for everyone who sees the website —
+  visitors with "Message only", and the Super Admin / office representatives
+  with "Close the website" (visitors get the maintenance page instead).{% endcomment %}
+  <header class="top-bar{% if site_contact.maintenance_active %} top-bar--maint{% endif %}">
   <div class="container">
-    <span class="top-bar__tag"><i class="fa-solid fa-bullhorn top-bar__tag-icon"></i><span class="top-bar__tag-text">Announcement</span></span>
-    <span class="top-bar__msg-wrap" data-interval="{{ site_contact.ticker_interval_seconds|default:2 }}">
-      {% for a in ticker_announcements %}
-        <span class="top-bar__msg{% if forloop.first %} top-bar__msg--active{% endif %}">{{ a.title }} — {{ a.subtitle|default:a.content|truncatewords:20 }}</span>
-      {% empty %}
-        <span class="top-bar__msg top-bar__msg--active">No announcements at this time.</span>
-      {% endfor %}
+    {% if site_contact.maintenance_active %}
+    <span class="top-bar__tag top-bar__tag--maint"><i class="fa-solid fa-screwdriver-wrench top-bar__tag-icon"></i><span class="top-bar__tag-text">Maintenance</span></span>
+    {% with until=site_contact.maintenance_until|date:"M j, Y · g:i A" %}
+    <span class="top-bar__msg-wrap" role="status">
+      <span class="top-bar__msg top-bar__msg--active" tabindex="0" aria-expanded="false" aria-controls="maintPop">{% if site_contact.maintenance_closes_site %}<strong class="top-bar__closed">Website closed to visitors.</strong> {% endif %}{{ site_contact.maintenance_message|default:site_contact.DEFAULT_MAINTENANCE_MESSAGE }}{% if site_contact.maintenance_until %} <strong class="top-bar__until">Expected back: {{ until }}</strong>{% endif %}{% if is_super_admin %} <a href="{% url 'admin_dashboard:ad_web_setting' %}#maintenance" class="top-bar__maint-link">Turn it off</a>{% endif %}</span>
+      {# full message, opened on small screens where the line above is cut off #}
+      <span class="top-bar__pop" id="maintPop" hidden>
+        <span class="top-bar__pop-head"><i class="fa-solid fa-screwdriver-wrench"></i> Maintenance</span>
+        {% if site_contact.maintenance_closes_site %}<strong class="top-bar__pop-closed">Website closed to visitors.</strong>{% endif %}
+        <span class="top-bar__pop-text">{{ site_contact.maintenance_message|default:site_contact.DEFAULT_MAINTENANCE_MESSAGE|linebreaksbr }}</span>
+        {% if site_contact.maintenance_until %}<strong class="top-bar__pop-until"><i class="fa-regular fa-clock"></i> Expected back: {{ until }}</strong>{% endif %}
+        {% if is_super_admin %}<a href="{% url 'admin_dashboard:ad_web_setting' %}#maintenance" class="top-bar__pop-link">Turn it off</a>{% endif %}
+      </span>
     </span>
+    {% endwith %}
+    {% else %}
+    <span class="top-bar__msg-wrap" aria-hidden="true"></span>
+    {% endif %}
         <div class="top-bar__links">
           {% if user.is_authenticated %}
             <span class="top-bar__welcome">Welcome, {{ user.first_name|default:user.username }}</span>
@@ -1000,20 +1008,37 @@
       });
     }
 
+  /* Maintenance message in the top bar. On phones / small screens it is
+     one line ending in "…"; pointing at it or tapping it opens a popup with
+     the full message, placed at the top left of the message. Tap outside,
+     tap it again or press Esc to close. Only works when the text is cut off. */
   (function () {
-    var messages = document.querySelectorAll('.top-bar__msg-wrap .top-bar__msg');
-    if (messages.length <= 1) return;
-
-    // Seconds per announcement — set in Super Admin → Website Settings → Appearance
-    var wrap = document.querySelector('.top-bar__msg-wrap');
-    var seconds = parseInt(wrap && wrap.getAttribute('data-interval'), 10) || 2;
-
-    var current = 0;
-    setInterval(function () {
-      messages[current].classList.remove('top-bar__msg--active');
-      current = (current + 1) % messages.length;
-      messages[current].classList.add('top-bar__msg--active');
-    }, seconds * 1000);
+    var msg = document.querySelector('.top-bar--maint .top-bar__msg');
+    var pop = document.getElementById('maintPop');
+    if (!msg || !pop) return;
+    var pinned = false;
+    function cut() { return msg.scrollWidth > msg.clientWidth + 1; }
+    function place() {
+      // keep the popup inside the screen on the right
+      var left = msg.getBoundingClientRect().left;
+      pop.style.maxWidth = Math.max(200, window.innerWidth - left - 10) + 'px';
+    }
+    function open() { if (!cut()) return; place(); pop.hidden = false; msg.setAttribute('aria-expanded', 'true'); }
+    function close() { pop.hidden = true; pinned = false; msg.setAttribute('aria-expanded', 'false'); }
+    msg.addEventListener('pointerenter', function (e) { if (e.pointerType === 'mouse') open(); });
+    msg.parentNode.addEventListener('pointerleave', function (e) { if (e.pointerType === 'mouse' && !pinned) close(); });
+    msg.addEventListener('click', function (e) {
+      if (e.target.closest('a')) return;            // "Turn it off" link
+      if (!pop.hidden && pinned) { close(); return; }
+      open(); pinned = !pop.hidden;
+    });
+    pop.addEventListener('click', function (e) { if (!e.target.closest('a')) close(); });
+    msg.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); msg.click(); }
+    });
+    document.addEventListener('click', function (e) { if (!pop.hidden && !msg.parentNode.contains(e.target)) close(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !pop.hidden) { close(); msg.focus(); } });
+    window.addEventListener('resize', function () { if (!pop.hidden) { if (cut()) place(); else close(); } });
   })();
 
   /* -------------------------------------------------------------- */

@@ -52,6 +52,96 @@
   The banner photo behind the "Tunga" headline is managed from <a class="link" href="{% url 'admin_dashboard:ad_web_setting' %}">Website Settings</a>.
 </p>
 
+{% comment %}
+Banner Slider (the big banner at the top of the public homepage):
+how long each slide shows, and which posts slide through it.
+Saved by admin_hero_slider_save (admin_dashboard/views.py); slides are built
+in portal/hero_slides.py. The welcome slide ("Building a Better Tunga") is
+always the first slide.
+{% endcomment %}
+<div class="panel" id="banner-slider">
+  <div class="panel-header">
+    <h2><i class="fa-solid fa-images" style="color:var(--blue-600);margin-right:8px;"></i>Banner Slider</h2>
+  </div>
+  <p class="form-help" style="margin:0 0 14px;">The big banner at the top of the homepage. The welcome slide ("Building a Better Tunga") always comes first, then the posts below.</p>
+
+  <form method="post" action="{% url 'admin_dashboard:admin_hero_slider_save' %}" id="sliderForm" data-max="{{ slider_pick_max }}">
+    {% csrf_token %}
+    <div class="form-group">
+      <label class="form-label" for="slider-value">Slide speed</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <span style="font-size:13px;color:var(--gray-600);">Show each slide for</span>
+        <input class="form-input" type="number" name="slider_value" id="slider-value" min="1" max="3600" step="1" required value="{{ slider_info.hero_slider_value }}" style="width:96px;">
+        <select class="form-input" name="slider_unit" id="slider-unit" style="width:auto;">
+          <option value="seconds" {% if slider_info.hero_slider_unit == "seconds" %}selected{% endif %}>seconds</option>
+          <option value="minutes" {% if slider_info.hero_slider_unit == "minutes" %}selected{% endif %}>minutes</option>
+        </select>
+        <button type="button" class="btn btn-secondary" id="slider-reset" title="Use the original speed (6 seconds)"><i class="fa-solid fa-rotate-left"></i> Reset to default</button>
+      </div>
+      <span class="form-help">How long each slide stays before the next one slides in. Default: 6 seconds. Allowed: 3 seconds up to 60 minutes.</span>
+    </div>
+
+    <div class="form-group">
+      <span class="form-label">What should the banner show?</span>
+      <div class="hs-mode">
+        <label class="hs-mode__opt">
+          <input type="radio" name="slider_mode" value="auto" {% if slider_info.hero_slider_mode != 'pick' %}checked{% endif %}>
+          <span><b><i class="fa-solid fa-wand-magic-sparkles"></i> Automatic</b>
+          <small>The {{ slider_auto_max }} newest announcements and news &amp; updates that have a picture.</small></span>
+        </label>
+        <label class="hs-mode__opt">
+          <input type="radio" name="slider_mode" value="pick" {% if slider_info.hero_slider_mode == 'pick' %}checked{% endif %}>
+          <span><b><i class="fa-solid fa-list-check"></i> Choose the content</b>
+          <small>Only the posts you tick below, in the order you arrange them (up to {{ slider_pick_max }}).</small></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="hs-pick" id="hsPick">
+      <div class="hs-toolbar">
+        <div class="hs-chips" role="group" aria-label="Show">
+          <button type="button" class="hs-chip is-on" data-kind="all">All</button>
+          <button type="button" class="hs-chip" data-kind="announcement">Announcements</button>
+          <button type="button" class="hs-chip" data-kind="news">News &amp; Updates</button>
+          <button type="button" class="hs-chip" data-kind="event">Events</button>
+          <button type="button" class="hs-chip" data-kind="picked">Ticked</button>
+        </div>
+        <input type="search" class="form-input hs-search" id="hsSearch" placeholder="Search title or office…" aria-label="Search posts">
+      </div>
+      <p class="hs-count"><b id="hsCount">{{ slider_picked_count }}</b> of {{ slider_pick_max }} ticked
+        {% if slider_missing %}<span class="hs-note">· {{ slider_missing }} ticked post{{ slider_missing|pluralize }} expired or {{ slider_missing|pluralize:"was,were" }} removed, so {{ slider_missing|pluralize:"it is,they are" }} no longer shown</span>{% endif %}
+      </p>
+      <div class="hs-list" id="hsList">
+        {% for s in slider_items %}
+        <div class="hs-row{% if s.picked %} is-picked{% endif %}" data-kind="{{ s.kind }}" data-search="{{ s.title|lower }} {{ s.office|lower }}">
+          <label class="hs-row__main">
+            <input type="checkbox" name="slider_items" value="{{ s.key }}" {% if s.picked %}checked{% endif %}>
+            {% if s.image %}<img src="{{ s.image }}" alt="" class="hs-thumb" loading="lazy">{% else %}<span class="hs-thumb hs-thumb--none" title="No picture: uses the default banner photo"><i class="fa-regular fa-image"></i></span>{% endif %}
+            <span class="hs-info">
+              <b>{{ s.title }}</b>
+              <small><span class="hs-kind hs-kind--{{ s.kind }}">{{ s.kind_label }}</span> {{ s.office }} · {% if s.kind == 'event' %}{% if s.date %}Event day: {{ s.date|date:"M j, Y" }}{% else %}Date to be announced{% endif %}{% else %}{{ s.date|date:"M j, Y" }}{% endif %}{% if not s.image %} · <em>no picture</em>{% endif %}</small>
+            </span>
+          </label>
+          <span class="hs-move">
+            <button type="button" class="ic js-hs-up" title="Move up" aria-label="Move up"><i class="fa-solid fa-arrow-up"></i></button>
+            <button type="button" class="ic js-hs-down" title="Move down" aria-label="Move down"><i class="fa-solid fa-arrow-down"></i></button>
+          </span>
+        </div>
+        {% empty %}
+        <p class="hs-empty">No published posts right now. Announcements, news &amp; updates and events from every office show here once they are published.</p>
+        {% endfor %}
+        <p class="hs-empty" id="hsNoMatch" hidden>No posts match.</p>
+      </div>
+      <p class="form-help" style="margin-top:8px;">Expired announcements and events that are over are not listed, and drop out of the slider by themselves. Posts without a picture use the default banner photo.</p>
+    </div>
+
+    <div class="modal-actions" style="justify-content:flex-start;border-top:none;padding-top:10px;">
+      <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Banner Slider</button>
+      <a href="{% url 'home' %}" target="_blank" class="btn btn-secondary"><i class="fa-solid fa-up-right-from-square"></i> View on homepage</a>
+    </div>
+  </form>
+</div>
+
 <div class="panel">
   <div class="panel-header">
     <h2><i class="fa-solid fa-link" style="color:var(--amber-600,#c07f0a);margin-right:8px;"></i>Quick Links</h2>
@@ -275,6 +365,45 @@
 </div>
 {% endfor %}
 
+<style>
+/* Banner Slider panel */
+.hs-mode{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:6px;}
+.hs-mode__opt{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border:1.5px solid var(--gray-200,#e5e7eb);border-radius:10px;cursor:pointer;background:#fff;}
+.hs-mode__opt:has(input:checked){border-color:var(--blue-600,#2563eb);background:#f3f7ff;}
+.hs-mode__opt input{margin-top:3px;width:16px;height:16px;flex:none;}
+.hs-mode__opt b{display:block;font-size:13.5px;color:var(--gray-900);}
+.hs-mode__opt b i{color:var(--blue-600);margin-right:4px;}
+.hs-mode__opt small{display:block;font-size:12px;color:var(--gray-600);margin-top:2px;line-height:1.4;}
+.hs-pick.is-off{opacity:.45;pointer-events:none;filter:grayscale(.4);}
+.hs-toolbar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:8px;}
+.hs-chips{display:flex;gap:6px;flex-wrap:wrap;}
+.hs-chip{border:1px solid var(--gray-200,#e5e7eb);background:#fff;border-radius:999px;padding:5px 12px;font-size:12px;font-weight:600;color:var(--gray-700,#374151);cursor:pointer;}
+.hs-chip.is-on{background:var(--blue-600,#2563eb);border-color:var(--blue-600,#2563eb);color:#fff;}
+.hs-search{max-width:260px;}
+.hs-count{font-size:12.5px;color:var(--gray-600);margin:0 0 8px;}
+.hs-count b{color:var(--gray-900);}
+.hs-note{color:var(--amber-600,#c07f0a);}
+.hs-list{max-height:420px;overflow-y:auto;border:1px solid var(--gray-200,#e5e7eb);border-radius:10px;}
+.hs-row{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--gray-100,#f3f4f6);background:#fff;}
+.hs-row:last-of-type{border-bottom:0;}
+.hs-row.is-picked{background:#f3f7ff;}
+.hs-row[hidden]{display:none;}
+.hs-row__main{display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer;margin:0;}
+.hs-row__main input{width:16px;height:16px;flex:none;}
+.hs-thumb{width:64px;height:40px;border-radius:6px;object-fit:cover;flex:none;background:var(--gray-100,#f3f4f6);}
+.hs-thumb--none{display:grid;place-items:center;color:var(--gray-400,#9ca3af);}
+.hs-info{min-width:0;display:flex;flex-direction:column;}
+.hs-info b{font-size:13px;color:var(--gray-900);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hs-info small{font-size:11.5px;color:var(--gray-500);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hs-kind{display:inline-block;font-size:10px;font-weight:700;padding:1px 7px;border-radius:999px;margin-right:4px;background:#fff4d6;color:#8a5a00;}
+.hs-kind--news{background:#e6f6ea;color:#1c7a33;}
+.hs-kind--event{background:#efe8fb;color:#5a35a0;}
+.hs-move{display:flex;gap:2px;flex:none;}
+.hs-move .ic{border:none;background:none;}
+.hs-row:not(.is-picked) .hs-move{visibility:hidden;}
+.hs-empty{padding:18px;margin:0;font-size:12.5px;color:var(--gray-500);text-align:center;}
+@media (max-width:700px){.hs-mode{grid-template-columns:1fr;}.hs-search{max-width:none;width:100%;}}
+</style>
 {% endblock %}
 
 {% block extra_js %}
@@ -295,5 +424,83 @@
       customInput.value = '';
     }
   }
+</script>
+<script>
+// Banner Slider panel: speed limits, Automatic / Choose switch, filter,
+// search, tick, and moving ticked posts up / down (the order of the ticked
+// rows on the page is the slide order that gets saved).
+(function () {
+  var form = document.getElementById('sliderForm');
+  if (!form) return;
+  var MAX = parseInt(form.getAttribute('data-max'), 10) || 20;   // from data-max on the form
+  var val = document.getElementById('slider-value'), unit = document.getElementById('slider-unit');
+  function limits() { val.min = unit.value === 'minutes' ? 1 : 3; val.max = unit.value === 'minutes' ? 60 : 3600; }
+  unit.addEventListener('change', limits); limits();
+  document.getElementById('slider-reset').addEventListener('click', function () { val.value = 6; unit.value = 'seconds'; limits(); val.focus(); });
+
+  var pick = document.getElementById('hsPick');
+  function mode() {
+    var m = form.querySelector('input[name="slider_mode"]:checked');
+    pick.classList.toggle('is-off', !m || m.value !== 'pick');
+  }
+  form.querySelectorAll('input[name="slider_mode"]').forEach(function (r) { r.addEventListener('change', mode); });
+  mode();
+
+  var list = document.getElementById('hsList');
+  var count = document.getElementById('hsCount');
+  var search = document.getElementById('hsSearch');
+  var noMatch = document.getElementById('hsNoMatch');
+  var kind = 'all';
+  function rows() { return Array.prototype.slice.call(list.querySelectorAll('.hs-row')); }
+  function filter() {
+    var q = (search.value || '').trim().toLowerCase(), shown = 0;
+    rows().forEach(function (r) {
+      var ok = (kind === 'all' || (kind === 'picked' ? r.classList.contains('is-picked') : r.dataset.kind === kind))
+               && (!q || r.dataset.search.indexOf(q) !== -1);
+      r.hidden = !ok; if (ok) shown++;
+    });
+    if (noMatch) noMatch.hidden = shown > 0 || !rows().length;
+  }
+  function recount() {
+    var n = list.querySelectorAll('input[name="slider_items"]:checked').length;
+    count.textContent = n;
+    list.querySelectorAll('input[name="slider_items"]:not(:checked)').forEach(function (c) { c.disabled = n >= MAX; });
+  }
+  // a newly ticked post goes to the end of the ticked ones; an unticked one
+  // goes below them
+  function lastPicked() { var p = list.querySelectorAll('.hs-row.is-picked'); return p.length ? p[p.length - 1] : null; }
+  list.addEventListener('change', function (e) {
+    var box = e.target; if (box.name !== 'slider_items') return;
+    var row = box.closest('.hs-row');
+    var anchor = lastPicked();
+    row.classList.toggle('is-picked', box.checked);
+    if (box.checked) {
+      if (anchor && anchor !== row) anchor.after(row); else if (!anchor) list.prepend(row);
+    } else {
+      var last = lastPicked(); if (last) last.after(row);
+    }
+    recount(); filter();
+  });
+  list.addEventListener('click', function (e) {
+    var btn = e.target.closest('.js-hs-up, .js-hs-down'); if (!btn) return;
+    var row = btn.closest('.hs-row');
+    if (btn.classList.contains('js-hs-up')) {
+      var prev = row.previousElementSibling;
+      if (prev && prev.classList.contains('is-picked')) prev.before(row);
+    } else {
+      var next = row.nextElementSibling;
+      if (next && next.classList.contains('is-picked')) next.after(row);
+    }
+    btn.focus();
+  });
+  document.querySelectorAll('.hs-chip').forEach(function (c) {
+    c.addEventListener('click', function () {
+      document.querySelectorAll('.hs-chip').forEach(function (x) { x.classList.toggle('is-on', x === c); });
+      kind = c.dataset.kind; filter();
+    });
+  });
+  search.addEventListener('input', filter);
+  recount();
+})();
 </script>
 {% endblock %}

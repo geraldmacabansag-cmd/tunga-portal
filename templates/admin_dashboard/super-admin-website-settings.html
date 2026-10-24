@@ -196,21 +196,6 @@
               </div>
 
               <div class="form-group">
-                <label class="form-label" for="ticker-value">Announcement bar speed</label>
-                <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-                  <span style="font-size:13px;color:var(--gray-600,#4b5563);">Show each announcement for</span>
-                  <input class="form-input" type="number" name="ticker_interval_value" id="ticker-value" min="1" max="3600" step="1" required
-                         value="{{ info.ticker_interval_value }}" style="width:96px;">
-                  <select class="form-input" name="ticker_interval_unit" id="ticker-unit" style="width:auto;">
-                    <option value="seconds" {% if info.ticker_interval_unit == "seconds" %}selected{% endif %}>seconds</option>
-                    <option value="minutes" {% if info.ticker_interval_unit == "minutes" %}selected{% endif %}>minutes</option>
-                  </select>
-                  <button type="button" class="btn btn-secondary" id="ticker-reset" title="Use the original speed (2 seconds)"><i class="fa-solid fa-rotate-left"></i> Reset to default</button>
-                </div>
-                <span class="form-help">How long each announcement stays in the bar at the very top of the public website before the next one slides in. Default: 2 seconds. Allowed: 1 second up to 60 minutes. Nothing changes on the live site until you click Save Appearance.</span>
-              </div>
-
-              <div class="form-group">
                 <label class="form-label" for="news-slider-secs">Home page News slider speed</label>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
                   <span style="font-size:13px;color:var(--gray-600,#4b5563);">Show each news story for</span>
@@ -363,32 +348,52 @@
                   <input type="checkbox" id="maintenanceMode" name="maintenance_mode" onchange="toggleMaintenanceWarning()" style="width:16px;height:16px;" {% if info.maintenance_mode %}checked{% endif %}>
                   Enable maintenance mode
                 </label>
-                <span class="form-help">While enabled, visitors see the maintenance message below instead of the website. You, the office representatives and the dashboards are not affected — you can still sign in and use everything.</span>
+                <span class="form-help">Choose below what happens while it's on. You, the office representatives and the dashboards are never affected — you can still sign in and use everything.</span>
+              </div>
+
+              <div class="form-group">
+                <span class="form-label">What should visitors see?</span>
+                <div class="mt-scope">
+                  <label class="mt-scope__opt">
+                    <input type="radio" name="maintenance_scope" value="site" onchange="toggleMaintenanceWarning()" {% if info.maintenance_scope != 'notice' %}checked{% endif %}>
+                    <span>
+                      <b><i class="fa-solid fa-lock"></i> Close the website</b>
+                      <small>Visitors see only the maintenance page with the message below.</small>
+                    </span>
+                  </label>
+                  <label class="mt-scope__opt">
+                    <input type="radio" name="maintenance_scope" value="notice" onchange="toggleMaintenanceWarning()" {% if info.maintenance_scope == 'notice' %}checked{% endif %}>
+                    <span>
+                      <b><i class="fa-solid fa-bullhorn"></i> Message only</b>
+                      <small>The website stays open. The message below shows in the bar at the top of every page.</small>
+                    </span>
+                  </label>
+                </div>
               </div>
 
               <div id="maintenanceWarning" class="reminder-box{% if not info.maintenance_mode %} is-hidden{% endif %}">
                 <i class="fa-solid fa-triangle-exclamation ic"></i>
                 <div>
                   <strong>{% if info.maintenance_active %}Maintenance mode is currently ON{% elif info.maintenance_mode %}Maintenance mode ended{% else %}Maintenance mode is currently OFF{% endif %}</strong>
-                  <p>{% if info.maintenance_active %}The public website is showing the maintenance message below to all visitors right now.{% elif info.maintenance_mode %}The "back online" time has passed, so the website is open to visitors again.{% else %}Turning this on will take the public website offline for all visitors until you turn it off again.{% endif %}</p>
+                  <p>{% if info.maintenance_notice %}The website is open; the maintenance message is showing at the top of every page right now.{% elif info.maintenance_active %}The public website is showing the maintenance page to all visitors right now.{% elif info.maintenance_mode %}The "back online" time has passed, so the message is no longer shown and the website is open to visitors.{% else %}Turning this on will take the public website offline for all visitors until you turn it off again.{% endif %}</p>
                 </div>
               </div>
 
               <div class="form-group">
                 <label class="form-label" for="maintenanceMessage">Maintenance message</label>
                 <textarea class="form-input form-textarea" id="maintenanceMessage" name="maintenance_message" maxlength="1000" style="min-height:90px;">{{ info.maintenance_message|default:info.DEFAULT_MAINTENANCE_MESSAGE }}</textarea>
-                <span class="form-help">The website's phone, email and address (General tab) are shown under the message.</span>
+                <span class="form-help">"Close the website": shown on the maintenance page, with the website's phone, email and address (General tab) under it. "Message only": shown in the bar at the top of every page.</span>
               </div>
 
               <div class="form-group">
                 <label class="form-label" for="maintenanceUntil">Back online at (optional)</label>
                 <input class="form-input" type="datetime-local" id="maintenanceUntil" name="maintenance_until" value="{% if info.maintenance_until %}{{ info.maintenance_until|date:'Y-m-d\TH:i' }}{% endif %}" style="max-width:280px;">
-                <span class="form-help">Shown to visitors as "Expected back". At this time the website opens again by itself. Leave empty to keep it in maintenance until you turn it off.</span>
+                <span class="form-help">Shown to visitors as "Expected back". At this time maintenance ends by itself (the website opens again / the message goes away). Leave empty to keep it on until you turn it off.</span>
               </div>
 
               <div class="modal-actions" style="justify-content:flex-start;border-top:none;padding-top:4px;flex-wrap:wrap;">
                 <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Maintenance Settings</button>
-                <a class="btn btn-secondary" href="{% url 'home' %}?maintenance_preview=1" target="_blank" rel="noopener"><i class="fa-regular fa-eye"></i> Preview maintenance page</a>
+                <a class="btn btn-secondary" id="maintenancePreviewBtn" href="{% url 'home' %}?maintenance_preview=1" target="_blank" rel="noopener"><i class="fa-regular fa-eye"></i> Preview maintenance page</a>
               </div>
             </form>
 
@@ -502,13 +507,23 @@
 
   function toggleMaintenanceWarning(){
     var on = document.getElementById('maintenanceMode').checked;
+    var picked = document.querySelector('input[name="maintenance_scope"]:checked');
+    var notice = picked && picked.value === 'notice';
     var box = document.getElementById('maintenanceWarning');
     box.classList.toggle('is-hidden', !on);
-    box.querySelector('strong').textContent = on ? 'Maintenance mode is currently ON' : 'Maintenance mode is currently OFF';
-    box.querySelector('p').textContent = on
-      ? 'The public website is showing the maintenance message below to all visitors right now.'
-      : 'Turning this on will take the public website offline for all visitors until you turn it off again.';
+    box.querySelector('strong').textContent = on ? 'Maintenance mode will be ON after you save' : 'Maintenance mode is currently OFF';
+    box.querySelector('p').textContent = notice
+      ? 'The website stays open. Visitors will see the maintenance message at the top of every page, in place of the announcements.'
+      : 'The public website will be closed: visitors will see only the maintenance page until you turn it off.';
+    var prev = document.getElementById('maintenancePreviewBtn');
+    if (prev) prev.style.display = notice ? 'none' : '';
   }
+  // on load: hide "Preview maintenance page" when "Message only" is picked
+  document.addEventListener('DOMContentLoaded', function () {
+    var picked = document.querySelector('input[name="maintenance_scope"]:checked');
+    var prev = document.getElementById('maintenancePreviewBtn');
+    if (prev && picked && picked.value === 'notice') prev.style.display = 'none';
+  });
 
 
   // "Save Changes" at the top saves the tab that is open (it used to only
@@ -615,18 +630,6 @@
 
   wireImagePreview('banner-input', 'banner-preview', 'banner-preview-label', 'New banner selected — not saved yet, click Save Appearance to apply it.');
 
-  // Announcement bar speed: the number box allows up to 60 minutes / 3600 seconds
-  (function () {
-    var val = document.getElementById('ticker-value'), unit = document.getElementById('ticker-unit');
-    if (!val || !unit) return;
-    function limits() { val.max = unit.value === 'minutes' ? 60 : 3600; }
-    unit.addEventListener('change', limits);
-    limits();
-    document.getElementById('ticker-reset').addEventListener('click', function () {
-      val.value = 2; unit.value = 'seconds'; limits(); val.focus();
-    });
-  })();
-
   // "Use default banner": shows the LGU building photo in the preview and
   // tells the server to remove the uploaded banner when Save Appearance is clicked.
   (function () {
@@ -681,6 +684,16 @@
   });
 </script>
 <style>
+/* Maintenance tab: "What should visitors see?" choice */
+.mt-scope{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:6px;}
+.mt-scope__opt{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border:1.5px solid var(--gray-200,#e5e7eb);border-radius:10px;cursor:pointer;background:#fff;transition:border-color .15s ease,background .15s ease;}
+.mt-scope__opt:hover{border-color:var(--navy,#0d3a86);}
+.mt-scope__opt:has(input:checked){border-color:var(--navy,#0d3a86);background:#f3f7ff;}
+.mt-scope__opt input{margin-top:3px;width:16px;height:16px;flex:none;}
+.mt-scope__opt b{display:block;font-size:13.5px;color:var(--gray-900,#111827);}
+.mt-scope__opt b i{color:var(--navy,#0d3a86);margin-right:4px;}
+.mt-scope__opt small{display:block;font-size:12px;color:var(--gray-600,#4b5563);margin-top:2px;line-height:1.4;}
+@media (max-width:700px){.mt-scope{grid-template-columns:1fr;}}
   /* Website Settings → Appearance: header tagline preview (looks like the public header) */
   .tagline-preview { display: flex; align-items: center; gap: 12px; max-width: 420px; padding: 12px 14px; margin-bottom: 10px; border-radius: 10px; background: #0b1f4d; color: #fff; }
   .tagline-preview img { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; flex: none; background: #fff; }

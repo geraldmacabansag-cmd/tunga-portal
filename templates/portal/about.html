@@ -66,10 +66,52 @@ Home | Digital Governance Portal
   </div>
 </section>
 {% endif %}
+
+{% comment %}Newer About Us sections (Super Admin → About Us Page, one tab each).
+Each only shows when it has content (about_new, portal/views.py about()).
+Styles: static/css/aboutus.css ("Newer About Us sections").{% endcomment %}
+{% if about_new.location %}
+<section class="ab-wrap" id="location">
+  <div class="container">
+    <div class="panel ab-panel" data-collapse>
+      <div class="ab-head">
+        <div>
+          <h2 class="section-title">Where Is Tunga?</h2>
+          {% if about_content.location_intro %}<p class="ab-intro">{{ about_content.location_intro|linebreaksbr }}</p>{% endif %}
+        </div>
+        <a class="btn btn-primary ab-head__btn" href="{% url 'tunga_map' %}"><i class="fa-solid fa-map-location-dot"></i> Open Interactive Map</a>
+      </div>
+      <div class="ab-loc{% if not about_content.location_show_map %} ab-loc--nomap{% endif %}">
+        {% if about_content.location_show_map %}
+        <div class="ab-loc__map">
+          {% load tungamap %}{% tunga_map height="320px" public=True compact=True hall=True start="hall" %}
+        </div>
+        {% endif %}
+        <ul class="ab-facts">
+          <li><i class="fa-solid fa-map"></i><div><b>Province &amp; region</b><span>Leyte · Eastern Visayas (Region VIII)</span></div></li>
+          {% if about_content.location_neighbor_list %}
+          <li><i class="fa-solid fa-arrows-left-right"></i><div><b>Neighboring towns</b><span class="ab-chips">{% for n in about_content.location_neighbor_list %}<span>{{ n }}</span>{% endfor %}</span></div></li>
+          {% endif %}
+          {% if about_content.location_distance %}
+          <li><i class="fa-solid fa-car-side"></i><div><b>From Tacloban City</b><span>{{ about_content.location_distance }}</span></div></li>
+          {% endif %}
+          {% if about_content.location_terrain %}
+          <li><i class="fa-solid fa-mountain-sun"></i><div><b>Land &amp; terrain</b><span>{{ about_content.location_terrain }}</span></div></li>
+          {% endif %}
+          {% if about_content.glance_land_area_value %}
+          <li><i class="fa-solid fa-ruler-combined"></i><div><b>Land area</b><span>{{ about_content.glance_land_area_value }}</span></div></li>
+          {% endif %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %}
+
 {% if history_paragraphs or milestones or about_content.history_more %}
 <section class="history-wrap" id="history">
   <div class="container">
-    <div class="panel history-panel">
+    <div class="panel history-panel" data-collapse>
       <h2 class="section-title">Our History</h2>
       <div class="history-grid">
         {% if history_paragraphs %}
@@ -208,43 +250,272 @@ Home | Digital Governance Portal
 .legacy-card p { margin: 0; font-size: .92rem; line-height: 1.55; }
 </style>
  
-{% if about_officials or org_nodes %}
-<section class="officials-wrap" id="officials">
+{% if about_new.seal %}
+<section class="ab-wrap" id="seal">
   <div class="container">
-    <div class="panel officials-panel">
-      <h2 class="section-title">Our Officials</h2>
-      {% if org_nodes %}
-      {% comment %}The LGU's Organizational Chart (built by the Super Admin) takes the place
-         of the officials' photos once "Show on About Us page" is turned on.
-         Show-only: no buttons; a person's box grows when the mouse is over it.{% endcomment %}
-      <div class="org-officials" id="org-chart">
-        {% include "office_dashboard/_org_chart_public.html" with org_plain=True %}
-      </div>
-      {% elif about_officials %}
-      <div class="officials-strip" id="officialsStrip">
-        {% for o in about_officials %}
-        <div class="official-card{% if forloop.counter > 4 %} official-card--extra{% endif %}">
-          <img src="{% if o.photo %}{{ o.photo.url }}{% else %}{% static 'images/avatar-male-1.svg' %}{% endif %}" alt="{{ o.name }}, {{ o.position }}">
-          <p class="official-card__name">{{ o.name }}</p>
-          <p class="official-card__role">{{ o.position }}</p>
+    <div class="panel ab-panel" data-collapse>
+      <h2 class="section-title">The Official Seal</h2>
+      <div class="ab-seal{% if not seal_items %} ab-seal--plain{% endif %}">
+        <div class="ab-seal__img">
+          <img src="{% if site_contact.logo %}{{ site_contact.logo.url }}{% else %}{% static 'images/tunga_leyte_logo.png' %}{% endif %}" alt="Official seal of the Municipality of Tunga">
         </div>
+        <div>
+          {% if about_content.seal_intro %}<p class="ab-intro ab-intro--flush">{{ about_content.seal_intro|linebreaksbr }}</p>{% endif %}
+          {% if seal_items %}
+          <div class="ab-sym">
+            {% for s in seal_items %}
+            <div class="ab-sym__item">
+              <svg class="ab-sym__dot" viewBox="0 0 14 14" aria-hidden="true"><circle cx="7" cy="7" r="7" fill="{{ s.extra|default:'#0d3a86' }}"/></svg>
+              <div><b>{{ s.title }}</b>{% if s.description %}<span>{{ s.description }}</span>{% endif %}</div>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if about_new.fiesta %}
+<section class="ab-wrap" id="fiesta">
+  <div class="container">
+    <div class="panel ab-panel" data-collapse>
+      <h2 class="section-title">Fiesta &amp; Culture</h2>
+      <div class="ab-fiesta{% if not about_content.fiesta_title or not fiesta_items %} ab-fiesta--one{% endif %}">
+        {% if about_content.fiesta_title %}
+        <div class="ab-feature{% if about_content.fiesta_image %} has-img{% endif %}">
+          {% if about_content.fiesta_image %}<img src="{{ about_content.fiesta_image.url }}" alt="{{ about_content.fiesta_title }}" class="ab-feature__img" loading="lazy">{% endif %}
+          <div class="ab-feature__in">
+            <span class="ab-feature__tag"><i class="fa-solid fa-star"></i> Town Fiesta</span>
+            <h3>{{ about_content.fiesta_title }}</h3>
+            {% if about_content.fiesta_date %}<p class="ab-feature__date"><i class="fa-regular fa-calendar"></i> {{ about_content.fiesta_date }}</p>{% endif %}
+            {% if about_content.fiesta_description %}<p>{{ about_content.fiesta_description|linebreaksbr }}</p>{% endif %}
+          </div>
+        </div>
+        {% endif %}
+        {% if fiesta_items %}
+        <div class="ab-stack">
+          {% for f in fiesta_items %}
+          <div class="ab-mini">
+            <span class="ab-mini__ic ab-tone-{% cycle 'a' 'b' 'c' %}"><i class="fa-solid {% cycle 'fa-cake-candles' 'fa-masks-theater' 'fa-church' 'fa-music' %}"></i></span>
+            <div><b>{{ f.title }}</b>{% if f.extra %}<small><i class="fa-regular fa-calendar"></i> {{ f.extra }}</small>{% endif %}{% if f.description %}<span>{{ f.description }}</span>{% endif %}</div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if about_new.places %}
+<section class="ab-wrap" id="places">
+  <div class="container">
+    <div class="panel ab-panel" data-collapse>
+      <div class="ab-head">
+        <div>
+          <h2 class="section-title">Places to Visit</h2>
+          {% if about_content.places_intro %}<p class="ab-intro">{{ about_content.places_intro }}</p>{% endif %}
+        </div>
+        <a class="btn btn-outline ab-head__btn" href="{% url 'gallery' %}"><i class="fa-regular fa-images"></i> See the Gallery</a>
+      </div>
+      <div class="ab-places">
+        {% for p in place_items %}
+        <article class="ab-place">
+          <div class="ab-place__pic">
+            <img src="{% if p.image %}{{ p.image.url }}{% else %}{% static 'images/lgu_tunga_bldg.jpeg' %}{% endif %}" alt="{{ p.title }}" loading="lazy">
+            {% if p.extra %}<span class="ab-place__tag">{{ p.extra }}</span>{% endif %}
+          </div>
+          <div class="ab-place__in">
+            <h3>{{ p.title }}</h3>
+            {% if p.description %}<p>{{ p.description }}</p>{% endif %}
+          </div>
+        </article>
         {% endfor %}
       </div>
-      {% if about_officials|length > 4 %}
-      <div class="officials-panel__cta">
-        <button type="button" class="btn btn-outline" id="officialsToggleBtn" onclick="toggleAllOfficials()"><i class="fa-solid fa-chevron-down"></i> View All Officials</button>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% if about_officials or org_nodes %}
+{% comment %}
+"Our Officials": a row of photo cards (arrows scroll it sideways).
+  - "View All Officials" (below) opens the panel to show every official.
+  - "Show Chart" (top right, only when the LGU's Organizational Chart is set
+    to "Show on About Us page") switches the panel to the chart and back.
+Styles: static/css/aboutus.css ("Our Officials"). Script: extra_js below.
+{% endcomment %}
+<section class="officials-wrap" id="officials">
+  <div class="container">
+    <div class="panel officials-panel" id="officialsPanel">
+      <div class="officials-panel__head">
+        <div class="officials-panel__title">
+          <h2 class="section-title">Our Officials</h2>
+          {% if officials_common_term %}<span class="officials-term"><i class="fa-regular fa-calendar"></i> Term {{ officials_common_term }}</span>{% endif %}
+        </div>
+        {% if org_nodes and about_officials %}
+        <button type="button" class="btn btn-outline officials-chart-btn" id="officialsChartBtn" aria-pressed="false" aria-controls="org-chart">
+          <i class="fa-solid fa-sitemap"></i> <span>Show Chart</span>
+        </button>
+        {% endif %}
+      </div>
+
+      {% if about_officials %}
+      <div class="officials-view" id="officialsView">
+        <div class="officials-row" id="officialsRow">
+          <button type="button" class="officials-row__nav officials-row__nav--prev" aria-label="Previous officials" hidden><i class="fa-solid fa-arrow-left"></i></button>
+          <div class="officials-strip" id="officialsStrip">
+            {% for o in about_officials %}
+            <div class="official-card">
+              <div class="official-card__photo">
+                <img src="{% if o.photo %}{{ o.photo.url }}{% else %}{% static 'images/avatar-male-1.svg' %}{% endif %}" alt="{{ o.name }}, {{ o.position }}" loading="lazy">
+              </div>
+              <div class="official-card__body">
+                <p class="official-card__name">{{ o.name }}</p>
+                <p class="official-card__role">{{ o.position }}</p>
+                {% if o.term_label %}<p class="official-card__term">Term {{ o.term_label }}</p>{% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          <button type="button" class="officials-row__nav officials-row__nav--next" aria-label="More officials" hidden><i class="fa-solid fa-arrow-right"></i></button>
+        </div>
+        <div class="officials-panel__cta" id="officialsCta" hidden>
+          <button type="button" class="btn btn-outline" id="officialsToggleBtn" aria-expanded="false" aria-controls="officialsStrip"><i class="fa-solid fa-users"></i> <span>View All Officials</span></button>
+        </div>
       </div>
       {% endif %}
+
+      {% if org_nodes %}
+      {% comment %}The LGU's Organizational Chart (built by the Super Admin). With officials
+         added it is opened with "Show Chart"; without any, it shows right away.{% endcomment %}
+      <div class="org-officials" id="org-chart"{% if about_officials %} hidden{% endif %}>
+        {% include "office_dashboard/_org_chart_public.html" with org_plain=True %}
+      </div>
       {% endif %}
     </div>
   </div>
 </section>
 {% endif %}
  
+{% if about_new.agenda %}
+<section class="ab-wrap" id="agenda">
+  <div class="container">
+    <div class="panel ab-panel" data-collapse>
+      <h2 class="section-title">Development Agenda</h2>
+      {% if about_content.agenda_intro %}<p class="ab-intro">{{ about_content.agenda_intro }}</p>{% endif %}
+      <div class="ab-goals">
+        {% for g in goal_items %}
+        <div class="ab-goal">
+          <span class="ab-goal__n">{{ forloop.counter|stringformat:"02d" }}</span>
+          <div class="ab-goal__body">
+            <h3>{{ g.title }}</h3>
+            {% if g.description %}<p>{{ g.description }}</p>{% endif %}
+            {% if g.progress is not None %}
+            <progress class="ab-goal__bar" value="{{ g.progress }}" max="100" aria-label="Progress">{{ g.progress }}%</progress>
+            <small>{{ g.progress }}% done</small>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+{% comment %}Awards and the Hymn sit side by side on laptops (both are short).{% endcomment %}
+<div class="ab-row">
+{% if about_new.awards %}
+<section class="ab-wrap" id="awards">
+  <div class="container">
+    <div class="panel ab-panel" data-collapse>
+      <h2 class="section-title">Awards &amp; Recognition</h2>
+      {% if about_content.awards_intro %}<p class="ab-intro">{{ about_content.awards_intro }}</p>{% endif %}
+      <div class="ab-awards">
+        {% for a in award_items %}
+        <div class="ab-award">
+          <span class="ab-award__medal"><i class="fa-solid {% cycle 'fa-award' 'fa-medal' 'fa-trophy' %}"></i></span>
+          <div>
+            {% if a.year %}<span class="ab-award__yr">{{ a.year }}</span>{% endif %}
+            <h3>{{ a.title }}</h3>
+            {% if a.description %}<p>{{ a.description }}</p>{% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %}
+{% if about_new.hymn %}
+<section class="ab-wrap" id="hymn">
+  <div class="container">
+    <div class="panel ab-panel" data-collapse>
+      <h2 class="section-title">The Municipal Hymn</h2>
+      <div class="ab-hymn">
+        <span class="ab-hymn__icon"><i class="fa-solid fa-music"></i></span>
+        <div class="ab-hymn__in">
+          <b>&ldquo;{{ about_content.hymn_title }}&rdquo;</b>
+          {% if about_content.hymn_composer %}<p>Music and lyrics by {{ about_content.hymn_composer }}</p>{% endif %}
+        </div>
+        <div class="ab-hymn__actions">
+          {% if about_content.hymn_link %}<a class="btn ab-btn-gold" href="{{ about_content.hymn_link }}" target="_blank" rel="noopener"><i class="fa-solid fa-play"></i> Listen</a>{% endif %}
+          {% if about_content.hymn_lyrics %}<button type="button" class="btn ab-btn-ghost" id="hymnLyricsBtn" aria-expanded="false" aria-controls="hymnLyrics"><i class="fa-regular fa-file-lines"></i> <span>Show Lyrics</span></button>{% endif %}
+        </div>
+      </div>
+      {% if about_content.hymn_lyrics %}
+      <div class="ab-lyrics" id="hymnLyrics" hidden>
+        {% for verse in about_content.hymn_lyrics_paragraphs %}<p>{{ verse|linebreaksbr }}</p>{% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endif %}
+</div>
+
+{% if about_new.transparency %}
+<section class="ab-wrap" id="transparency">
+  <div class="container">
+    <div class="panel ab-panel" data-collapse>
+      <div class="ab-head">
+        <div>
+          <h2 class="section-title">Full Disclosure Documents</h2>
+          <p class="ab-intro">{{ about_content.disclosure_intro|default:"Public financial and planning documents of the LGU, posted under the DILG Full Disclosure Policy." }}</p>
+        </div>
+        {% if doc_years|length > 1 %}
+        <div class="ab-years" role="group" aria-label="Fiscal year">
+          {% for y in doc_years %}<button type="button" class="ab-year{% if forloop.first %} is-on{% endif %}" data-year="{{ y }}" aria-pressed="{% if forloop.first %}true{% else %}false{% endif %}">FY {{ y }}</button>{% endfor %}
+        </div>
+        {% endif %}
+      </div>
+      <div class="ab-docs" id="abDocs"{% if doc_years|length > 1 %} data-first-year="{{ doc_years.0 }}"{% endif %}>
+        {% for d in documents %}
+        <div class="ab-doc" data-year="{{ d.year|default_if_none:'' }}">
+          <span class="ab-doc__f"><i class="fa-regular fa-file-pdf"></i></span>
+          <div class="ab-doc__in">
+            <b>{{ d.title }}</b>
+            <span>{% if d.year %}FY {{ d.year }}{% endif %}{% if d.extra %} · {{ d.extra }}{% endif %}</span>
+          </div>
+          <a class="ab-doc__btn" href="{% url 'about_document' d.pk %}" target="_blank" rel="noopener" title="View" aria-label="View {{ d.title }}"><i class="fa-regular fa-eye"></i></a>
+          <a class="ab-doc__btn" href="{% url 'about_document' d.pk %}?download=1" title="Download" aria-label="Download {{ d.title }}"><i class="fa-solid fa-download"></i></a>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %}
+
 {% if barangays_poblacion or barangays_rural %}
 <section class="barangays-wrap" id="barangays">
   <div class="container">
-    <div class="panel barangays-panel">
+    <div class="panel barangays-panel" data-collapse>
       <h2 class="section-title">Barangays of Tunga</h2>
       {% if about_content.barangays_intro %}<p class="barangays-intro">{{ about_content.barangays_intro }}</p>{% endif %}
  
@@ -318,6 +589,47 @@ Home | Digital Governance Portal
     </div>
   </div>
 </section>
+
+
+{% if about_new.visit %}
+<section class="ab-wrap" id="visit">
+  <div class="container">
+    <div class="panel ab-panel" data-collapse>
+      <h2 class="section-title">Visit the Municipal Hall</h2>
+      <div class="ab-visit">
+        <div class="ab-visit__photo">
+          <img src="{% if site_contact.banner_contact %}{{ site_contact.banner_contact.url }}{% else %}{% static 'images/lgu_tunga_bldg.jpeg' %}{% endif %}" alt="Municipal Hall of Tunga" loading="lazy">
+          <span class="ab-visit__pin"><i class="fa-solid fa-location-dot"></i><span><b>{{ site_contact.map_place_name|default:"Municipal Hall of Tunga" }}</b>{{ site_contact.address|default:"Tunga, Leyte" }}</span></span>
+        </div>
+        <div>
+          {% if about_content.visit_hour_rows %}
+          <h3 class="ab-visit__h"><i class="fa-regular fa-clock"></i> Office hours</h3>
+          <table class="ab-hours">
+            {% for day, time in about_content.visit_hour_rows %}<tr><td>{{ day }}</td><td>{{ time }}</td></tr>{% endfor %}
+          </table>
+          {% endif %}
+          {% if about_content.visit_direction_steps %}
+          <h3 class="ab-visit__h"><i class="fa-solid fa-route"></i> How to get here</h3>
+          <ol class="ab-route">
+            {% for step in about_content.visit_direction_steps %}<li>{{ step }}</li>{% endfor %}
+          </ol>
+          {% endif %}
+          {% if site_contact.phone or site_contact.email %}
+          <p class="ab-visit__contact">
+            {% if site_contact.phone %}<span><i class="fa-solid fa-phone"></i> {{ site_contact.phone }}</span>{% endif %}
+            {% if site_contact.email %}<span><i class="fa-regular fa-envelope"></i> {{ site_contact.email }}</span>{% endif %}
+          </p>
+          {% endif %}
+          <div class="ab-visit__actions">
+            <a class="btn btn-primary" target="_blank" rel="noopener" href="{% if about_content.visit_map_link %}{{ about_content.visit_map_link }}{% else %}https://www.google.com/maps/dir/?api=1&amp;destination={{ site_contact.map_lat|stringformat:'.6f' }},{{ site_contact.map_lng|stringformat:'.6f' }}{% endif %}"><i class="fa-solid fa-diamond-turn-right"></i> Get Directions</a>
+            <a class="btn btn-outline" href="{% url 'contact' %}"><i class="fa-regular fa-envelope"></i> Contact Us</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %}
  
 {% endblock %}
  
@@ -336,14 +648,128 @@ Home | Digital Governance Portal
   });
 })();
  
-function toggleAllOfficials() {
+/* "Our Officials": arrows scroll the row of cards; "View All Officials"
+   opens the panel to show every card (and back); "Show Chart" switches the
+   panel to the Organizational Chart (and back). */
+(function () {
   var strip = document.getElementById('officialsStrip');
-  var btn = document.getElementById('officialsToggleBtn');
-  if (!strip || !btn) return;
-  var expanded = strip.classList.toggle('expanded');
-  btn.innerHTML = expanded
-    ? '<i class="fa-solid fa-chevron-up"></i> Show Fewer Officials'
-    : '<i class="fa-solid fa-chevron-down"></i> View All Officials';
-}
+  if (strip) {
+    var row = document.getElementById('officialsRow');
+    var prev = row.querySelector('.officials-row__nav--prev');
+    var next = row.querySelector('.officials-row__nav--next');
+    var cta = document.getElementById('officialsCta');
+    var toggle = document.getElementById('officialsToggleBtn');
+    function step() {
+      var card = strip.querySelector('.official-card');
+      return card ? (card.offsetWidth + 18) * Math.max(1, Math.floor(strip.clientWidth / (card.offsetWidth + 18))) : strip.clientWidth;
+    }
+    function update() {
+      var expanded = strip.classList.contains('expanded');
+      var more = strip.scrollWidth > strip.clientWidth + 2;
+      // the "View All" button only when some officials are out of view
+      cta.hidden = !(more || expanded);
+      prev.hidden = expanded || !more || strip.scrollLeft < 4;
+      next.hidden = expanded || !more || strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 4;
+    }
+    prev.addEventListener('click', function () { strip.scrollBy({ left: -step(), behavior: 'smooth' }); });
+    next.addEventListener('click', function () { strip.scrollBy({ left: step(), behavior: 'smooth' }); });
+    strip.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    toggle.addEventListener('click', function () {
+      var expanded = strip.classList.toggle('expanded');
+      strip.scrollLeft = 0;
+      toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      toggle.querySelector('span').textContent = expanded ? 'Show Fewer Officials' : 'View All Officials';
+      toggle.querySelector('i').className = expanded ? 'fa-solid fa-chevron-up' : 'fa-solid fa-users';
+      update();
+      if (!expanded) document.getElementById('officials').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    update();
+    window.addEventListener('load', update);
+  }
+
+  var chartBtn = document.getElementById('officialsChartBtn');
+  if (chartBtn) {
+    var view = document.getElementById('officialsView');
+    var chart = document.getElementById('org-chart');
+    chartBtn.addEventListener('click', function () {
+      var showChart = chart.hidden;
+      chart.hidden = !showChart;
+      view.hidden = showChart;
+      chartBtn.setAttribute('aria-pressed', showChart ? 'true' : 'false');
+      chartBtn.querySelector('span').textContent = showChart ? 'Show Officials' : 'Show Chart';
+      chartBtn.querySelector('i').className = showChart ? 'fa-solid fa-id-badge' : 'fa-solid fa-sitemap';
+      // the chart sizes itself to the panel: let it measure now that it shows
+      window.dispatchEvent(new Event('resize'));
+    });
+  }
+})();
+/* Newer About Us sections: Full Disclosure year buttons and the hymn lyrics */
+(function () {
+  var docs = document.getElementById('abDocs');
+  var years = document.querySelectorAll('.ab-year');
+  function showYear(y) {
+    years.forEach(function (b) {
+      var on = b.dataset.year === y;
+      b.classList.toggle('is-on', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    docs.querySelectorAll('.ab-doc').forEach(function (d) { d.hidden = d.dataset.year !== y; });
+  }
+  if (docs && docs.dataset.firstYear) {
+    years.forEach(function (b) { b.addEventListener('click', function () { showYear(b.dataset.year); }); });
+    showYear(docs.dataset.firstYear);
+  }
+  var lyricsBtn = document.getElementById('hymnLyricsBtn');
+  if (lyricsBtn) {
+    var lyrics = document.getElementById('hymnLyrics');
+    lyricsBtn.addEventListener('click', function () {
+      var open = lyrics.hidden;
+      lyrics.hidden = !open;
+      lyricsBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      lyricsBtn.querySelector('span').textContent = open ? 'Hide Lyrics' : 'Show Lyrics';
+    });
+  }
+})();
+
+/* Phones / small screens: a long panel (data-collapse) is shown shorter with
+   a "Show more" button under it; the button opens it fully (and back). */
+(function () {
+  var mq = window.matchMedia('(max-width: 700px)');
+  var LIMIT = 520;                       // panels taller than this get the button
+  var panels = Array.prototype.slice.call(document.querySelectorAll('.panel[data-collapse]'));
+  panels.forEach(function (p) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'ab-more';
+    btn.hidden = true;
+    btn.innerHTML = '<span>Show more</span> <i class="fa-solid fa-chevron-down"></i>';
+    btn.addEventListener('click', function () {
+      var open = p.classList.toggle('is-open');
+      btn.querySelector('span').textContent = open ? 'Show less' : 'Show more';
+      btn.querySelector('i').className = open ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down';
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (!open) p.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    p.appendChild(btn);
+    p._moreBtn = btn;
+  });
+  function update() {
+    panels.forEach(function (p) {
+      var btn = p._moreBtn;
+      if (!mq.matches) { p.classList.remove('is-collapsible', 'is-open'); btn.hidden = true; return; }
+      var wasOpen = p.classList.contains('is-open');
+      p.classList.remove('is-collapsible');
+      var tall = p.scrollHeight > LIMIT + 120;      // only when it saves real space
+      p.classList.toggle('is-collapsible', tall);
+      if (!tall) p.classList.remove('is-open');
+      btn.hidden = !tall;
+      btn.setAttribute('aria-expanded', wasOpen && tall ? 'true' : 'false');
+    });
+  }
+  update();
+  window.addEventListener('load', update);
+  if (mq.addEventListener) mq.addEventListener('change', update); else mq.addListener(update);
+})();
 </script>
 {% endblock %}

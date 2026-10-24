@@ -42,9 +42,16 @@ class SiteContactInfo(models.Model):
     banner_contact = models.ImageField(upload_to="site/banners/", blank=True, null=True)
     # Shown under "MUNICIPALITY OF TUNGA" in the public site header (Website Settings → Appearance)
     site_tagline = models.CharField(max_length=120, default=DEFAULT_TAGLINE, blank=True)
-    # How long each announcement stays in the bar at the very top of the public
-    # site before the next one shows (Website Settings → Appearance). In seconds.
-    ticker_interval_seconds = models.PositiveIntegerField(default=2)
+    # Home page banner slider (Super Admin → Homepage → Banner Slider), see
+    # portal/hero_slides.py:
+    #   hero_slider_seconds  how long each slide shows (3 seconds to 60 minutes)
+    #   hero_slider_mode     "auto" = newest posts with a picture,
+    #                        "pick" = only the posts in hero_slider_items
+    #   hero_slider_items    the picked posts in slide order: ["announcement:12", "news:5", "event:3", …]
+    HERO_SLIDER_MODE_CHOICES = [("auto", "Automatic (newest posts with a picture)"), ("pick", "Chosen content")]
+    hero_slider_seconds = models.PositiveIntegerField(default=6)
+    hero_slider_mode = models.CharField(max_length=10, choices=HERO_SLIDER_MODE_CHOICES, default="auto")
+    hero_slider_items = models.JSONField(default=list, blank=True)
     # Home page News slider: seconds before the next news story slides in
     # (Website Settings → Appearance).
     news_slider_seconds = models.PositiveIntegerField(default=6)
@@ -60,6 +67,15 @@ class SiteContactInfo(models.Model):
     DEFAULT_MAINTENANCE_MESSAGE = ("We're currently performing scheduled maintenance on our website. "
                                    "Please check back shortly. For urgent concerns, please contact the Municipal Hall.")
     maintenance_mode = models.BooleanField(default=False)
+    # what maintenance mode does:
+    #   "site"   close the website: visitors see the maintenance page
+    #   "notice" keep the website open: the message replaces the
+    #            announcement bar at the top of every page
+    MAINTENANCE_SCOPE_CHOICES = [
+        ("site", "Close the website (show the maintenance page)"),
+        ("notice", "Message only (keep the website open, show the message at the top)"),
+    ]
+    maintenance_scope = models.CharField(max_length=10, choices=MAINTENANCE_SCOPE_CHOICES, default="site")
     maintenance_message = models.TextField(blank=True, default=DEFAULT_MAINTENANCE_MESSAGE)
     maintenance_until = models.DateTimeField(null=True, blank=True)   # turns itself off at this time
 
@@ -131,15 +147,26 @@ class SiteContactInfo(models.Model):
         return True
 
     @property
-    def ticker_interval_unit(self):
-        """'minutes' when the interval is a whole number of minutes, else 'seconds'."""
-        s = self.ticker_interval_seconds or 2
+    def maintenance_closes_site(self):
+        """Maintenance is on and visitors get the maintenance page."""
+        return self.maintenance_active and self.maintenance_scope != "notice"
+
+    @property
+    def maintenance_notice(self):
+        """Maintenance is on, the website stays open and the message shows
+        at the top of every page (the top bar)."""
+        return self.maintenance_active and self.maintenance_scope == "notice"
+
+    @property
+    def hero_slider_unit(self):
+        """'minutes' when the slide time is a whole number of minutes, else 'seconds'."""
+        s = self.hero_slider_seconds or 6
         return "minutes" if s >= 60 and s % 60 == 0 else "seconds"
 
     @property
-    def ticker_interval_value(self):
-        s = self.ticker_interval_seconds or 2
-        return s // 60 if self.ticker_interval_unit == "minutes" else s
+    def hero_slider_value(self):
+        s = self.hero_slider_seconds or 6
+        return s // 60 if self.hero_slider_unit == "minutes" else s
 
     @classmethod
     def get_solo(cls):
@@ -409,6 +436,38 @@ class AboutPageContent(models.Model):
     glance_established_value = models.CharField(max_length=50, default="Established")
     glance_established_label = models.CharField(max_length=150, default="September 26, 1949 (E.O. No. 266)")
 
+    # ---- Newer sections (one tab each in Super Admin → About Us Page). All
+    # empty by default: a section only shows on the public page once it has
+    # content. Their list entries are AboutItem rows. ----
+    # Location
+    location_intro = models.TextField(blank=True)
+    location_neighbors = models.CharField(max_length=300, blank=True)      # comma separated
+    location_distance = models.CharField(max_length=150, blank=True)       # e.g. "About 40 km · 1 hour by land"
+    location_terrain = models.CharField(max_length=255, blank=True)
+    location_show_map = models.BooleanField(default=True)                  # the Tunga Interactive Map in the section
+    # Full Disclosure (documents are AboutItem section="document")
+    disclosure_intro = models.CharField(max_length=300, blank=True)
+    # Official Seal (the seal picture is the website logo)
+    seal_intro = models.TextField(blank=True)
+    # Fiesta & Culture (the main celebration; others are AboutItem section="fiesta")
+    fiesta_title = models.CharField(max_length=200, blank=True)
+    fiesta_date = models.CharField(max_length=100, blank=True)
+    fiesta_description = models.TextField(blank=True)
+    fiesta_image = models.ImageField(upload_to="about/", blank=True, null=True)
+    # Places to Visit / Development Agenda / Awards: a line under the heading
+    places_intro = models.CharField(max_length=255, blank=True)
+    agenda_intro = models.CharField(max_length=255, blank=True)
+    awards_intro = models.CharField(max_length=255, blank=True)
+    # Municipal Hymn
+    hymn_title = models.CharField(max_length=200, blank=True)
+    hymn_composer = models.CharField(max_length=200, blank=True)
+    hymn_link = models.URLField(max_length=500, blank=True)               # YouTube / Facebook video
+    hymn_lyrics = models.TextField(blank=True)                            # only if the LGU allows it
+    # Visit the Municipal Hall (address / phone / email come from Website Settings)
+    visit_hours = models.TextField(blank=True)                            # "Monday – Friday | 8:00 AM – 5:00 PM", one per line
+    visit_directions = models.TextField(blank=True)                       # one step per line
+    visit_map_link = models.URLField(max_length=500, blank=True)          # empty = Google Maps to the Municipal Hall pin
+
     last_updated = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -428,6 +487,66 @@ class AboutPageContent(models.Model):
 
     def history_intro_paragraphs(self):
         return [p.strip() for p in self.history_intro.splitlines() if p.strip()]
+
+    # helpers for the newer sections
+    def location_neighbor_list(self):
+        return [n.strip() for n in self.location_neighbors.split(",") if n.strip()]
+
+    def visit_hour_rows(self):
+        """[(day, time), …] from "Monday – Friday | 8:00 AM – 5:00 PM" lines."""
+        rows = []
+        for line in self.visit_hours.splitlines():
+            if line.strip():
+                day, _, time = line.partition("|")
+                rows.append((day.strip(), time.strip()))
+        return rows
+
+    def visit_direction_steps(self):
+        return [s.strip() for s in self.visit_directions.splitlines() if s.strip()]
+
+    def hymn_lyrics_paragraphs(self):
+        return [p.strip() for p in self.hymn_lyrics.split("\n\n") if p.strip()]
+
+
+class AboutItem(models.Model):
+    """One entry of the newer About Us sections (Super Admin → About Us Page,
+    one tab each). Which fields are used depends on the section — see
+    admin_dashboard/about_sections.py:
+      seal      a symbol of the seal: title, meaning, color (extra)
+      fiesta    another celebration: title, description, date (extra)
+      place     a place to visit: title, description, type (extra), photo
+      goal      a development goal: title, description, progress % (extra)
+      award     an award: title, given by (description), year
+      document  a Full Disclosure PDF: title, fiscal year, period (extra), file
+    """
+    SECTION_CHOICES = [
+        ("seal", "Official Seal"), ("fiesta", "Fiesta & Culture"), ("place", "Places to Visit"),
+        ("goal", "Development Agenda"), ("award", "Awards"), ("document", "Full Disclosure"),
+    ]
+    section = models.CharField(max_length=20, choices=SECTION_CHOICES, db_index=True)
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    extra = models.CharField(max_length=100, blank=True)
+    year = models.PositiveSmallIntegerField(null=True, blank=True)
+    image = models.ImageField(upload_to="about/items/", blank=True, null=True)
+    file = models.FileField(upload_to="about/documents/", blank=True, null=True)
+    order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["order", "id"]
+
+    def __str__(self):
+        return f"{self.get_section_display()}: {self.title}"
+
+    @property
+    def progress(self):
+        """Development goal progress 0-100, or None."""
+        try:
+            value = int(str(self.extra).strip().rstrip("%"))
+        except ValueError:
+            return None
+        return max(0, min(value, 100))
 
 
 class HistoryMilestone(models.Model):
@@ -471,6 +590,9 @@ class AboutOfficial(models.Model):
     name = models.CharField(max_length=150)
     position = models.CharField(max_length=150)
     photo = models.ImageField(upload_to="about/officials/", blank=True, null=True)
+    # Term of office (years), e.g. 2025 – 2028. Both optional.
+    term_start = models.PositiveSmallIntegerField(null=True, blank=True)
+    term_end = models.PositiveSmallIntegerField(null=True, blank=True)
     order = models.PositiveIntegerField(default=0)
 
     class Meta:
@@ -478,6 +600,17 @@ class AboutOfficial(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.position})"
+
+    @property
+    def term_label(self):
+        """'2025 – 2028', 'Since 2025', 'Until 2028' or '' (no term set)."""
+        if self.term_start and self.term_end:
+            return f"{self.term_start} – {self.term_end}"
+        if self.term_start:
+            return f"Since {self.term_start}"
+        if self.term_end:
+            return f"Until {self.term_end}"
+        return ""
 
 
 class Barangay(models.Model):

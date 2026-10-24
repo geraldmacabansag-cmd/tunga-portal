@@ -1,9 +1,13 @@
 """Maintenance mode (Website Settings → Maintenance).
 
-While it's on, visitors get the "We'll be back soon" page instead of the
-website. The Super Admin, office representatives and staff keep using the
-whole site (they see a reminder bar), and the login pages and dashboards
-always work so you can sign in and turn it off.
+Two choices (SiteContactInfo.maintenance_scope):
+  "site"    visitors get the "We'll be back soon" page instead of the
+            website. The Super Admin, office representatives and staff keep
+            using the whole site (they see a reminder bar), and the login
+            pages and dashboards always work so you can sign in and turn it off.
+  "notice"  the website stays open for everyone; the maintenance message
+            replaces the announcement bar at the top (templates/base.html).
+            Nothing is blocked here.
 
 Added to settings.MIDDLEWARE as "admin_dashboard.maintenance.MaintenanceModeMiddleware".
 """
@@ -55,6 +59,6 @@ class MaintenanceModeMiddleware:
                 # the Super Admin can look at the page: /?maintenance_preview=1
                 if staff and request.GET.get("maintenance_preview"):
                     return maintenance_page(request, info, preview=True, status=200)
-                if info.maintenance_active and not staff:
+                if info.maintenance_closes_site and not staff:
                     return maintenance_page(request, info)
         return self.get_response(request)

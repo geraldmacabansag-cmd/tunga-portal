@@ -1818,3 +1818,64 @@ button.side-panel__logout { font-family: inherit; cursor: pointer; }
 .sp-lang__btn:hover { background: var(--bg-light); color: var(--navy); }
 .sp-lang__btn.is-active { background: var(--navy); color: #fff; }
 .sp-lang__btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
+/* Top bar while maintenance mode is on with "Message only" (Website
+   Settings → Maintenance): the maintenance message replaces the rotating
+   announcements. The message may be long, so it wraps onto more lines
+   instead of being cut off. */
+.top-bar--maint { background: #7a3e00; }
+.top-bar__tag--maint { background: var(--gold, #f4c531); color: #3b2a00; }
+.top-bar--maint .top-bar__msg-wrap { height: auto; overflow: visible; padding: 6px 0; }
+.top-bar--maint .top-bar__msg {
+  position: static;
+  color: #fff3dc;
+  white-space: normal;
+  overflow: visible;
+  line-height: 1.45;
+}
+.top-bar__until { color: var(--gold, #f4c531); font-weight: 700; margin-left: 6px; white-space: nowrap; }
+/* phones / small screens: one line ending in "…"; the full message opens in
+   a popup at the top left of the message (script in templates/base.html) */
+.top-bar--maint .top-bar__msg-wrap { position: relative; }
+.top-bar__pop {
+  position: absolute;
+  top: -2px;
+  left: -8px;
+  z-index: 1200;
+  width: max-content;
+  max-width: calc(100vw - 20px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fff;
+  color: var(--text-dark, #1c2733);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  white-space: normal;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+  border-top: 4px solid var(--gold, #f4c531);
+  cursor: pointer;
+}
+.top-bar__pop[hidden] { display: none; }
+.top-bar__pop-head { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #7a3e00; }
+.top-bar__pop-head i { margin-right: 4px; }
+.top-bar__pop-closed { color: #7a3e00; }
+.top-bar__pop-until { color: #7a3e00; font-size: 0.8rem; }
+.top-bar__pop-until i { margin-right: 4px; }
+.top-bar__pop-link { align-self: flex-start; color: var(--navy, #0d3a86); font-weight: 700; text-decoration: underline; }
+@media (max-width: 600px) {
+  .top-bar--maint .top-bar__msg-wrap { padding: 2px 0; min-width: 0; flex: 1 1 0; }
+  .top-bar--maint .top-bar__msg {
+    display: block;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+  }
+  .top-bar--maint .top-bar__msg:focus-visible { outline: 2px solid var(--gold, #f4c531); outline-offset: 2px; border-radius: 4px; }
+}
+.top-bar__closed { color: #fff; font-weight: 700; margin-right: 4px; }
+.top-bar__maint-link { color: #fff; font-weight: 700; text-decoration: underline; margin-left: 8px; white-space: nowrap; }
+.top-bar__maint-link:hover { color: var(--gold, #f4c531); }

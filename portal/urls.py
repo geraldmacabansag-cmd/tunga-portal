@@ -16,6 +16,7 @@ urlpatterns = [
     path('gallery/', views.gallery, name='gallery'),
     path('offices/', views.offices, name='offices'),
     path('about/', views.about, name='about'),
+    path('about/document/<int:pk>/', views.about_document, name='about_document'),
     path('history/', views.history, name='history'),
     path('contact/', views.contact, name='contact'),
     path('privacy-policy/', views.legal_page, {'key': 'privacy'}, name='privacy_policy'),

@@ -80,6 +80,7 @@ urlpatterns = [
     path('Admin-Change-Password/', views.admin_change_password, name='admin_change_pass'),
 
     path('Admin-Homepage/', views.admin_homepage, name='ad_homepage'),
+    path('Admin-Homepage/banner-slider/save/', views.admin_hero_slider_save, name='admin_hero_slider_save'),
     path('Admin-Homepage/quick-link/<int:pk>/save/', views.admin_quicklink_save, name='admin_quicklink_save'),
     path('Admin-Homepage/quick-link/create/save/', lambda request: views.admin_quicklink_save(request, pk=0), name='admin_quicklink_create'),
     path('Admin-Homepage/quick-link/<int:pk>/delete/', views.admin_quicklink_delete, name='admin_quicklink_delete'),
@@ -94,6 +95,10 @@ urlpatterns = [
     path('Admin-About-Page/heritage/create/save/', lambda request: views.admin_about_heritage_save(request, pk=0), name='admin_about_heritage_create'),
     path('Admin-About-Page/heritage/<int:pk>/delete/', views.admin_about_heritage_delete, name='admin_about_heritage_delete'),
     path('Admin-About-Page/heritage/<int:pk>/move/', views.admin_about_heritage_move, name='admin_about_heritage_move'),
+    path('Admin-About-Page/item/<slug:section>/<int:pk>/save/', views.admin_about_item_save, name='admin_about_item_save'),
+    path('Admin-About-Page/item/<slug:section>/create/save/', lambda request, section: views.admin_about_item_save(request, section, pk=0), name='admin_about_item_create'),
+    path('Admin-About-Page/item/<slug:section>/<int:pk>/delete/', views.admin_about_item_delete, name='admin_about_item_delete'),
+    path('Admin-About-Page/item/<slug:section>/<int:pk>/move/', views.admin_about_item_move, name='admin_about_item_move'),
     path('Admin-About-Page/official/<int:pk>/save/', views.admin_about_official_save, name='admin_about_official_save'),
     path('Admin-About-Page/official/create/save/', lambda request: views.admin_about_official_save(request, pk=0), name='admin_about_official_create'),
     path('Admin-About-Page/official/<int:pk>/delete/', views.admin_about_official_delete, name='admin_about_official_delete'),

@@ -1115,6 +1115,7 @@
 }
 .hc__kind { background: var(--gold, #f4c531); color: var(--navy-deep, #0a2f6e); }
 .hc__kind--news { background: #3fae4a; color: #fff; }
+.hc__kind--event { background: #7a4fc7; color: #fff; }
 .hc__cat { background: rgba(255, 255, 255, 0.14); border: 1px solid rgba(255, 255, 255, 0.3); color: #fff; }
 .hc__meta { color: #c9d6f0; font-size: 0.86rem; margin-bottom: 18px; }
 .hc__meta i { color: var(--gold, #f4c531); margin-right: 4px; }
@@ -1254,4 +1255,19 @@
 /* small laptops / tablets: 3 emergency cards per row */
 @media (min-width: 901px) and (max-width: 1100px) {
   .emergency__grid > .emergency__card { flex-basis: calc((100% - 24px) / 3); }
+}
+/* Homepage "Upcoming Events" card: the poster (often a tall portrait image)
+   used to show at its full height and made the card huge. It is now a
+   fixed-height picture (cropped to fit; click it to see the whole poster),
+   and the event details use the full width next to the date. */
+.event-highlight__date > div:last-child { flex: 1; min-width: 0; }
+.event-highlight__img {
+  height: 200px;
+  max-height: 200px;
+  object-fit: cover;
+  object-position: center top;
+  cursor: zoom-in;
+}
+@media (max-width: 600px) {
+  .event-highlight__img { height: 160px; max-height: 160px; }
 }

@@ -3,7 +3,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .models import AdminNotification
-from .models import SuperAdmin, SiteContactInfo, EmergencyContact, EmailProviderSettings, QuickLink, AboutPageContent, HistoryMilestone, AboutOfficial, Barangay, HeritageItem
+from .models import SuperAdmin, SiteContactInfo, EmergencyContact, EmailProviderSettings, QuickLink, AboutPageContent, HistoryMilestone, AboutOfficial, Barangay, HeritageItem, AboutItem
+from .about_sections import TABS as ABOUT_TABS, TEXT_FIELDS as ABOUT_TEXT_FIELDS, URL_FIELDS as ABOUT_URL_FIELDS, ITEM_SECTIONS as ABOUT_ITEM_SECTIONS
 from django.core.paginator import Paginator
 from django.contrib.auth.models import User
 from django.db.models import Count, Sum, Q
@@ -1884,7 +1885,28 @@ def admin_homepage(request):
     for l in quick_links:
         l.is_custom_url = l.url not in known_urls
 
+    # ---- Banner Slider: every post the public can still see (all offices,
+    # not expired / not over), for the "Choose the content" list ----
+    from portal.hero_slides import eligible_content, slide_for, PICK_MAX, AUTO_MAX
+    info = SiteContactInfo.get_solo()
+    picked = [k for k in (info.hero_slider_items or []) if isinstance(k, str)]
+    slider_items = []
+    for key, kind, obj in eligible_content():
+        s = slide_for(kind, obj)
+        s["picked"] = key in picked
+        s["order"] = picked.index(key) if key in picked else 9999
+        slider_items.append(s)
+    # ticked ones first, in their slide order
+    slider_items.sort(key=lambda s: s["order"])
+    slider_missing = len([k for k in picked if k not in {s["key"] for s in slider_items}])
+
     return render(request, "admin_dashboard/super-admin-homepage.html", {
+        "slider_info": info,
+        "slider_items": slider_items,
+        "slider_picked_count": sum(1 for s in slider_items if s["picked"]),
+        "slider_missing": slider_missing,
+        "slider_pick_max": PICK_MAX,
+        "slider_auto_max": AUTO_MAX,
         "quick_links": quick_links,
         "static_pages_for_links": static_pages_for_links,
         "offices_for_links": offices_for_links,
@@ -1899,6 +1921,42 @@ def admin_homepage(request):
     })
  
  
+@super_admin_required
+def admin_hero_slider_save(request):
+    """Homepage → Banner Slider: slide speed and which posts show."""
+    from portal.hero_slides import eligible_content, PICK_MAX
+    if request.method != "POST":
+        return redirect('admin_dashboard:ad_homepage')
+    info = SiteContactInfo.get_solo()
+    # speed: a number + "seconds" / "minutes", kept between 3 seconds and 60 minutes
+    try:
+        amount = int(request.POST.get('slider_value', '') or 0)
+    except ValueError:
+        amount = 0
+    if amount > 0:
+        seconds = amount * 60 if request.POST.get('slider_unit') == 'minutes' else amount
+        info.hero_slider_seconds = max(3, min(seconds, 3600))
+    mode = request.POST.get('slider_mode', 'auto')
+    info.hero_slider_mode = mode if mode in dict(SiteContactInfo.HERO_SLIDER_MODE_CHOICES) else 'auto'
+    # the ticked posts, in the order they are listed on the page; only real,
+    # still-visible posts are kept
+    allowed = {key for key, kind, obj in eligible_content()}
+    picked = []
+    for key in request.POST.getlist('slider_items'):
+        if key in allowed and key not in picked:
+            picked.append(key)
+    if len(picked) > PICK_MAX:
+        messages.error(request, f"Only the first {PICK_MAX} posts were kept — the slider can show up to {PICK_MAX}.")
+        picked = picked[:PICK_MAX]
+    info.hero_slider_items = picked
+    info.save(update_fields=['hero_slider_seconds', 'hero_slider_mode', 'hero_slider_items'])
+    if info.hero_slider_mode == 'pick' and not picked:
+        messages.warning(request, "Banner Slider saved. No posts are ticked, so the homepage banner shows only the welcome slide.")
+    else:
+        messages.success(request, "Banner Slider settings were saved.")
+    return redirect(reverse('admin_dashboard:ad_homepage') + '#banner-slider')
+
+
 @super_admin_required
 def admin_quicklink_save(request, pk):
     link = get_object_or_404(QuickLink, pk=pk) if pk else QuickLink()
@@ -1986,6 +2044,36 @@ def admin_about_page(request):
             content.barangays_intro = request.POST.get('barangays_intro', '').strip()
             content.save()
             messages.success(request, "Barangays section was updated.")
+        elif section in ABOUT_TEXT_FIELDS:
+            # the newer tabs (admin_dashboard/about_sections.py): plain text fields
+            from django.core.validators import URLValidator
+            bad_url = False
+            for name in ABOUT_TEXT_FIELDS[section]:
+                max_len = AboutPageContent._meta.get_field(name).max_length
+                value = request.POST.get(name, '').strip()
+                if max_len:
+                    value = value[:max_len]
+                if name in ABOUT_URL_FIELDS and value:
+                    if not value.startswith(('http://', 'https://')):
+                        value = 'https://' + value
+                    try:
+                        URLValidator()(value)
+                    except ValidationError:
+                        bad_url = True
+                        continue      # keep the old link
+                setattr(content, name, value)
+            if section == 'location':
+                content.location_show_map = request.POST.get('location_show_map') == 'on'
+            if section == 'fiesta':
+                if request.POST.get('remove_fiesta_image') == 'on':
+                    content.fiesta_image = None
+                if request.FILES.get('fiesta_image'):
+                    content.fiesta_image = request.FILES.get('fiesta_image')
+            content.save()
+            if bad_url:
+                messages.error(request, "A link could not be read, so it was not changed. Copy the whole address (https://…).")
+            label = dict((k, l) for k, l, _i in ABOUT_TABS).get(section, section)
+            messages.success(request, f'"{label}" was updated.')
         elif section == 'glance':
             content.glance_population_value = request.POST.get('glance_population_value', '').strip()
             content.glance_population_label = request.POST.get('glance_population_label', '').strip()
@@ -2007,8 +2095,17 @@ def admin_about_page(request):
 
         return redirect(reverse('admin_dashboard:ad_about_page') + '#' + (section or 'about'))
 
+    items = list(AboutItem.objects.all())
+    item_sections = []
+    for key, conf in ABOUT_ITEM_SECTIONS.items():
+        rows = [i for i in items if i.section == key]
+        # modal_items: the entries + one empty one for the "Add" window
+        item_sections.append({"key": key, "conf": conf, "items": rows, "modal_items": rows + [AboutItem(section=key)]})
     return render(request, "admin_dashboard/super-admin-about-page.html", {
         "content": content,
+        "about_tabs": ABOUT_TABS,
+        "item_sections": item_sections,
+        "item_by_tab": {s["conf"]["tab"]: s for s in item_sections},
         "milestones": HistoryMilestone.objects.all(),
         "officials": AboutOfficial.objects.all(),
         "heritage_items": HeritageItem.objects.all(),
@@ -2098,6 +2195,104 @@ def admin_about_heritage_move(request, pk):
 
 
 @super_admin_required
+def admin_about_item_save(request, section, pk):
+    """Add / edit one entry of a newer About Us tab (AboutItem): a seal
+    symbol, celebration, place, goal, award or Full Disclosure document."""
+    conf = ABOUT_ITEM_SECTIONS.get(section)
+    if conf is None:
+        raise Http404
+    back = reverse('admin_dashboard:ad_about_page') + '#' + conf['tab']
+    item = get_object_or_404(AboutItem, pk=pk, section=section) if pk else AboutItem(section=section)
+    if request.method != "POST":
+        return redirect(back)
+    title = request.POST.get('title', '').strip()[:200]
+    if not title:
+        messages.error(request, f"Please fill in the {conf['title_label'].lower()}.")
+        return redirect(back)
+    item.title = title
+    if not conf.get('no_desc'):
+        item.description = request.POST.get('description', '').strip()[:2000]
+    extra = conf.get('extra')
+    if extra:
+        value = request.POST.get('extra', '').strip()[:100]
+        if extra['type'] == 'number' and value:
+            try:
+                value = str(max(0, min(int(value), 100)))
+            except ValueError:
+                value = ''
+        if extra['type'] == 'color' and value and not re.fullmatch(r'#[0-9a-fA-F]{6}', value):
+            value = ''
+        if extra['type'] == 'choice' and value not in extra['choices']:
+            value = extra['choices'][0]
+        item.extra = value
+    year_conf = conf.get('year')
+    if year_conf:
+        raw = request.POST.get('year', '').strip()
+        try:
+            year = int(raw) if raw else None
+        except ValueError:
+            year = None
+        if year is not None and not (1900 <= year <= 2100):
+            year = None
+        if year is None and year_conf.get('required'):
+            messages.error(request, f"Please enter the {year_conf['label'].lower()} (e.g. 2026).")
+            return redirect(back)
+        item.year = year
+    if conf.get('image'):
+        if request.POST.get('remove_image') == 'on':
+            item.image = None
+        if request.FILES.get('image'):
+            item.image = request.FILES.get('image')
+    if conf.get('file'):
+        upload = request.FILES.get('file')
+        if upload:
+            if not upload.name.lower().endswith('.pdf'):
+                messages.error(request, "Please upload the document as a PDF file.")
+                return redirect(back)
+            item.file = upload
+        elif not item.file:
+            messages.error(request, "Please choose the PDF file of the document.")
+            return redirect(back)
+    if item.pk is None:
+        item.order = AboutItem.objects.filter(section=section).count()
+    item.save()
+    messages.success(request, f'"{title}" was saved.')
+    return redirect(back)
+
+
+@super_admin_required
+def admin_about_item_delete(request, section, pk):
+    conf = ABOUT_ITEM_SECTIONS.get(section)
+    if conf is None:
+        raise Http404
+    item = get_object_or_404(AboutItem, pk=pk, section=section)
+    if request.method == "POST":
+        title = item.title
+        item.delete()
+        messages.success(request, f'"{title}" was removed.')
+    return redirect(reverse('admin_dashboard:ad_about_page') + '#' + conf['tab'])
+
+
+@super_admin_required
+def admin_about_item_move(request, section, pk):
+    """Moves an entry one place up or down (POST direction=up|down)."""
+    conf = ABOUT_ITEM_SECTIONS.get(section)
+    if conf is None:
+        raise Http404
+    if request.method == "POST":
+        items = list(AboutItem.objects.filter(section=section))
+        idx = next((i for i, x in enumerate(items) if x.pk == pk), None)
+        step = -1 if request.POST.get('direction') == 'up' else 1
+        if idx is not None and 0 <= idx + step < len(items):
+            items[idx], items[idx + step] = items[idx + step], items[idx]
+            for order, it in enumerate(items):
+                if it.order != order:
+                    it.order = order
+                    it.save(update_fields=['order'])
+    return redirect(reverse('admin_dashboard:ad_about_page') + '#' + conf['tab'])
+
+
+@super_admin_required
 def admin_about_official_save(request, pk):
     o = get_object_or_404(AboutOfficial, pk=pk) if pk else AboutOfficial()
     if request.method == "POST":
@@ -2109,12 +2304,33 @@ def admin_about_official_save(request, pk):
             is_create = o.pk is None
             o.name = name
             o.position = position
+            # Term of office: two optional years (1900 – 2100), the end not before the start
+            def year(field):
+                raw = request.POST.get(field, '').strip()
+                if not raw:
+                    return None
+                try:
+                    value = int(raw)
+                except ValueError:
+                    return 'bad'
+                return value if 1900 <= value <= 2100 else 'bad'
+            start, end = year('term_start'), year('term_end')
+            term_ok = 'bad' not in (start, end) and not (start and end and end < start)
+            if term_ok:
+                o.term_start, o.term_end = start, end
+            else:
+                messages.error(request, "The term years were not saved: use years like 2025 and 2028, with the end year not before the start year.")
             if request.FILES.get('photo'):
                 o.photo = request.FILES.get('photo')
             if is_create:
                 o.order = AboutOfficial.objects.count()
             o.save()
-            messages.success(request, f'"{name}" was saved.')
+            # "Use this term for all officials"
+            if term_ok and request.POST.get('term_all') == 'on':
+                AboutOfficial.objects.exclude(pk=o.pk).update(term_start=start, term_end=end)
+                messages.success(request, f'"{name}" was saved, and the term was set for all officials.')
+            else:
+                messages.success(request, f'"{name}" was saved.')
     return redirect(reverse('admin_dashboard:ad_about_page') + '#officials')
 
 
@@ -2230,6 +2446,20 @@ def admin_about_reset_defaults(request):
             for order, name in enumerate(_ABOUT_DEFAULT_BARANGAYS_RURAL):
                 Barangay.objects.create(name=name, group="rural", order=order)
             messages.success(request, "The Barangays tab was reset to its default content.")
+
+        elif tab in ABOUT_TEXT_FIELDS:
+            # the newer tabs have no default content: reset = empty (hidden on the site)
+            for name in ABOUT_TEXT_FIELDS[tab]:
+                setattr(content, name, getattr(defaults, name))
+            if tab == 'location':
+                content.location_show_map = True
+            if tab == 'fiesta':
+                content.fiesta_image = None
+            content.save()
+            sections = [k for k, c in ABOUT_ITEM_SECTIONS.items() if c['tab'] == tab]
+            AboutItem.objects.filter(section__in=sections).delete()
+            label = dict((k, l) for k, l, _i in ABOUT_TABS).get(tab, tab)
+            messages.success(request, f'The "{label}" tab was emptied — it is hidden on the About Us page until you add content again.')
 
         elif tab == 'glance':
             content.glance_population_value = defaults.glance_population_value
@@ -2443,16 +2673,6 @@ def admin_web_setting(request):
             # Header tagline: empty (or "Reset to default") = the original tagline.
             tagline = request.POST.get('site_tagline', '').strip()[:120]
             info.site_tagline = tagline or SiteContactInfo.DEFAULT_TAGLINE
-            # Announcement bar speed: a number + "seconds" / "minutes",
-            # kept between 1 second and 60 minutes.
-            try:
-                amount = int(request.POST.get('ticker_interval_value', '') or 0)
-            except ValueError:
-                amount = 0
-            if amount > 0:
-                unit = request.POST.get('ticker_interval_unit', 'seconds')
-                seconds = amount * 60 if unit == 'minutes' else amount
-                info.ticker_interval_seconds = max(1, min(seconds, 3600))
             # Home page News slider speed (seconds per story, 3 to 120)
             try:
                 news_secs = int(request.POST.get('news_slider_seconds', '') or 0)
@@ -2465,6 +2685,8 @@ def admin_web_setting(request):
         elif section == 'maintenance':
             from datetime import datetime
             info.maintenance_mode = request.POST.get('maintenance_mode') == 'on'
+            scope = request.POST.get('maintenance_scope', 'site')
+            info.maintenance_scope = scope if scope in dict(SiteContactInfo.MAINTENANCE_SCOPE_CHOICES) else 'site'
             info.maintenance_message = request.POST.get('maintenance_message', '').strip()[:1000] or SiteContactInfo.DEFAULT_MAINTENANCE_MESSAGE
             until = request.POST.get('maintenance_until', '').strip()
             info.maintenance_until = None
@@ -2478,7 +2700,9 @@ def admin_web_setting(request):
                 except ValueError:
                     messages.error(request, 'The "back online" time could not be read, so it was not saved.')
             info.save()
-            if info.maintenance_active:
+            if info.maintenance_notice:
+                messages.success(request, "Maintenance mode was turned on. The website stays open and the message shows at the top of every page.")
+            elif info.maintenance_active:
                 messages.success(request, "Maintenance mode was turned on. Visitors now see the maintenance page.")
             else:
                 messages.success(request, "Maintenance mode is off. The website is open to visitors.")

@@ -16,13 +16,6 @@ def is_super_admin(request):
         "user_photo_url": photo_url(request.user),
     }
 
-def ticker_announcements(request):
-    from office_dashboard.models import Announcement
-    announcements = list(
-        Announcement.public().order_by('-date_posted', '-last_updated', '-created_at')[:5]
-    )
-    return {"ticker_announcements": announcements}
-
 def nav_offices(request):
     # Powers the "Offices" dropdown in the public site's navbar (base.html)
     # on every page, so it has to live in a context processor rather than

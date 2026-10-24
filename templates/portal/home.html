@@ -9,15 +9,16 @@ Home | Digital Governance Portal
 
 {% comment %}
 Banner slider. Slide 1 is the welcome banner (Municipal Hall photo); the other
-slides are the newest announcements and news & updates that have a picture
-(hero_slides, from _hero_slides() in portal/views.py): the picture fills the
-banner and the details are on the right.
-It moves on by itself every data-interval milliseconds (6000 = 6 seconds) and
+slides are announcements / news & updates / events (hero_slides, from
+portal/hero_slides.py): the picture fills the banner and the details are on
+the right.
+It moves on by itself every data-interval milliseconds (the speed is set in
+Super Admin → Homepage → Banner Slider; posts are picked there too) and
 waits while the mouse is over it.
 Script: static/js/hero-carousel.js. Styles: static/css/homepage.css ("Banner slider").
 {% endcomment %}
 {% with total=hero_slides|length|add:1 %}
-<section class="hero hero-carousel hc" data-interval="6000" aria-roledescription="carousel" aria-label="Highlights">
+<section class="hero hero-carousel hc" data-interval="{% widthratio site_contact.hero_slider_seconds|default:6 1 1000 %}" aria-roledescription="carousel" aria-label="Highlights">
   <div class="hero-slide hc__slide hc__slide--welcome is-active" aria-roledescription="slide" aria-label="1 of {{ total }}">
     <img src="{% if site_contact.hero_banner %}{{ site_contact.hero_banner.url }}{% else %}{% static 'images/lgu_tunga_bldg.jpeg' %}{% endif %}" alt="Tunga Municipal Hall" class="hc__bg">
     <div class="hc__shade"></div>
@@ -34,16 +35,16 @@ Script: static/js/hero-carousel.js. Styles: static/css/homepage.css ("Banner sli
 
   {% for s in hero_slides %}
   <div class="hero-slide hc__slide hc__slide--post" aria-roledescription="slide" aria-label="{{ forloop.counter|add:1 }} of {{ total }}" aria-hidden="true">
-    <img src="{{ s.image }}" alt="{{ s.title }}" class="hc__bg" loading="lazy">
+    <img src="{% if s.image %}{{ s.image }}{% elif site_contact.hero_banner %}{{ site_contact.hero_banner.url }}{% else %}{% static 'images/lgu_tunga_bldg.jpeg' %}{% endif %}" alt="{{ s.title }}" class="hc__bg" loading="lazy">
     <div class="hc__shade"></div>
     <div class="container hc__caption">
       <div class="hc__tags">
-        <span class="hc__kind hc__kind--{{ s.kind }}"><i class="fa-solid {% if s.kind == 'news' %}fa-newspaper{% else %}fa-bullhorn{% endif %}"></i> {{ s.kind_label }}</span>
+        <span class="hc__kind hc__kind--{{ s.kind }}"><i class="fa-solid {% if s.kind == 'news' %}fa-newspaper{% elif s.kind == 'event' %}fa-calendar-days{% else %}fa-bullhorn{% endif %}"></i> {{ s.kind_label }}</span>
         <span class="hc__cat">{{ s.category }}</span>
       </div>
       <h2 class="hc__title">{{ s.title }}</h2>
       {% if s.text %}<p class="hc__sub">{{ s.text }}</p>{% endif %}
-      <p class="hc__meta"><i class="fa-solid fa-building-columns"></i> {{ s.office }}<span>&middot;</span><i class="fa-regular fa-calendar"></i> {{ s.date|date:"F j, Y" }}</p>
+      <p class="hc__meta"><i class="fa-solid fa-building-columns"></i> {{ s.office }}<span>&middot;</span><i class="fa-regular fa-calendar"></i> {% if s.date %}{{ s.date|date:"F j, Y" }}{% else %}Date to be announced{% endif %}</p>
       <div class="hc__actions">
         <a href="{{ s.url }}" class="btn hc__btn hc__btn--gold" tabindex="-1">Read more <i class="fa-solid fa-arrow-right"></i></a>
       </div>
