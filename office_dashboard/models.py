@@ -842,6 +842,14 @@ class Message(models.Model):
     body = models.TextField(max_length=2000)
     created_at = models.DateTimeField(auto_now_add=True)
     read_at = models.DateTimeField(null=True, blank=True)
+    # The "⋮" menu of a message (office_dashboard/chat.py):
+    reply_to = models.ForeignKey("self", on_delete=models.SET_NULL, null=True, blank=True, related_name="replies")
+    edited_at = models.DateTimeField(null=True, blank=True)        # "Edited"
+    unsent_at = models.DateTimeField(null=True, blank=True)        # "Unsend": removed for both, the text is erased
+    hidden_for_rep = models.BooleanField(default=False)            # "Delete for me" by the representative
+    hidden_for_admin = models.BooleanField(default=False)          # "Delete for me" by the Super Admin
+    # any change (edit, unsend, seen…) — the open chats pick it up on their next check
+    updated_at = models.DateTimeField(auto_now=True, db_index=True)
 
     class Meta:
         ordering = ["created_at", "id"]

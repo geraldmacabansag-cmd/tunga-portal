@@ -37,8 +37,8 @@ COLORS = [
     ("green_badge", "--green-badge", "Green labels", "#3fae4a", "\"Announcement\" tag, NEW / open labels", ""),
     ("red_badge", "--red-badge", "Red labels", "#e0332f", "Urgent / important labels", ""),
     # --- parts of the page ---
-    ("top_bar_bg", "", "Announcement bar background", "#0a2f6e", "The bar at the very top", "navy_deep"),
-    ("top_bar_text", "", "Announcement bar text", "#ffffff", "Text and links in the top bar", ""),
+    ("top_bar_bg", "", "Top bar background", "#0a2f6e", "The thin bar at the very top (Login / account)", "navy_deep"),
+    ("top_bar_text", "", "Top bar text", "#ffffff", "Text and links in the top bar", ""),
     ("header_bg", "", "Header & menu background", "#ffffff", "The logo and menu bar", ""),
     ("header_text", "", "Menu text", "#1c2733", "Home, Offices, About Us…", "text_dark"),
     ("btn_bg", "", "Buttons", "#0d3a86", "Main buttons (Submit, Read more…)", "navy"),
@@ -46,6 +46,16 @@ COLORS = [
     ("btn_text", "", "Button text", "#ffffff", "Text on the main buttons", ""),
     ("footer_bg", "", "Footer background", "#0a2f6e", "The bottom part of every page", "navy_deep"),
     ("footer_text", "", "Footer text", "#cdd9f2", "Text and links in the footer", ""),
+    # --- maintenance message (Website Settings → Maintenance) ---
+    ("maint_bg", "", "Maintenance bar background", "#7a3e00", "The top bar while maintenance mode is on", ""),
+    ("maint_text", "", "Maintenance message text", "#fff3dc", "The maintenance message in the top bar", ""),
+    ("maint_tag", "", "Maintenance label", "#f4c531", "The MAINTENANCE tag and the \"Expected back\" time", "gold"),
+    # --- About Us page (the newer sections) ---
+    ("about_icon_bg", "", "Icon boxes", "#e7eefb", "Small icon boxes, year labels and document buttons", ""),
+    ("about_fiesta", "", "Town Fiesta card", "#e0332f", "The big card in Fiesta & Culture", "red_badge"),
+    ("about_hymn", "", "Hymn banner", "#0a2f6e", "The Municipal Hymn banner", "navy_deep"),
+    ("about_medal", "", "Award medals", "#f4c531", "The gold medals in Awards & Recognition", "gold"),
+    ("about_goal_num", "", "Agenda numbers", "#e0af1a", "The 01, 02, 03… of the Development Agenda", "gold_dark"),
 ]
 
 GROUPS = [
@@ -55,6 +65,8 @@ GROUPS = [
     ("Labels", ["green_badge", "red_badge"]),
     ("Parts of the page", ["top_bar_bg", "top_bar_text", "header_bg", "header_text",
                            "btn_bg", "btn_hover", "btn_text", "footer_bg", "footer_text"]),
+    ("Maintenance message", ["maint_bg", "maint_text", "maint_tag"]),
+    ("About Us page", ["about_icon_bg", "about_fiesta", "about_hymn", "about_medal", "about_goal_num"]),
 ]
 
 DEFAULTS = {k: d for k, _v, _l, d, _h, _f in COLORS}
@@ -161,6 +173,28 @@ def theme_css(theme):
         t = c("footer_text")
         rules.append(f".site-footer,.footer-col a,.footer-col p,.footer-brand p,.footer-bottom,.footer-bottom a{{color:{t}}}")
         rules.append(f".footer-col h5,.footer-brand h4{{color:{t}}}")
+    # maintenance message in the top bar (templates/base.html, static/css/base.css)
+    if c("maint_bg"):
+        rules.append(f".top-bar.top-bar--maint{{background:{c('maint_bg')}}}")
+    if c("maint_text"):
+        rules.append(f".top-bar--maint .top-bar__msg,.top-bar--maint .top-bar__closed,.top-bar--maint .top-bar__maint-link{{color:{c('maint_text')}}}")
+    if c("maint_tag"):
+        t = c("maint_tag")
+        rules.append(f".top-bar__tag--maint{{background:{t};color:{_ink(t)}}}.top-bar__until{{color:{t}}}.top-bar__pop{{border-top-color:{t}}}")
+    # About Us page, newer sections (static/css/aboutus.css "Newer About Us sections")
+    if c("about_icon_bg"):
+        rules.append(f".ab-facts li>i,.ab-doc__btn,.ab-award__yr{{background:{c('about_icon_bg')}}}")
+    if c("about_fiesta"):
+        f = c("about_fiesta")
+        rules.append(f".ab-feature{{background:linear-gradient(135deg,{_mix(f, '#ff8a00', .3)} 0%,{f} 45%,{_mix(f, '#000000', .45)} 100%)}}")
+    if c("about_hymn"):
+        h = c("about_hymn")
+        rules.append(f".ab-hymn{{background:linear-gradient(135deg,{h},{_mix(h, '#ffffff', .18)})}}")
+    if c("about_medal"):
+        m = c("about_medal")
+        rules.append(f".ab-award__medal{{background:radial-gradient(circle at 35% 30%,{_mix(m, '#ffffff', .75)},{m} 60%,{_mix(m, '#000000', .15)});color:{_mix(m, '#000000', .55)}}}")
+    if c("about_goal_num"):
+        rules.append(f".ab-goal__n{{color:{c('about_goal_num')}}}")
 
     head_key = theme.heading_font if theme.heading_font in FONTS else ""
     body_key = theme.body_font if theme.body_font in FONTS else ""
@@ -198,6 +232,12 @@ def _mix(a, b, t):
     a = [int(a[i:i + 2], 16) for i in (1, 3, 5)]
     b = [int(b[i:i + 2], 16) for i in (1, 3, 5)]
     return "#" + "".join(f"{round(x + (y - x) * t):02x}" for x, y in zip(a, b))
+
+
+def _ink(bg):
+    """Dark or white text, whichever reads better on the color bg."""
+    r, g, b = (int(bg[i:i + 2], 16) for i in (1, 3, 5))
+    return "#2b1d00" if (0.299 * r + 0.587 * g + 0.114 * b) > 150 else "#ffffff"
 
 
 def dashboard_vars(colors):

@@ -3605,13 +3605,13 @@ def _message_conversations():
     )
     rows = []
     for rep in reps:
-        last = rep.chat_messages.order_by("-id").first()
+        last = rep.chat_messages.filter(hidden_for_admin=False).order_by("-id").first()
         unread = rep.chat_messages.filter(sender=Message.SENDER_REP, read_at__isnull=True).count()
         rows.append({
             "rep": rep,
             "office_name": rep.office.name,
             "person": rep.user.get_full_name() or rep.user.username,
-            "last_body": last.body if last else "",
+            "last_body": ("Message unsent" if last.unsent_at else last.body) if last else "",
             "last_sender": last.sender if last else "",
             "last_time": timezone.localtime(last.created_at) if last else None,
             "unread": unread,
@@ -3632,7 +3632,8 @@ def admin_messages(request):
         # red number next to "Messages" in the sidebar is already updated
         # on this page (not only after the next refresh).
         rep = selected["rep"]
-        rep.chat_messages.filter(sender=Message.SENDER_REP, read_at__isnull=True).update(read_at=timezone.now())
+        from office_dashboard import chat
+        chat.mark_read(rep, Message.SENDER_ADMIN)
         AdminNotification.objects.filter(
             user=request.user, is_read=False,
             link_url=reverse("admin_dashboard:ad_messages") + f"?rep={rep.pk}",
@@ -3659,17 +3660,13 @@ def admin_messages_data(request):
     ).update(is_read=True)
 
     # Opening a conversation marks that representative's messages as read.
-    rep.chat_messages.filter(
-        sender=Message.SENDER_REP, read_at__isnull=True
-    ).update(read_at=timezone.now())
-
-    items = rep.chat_messages.filter(id__gt=after)
+    from office_dashboard import chat
+    chat.mark_read(rep, Message.SENDER_ADMIN)
+    data = chat.sync(rep, Message.SENDER_ADMIN, after, request.GET.get("since", ""))
     unread = {str(c["rep"].id): c["unread"] for c in _message_conversations()}
-    return JsonResponse({
-        "messages": [serialize_chat_message(m) for m in items],
-        "unread": unread,
-        "unread_total": sum(unread.values()),
-    })
+    data["unread"] = unread
+    data["unread_total"] = sum(unread.values())
+    return JsonResponse(data)
 
 
 @super_admin_required
@@ -3677,13 +3674,11 @@ def admin_messages_send(request):
     if request.method != "POST":
         return JsonResponse({"success": False, "error": "POST required."}, status=405)
     rep = get_object_or_404(OfficeRepresentative.objects.exclude(office__slug=LGU_SUPER_ADMIN_SLUG), pk=request.POST.get("rep") or 0)
-    body = request.POST.get("body", "").strip()
-    if not body:
-        return JsonResponse({"success": False, "error": "Type a message first."}, status=400)
-    if len(body) > MESSAGE_MAX_LENGTH:
-        return JsonResponse({"success": False, "error": f"Messages are limited to {MESSAGE_MAX_LENGTH} characters."}, status=400)
-
-    msg = Message.objects.create(representative=rep, sender=Message.SENDER_ADMIN, body=body)
+    from office_dashboard import chat
+    msg, error = chat.create(rep, Message.SENDER_ADMIN, request.POST.get("body", ""), request.POST.get("reply_to"))
+    if error:
+        return JsonResponse({"success": False, "error": error}, status=400)
+    body = msg.body
 
     # Let the representative know through their normal notifications too —
     # one unread "new message" notification at a time, so a back-and-forth
@@ -3697,7 +3692,20 @@ def admin_messages_send(request):
             level="info",
             link_url=reverse("office_dashboard:messages"),
         )
-    return JsonResponse({"success": True, "message": serialize_chat_message(msg)})
+    return JsonResponse({"success": True, "message": chat.serialize(msg, Message.SENDER_ADMIN)})
+
+
+@super_admin_required
+def admin_messages_action(request, pk):
+    """The "⋮" menu of a message: edit / unsend / delete (for me)."""
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "POST required."}, status=405)
+    rep = get_object_or_404(OfficeRepresentative.objects.exclude(office__slug=LGU_SUPER_ADMIN_SLUG), pk=request.POST.get("rep") or 0)
+    from office_dashboard import chat
+    msg, error = chat.act(rep, Message.SENDER_ADMIN, pk, request.POST.get("action", ""), request.POST.get("body", ""))
+    if error:
+        return JsonResponse({"success": False, "error": error}, status=400)
+    return JsonResponse({"success": True, "message": chat.serialize(msg, Message.SENDER_ADMIN)})
 
 # ---------------------------------------------------------------------------
 # Services of a chosen office (Super Admin → Services → "Add services to an

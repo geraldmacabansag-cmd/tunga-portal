@@ -1439,23 +1439,19 @@ def activity_log(request, rep):
 MESSAGE_MAX_LENGTH = 2000
 
 
-def serialize_chat_message(m):
-    return {
-        "id": m.id,
-        "sender": m.sender,
-        "body": m.body,
-        "time": timezone.localtime(m.created_at).strftime("%b %d, %Y · %I:%M %p").replace(" 0", " "),
-    }
+def serialize_chat_message(m, viewer=Message.SENDER_REP):
+    """One message as `viewer` sees it (office_dashboard/chat.py)."""
+    from . import chat
+    return chat.serialize(m, viewer)
 
 
 @office_rep_required
 def rep_messages(request, rep):
     # Opening Messages marks the Super Admin's messages as read right away,
     # so the sidebar's red number is already cleared on this page.
-    rep.chat_messages.filter(
-        sender=Message.SENDER_ADMIN, read_at__isnull=True
-    ).update(read_at=timezone.now())
-    return render(request, "office_dashboard/messages.html", {"rep": rep})
+    from . import chat
+    chat.mark_read(rep, Message.SENDER_REP)
+    return render(request, "office_dashboard/messages.html", {"rep": rep, "edit_minutes": chat.EDIT_MINUTES})
 
 
 @office_rep_required
@@ -1466,26 +1462,34 @@ def rep_messages_data(request, rep):
         after = 0
 
     # Opening the conversation marks the Super Admin's messages as read.
-    rep.chat_messages.filter(
-        sender=Message.SENDER_ADMIN, read_at__isnull=True
-    ).update(read_at=timezone.now())
-
-    items = rep.chat_messages.filter(id__gt=after)
-    return JsonResponse({"messages": [serialize_chat_message(m) for m in items], "unread_total": 0})
+    from . import chat
+    chat.mark_read(rep, Message.SENDER_REP)
+    data = chat.sync(rep, Message.SENDER_REP, after, request.GET.get("since", ""))
+    data["unread_total"] = 0
+    return JsonResponse(data)
 
 
 @office_rep_required
 def rep_messages_send(request, rep):
     if request.method != "POST":
         return JsonResponse({"success": False, "error": "POST required."}, status=405)
-    body = request.POST.get("body", "").strip()
-    if not body:
-        return JsonResponse({"success": False, "error": "Type a message first."}, status=400)
-    if len(body) > MESSAGE_MAX_LENGTH:
-        return JsonResponse({"success": False, "error": f"Messages are limited to {MESSAGE_MAX_LENGTH} characters."}, status=400)
+    from . import chat
+    msg, error = chat.create(rep, Message.SENDER_REP, request.POST.get("body", ""), request.POST.get("reply_to"))
+    if error:
+        return JsonResponse({"success": False, "error": error}, status=400)
+    return JsonResponse({"success": True, "message": chat.serialize(msg, Message.SENDER_REP)})
 
-    msg = Message.objects.create(representative=rep, sender=Message.SENDER_REP, body=body)
-    return JsonResponse({"success": True, "message": serialize_chat_message(msg)})
+
+@office_rep_required
+def rep_messages_action(request, rep, pk):
+    """The "⋮" menu of a message: edit / unsend / delete (for me)."""
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "POST required."}, status=405)
+    from . import chat
+    msg, error = chat.act(rep, Message.SENDER_REP, pk, request.POST.get("action", ""), request.POST.get("body", ""))
+    if error:
+        return JsonResponse({"success": False, "error": error}, status=400)
+    return JsonResponse({"success": True, "message": chat.serialize(msg, Message.SENDER_REP)})
 
 
 # ---------------------------------------------------------------------------

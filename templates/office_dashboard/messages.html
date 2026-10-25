@@ -4,7 +4,7 @@
 {% block body_page %}messages{% endblock %}
 
 {% block content %}
-<link rel="stylesheet" href="{% static 'css/messages.css' %}">
+<link rel="stylesheet" href="{% static 'css/messages.css' %}?v=2">
 
   <div class="main">
     <header class="topbar">
@@ -34,7 +34,9 @@
         <section class="chat-card chat-card--thread" id="chat"
                  data-mine="rep"
                  data-data-url="{% url 'office_dashboard:messages_data' %}"
-                 data-send-url="{% url 'office_dashboard:messages_send' %}">
+                 data-send-url="{% url 'office_dashboard:messages_send' %}"
+                 data-action-url="{% url 'office_dashboard:messages_action' 0 %}"
+                 data-edit-minutes="{{ edit_minutes|default:15 }}">
           {% csrf_token %}
           <div class="chat-head">
             <span class="chat-head__avatar"><i class="fa-solid fa-user-shield"></i></span>
@@ -63,5 +65,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/messages.js' %}"></script>
+<script src="{% static 'js/messages.js' %}?v=2"></script>
 {% endblock %}

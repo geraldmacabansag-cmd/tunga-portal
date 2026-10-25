@@ -160,3 +160,81 @@
   background: var(--gray-50, #f2f3f7); color: var(--gray-700, #363c4d);
   text-decoration: none; flex: 0 0 34px;
 }
+
+/* ---------- "⋮" message menu: reply, copy, edit, unsend, delete for me (static/js/messages.js) ---------- */
+.chat-msg__row { display: flex; align-items: flex-start; gap: 4px; max-width: 100%; }
+.chat-msg--mine .chat-msg__row { flex-direction: row-reverse; }
+.chat-msg__col { display: flex; flex-direction: column; min-width: 0; align-items: flex-start; }
+.chat-msg--mine .chat-msg__col { align-items: flex-end; }
+.chat-msg__more {
+  flex: none; width: 28px; height: 28px; margin-top: 4px;
+  border: 0; border-radius: 50%; background: transparent; cursor: pointer;
+  color: var(--gray-500, #6b7286); font-size: 14px;
+  opacity: 0; transition: opacity .15s, background .15s;
+}
+.chat-msg:hover .chat-msg__more, .chat-msg.is-menu .chat-msg__more, .chat-msg__more:focus-visible { opacity: 1; }
+.chat-msg__more:hover, .chat-msg.is-menu .chat-msg__more { background: var(--gray-100, #e9ebf2); color: var(--gray-900, #181c27); }
+@media (hover: none) { .chat-msg__more { opacity: .65; } }
+
+.chat-msg.is-unsent .chat-msg__bubble,
+.chat-msg--mine.is-unsent .chat-msg__bubble {
+  background: transparent; color: var(--gray-500, #6b7286);
+  border: 1px dashed var(--gray-300, #c7cbd9); font-style: italic;
+}
+.chat-msg.is-flash .chat-msg__bubble { animation: chatFlash 1.2s ease; }
+@keyframes chatFlash { 0%, 60% { box-shadow: 0 0 0 4px rgba(244, 197, 49, .7); } 100% { box-shadow: 0 0 0 0 rgba(244, 197, 49, 0); } }
+
+/* the quoted message above a reply */
+.chat-msg__quote {
+  display: flex; flex-direction: column; gap: 1px; max-width: 100%;
+  margin: 0 0 -6px; padding: 6px 12px 12px; text-align: left; cursor: pointer;
+  border: 0; border-left: 3px solid var(--blue-500, #3b6bf5); border-radius: 12px 12px 4px 4px;
+  background: var(--gray-100, #e9ebf2); font: inherit; color: var(--gray-700, #3d4458);
+}
+.chat-msg__quote-who { font-size: 10.5px; font-weight: 700; color: var(--gray-500, #6b7286); }
+.chat-msg__quote-text { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 320px; }
+
+/* the dropdown itself (placed with JS next to the ⋮ button) */
+.chat-menu {
+  position: fixed; z-index: 1200; min-width: 200px; padding: 6px;
+  background: #fff; border: 1px solid var(--gray-100, #e9ebf2); border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, .18);
+}
+.chat-menu[hidden] { display: none; }
+.chat-menu__info {
+  display: flex; flex-direction: column; gap: 1px;
+  padding: 6px 10px 8px; margin-bottom: 4px; border-bottom: 1px solid var(--gray-100, #e9ebf2);
+  font-size: 11px; color: var(--gray-500, #6b7286);
+}
+.chat-menu__item {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 9px 10px; border: 0; border-radius: 8px; background: none; cursor: pointer;
+  font: inherit; font-size: 13px; color: var(--gray-900, #181c27); text-align: left;
+}
+.chat-menu__item i { width: 16px; text-align: center; color: var(--gray-500, #6b7286); }
+.chat-menu__item:hover, .chat-menu__item:focus-visible { background: var(--gray-25, #f6f7fb); outline: none; }
+.chat-menu__item.is-danger, .chat-menu__item.is-danger i { color: #c62828; }
+.chat-menu__item.is-asking { background: #fdecec; font-weight: 600; }
+
+/* "Replying to …" / "Editing your message" bar above the message box */
+.chat-compose-bar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 14px; border-top: 1px solid var(--gray-100, #e9ebf2);
+  background: var(--gray-25, #f6f7fb); font-size: 12.5px;
+}
+.chat-compose-bar[hidden] { display: none; }
+.chat-compose-bar > i { color: var(--blue-600, #2f5bea); }
+.chat-compose-bar__text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.chat-compose-bar__text b { font-size: 11.5px; color: var(--gray-700, #3d4458); }
+.chat-compose-bar__text span { color: var(--gray-500, #6b7286); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-compose-bar__x {
+  flex: none; width: 28px; height: 28px; border: 0; border-radius: 50%;
+  background: none; cursor: pointer; color: var(--gray-500, #6b7286);
+}
+.chat-compose-bar__x:hover { background: var(--gray-100, #e9ebf2); }
+
+@media (max-width: 860px) {
+  .chat-msg__quote-text { max-width: 220px; }
+  .chat-menu { min-width: 190px; }
+  .chat-menu__item { padding: 11px 10px; }
+}

@@ -7,7 +7,7 @@
 {% block breadcrumbs %}<span class="current">Messages</span>{% endblock %}
 
 {% block content %}
-<link rel="stylesheet" href="{% static 'css/messages.css' %}">
+<link rel="stylesheet" href="{% static 'css/messages.css' %}?v=2">
 
 <div class="chat-layout{% if selected %} has-selected{% endif %}">
 
@@ -43,8 +43,10 @@
   <section class="chat-card chat-card--thread" id="chat"
            data-mine="admin"
            data-rep="{{ selected.rep.id }}"
+           data-other="{{ selected.office_name }}"
            data-data-url="{% url 'admin_dashboard:ad_messages_data' %}"
-           data-send-url="{% url 'admin_dashboard:ad_messages_send' %}">
+           data-send-url="{% url 'admin_dashboard:ad_messages_send' %}"
+           data-action-url="{% url 'admin_dashboard:ad_messages_action' 0 %}">
     {% csrf_token %}
     <div class="chat-head">
       <a href="{% url 'admin_dashboard:ad_messages' %}" class="chat-back" aria-label="Back to offices"><i class="fa-solid fa-arrow-left"></i></a>
@@ -83,5 +85,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/messages.js' %}"></script>
+<script src="{% static 'js/messages.js' %}?v=2"></script>
 {% endblock %}

@@ -143,6 +143,7 @@ urlpatterns = [
     path('Admin-Messages/', views.admin_messages, name='ad_messages'),
     path('Admin-Messages/data/', views.admin_messages_data, name='ad_messages_data'),
     path('Admin-Messages/send/', views.admin_messages_send, name='ad_messages_send'),
+    path('Admin-Messages/<int:pk>/action/', views.admin_messages_action, name='ad_messages_action'),
 
     path('Admin-Archive/', views.admin_archive, name='ad_archive'),
     path('Admin-Archive/<str:item_type>/<int:pk>/restore/', views.admin_archive_restore, name='admin_archive_restore'),

@@ -64,6 +64,7 @@ urlpatterns = [
     path('office-messages', views.rep_messages, name='messages'),
     path('office-messages/data', views.rep_messages_data, name='messages_data'),
     path('office-messages/send', views.rep_messages_send, name='messages_send'),
+    path('office-messages/<int:pk>/action', views.rep_messages_action, name='messages_action'),
 
     path('office-log', views.activity_log, name='log'),
 

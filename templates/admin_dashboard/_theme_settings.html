@@ -110,7 +110,7 @@ website until "Save theme".
     <aside class="th-preview-wrap">
       <div class="th-preview-label"><i class="fa-regular fa-eye"></i> Preview</div>
       <div class="th-preview" id="thPreview">
-        <div class="pv-top"><span class="pv-tag">ANNOUNCEMENT</span><span class="pv-top-msg">Free medical mission on Saturday</span><span class="pv-top-link">Login / Sign Up</span></div>
+        <div class="pv-top"><span class="pv-top-msg"></span><span class="pv-top-link">Login / Sign Up</span></div>
         <div class="pv-header">
           <div class="pv-brand"><span class="pv-seal"></span><span><small>MUNICIPALITY OF</small><b>TUNGA</b><i>Abtik na serbisyo, masulong na bungto.</i></span></div>
           <div class="pv-menu"><span class="on">Home</span><span>Offices</span><span>Announcements</span><span>About Us</span></div>
@@ -124,6 +124,19 @@ website until "Save theme".
             <div class="pv-btns"><span class="pv-btn">Read more</span><span class="pv-btn pv-btn--hover">Hover</span><span class="pv-outline">Download</span><a class="pv-link">View details</a></div>
           </div>
           <div class="pv-soft"><span class="pv-dot"></span> Office hours: Monday – Friday, 8:00 AM – 5:00 PM</div>
+        </div>
+        <div class="pv-section-label">While maintenance mode is on</div>
+        <div class="pv-maint"><span class="pv-maint-tag">MAINTENANCE</span><span class="pv-maint-msg">System upgrade tonight, 8 – 10 PM. <b>Expected back: Oct 26 · 10:00 PM</b></span></div>
+        <div class="pv-section-label">About Us page</div>
+        <div class="pv-about">
+          <div class="pv-ab-row">
+            <span class="pv-ab-ic"><i class="fa-solid fa-map"></i></span>
+            <span class="pv-ab-goal"><b>01</b> Good governance</span>
+            <span class="pv-ab-yr">2025</span>
+            <span class="pv-ab-medal"><i class="fa-solid fa-award"></i></span>
+          </div>
+          <div class="pv-ab-fiesta"><small>TOWN FIESTA</small><b>Feast of the patron saint</b></div>
+          <div class="pv-ab-hymn"><span><i class="fa-solid fa-music"></i></span><b>“Tunga Hymn”</b></div>
         </div>
         <div class="pv-footer"><b>Municipality of Tunga</b><span>Quick Links · Services · Contact Us</span><small>© 2026 Municipality of Tunga, Leyte</small></div>
       </div>
@@ -205,6 +218,22 @@ website until "Save theme".
   .pv-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--gold); flex: none; }
   .pv-footer { background: var(--footer-bg); color: var(--footer-text); padding: 12px; display: flex; flex-direction: column; gap: 3px; font-size: .82em; }
   .pv-footer small { opacity: .8; }
+  .pv-section-label { padding: 7px 12px 4px; font-size: .68em; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); background: var(--bg-white); border-top: 1px dashed var(--border-light); }
+  .pv-maint { display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: var(--maint-bg); color: var(--maint-text); font-size: .78em; }
+  .pv-maint-tag { background: var(--maint-tag); color: #2b1d00; padding: 2px 7px; border-radius: 999px; font-weight: 800; font-size: .85em; flex: none; }
+  .pv-maint-msg b { color: var(--maint-tag); }
+  .pv-about { padding: 8px 12px 12px; background: var(--bg-white); display: grid; gap: 8px; }
+  .pv-ab-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .pv-ab-ic { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; background: var(--about-icon-bg); color: var(--navy); font-size: .8em; }
+  .pv-ab-goal { font-size: .82em; color: var(--navy); font-weight: 600; }
+  .pv-ab-goal b { color: var(--about-goal-num); font-family: var(--pv-font-head); margin-right: 3px; }
+  .pv-ab-yr { font-size: .7em; font-weight: 800; padding: 1px 7px; border-radius: 999px; background: var(--about-icon-bg); color: var(--navy); }
+  .pv-ab-medal { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: .8em; background: radial-gradient(circle at 35% 30%, #fff8dc, var(--about-medal) 60%); color: #5c4000; }
+  .pv-ab-fiesta { border-radius: 8px; padding: 8px 10px; color: #fff; background: var(--about-fiesta); display: flex; flex-direction: column; }
+  .pv-ab-fiesta small { font-size: .62em; font-weight: 800; letter-spacing: .05em; color: #ffe9a3; }
+  .pv-ab-fiesta b { font-size: .85em; }
+  .pv-ab-hymn { border-radius: 8px; padding: 7px 10px; color: #fff; background: var(--about-hymn); display: flex; align-items: center; gap: 8px; font-size: .82em; }
+  .pv-ab-hymn span { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--gold); color: var(--navy-deep); font-size: .75em; }
   .th-apply { display: grid; gap: 10px; }
   .th-switch { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--gray-200); border-radius: 10px; cursor: pointer; }
   .th-switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
@@ -253,7 +282,10 @@ website until "Save theme".
              bg_white: '--bg-white', bg_light: '--bg-light', border_light: '--border-light', green_badge: '--green-badge',
              red_badge: '--red-badge', top_bar_bg: '--top-bar-bg', top_bar_text: '--top-bar-text', header_bg: '--header-bg',
              header_text: '--header-text', btn_bg: '--btn-bg', btn_hover: '--btn-hover', btn_text: '--btn-text',
-             footer_bg: '--footer-bg', footer_text: '--footer-text' };
+             footer_bg: '--footer-bg', footer_text: '--footer-text',
+             maint_bg: '--maint-bg', maint_text: '--maint-text', maint_tag: '--maint-tag',
+             about_icon_bg: '--about-icon-bg', about_fiesta: '--about-fiesta', about_hymn: '--about-hymn',
+             about_medal: '--about-medal', about_goal_num: '--about-goal-num' };
   var preview = document.getElementById('thPreview');
   var rows = {};
   document.querySelectorAll('.th-color').forEach(function (r) { rows[r.dataset.key] = r; });
@@ -316,7 +348,8 @@ website until "Save theme".
                ['text_body', 'bg_white', 'Paragraph text on the page background'],
                ['navy', 'bg_white', 'Links (main color) on the page background'],
                ['btn_text', 'btn_bg', 'Button text on the buttons'],
-               ['top_bar_text', 'top_bar_bg', 'Announcement bar text on its background'],
+               ['top_bar_text', 'top_bar_bg', 'Top bar text on its background'],
+               ['maint_text', 'maint_bg', 'Maintenance message on the maintenance bar'],
                ['header_text', 'header_bg', 'Menu text on the header'],
                ['footer_text', 'footer_bg', 'Footer text on the footer']];
   function warn() {
