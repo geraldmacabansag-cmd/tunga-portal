@@ -1,6 +1,8 @@
 """Every email the website sends goes through send_via_configured_provider().
 
-1. Brevo (main sender, HTTPS API, 300 emails a day on the free plan)
+1. Brevo (main sender, HTTPS API, 300 emails a day on the free plan): the
+   account saved in Super Admin -> System Settings, or else the default
+   account from the server settings (BREVO_SENDER_EMAIL + BREVO_API_KEY)
 2. If Brevo fails — daily limit used up, Brevo down, key wrong — the same
    email is sent through the BACKUP sender chosen in Super Admin → System
    Settings:
@@ -29,23 +31,23 @@ def send_via_configured_provider(subject, plain_body, html_body, to_email):
         if ok2:
             EmailProviderSettings.objects.filter(pk=s.pk).update(
                 backup_last_used=timezone.now(), backup_used_count=F("backup_used_count") + 1)
-            if s.is_configured:   # Brevo is set up but failed (limit reached / down)
+            if s.brevo_ready:   # Brevo is set up but failed (limit reached / down)
                 email_backup_used(error or "", s.get_backup_provider_display().split(" (")[0])
             return True, None
         full = f"{error} | Backup ({s.get_backup_provider_display()}) also failed: {error2}"
         email_failed(full)
         return False, full
 
-    if s.is_configured:
+    if s.brevo_ready:
         email_failed(error or "")
     return False, error
 
 
 def send_with_brevo(s, subject, plain_body, html_body, to_email):
-    if not s.is_configured:
+    if not s.brevo_ready:
         return False, "Email provider is not configured yet. Go to Super Admin → System Settings."
     try:
-        api_key = s.get_api_key()
+        api_key = s.brevo_api_key()
         if not api_key:
             return False, "Stored API key could not be read (encryption key may be missing or changed)."
 
@@ -57,7 +59,7 @@ def send_with_brevo(s, subject, plain_body, html_body, to_email):
                 "Accept": "application/json",
             },
             json={
-                "sender": {"email": s.email_address},
+                "sender": {"email": s.brevo_sender, "name": "Municipality of Tunga"},
                 "to": [{"email": to_email}],
                 "subject": subject,
                 "textContent": plain_body,

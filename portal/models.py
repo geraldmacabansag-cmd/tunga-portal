@@ -16,6 +16,27 @@ class CitizenProfile(models.Model):
     def __str__(self):
         return self.user.get_full_name() or self.user.username
 
+class AccountDeletion(models.Model):
+    """A citizen asked to delete their account (Settings -> Delete my account).
+    The account is kept for 30 days and then deleted for good. Logging in
+    again during those days (and pressing "Proceed anyway") cancels it.
+    See portal/account_deletion.py."""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="deletion_request")
+    requested_at = models.DateTimeField(default=timezone.now)
+    delete_after = models.DateTimeField(db_index=True)
+
+    class Meta:
+        verbose_name = "Account deletion request"
+
+    def __str__(self):
+        return f"{self.user.email or self.user.username} — deleted after {self.delete_after:%b %d, %Y}"
+
+    @property
+    def days_left(self):
+        secs = (self.delete_after - timezone.now()).total_seconds()
+        return max(0, -int(-secs // 86400))     # rounded up: 30 right after asking
+
+
 class EmailOTP(models.Model):
     email = models.EmailField()
     code = models.CharField(max_length=6)

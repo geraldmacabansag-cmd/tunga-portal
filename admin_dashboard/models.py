@@ -52,6 +52,9 @@ class SiteContactInfo(models.Model):
     hero_slider_seconds = models.PositiveIntegerField(default=6)
     hero_slider_mode = models.CharField(max_length=10, choices=HERO_SLIDER_MODE_CHOICES, default="auto")
     hero_slider_items = models.JSONField(default=list, blank=True)
+    # how many times the banner goes through all its slides by itself before
+    # it stops on the first (welcome) slide; 0 = it never stops
+    hero_slider_loops = models.PositiveSmallIntegerField(default=2)
     # Home page News slider: seconds before the next news story slides in
     # (Website Settings → Appearance).
     news_slider_seconds = models.PositiveIntegerField(default=6)
@@ -245,6 +248,38 @@ class EmailProviderSettings(models.Model):
     def get_backup_api_key(self):
         from .crypto_utils import decrypt_value
         return decrypt_value(self.backup_api_key_encrypted)
+
+    # ---- Brevo: the account saved on this page, or else the DEFAULT account
+    # from the server settings (BREVO_SENDER_EMAIL + BREVO_API_KEY) ----
+    @property
+    def default_brevo_email(self):
+        """Sender of the default account ("" when the server has none)."""
+        from django.conf import settings
+        email = getattr(settings, "BREVO_SENDER_EMAIL", "")
+        return email if email and getattr(settings, "BREVO_API_KEY", "") else ""
+
+    @property
+    def has_saved_brevo(self):
+        return bool(self.email_address and self.api_key_encrypted)
+
+    @property
+    def using_default_brevo(self):
+        return not self.has_saved_brevo and bool(self.default_brevo_email)
+
+    @property
+    def brevo_ready(self):
+        """True when emails can go out through Brevo (saved or default account)."""
+        return self.has_saved_brevo or self.using_default_brevo
+
+    @property
+    def brevo_sender(self):
+        return self.email_address if self.has_saved_brevo else self.default_brevo_email
+
+    def brevo_api_key(self):
+        if self.has_saved_brevo:
+            return self.get_api_key()
+        from django.conf import settings
+        return getattr(settings, "BREVO_API_KEY", "") if self.default_brevo_email else ""
 
     @property
     def backup_ready(self):

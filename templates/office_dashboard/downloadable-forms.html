@@ -29,14 +29,15 @@
 
     <main class="content">
 
-      <section class="panel">
+      {# search and category work without reloading (static/js/list-filter.js) #}
+      <section class="panel" data-lf data-lf-noun="forms">
         <div class="panel-header">
           <h2>Downloadable Forms</h2>
           <button type="button" class="btn btn-primary" id="open-add-form"><i class="fa-solid fa-plus"></i> Add Form</button>
         </div>
         <div class="filters-row">
-          <label class="field search" style="flex:1;"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search forms..."></label>
-          <select class="field">
+          <label class="field search" style="flex:1;"><i class="fa-solid fa-magnifying-glass"></i><input type="text" placeholder="Search forms..." data-lf-q autocomplete="off"></label>
+          <select class="field" data-lf-category>
             <option value="">All Categories</option>
             {% for cat in category_choices %}
               <option value="{{ cat }}">{{ cat }}</option>
@@ -48,7 +49,7 @@
             <thead><tr><th>Form</th><th>Service</th><th>Category</th><th>Uploaded By</th><th>Date Uploaded</th><th>Downloads</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
               {% for form in forms %}
-              <tr>
+              <tr data-lf-row data-category="{{ form.category }}" data-title="{{ form.title }} {{ form.service.name }} {{ form.category }}">
                 <td class="row-icon-name">
                   <span class="row-thumb" style="background:var(--red-50);color:var(--red-600);"><i class="fa-solid fa-file-pdf"></i></span>
                   <span class="cell-primary">{{ form.title }}</span>
@@ -81,6 +82,7 @@
                 <td colspan="8" style="text-align:center;color:var(--gray-400);padding:24px 0;">No forms uploaded yet.</td>
               </tr>
               {% endfor %}
+              {% if forms %}<tr data-lf-empty hidden><td colspan="8" style="text-align:center;color:var(--gray-400);padding:24px 0;">No forms match this search or category.</td></tr>{% endif %}
             </tbody>
           </table>
         </div>
@@ -317,4 +319,5 @@
 })();
 </script>
 
+<script src="{% static 'js/list-filter.js' %}?v=4"></script>
 {% endblock %}

@@ -36,10 +36,11 @@
         </div>
       </div>
 
-      <div class="panel">
+      {# search, category and pages work without reloading (static/js/list-filter.js) #}
+      <div class="panel" data-lf data-lf-size="10" data-lf-noun="articles">
         <form method="get" class="filters-row">
-          <label class="field search" style="flex:1;"><i class="fa-solid fa-magnifying-glass"></i><input type="text" name="q" value="{{ current_q }}" placeholder="Search articles..." onchange="this.form.submit()"></label>
-          <select class="field" name="category" onchange="this.form.submit()">
+          <label class="field search" style="flex:1;"><i class="fa-solid fa-magnifying-glass"></i><input type="text" name="q" value="{{ current_q }}" placeholder="Search articles..." data-lf-q autocomplete="off"></label>
+          <select class="field" name="category" data-lf-category>
             <option value="">All categories</option>
             {% for cat in categories %}
               <option value="{{ cat }}" {% if current_category == cat %}selected{% endif %}>{{ cat }}</option>
@@ -62,7 +63,7 @@
             </thead>
             <tbody>
               {% for n in news_items %}
-              <tr>
+              <tr data-lf-row data-category="{{ n.category }}" data-title="{{ n.title }} {{ n.summary }} {{ n.representative.office.name }}">
                 <td>
                   <div class="row-icon-name">
                     {% if n.image %}<img class="list-thumb" src="{{ n.image.url }}" alt="">{% else %}<span class="row-thumb" style="background:var(--blue-50);color:var(--blue-600);"><i class="fa-solid fa-newspaper"></i></span>{% endif %}
@@ -116,8 +117,13 @@
               {% empty %}
               <tr class="no-results-row"><td colspan="7">No news articles yet.</td></tr>
               {% endfor %}
+              {% if news_items %}<tr class="no-results-row" data-lf-empty hidden><td colspan="7">No articles match this search or category.</td></tr>{% endif %}
             </tbody>
           </table>
+        </div>
+        <div class="pagination">
+          <span data-lf-info></span>
+          <div class="page-nums" data-lf-pager></div>
         </div>
       </div>
 
@@ -424,4 +430,5 @@
 })();
 </script>
 
+<script src="{% static 'js/list-filter.js' %}?v=4"></script>
 {% endblock %}

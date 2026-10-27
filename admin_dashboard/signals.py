@@ -1,7 +1,12 @@
 """Creates Super Admin notifications (the bell in the dashboard top bar).
 
-- An office submits (or resubmits) an announcement, news, event, photo,
-  form or service for approval  -> "New ... waiting for approval"
+- An office submits an announcement, news, event, photo, form or service
+  for approval                    -> "New ... waiting for approval"
+- The office revises content the Super Admin returned
+                                  -> "Revised ... resubmitted for approval"
+- The office edits content that is still waiting for approval
+                                  -> "... was updated" (at most every 10 minutes)
+  (office_dashboard.notifications.resubmit marks these edits)
 - An office representative sends a message to the Super Admin -> "New message"
 """
 from django.db.models.signals import pre_save, post_save, pre_delete
@@ -51,23 +56,49 @@ def _remember_old_status(sender, instance, **kwargs):
 def _content_saved(sender, instance, created, **kwargs):
     if kwargs.get("raw") or instance.status != "pending":
         return
-    if not created and getattr(instance, "_old_status", None) == "pending":
-        return  # still pending after an edit: already notified
+    old = getattr(instance, "_old_status", None)
+    revised = getattr(instance, "_rep_revised", False)   # an office representative's edit
+    if not created and old == "pending" and not revised:
+        return  # still pending, changed by someone else: already notified
     office = _office_of(instance)
     if office is None or office.slug == LGU_SLUG:
         return  # the Super Admin's own posts don't need approval
+    if sender is DownloadableForm and getattr(instance, "bundled_with_service", False) \
+            and instance.service_id and instance.service.status != "published":
+        return  # part of a service that is waiting for approval: the service's notice covers it
     label, item_type, icon = WATCHED[sender]
     name = getattr(instance, "title", None) or getattr(instance, "name", "") or "Untitled"
-    again = not created and getattr(instance, "_old_status", None) == "returned"
     try:
         link = reverse("admin_dashboard:approval_details", args=[item_type, instance.pk])
     except Exception:
         link = reverse("admin_dashboard:approval_center")
-    notify_super_admins(
-        f"{'Resubmitted' if again else 'New'} {label} waiting for approval",
-        f'{office.name}: "{name}"',
-        "warning", icon, link,
-    )
+
+    if not created and old == "expired":
+        title = f"Expired {label} sent again for approval"
+        desc = f'{office.name} gave "{name}" a new expiration date. Please review it.'
+        icon = "fa-solid fa-rotate"
+    elif not created and old == "past":
+        title = f"Past {label} sent again for approval"
+        desc = f'{office.name} gave "{name}" a new date. Please review it.'
+        icon = "fa-solid fa-rotate"
+    elif not created and old == "returned":
+        title = f"Revised {label} resubmitted for approval"
+        desc = f'{office.name} made the changes you asked for in "{name}". Please review it again.'
+        icon = "fa-solid fa-rotate"
+    elif not created and old == "pending":
+        title = f"{label[:1].upper()}{label[1:]} waiting for approval was updated"
+        desc = f'{office.name} changed "{name}" before you reviewed it.'
+        # one notice for a burst of edits (e.g. a service saved part by part)
+        from datetime import timedelta
+        from django.utils import timezone
+        if AdminNotification.objects.filter(link_url=link, title=title,
+                                            created_at__gte=timezone.now() - timedelta(minutes=10)).exists():
+            return
+        icon = "fa-regular fa-pen-to-square"
+    else:
+        title = f"New {label} waiting for approval"
+        desc = f'{office.name}: "{name}"'
+    notify_super_admins(title, desc, "warning", icon, link)
 
 
 for _model in WATCHED:

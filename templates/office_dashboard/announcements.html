@@ -49,28 +49,43 @@
           <div class="stat-value">{{ returned_count }}</div>
           <div class="stat-label">Returned</div>
         </div>
+        <div class="stat-card">
+          <div class="top"><span class="stat-icon ann-expired-ico"><i class="fa-regular fa-calendar-xmark"></i></span></div>
+          <div class="stat-value">{{ expired_count }}</div>
+          <div class="stat-label">Expired</div>
+        </div>
       </div>
 
-      <section class="panel">
+      {# tabs, filters, search, sort and pages work without reloading (static/js/list-filter.js) #}
+      <section class="panel" data-lf data-lf-param="status" data-lf-size="5" data-lf-noun="announcements">
         <div class="panel-header">
           <h2>All Announcements</h2>
           <button class="btn btn-primary" id="open-create-announcement"><i class="fa-solid fa-plus"></i> Create Announcement</button>
         </div>
+          {# tabs: same as the Status filter #}
+          <div class="tabs ann-tabs">
+            <a class="tab{% if current_status == '' %} active{% endif %}" data-lf-tab="" href="?">All <span class="count">{{ total_count }}</span></a>
+            <a class="tab{% if current_status == 'published' %} active{% endif %}" data-lf-tab="published" href="?status=published">Published <span class="count">{{ published_count }}</span></a>
+            <a class="tab{% if current_status == 'pending' %} active{% endif %}" data-lf-tab="pending" href="?status=pending">Pending <span class="count">{{ pending_count }}</span></a>
+            <a class="tab{% if current_status == 'returned' %} active{% endif %}" data-lf-tab="returned" href="?status=returned">Returned <span class="count">{{ returned_count }}</span></a>
+            <a class="tab{% if current_status == 'expired' %} active{% endif %}" data-lf-tab="expired" href="?status=expired"><i class="fa-regular fa-calendar-xmark"></i> Expired <span class="count">{{ expired_count }}</span></a>
+          </div>
+          <p class="ann-expired-help" data-lf-only="expired"{% if current_status != 'expired' %} hidden{% endif %}><i class="fa-solid fa-circle-info"></i> <span><b>Expired (not published)</b>: the expiration date passed before it was approved. Click <i class="fa-regular fa-pen-to-square"></i>, set a new expiration date and save — it goes back to <b>Pending</b> for approval. <b>Expired</b> (published): it was on the website and is now hidden; only the Super Admin can edit it.</span></p>
           <form method="get" class="filters-row">
             <label class="field search" style="flex:1;">
               <i class="fa-solid fa-magnifying-glass"></i>
-              <input type="text" name="q" value="{{ current_q }}" placeholder="Search announcements..." onchange="this.form.submit()">
+              <input type="text" name="q" value="{{ current_q }}" placeholder="Search announcements..." data-lf-q autocomplete="off">
             </label>
 
-            <select class="field" name="status" onchange="this.form.submit()">
+            <select class="field" name="status" data-lf-tabselect>
               <option value="" {% if current_status == "" %}selected{% endif %}>All Status</option>
               <option value="published" {% if current_status == "published" %}selected{% endif %}>Published</option>
               <option value="pending" {% if current_status == "pending" %}selected{% endif %}>Pending Approval</option>
-              <option value="draft" {% if current_status == "draft" %}selected{% endif %}>Draft</option>
               <option value="returned" {% if current_status == "returned" %}selected{% endif %}>Returned</option>
+              <option value="expired" {% if current_status == "expired" %}selected{% endif %}>Expired</option>
             </select>
 
-            <select class="field" name="sort" onchange="this.form.submit()">
+            <select class="field" name="sort" data-lf-sort>
               <option value="newest" {% if current_sort == "newest" %}selected{% endif %}>Newest First</option>
               <option value="oldest" {% if current_sort == "oldest" %}selected{% endif %}>Oldest First</option>
             </select>
@@ -80,7 +95,7 @@
             <thead><tr><th>Title</th><th>Date Published</th><th>Views</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
               {% for a in announcements %}
-              <tr>
+              <tr data-lf-row data-tab="{% if a.is_expired %}expired{% else %}{{ a.status }}{% endif %}" data-title="{{ a.title }} {{ a.category }}" data-date="{{ a.created_at|date:'YmdHis' }}" data-views="{{ a.views }}">
                 <td class="row-icon-name">
                   <span class="row-thumb" style="background:var(--blue-50);color:var(--blue-600);"><i class="fa-solid fa-bullhorn"></i></span>
                   <div><div class="cell-primary">{{ a.title }}</div><div class="cell-sub">{{ a.category|default:"—" }}</div></div>
@@ -88,19 +103,14 @@
                 <td>{{ a.date_posted|default:a.created_at|date:"F j, Y" }}<br><span class="cell-sub">{{ a.created_at|date:"g:i A" }}</span></td>
                 <td>{{ a.views }}</td>
                 <td>
-                  <span class="badge
-                    {% if a.status == 'published' %}badge-green
-                    {% elif a.status == 'pending' %}badge-amber
-                    {% elif a.status == 'draft' %}badge-gray
-                    {% else %}badge-red{% endif %}">
-                    {{ a.get_status_display }}
-                  </span>
+                  <span class="badge {{ a.status_badge }}">{% if a.is_expired %}<i class="fa-regular fa-calendar-xmark"></i> {% endif %}{{ a.status_label }}</span>
+                  {% if a.is_expired and a.expiration_date %}<div class="cell-sub">Expired {{ a.expiration_date|date:"M j, Y g:i A" }}</div>{% endif %}
                 </td>
                 <td>
                     <div class="action-icons">
                       <span class="ic" data-view-target="view-modal-{{ a.id }}"><i class="fa-regular fa-eye"></i></span>
                       {% if a.status == 'published' %}
-                        <span class="ic" style="opacity:.35;cursor:not-allowed;" title="Published content cannot be edited"><i class="fa-regular fa-pen-to-square"></i></span>
+                        <span class="ic" style="opacity:.35;cursor:not-allowed;" title="{% if a.is_expired %}Published and expired — only the Super Admin can edit it{% else %}Published content cannot be edited{% endif %}"><i class="fa-regular fa-pen-to-square"></i></span>
                       {% else %}
                         <span class="ic" data-edit-target="edit-modal-{{ a.id }}"><i class="fa-regular fa-pen-to-square"></i></span>
                       {% endif %}
@@ -111,39 +121,14 @@
               {% empty %}
               <tr><td colspan="5" style="text-align:center;color:var(--gray-400);">No announcements yet.</td></tr>
               {% endfor %}
+              {% if announcements %}<tr data-lf-empty hidden><td colspan="5" style="text-align:center;color:var(--gray-400);padding:22px;">No announcements match this tab or search.</td></tr>{% endif %}
             </tbody>
 
           </table>
         </div>
           <div class="pagination">
-            <span>
-              {% if page_obj.paginator.count == 0 %}
-                No announcements found
-              {% else %}
-                Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} announcements
-              {% endif %}
-            </span>
-            <div class="page-nums">
-              {% if page_obj.has_previous %}
-                <a class="page-btn" href="?page={{ page_obj.previous_page_number }}&q={{ current_q }}&status={{ current_status }}&sort={{ current_sort }}"><i class="fa-solid fa-chevron-left"></i></a>
-              {% else %}
-                <span class="page-btn"><i class="fa-solid fa-chevron-left"></i></span>
-              {% endif %}
-
-              {% for num in page_obj.paginator.page_range %}
-                {% if num == page_obj.number %}
-                  <span class="page-btn active">{{ num }}</span>
-                {% else %}
-                  <a class="page-btn" href="?page={{ num }}&q={{ current_q }}&status={{ current_status }}&sort={{ current_sort }}">{{ num }}</a>
-                {% endif %}
-              {% endfor %}
-
-              {% if page_obj.has_next %}
-                <a class="page-btn" href="?page={{ page_obj.next_page_number }}&q={{ current_q }}&status={{ current_status }}&sort={{ current_sort }}"><i class="fa-solid fa-chevron-right"></i></a>
-              {% else %}
-                <span class="page-btn"><i class="fa-solid fa-chevron-right"></i></span>
-              {% endif %}
-            </div>
+            <span data-lf-info>{{ announcements|length }} announcements</span>
+            <div class="page-nums" data-lf-pager></div>
           </div>
       </section>
 
@@ -321,6 +306,9 @@
 
       <form method="post" enctype="multipart/form-data" action="{% url 'office_dashboard:edit_announcement' a.id %}">
         {% csrf_token %}
+        {% if a.status == 'expired' %}
+        <div class="ann-expired-note"><i class="fa-regular fa-calendar-xmark"></i> <span>This announcement expired on <b>{{ a.expiration_date|date:"F j, Y g:i A" }}</b> before it was approved, so it was not published. Set a new <b>Expiration Date</b> in the future (or clear it) and save — it will go back to <b>Pending</b> for the Super Admin's approval.</span></div>
+        {% endif %}
 
         <div class="form-group">
           <label class="form-label" for="ann-title-{{ a.id }}">Announcement Title <span class="req">*</span></label>
@@ -422,7 +410,7 @@
       <div class="modal-view-row"><span class="k">Expiration Date</span><span class="v">{{ a.expiration_date|date:"F j, Y, g:i A"|default:"—" }}</span></div>
       <div class="modal-view-row"><span class="k">Last Updated</span><span class="v">{{ a.last_updated|date:"F j, Y, g:i A" }}</span></div>
       <div class="modal-view-row"><span class="k">Priority</span><span class="v">{{ a.priority }}</span></div>
-      <div class="modal-view-row"><span class="k">Status</span><span class="v">{{ a.get_status_display }}</span></div>
+      <div class="modal-view-row"><span class="k">Status</span><span class="v">{{ a.status_label }}</span></div>
       <div class="modal-view-row"><span class="k">Views</span><span class="v">{{ a.views }}</span></div>
 
       {% if a.admin_note %}
@@ -463,4 +451,16 @@
 </div>
 {% endfor %}
 
+<style>
+  .badge-expired { background: #f3e8ff; color: #6b21a8; }
+  .badge-expired i { margin-right: 3px; }
+  .stat-icon.ann-expired-ico { background: #7c3aed; }
+  .ann-tabs { padding: 0 20px; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+  .ann-tabs .tab { text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+  .ann-expired-help, .ann-expired-note { display: flex; gap: 8px; align-items: flex-start; margin: 12px 20px 0; padding: 10px 12px; border-radius: 10px; background: #faf5ff; border: 1px solid #e9d5ff; color: #581c87; font-size: 12.5px; line-height: 1.5; }
+  .ann-expired-note { margin: 0 0 14px; }
+  .ann-expired-help > i, .ann-expired-note > i { margin-top: 3px; }
+</style>
+
+<script src="{% static 'js/list-filter.js' %}?v=4"></script>
 {% endblock %}

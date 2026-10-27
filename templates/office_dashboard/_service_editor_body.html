@@ -35,7 +35,8 @@ Part 1 of 2: the content (goes inside <main class="content">).
       <!-- ============================= -->
       <!-- LIST VIEW: table of services   -->
       <!-- ============================= -->
-      <section class="panel" id="services-list-view">
+      {# search and status work without reloading (static/js/list-filter.js) #}
+      <section class="panel" id="services-list-view" data-lf data-lf-param="status" data-lf-noun="services">
         <div class="panel-header">
           <h2>Services Offered</h2>
           {% if svc_is_admin or editing_globally_enabled %}
@@ -46,8 +47,8 @@ Part 1 of 2: the content (goes inside <main class="content">).
         </div>
 
         <form method="get" class="filters-row">
-          <label class="field search" style="flex:1;"><i class="fa-solid fa-magnifying-glass"></i><input type="text" name="q" value="{{ current_q }}" placeholder="Search services..." onchange="this.form.submit()"></label>
-          <select class="field" name="status" onchange="this.form.submit()">
+          <label class="field search" style="flex:1;"><i class="fa-solid fa-magnifying-glass"></i><input type="text" name="q" value="{{ current_q }}" placeholder="Search services..." data-lf-q autocomplete="off"></label>
+          <select class="field" name="status" data-lf-tabselect>
             <option value="" {% if current_status == "" %}selected{% endif %}>All Status</option>
             <option value="published" {% if current_status == "published" %}selected{% endif %}>Published</option>
             <option value="pending" {% if current_status == "pending" %}selected{% endif %}>Pending Approval</option>
@@ -60,7 +61,7 @@ Part 1 of 2: the content (goes inside <main class="content">).
             <thead><tr><th>Services Name</th><th>Classification</th><th>Type of Transaction</th><th>Who May Avail</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
               {% for service in services %}
-              <tr>
+              <tr data-lf-row data-tab="{{ service.status }}" data-title="{{ service.name }} {{ service.classification }} {{ service.who_may_avail }}">
                 <td class="row-icon-name">
                   <span class="row-thumb" style="background:var(--blue-50,#eff6ff);color:var(--blue-600);"><i class="{{ service.icon }}"></i></span>
                   <span class="cell-primary">{{ service.name }}</span>
@@ -99,6 +100,7 @@ Part 1 of 2: the content (goes inside <main class="content">).
                       data-legal-basis="{{ service.legal_basis|default:'' }}"
                       data-schedule-of-service="{{ service.schedule_of_service|default:'' }}"
                       data-steps="{{ service.steps_json }}"
+                      data-total-time="{{ service.processing_time|default:'' }}"
                       data-requirements="{{ service.requirements_json }}">
                       <i class="fa-regular fa-pen-to-square"></i>
                     </button>
@@ -116,10 +118,12 @@ Part 1 of 2: the content (goes inside <main class="content">).
                 </td>
               </tr>
               {% endfor %}
+              {% if services %}<tr data-lf-empty hidden><td colspan="6" style="text-align:center;color:var(--gray-400);padding:24px 0;">No services match this search or status.</td></tr>{% endif %}
             </tbody>
           </table>
         </div>
       </section>
+      {% load static %}<script src="{% static 'js/list-filter.js' %}?v=4"></script>
 
       <!-- ============================= -->
       <!-- DETAIL VIEW: single service    -->

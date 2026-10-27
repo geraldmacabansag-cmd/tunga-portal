@@ -21,6 +21,7 @@ from .models import EmailOTP
 from .otp_utils import send_signup_otp
 from .otp_utils import send_password_reset_otp
 from . import security
+from . import account_deletion
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 from offices.models import Office
@@ -969,7 +970,11 @@ def send_signup_otp_ajax(request):
     if not email:
         return JsonResponse({"success": False, "error": "Please enter an email address first."}, status=400)
 
-    if User.objects.filter(email=email).exists():
+    existing = User.objects.filter(email=email).first()
+    if existing:
+        if account_deletion.pending_for(existing):
+            return JsonResponse({"success": False, "error": "This email belongs to an account that is scheduled for deletion. "
+                                 "Log in with it to keep the account, or wait until it is deleted."}, status=400)
         return JsonResponse({"success": False, "error": "An account with this email already exists."}, status=400)
 
     # 1 code per minute, 5 per hour per email, 10 per hour per device.
@@ -1005,6 +1010,12 @@ def login(request):
             return render(request, "account/login.html", form_back)
 
         user = authenticate(request, username=email, password=password)
+        if user is not None and account_deletion.pending_for(user):
+            # Right password, but the account is waiting to be deleted: don't
+            # log in yet. The page asks "Proceed anyway?" (account_restore).
+            security.clear_failures("login", email)
+            account_deletion.remember_pending(request, user, remember, next_url)
+            return render(request, "account/login.html", {**form_back, **_pending_context(request)})
         if user is not None:
             security.clear_failures("login", email)
             auth_login(request, user)
@@ -1029,7 +1040,37 @@ def login(request):
             messages.error(request, security.wrong_message("Invalid email or password.", "login", request, email))
         return render(request, "account/login.html", form_back)
 
-    return render(request, "account/login.html", {"next": next_url})
+    if request.GET.get("not_now"):
+        request.session.pop(account_deletion.SESSION_KEY, None)
+    return render(request, "account/login.html", {"next": next_url, **_pending_context(request)})
+
+
+def _pending_context(request):
+    """For the login page: the account scheduled for deletion that the
+    visitor just signed in to (or nothing)."""
+    user, req, _ = account_deletion.pending_in_session(request)
+    if not user:
+        return {}
+    return {"pending_deletion": req, "pending_email": user.email}
+
+
+@require_POST
+def account_restore(request):
+    """Login page -> "Proceed anyway": cancels the deletion request of the
+    account that was just signed in to, and logs in."""
+    user, req, data = account_deletion.pending_in_session(request)
+    if not user:
+        messages.error(request, "Please log in again to keep your account.")
+        return redirect("login")
+    account_deletion.cancel(user)
+    request.session.pop(account_deletion.SESSION_KEY, None)
+    auth_login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+    request.session.set_expiry(REMEMBER_ME_SECONDS if data.get("remember") else 0)
+    messages.success(request, "Welcome back! Your request to delete your account has been cancelled.")
+    next_url = data.get("next") or "home"
+    if next_url != "home" and not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+        next_url = "home"
+    return redirect(next_url)
 
 def logout(request):
     """Logs out only from a form button (POST, with the security token), so
@@ -1337,7 +1378,9 @@ def account_delete(request):
     """Settings → Delete my account (Data Privacy Act: the right to have your
     data erased). Citizens only — Office Representative and Super Admin
     accounts are managed by the Super Admin. Needs the password (or, for
-    accounts made with Google that have no password, the email address)."""
+    accounts made with Google that have no password, the email address).
+    The account is deleted after 30 days (portal/account_deletion.py); it is
+    logged out everywhere now, and logging in again can cancel it."""
     next_url = request.POST.get('next') or reverse('home')
     if not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
         next_url = reverse('home')
@@ -1371,19 +1414,14 @@ def account_delete(request):
         return redirect(next_url)
     security.clear_failures("password", user.username)
 
-    # Remove the profile picture file, then the account. Everything linked
-    # to the account (profile, online form submissions and their answers,
-    # Google sign-in link, verification codes) is deleted with it.
-    profile = CitizenProfile.objects.filter(user=user).first()
-    if profile and profile.photo:
-        try:
-            profile.photo.delete(save=False)
-        except Exception:
-            pass
-    EmailOTP.objects.filter(email__iexact=user.email).delete()
+    # Not deleted yet: kept for 30 days, logged out on every device.
+    req = account_deletion.schedule(user)
+    account_deletion.send_notice(user, req)
     auth_logout(request)
-    user.delete()
-    messages.success(request, "Your account and your personal data have been deleted. Thank you for using the Tunga Portal.")
+    account_deletion.logout_everywhere(user)
+    when = timezone.localtime(req.delete_after).strftime("%B %d, %Y")
+    messages.success(request, f"Your account will be deleted on {when}. You have been logged out on all your devices. "
+                              "Changed your mind? Log in again before that date to keep your account.")
     return redirect('home')
 
 

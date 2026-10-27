@@ -20,14 +20,15 @@ from django.db.models import Sum
 from django.http import FileResponse, Http404, JsonResponse
 from offices.pdf_serve import pdf_response
 from .form_fields import fields_json, save_fields
-from .notifications import maybe_send_weekly_summary, PREFERENCES as NOTIFY_PREFERENCES
-from .announcement_rules import clean_announcement
+from .notifications import maybe_send_weekly_summary, resubmit, PREFERENCES as NOTIFY_PREFERENCES
+from .announcement_rules import clean_announcement, expire_overdue, event_date_problem
 from .org_chart import build_tree as build_org_tree, descendant_ids as org_descendant_ids, parent_choices as org_parent_choices, next_order as next_org_order
 from .org_chart import clean_width as clean_org_width
 from .content_photos import save_content_photos
 from . import service_editor
 from .org_chart import clean_style as clean_org_style, style_for as org_style_for, DEFAULT_COLORS as ORG_DEFAULT_COLORS, DEFAULT_LINE as ORG_DEFAULT_LINE, STYLE_DEFAULTS as ORG_STYLE_DEFAULTS
 from .models import OrgChartNode, OrgChartSettings
+from . import org_officials
 from django import forms as dj_forms
 from portal.models import EmailOTP
 from portal.otp_utils import send_password_reset_otp
@@ -60,6 +61,18 @@ def office_rep_required(view_func):
             maybe_send_weekly_summary(rep)  # only if "Weekly summary" is switched on
         return view_func(request, rep, *args, **kwargs)
     return wrapper
+
+def _back_to_list(request, url_name):
+    """After saving / deleting, go back to the list exactly as it was (same tab,
+    search and page — they are in the address, see static/js/list-filter.js)."""
+    from urllib.parse import urlparse
+    page = reverse(url_name)
+    ref = request.META.get("HTTP_REFERER", "")
+    parts = urlparse(ref)
+    if ref and parts.path == page and (not parts.netloc or parts.netloc == request.get_host()):
+        return redirect(page + ("?" + parts.query if parts.query else ""))
+    return redirect(page)
+
 
 @office_rep_required
 def rep_announcement(request, rep):
@@ -94,33 +107,27 @@ def rep_announcement(request, rep):
                     "status_display": announcement.get_status_display(),
                 })
             messages.success(request, f'"{title}" was created and is pending approval.')
-        return redirect('office_dashboard:rep_announce')
+        return _back_to_list(request, 'office_dashboard:rep_announce')
 
-    announcements = rep.announcements.all()
-
+    expire_overdue(force=True)   # waiting ones whose date passed -> "expired"
+    # Every announcement of the office is sent to the page; the tabs (All /
+    # Published / Pending / Returned / Expired), search, sort and page numbers
+    # work in the browser without reloading (static/js/list-filter.js).
+    # ?status= / ?q= / ?sort= / ?page= in the address only pick the starting view.
+    announcements = list(rep.announcements.order_by('-created_at'))
     q = request.GET.get('q', '').strip()
-    if q:
-        announcements = announcements.filter(title__icontains=q)
-
     status = request.GET.get('status', '')
-    if status:
-        announcements = announcements.filter(status=status)
-
     sort = request.GET.get('sort', 'newest')
-    announcements = announcements.order_by('created_at' if sort == 'oldest' else '-created_at')
     all_announcements = rep.announcements.all()
     total_count = all_announcements.count()
-    published_count = all_announcements.filter(status='published').count()
+    expired_count = all_announcements.filter(Announcement.expired_q()).count()
+    published_count = all_announcements.filter(status='published').exclude(Announcement.expired_q()).count()
     pending_count = all_announcements.filter(status='pending').count()
     returned_count = all_announcements.filter(status='returned').count()
 
-    paginator = Paginator(announcements, 5)
-    page_obj = paginator.get_page(request.GET.get('page'))
-
     return render(request, "office_dashboard/announcements.html", {
         "rep": rep,
-        "page_obj": page_obj,
-        "announcements": page_obj.object_list,
+        "announcements": announcements,
         "current_q": q,
         "current_status": status,
         "current_sort": sort,
@@ -128,6 +135,7 @@ def rep_announcement(request, rep):
         "published_count": published_count,
         "pending_count": pending_count,
         "returned_count": returned_count,
+        "expired_count": expired_count,
     })
 
 @office_rep_required
@@ -135,12 +143,16 @@ def edit_announcement(request, rep, pk):
     announcement = get_object_or_404(Announcement, pk=pk, representative=rep)
 
     if announcement.status == 'published':
-        messages.error(request, "This announcement is already published and can no longer be edited.")
-        return redirect('office_dashboard:rep_announce')
+        # also when it is published but already expired: only the Super Admin can change it
+        messages.error(request, "This announcement was published" + (" and has expired" if announcement.is_past_expiration else "")
+                       + ", so it can no longer be edited here. Ask the Super Admin if it needs a change.")
+        return _back_to_list(request, 'office_dashboard:rep_announce')
 
-
+    was_expired = announcement.status == 'expired'
     if request.method == "POST":
-        errors, data = clean_announcement(request.POST, is_new=False, current_expiration=announcement.expiration_date)
+        # an expired one (never published) needs a new expiration date in the future
+        errors, data = clean_announcement(request.POST, is_new=False, current_expiration=announcement.expiration_date,
+                                          must_be_future=was_expired)
         title = data["title"]
         if errors:
             for err in errors:
@@ -152,14 +164,16 @@ def edit_announcement(request, rep, pk):
                 announcement.image = request.FILES.get('image')
             # date_posted is intentionally left untouched here — see the note
             # in rep_announcement() above.
+            resubmit(announcement)   # returned / expired -> pending again, the Super Admin is told
             announcement.save()   # last_updated is stamped automatically here
             for problem in save_content_photos(request, announcement):   # "More photos": add / remove
                 messages.warning(request, problem)
-            messages.success(request, f'"{title}" was updated.')
+            messages.success(request, f'"{title}" has a new expiration date and was sent again for approval.' if was_expired
+                             else f'"{title}" was updated.')
             log_activity(rep, "Announcement updated", f'Updated "{title}"', "content", "fa-regular fa-pen-to-square", "var(--blue-600)")
-        return redirect('office_dashboard:rep_announce')
+        return _back_to_list(request, 'office_dashboard:rep_announce')
 
-    return redirect('office_dashboard:rep_announce')
+    return _back_to_list(request, 'office_dashboard:rep_announce')
 
 
 @office_rep_required
@@ -172,7 +186,7 @@ def delete_announcement(request, rep, pk):
         messages.success(request, f'"{title}" was deleted.')
         log_activity(rep, "Announcement deleted", f'Deleted "{title}"', "content", "fa-regular fa-trash-can", "var(--red-600)")
 
-    return redirect('office_dashboard:rep_announce')
+    return _back_to_list(request, 'office_dashboard:rep_announce')
 
 @office_rep_required
 def dashboard(request, rep):
@@ -294,33 +308,23 @@ def news_update(request, rep):
                     "status_display": news.get_status_display(),
                 })
             messages.success(request, f'"{title}" was added.')
-        return redirect('office_dashboard:news_update')
+        return _back_to_list(request, 'office_dashboard:news_update')
 
-    news_items = rep.news_updates.all()
-
+    # all of the office's stories go to the page; search, status, sort and
+    # page numbers work in the browser without reloading (static/js/list-filter.js)
+    news_items = list(rep.news_updates.order_by('-created_at'))
     q = request.GET.get('q', '').strip()
-    if q:
-        news_items = news_items.filter(title__icontains=q)
-
     status = request.GET.get('status', '')
-    if status:
-        news_items = news_items.filter(status=status)
-
     sort = request.GET.get('sort', 'newest')
-    news_items = news_items.order_by('created_at' if sort == 'oldest' else '-created_at')
     all_news = rep.news_updates.all()
     total_count = all_news.count()
     published_count = all_news.filter(status='published').count()
     pending_count = all_news.filter(status='pending').count()
     returned_count = all_news.filter(status='returned').count()
 
-    paginator = Paginator(news_items, 4)
-    page_obj = paginator.get_page(request.GET.get('page'))
-
     return render(request, "office_dashboard/news-updates.html", {
         "rep": rep,
-        "page_obj": page_obj,
-        "news_items": page_obj.object_list,
+        "news_items": news_items,
         "current_q": q,
         "current_status": status,
         "current_sort": sort,
@@ -336,7 +340,7 @@ def edit_news(request, rep, pk):
 
     if news.status == 'published':
         messages.error(request, "This news post is already published and can no longer be edited.")
-        return redirect('office_dashboard:news_update')
+        return _back_to_list(request, 'office_dashboard:news_update')
 
     if request.method == "POST":
         title = request.POST.get('title', '').strip()
@@ -355,14 +359,15 @@ def edit_news(request, rep, pk):
             # note in news_update() above.
             news.source = request.POST.get('source', '')
             news.tags = request.POST.get('tags', '')
+            resubmit(news)   # returned -> pending again, the Super Admin is told
             news.save()   # last_updated is stamped automatically here
             for problem in save_content_photos(request, news):   # "More photos": add / remove
                 messages.warning(request, problem)
             messages.success(request, f'"{title}" was updated.')
             log_activity(rep, "News updated", f'Updated "{title}"', "content", "fa-regular fa-pen-to-square", "#12b3c4")
-        return redirect('office_dashboard:news_update')
+        return _back_to_list(request, 'office_dashboard:news_update')
 
-    return redirect('office_dashboard:news_update')
+    return _back_to_list(request, 'office_dashboard:news_update')
 
 @office_rep_required
 def delete_news(request, rep, pk):
@@ -374,7 +379,7 @@ def delete_news(request, rep, pk):
         messages.success(request, f'"{title}" was deleted.')
         log_activity(rep, "News deleted", f'Deleted "{title}"', "content", "fa-regular fa-trash-can", "var(--red-600)")
 
-    return redirect('office_dashboard:news_update')
+    return _back_to_list(request, 'office_dashboard:news_update')
 
 EVENT_REQUIRED = [("title", "Event Title"), ("category", "Event Category"), ("description", "Description"),
                   ("event_date", "Event Date"), ("start_time", "Start Time"), ("location", "Location / Venue"),
@@ -424,7 +429,7 @@ def events(request, rep):
     if request.method == "POST":
         is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
         title = request.POST.get('title', '').strip()
-        problem = event_problem(request.POST)
+        problem = event_problem(request.POST) or event_date_problem(parse_event_date(request.POST.get('event_date')))
         if problem:
             if is_ajax:
                 return JsonResponse({"success": False, "error": problem}, status=400)
@@ -462,30 +467,17 @@ def events(request, rep):
                     "location": event.location,
                 })
             messages.success(request, f'"{title}" was added and is pending approval.')
-        return redirect('office_dashboard:event')
+        return _back_to_list(request, 'office_dashboard:event')
 
-    events_qs = rep.events.all()
-
-    q = request.GET.get('q', '').strip()
-    if q:
-        events_qs = events_qs.filter(title__icontains=q)
-
-    status = request.GET.get('status', '')
-    if status:
-        events_qs = events_qs.filter(status=status)
-
-    when = request.GET.get('when', 'all')
+    # all of the office's events go to the page; search, status, upcoming /
+    # past and page numbers work in the browser without reloading
+    # (static/js/list-filter.js)
+    expire_overdue(force=True)   # waiting events whose date is over -> "past"
     today = timezone.localdate()
-    if when == 'upcoming':
-        events_qs = events_qs.filter(event_date__gte=today)
-    elif when == 'past':
-        events_qs = events_qs.filter(event_date__lt=today)
-    # when == 'all' -> no date filter
-
-    events_qs = events_qs.order_by('event_date', 'start_time')
-
-    paginator = Paginator(events_qs, 5)
-    page_obj = paginator.get_page(request.GET.get('page'))
+    events_list = list(rep.events.order_by('event_date', 'start_time'))
+    q = request.GET.get('q', '').strip()
+    status = request.GET.get('status', '')
+    when = request.GET.get('when', '')
 
     upcoming_count = rep.events.filter(status="published", event_date__gte=today).count()
     # "Completed": published events of this year whose date has passed
@@ -493,11 +485,20 @@ def events(request, rep):
     completed_this_year_count = rep.events.filter(status="published", event_date__year=today.year,
                                                   event_date__lt=today).count()
     pending_count = rep.events.filter(status="pending").count()
+    # tabs: All / Published / Pending / Returned / Past
+    tab_counts = {
+        "all": len(events_list),
+        "published": sum(1 for e in events_list if e.status == "published" and not e.is_past),
+        "pending": sum(1 for e in events_list if e.status == "pending"),
+        "returned": sum(1 for e in events_list if e.status == "returned"),
+        "past": sum(1 for e in events_list if e.is_past),
+    }
 
     return render(request, "office_dashboard/events.html", {
+        "tab_counts": tab_counts,
         "rep": rep,
-        "page_obj": page_obj,
-        "events": page_obj.object_list,
+        "today": today,
+        "events": events_list,
         "current_q": q,
         "current_status": status,
         "current_when": when,
@@ -511,12 +512,18 @@ def edit_event(request, rep, pk):
     event = get_object_or_404(Event, pk=pk, representative=rep)
 
     if event.status == 'published':
-        messages.error(request, "This event is already published and can no longer be edited.")
-        return redirect('office_dashboard:event')
+        # also when it is published and its date is over: only the Super Admin can change it
+        messages.error(request, "This event was published" + (" and its date is over" if event.is_past_date else "")
+                       + ", so it can no longer be edited here. Ask the Super Admin if it needs a change.")
+        return _back_to_list(request, 'office_dashboard:event')
 
+    was_past = event.status == 'past'   # its date passed before it was approved
     if request.method == "POST":
         title = request.POST.get('title', '').strip()
         problem = event_problem(request.POST)
+        new_date = parse_event_date(request.POST.get('event_date'))
+        if not problem and (was_past or new_date != event.event_date):
+            problem = event_date_problem(new_date)
         if problem:
             messages.error(request, problem)
         else:
@@ -532,14 +539,16 @@ def edit_event(request, rep, pk):
             event.contact_info = request.POST.get('contact_info', '')
             if request.FILES.get('poster'):
                 event.poster = request.FILES.get('poster')
+            resubmit(event)   # returned / past -> pending again, the Super Admin is told
             event.save()   # last_updated is stamped automatically here
             for problem in save_content_photos(request, event):   # "More photos": add / remove
                 messages.warning(request, problem)
-            messages.success(request, f'"{title}" was updated.')
+            messages.success(request, f'"{title}" has a new date and was sent again for approval.' if was_past
+                             else f'"{title}" was updated.')
             log_activity(rep, "Event updated", f'Updated "{title}"', "content", "fa-regular fa-pen-to-square", "#7c4fe0")
-        return redirect('office_dashboard:event')
+        return _back_to_list(request, 'office_dashboard:event')
 
-    return redirect('office_dashboard:event')
+    return _back_to_list(request, 'office_dashboard:event')
 
 @office_rep_required
 def delete_event(request, rep, pk):
@@ -551,7 +560,7 @@ def delete_event(request, rep, pk):
         messages.success(request, f'"{title}" was deleted.')
         log_activity(rep, "Event deleted", f'Deleted "{title}"', "content", "fa-regular fa-trash-can", "var(--red-600)")
 
-    return redirect('office_dashboard:event')
+    return _back_to_list(request, 'office_dashboard:event')
 
 @office_rep_required
 def services(request, rep):
@@ -637,9 +646,15 @@ def upload_form(request, rep):
                 return JsonResponse({"success": False, "error": error}, status=400)
             messages.error(request, error)
         else:
+            # From the service's own page while the service is not yet
+            # published: approved together with the service (no separate
+            # Approval Center item). From the Downloadable Forms page: on its own.
+            bundled = (request.POST.get('from_service') == '1' or request.POST.get('return_to') == 'service') \
+                and service.status != 'published'
             DownloadableForm.objects.create(
                 office=rep.office,
                 service=service,
+                bundled_with_service=bundled,
                 title=title,
                 description=description,
                 category=category,
@@ -654,7 +669,7 @@ def upload_form(request, rep):
             if request.POST.get('return_to') == 'service':
                 return redirect(f"{reverse('office_dashboard:services')}?service={service.pk}&tab=forms")
 
-    return redirect('office_dashboard:downloadable_form')
+    return _back_to_list(request, 'office_dashboard:downloadable_form')
 
 @office_rep_required
 def delete_form(request, rep, pk):
@@ -663,14 +678,14 @@ def delete_form(request, rep, pk):
     if request.method == "POST":
         if form.service:
             messages.error(request, f'"{form.title}" was uploaded from {form.service.name} and can only be deleted from that service\'s page.')
-            return redirect('office_dashboard:downloadable_form')
+            return _back_to_list(request, 'office_dashboard:downloadable_form')
 
         title = form.title
         form.file.delete(save=False)
         form.delete()
         messages.success(request, f'"{title}" was deleted.')
 
-    return redirect('office_dashboard:downloadable_form')
+    return _back_to_list(request, 'office_dashboard:downloadable_form')
 
 @office_rep_required
 def download_form(request, rep, pk):
@@ -722,11 +737,11 @@ def edit_form(request, rep, pk):
 
     if form.service:
         messages.error(request, f'"{form.title}" was uploaded from {form.service.name} and can only be managed from that service\'s page.')
-        return redirect('office_dashboard:downloadable_form')
+        return _back_to_list(request, 'office_dashboard:downloadable_form')
 
     if form.status == 'published':
         messages.error(request, "This form is already published and can no longer be edited.")
-        return redirect('office_dashboard:downloadable_form')
+        return _back_to_list(request, 'office_dashboard:downloadable_form')
 
     if request.method == "POST":
         title = request.POST.get('title', '').strip()
@@ -737,7 +752,7 @@ def edit_form(request, rep, pk):
             new_file = request.FILES.get('file')
             if new_file and not new_file.name.lower().endswith('.pdf'):
                 messages.error(request, "Only PDF files are allowed.")
-                return redirect('office_dashboard:downloadable_form')
+                return _back_to_list(request, 'office_dashboard:downloadable_form')
 
             service_id = request.POST.get('service')
             service = None
@@ -745,7 +760,7 @@ def edit_form(request, rep, pk):
                 service = Service.objects.filter(pk=service_id, office=rep.office).exclude(status="archive").first()
             if service is None:
                 messages.error(request, "Please choose the service this form belongs to.")
-                return redirect('office_dashboard:downloadable_form')
+                return _back_to_list(request, 'office_dashboard:downloadable_form')
 
             form.title = title
             form.service = service
@@ -754,11 +769,12 @@ def edit_form(request, rep, pk):
             if new_file:
                 form.file.delete(save=False)  # remove the old file before attaching the new one
                 form.file = new_file
+            resubmit(form)   # returned -> pending again, the Super Admin is told
             form.save()
             messages.success(request, f'"{title}" was updated.')
             log_activity(rep, "Form updated", f'Updated "{title}"', "content", "fa-regular fa-pen-to-square", "var(--blue-600)")
 
-    return redirect('office_dashboard:downloadable_form')
+    return _back_to_list(request, 'office_dashboard:downloadable_form')
 
 @office_rep_required
 def gallery(request, rep):
@@ -803,7 +819,7 @@ def gallery(request, rep):
             if is_ajax:
                 return JsonResponse({"success": True, "title": title})
             messages.success(request, f'"{title}" was uploaded and is pending approval.')
-        return redirect('office_dashboard:gallery')
+        return _back_to_list(request, 'office_dashboard:gallery')
 
     album_param = request.GET.get('album', '').strip()
     q = request.GET.get('q', '').strip()
@@ -830,6 +846,7 @@ def gallery(request, rep):
     }
 
     in_album_view = bool(album_param)
+    photos, albums = [], []
     selected_album = None
     selected_album_name = ''
     viewing_virtual_album = album_param in VIRTUAL_ALBUMS
@@ -848,8 +865,6 @@ def gallery(request, rep):
                 photos = list(Event.objects.filter(representative=rep).exclude(poster='').order_by('-created_at'))
                 for item in photos:
                     item.image = item.poster  # normalize so the template can use {{ p.image.url }} uniformly
-            if q:
-                photos = [p for p in photos if q.lower() in p.title.lower()]
         else:
             if not album_param.isdigit():
                 raise Http404("Album not found.")
@@ -857,25 +872,17 @@ def gallery(request, rep):
             selected_album_name = selected_album.name
             photos = Photo.objects.filter(representative=rep, album=selected_album)
 
-        if q and not viewing_virtual_album:
-            photos = photos.filter(title__icontains=q)
+        # all the photos go to the page; search and page numbers work in the
+        # browser without reloading (static/js/list-filter.js)
         if not viewing_virtual_album:
-            photos = photos.order_by('-created_at')
-
-        paginator = Paginator(photos, 12)
-        page_obj = paginator.get_page(request.GET.get('page'))
+            photos = list(photos.order_by('-created_at'))
     else:
-        albums = Album.objects.filter(representative=rep).annotate(photo_count=Count('photos'))
-        if q:
-            albums = albums.filter(name__icontains=q)
-        albums = albums.order_by('name')
-
-        paginator = Paginator(albums, 12)
-        page_obj = paginator.get_page(request.GET.get('page'))
+        albums = list(Album.objects.filter(representative=rep).annotate(photo_count=Count('photos')).order_by('name'))
 
     return render(request, "office_dashboard/gallery.html", {
         "rep": rep,
-        "page_obj": page_obj,
+        "photos": photos,
+        "albums": albums,
         "in_album_view": in_album_view,
         "album_param": album_param,
         "selected_album": selected_album,
@@ -908,7 +915,7 @@ def create_album(request, rep):
             Album.objects.create(representative=rep, name=name, description=description)
             messages.success(request, f'Album "{name}" was created.')
 
-    return redirect('office_dashboard:gallery')
+    return _back_to_list(request, 'office_dashboard:gallery')
 
 @office_rep_required
 def delete_photo(request, rep, pk):
@@ -920,7 +927,7 @@ def delete_photo(request, rep, pk):
         messages.success(request, f'"{title}" was deleted.')
         log_activity(rep, "Photo deleted", f'Deleted "{title}"', "content", "fa-regular fa-trash-can", "var(--red-600)")
 
-    return redirect('office_dashboard:gallery')
+    return _back_to_list(request, 'office_dashboard:gallery')
 
 @office_rep_required
 def rename_album(request, rep, pk):
@@ -935,7 +942,7 @@ def rename_album(request, rep, pk):
             album.save()
             messages.success(request, f'Album renamed to "{name}".')
 
-    return redirect('office_dashboard:gallery')
+    return _back_to_list(request, 'office_dashboard:gallery')
 
 @office_rep_required
 def delete_album(request, rep, pk):
@@ -1517,6 +1524,9 @@ def org_chart_page(request, rep, template, can_publish=False, extra=None, office
     here = request.path
     extra = extra or {}
     place = extra.get("publish_place", "your office page")
+    # LGU chart of the Super Admin: person boxes can be connected to the
+    # Municipal Officials of the About Us page
+    link_officials = bool(extra.get("link_officials"))
     # when the Super Admin edits an office's chart, the log says which office
     where = "" if office.pk == rep.office_id else f" of {office.name}"
 
@@ -1533,17 +1543,29 @@ def org_chart_page(request, rep, template, can_publish=False, extra=None, office
             # People under the deleted box move up to its own parent, so
             # nobody disappears from the chart by accident.
             OrgChartNode.objects.filter(office=office, parent=node).update(parent=node.parent)
+            # a box that hung from the line between the removed box and another
+            # one now simply hangs from that other box
+            from django.db.models import F
+            OrgChartNode.objects.filter(office=office, parent=F("parent2")).update(parent2=None)
             name = node.name
+            had_official = link_officials and bool(node.official_id)
+            if had_official:
+                org_officials.delete_official(node.official)   # the chart and the officials stay the same
             if node.photo:
                 node.photo.delete(save=False)
             node.delete()
-            messages.success(request, f'"{name}" was removed from the chart.')
+            messages.success(request, f'"{name}" was removed from the chart'
+                             + (" and from the Municipal Officials." if had_official else "."))
             log_activity(rep, "Org chart updated", f'Removed "{name}" from the organizational chart{where}', "content", "fa-solid fa-sitemap", "var(--red-600)")
             return redirect(here)
 
         if action == "position" and node:
             # A box was dragged to a new spot on the chart (saved in the
             # background, the page doesn't reload).
+            if request.POST.get("x", "") == "" and request.POST.get("y", "") == "":
+                # "Undo": back to its automatic place
+                OrgChartNode.objects.filter(pk=node.pk).update(pos_x=None, pos_y=None)
+                return JsonResponse({"ok": True})
             try:
                 x = max(-20000, min(20000, int(float(request.POST.get("x")))))
                 y = max(-20000, min(20000, int(float(request.POST.get("y")))))
@@ -1552,8 +1574,63 @@ def org_chart_page(request, rep, template, can_publish=False, extra=None, office
             OrgChartNode.objects.filter(pk=node.pk).update(pos_x=x, pos_y=y)
             return JsonResponse({"ok": True})
 
+        if action == "reparent" and node:
+            # A line was dragged onto another box: this box now reports to that
+            # box ("parent"), or hangs from the line between two boxes ("parent2").
+            parent = OrgChartNode.objects.filter(pk=request.POST.get("parent") or 0, office=office).first()
+            parent2 = OrgChartNode.objects.filter(pk=request.POST.get("parent2") or 0, office=office).first() if parent else None
+            _, all_nodes = build_org_tree(office)
+            below = org_descendant_ids(node, all_nodes)
+            for other in (parent, parent2):
+                if other and (other.pk == node.pk or other.pk in below):
+                    return JsonResponse({"ok": False, "error": "A box can't report to itself or to someone under it."}, status=400)
+            if parent2 and parent and parent2.pk == parent.pk:
+                parent2 = None
+            if node.parent_id != (parent.pk if parent else None):
+                node.order = next_org_order(office, parent.pk if parent else None)
+            node.parent, node.parent2 = parent, parent2
+            style = dict(node.style or {})
+            for key in ("bend", "hang"):          # a new line starts in its normal place
+                style.pop(key, None)
+            if "bend" in request.POST:
+                for key in ("bend", "hang"):
+                    try:
+                        value = max(-600, min(600, int(float(request.POST.get(key) or 0))))
+                    except (TypeError, ValueError):
+                        value = 0
+                    if value:
+                        style[key] = value
+            node.style = style
+            node.save(update_fields=["parent", "parent2", "order", "style", "updated_at"])
+            log_activity(rep, "Org chart updated", f'Connected "{node.name}" to "{parent.name if parent else "the top of the chart"}"{where}', "content", "fa-solid fa-sitemap", "var(--blue-600)")
+            return JsonResponse({"ok": True})
+
+        if action == "line" and node:
+            # The line to this box was dragged on the chart (saved in the
+            # background): bend = how far its bend moved, hang = where along a
+            # joining line it hangs from (pixels from the middle).
+            style = dict(node.style or {})
+            for key in ("bend", "hang"):
+                raw = request.POST.get(key, "")
+                try:
+                    value = max(-600, min(600, int(float(raw)))) if raw != "" else 0
+                except (TypeError, ValueError):
+                    return JsonResponse({"ok": False, "error": "Bad line."}, status=400)
+                if value:
+                    style[key] = value
+                else:
+                    style.pop(key, None)
+            node.style = style
+            node.save(update_fields=["style", "updated_at"])
+            return JsonResponse({"ok": True})
+
         if action == "resize" and node:
             # The box's corner was dragged on the chart (saved in the background).
+            if request.POST.get("w", "") in ("", "0"):
+                # "Undo": back to the normal size
+                node.style = {k: v for k, v in (node.style or {}).items() if k not in ("w", "size")}
+                node.save(update_fields=["style", "updated_at"])
+                return JsonResponse({"ok": True, "w": 0})
             w = clean_org_width(request.POST.get("w"))
             if not w:
                 return JsonResponse({"ok": False, "error": "Bad size."}, status=400)
@@ -1594,6 +1671,11 @@ def org_chart_page(request, rep, template, can_publish=False, extra=None, office
             parent_id = request.POST.get("parent") or ""
             if parent_id:
                 parent = OrgChartNode.objects.filter(pk=parent_id, office=office).first()
+            # "…and" box: hang from the line joining the two boxes
+            parent2 = None
+            parent2_id = request.POST.get("parent2") or ""
+            if parent2_id:
+                parent2 = OrgChartNode.objects.filter(pk=parent2_id, office=office).first()
 
             errors = []
             if not name:
@@ -1604,6 +1686,17 @@ def org_chart_page(request, rep, template, can_publish=False, extra=None, office
                 _, all_nodes = build_org_tree(office)
                 if parent.pk == node.pk or parent.pk in org_descendant_ids(node, all_nodes):
                     errors.append("A box can't report to itself or to someone under it.")
+            if parent2_id:
+                if parent2 is None:
+                    errors.append("The second box (on the joining line) no longer exists.")
+                elif parent is None:
+                    errors.append("To hang a box on the line between two boxes, choose the first box in \"Reports to\" too.")
+                elif parent2.pk == parent.pk:
+                    errors.append("Choose two different boxes for the joining line.")
+                elif node:
+                    _, all_nodes = build_org_tree(office)
+                    if parent2.pk == node.pk or parent2.pk in org_descendant_ids(node, all_nodes):
+                        errors.append("A box can't hang from a line to itself or to someone under it.")
             if photo:
                 if photo.size > ORG_PHOTO_MAX_MB * 1024 * 1024:
                     errors.append(f"The photo is larger than {ORG_PHOTO_MAX_MB} MB.")
@@ -1612,6 +1705,9 @@ def org_chart_page(request, rep, template, can_publish=False, extra=None, office
                         dj_forms.ImageField().clean(photo)
                     except ValidationError:
                         errors.append("The photo must be a JPG, PNG or WEBP image.")
+
+            if link_officials and kind == OrgChartNode.KIND_PERSON and not position:
+                errors.append("Fill in the position — it is also shown in the Municipal Officials of the About Us page.")
 
             if errors:
                 for err in errors:
@@ -1622,21 +1718,34 @@ def org_chart_page(request, rep, template, can_publish=False, extra=None, office
             is_new = node is None
             if is_new:
                 node = OrgChartNode(office=office, order=next_org_order(office, parent.pk if parent else None))
-            elif node.parent_id != (parent.pk if parent else None):
+            elif node.parent_id != (parent.pk if parent else None) or node.parent2_id != (parent2.pk if parent2 else None):
                 node.order = next_org_order(office, parent.pk if parent else None)   # moved: goes to the end of its new row
                 node.pos_x = node.pos_y = None                                       # and takes its automatic place under the new box
             node.kind, node.name, node.parent = kind, name, parent
+            node.parent2 = parent2 if parent else None
+            old_style = node.style or {}
             node.style = clean_org_style(request.POST, kind)
+            for key in ("bend", "hang"):            # line moves made on the chart stay
+                if key in old_style and node.parent_id == (parent.pk if parent else None):
+                    node.style[key] = old_style[key]
             node.position = position if kind == OrgChartNode.KIND_PERSON else ""
+            photo_removed = False
             if kind == OrgChartNode.KIND_SECTION or request.POST.get("remove_photo") == "1":
                 if node.photo:
                     node.photo.delete(save=False)
+                    photo_removed = True
                 node.photo = None
             if photo and kind == OrgChartNode.KIND_PERSON:
                 if node.photo:
                     node.photo.delete(save=False)
                 node.photo = photo
             node.save()
+
+            official_note = ""
+            if link_officials:
+                # LGU chart: every person box is always one of the Municipal
+                # Officials of the About Us page (same name, position, photo)
+                official_note = org_officials.sync_box(node, photo_changed=bool(photo), photo_removed=photo_removed)
 
             # "Apply this style to…": everyone under this box, or the whole chart
             scope = request.POST.get("style_scope")
@@ -1652,7 +1761,8 @@ def org_chart_page(request, rep, template, can_publish=False, extra=None, office
 
             messages.success(request, f'"{name}" was {"added to" if is_new else "updated on"} the chart.'
                              + (" The style was also applied to everyone under it." if scope == "below" else "")
-                             + (" The style was also applied to the whole chart." if scope == "all" else ""))
+                             + (" The style was also applied to the whole chart." if scope == "all" else "")
+                             + official_note)
             log_activity(rep, "Org chart updated", f'{"Added" if is_new else "Updated"} "{name}" on the organizational chart{where}', "content", "fa-solid fa-sitemap", "var(--blue-600)")
             return redirect(here + f"?edit={node.pk}")
 
@@ -1662,6 +1772,10 @@ def org_chart_page(request, rep, template, can_publish=False, extra=None, office
     by_id = {n.id: n for n in nodes}
     editing = by_id.get(_int_or_none(request.GET.get("edit")))
     add_under = by_id.get(_int_or_none(request.GET.get("add_under")))
+    # "Add a box under this line" (a line clicked on the chart): the 2nd box
+    add_join = by_id.get(_int_or_none(request.GET.get("join"))) if add_under else None
+    if add_join is not None and add_join.pk == add_under.pk:
+        add_join = None
     return render(request, template, {
         **extra,
         "publish_place": place,
@@ -1672,8 +1786,10 @@ def org_chart_page(request, rep, template, can_publish=False, extra=None, office
         "node_count": len(nodes),
         "editing": editing,
         "add_under": add_under,
+        "add_join": add_join,
         "parent_choices": org_parent_choices(nodes, exclude=editing),
         "form_kind": editing.kind if editing else ("section" if request.GET.get("kind") == "section" else "person"),
+        "link_officials": link_officials,
         "style_defaults": {"colors": ORG_DEFAULT_COLORS, "line": ORG_DEFAULT_LINE, **ORG_STYLE_DEFAULTS},
     })
 

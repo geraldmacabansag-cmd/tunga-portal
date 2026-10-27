@@ -8,6 +8,7 @@ urlpatterns = [
     path('account/update/', views.account_update, name='account_update'),
     path('account/change-password/', views.account_change_password, name='account_change_password'),
     path('account/delete/', views.account_delete, name='account_delete'),
+    path('account/restore/', views.account_restore, name='account_restore'),
     path('account/submissions/<int:pk>/rate/', views.submission_feedback, name='submission_feedback'),
     path('account/rate-portal/', views.portal_feedback, name='portal_feedback'),
     path('account/submissions/', views.account_submissions_partial, name='account_submissions_partial'),

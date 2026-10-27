@@ -204,13 +204,15 @@
     }
 
     // ---------------- the Municipal Hall (Website Settings → Map location) ----------------
-    let hallMarker = null;
+    let hallMarker = null, hallPlace = null;   // hallPlace: the hall in search results
     const hEsc = (s) => String(s ?? "").replace(/[&<>"']/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
     if (root.dataset.hallLat) {
       const hall = { lat: +root.dataset.hallLat, lng: +root.dataset.hallLng, name: root.dataset.hallName, address: root.dataset.hallAddress };
       const hallIcon = window.TungaLguPin ? TungaLguPin.icon(false)
         : L.divIcon({ className: "", html: '<i class="fa-solid fa-landmark tm-loc-pin"></i>', iconSize: [30, 36], iconAnchor: [15, 34], popupAnchor: [0, -30] });
       hallMarker = L.marker([hall.lat, hall.lng], { icon: hallIcon, title: hall.name, zIndexOffset: 1000 }).addTo(map);
+      hallPlace = { id: "hall", name: hall.name, category: "government", barangay: "",
+                    description: "Municipal Hall town hall munisipyo LGU " + (hall.address || ""), lat: hall.lat, lng: hall.lng };
       hallMarker.bindTooltip(hEsc(hall.name), { permanent: true, direction: "bottom", className: "tm-name", opacity: 1, offset: [0, 2] });
       hallMarker.bindPopup(`<div class="tm-pop"><span class="badge">MUNICIPAL HALL</span><h4>${hEsc(hall.name)}</h4>
         <div class="meta"><i class="fa-solid fa-location-dot"></i> ${hEsc(hall.address)}</div>
@@ -461,10 +463,25 @@
     }
     const detailUrl = (id) => `${API}${id}/`;
 
+    // Search words. Whole words only, so "business" is not "bus" (Transport)
+    // and "church" is not "rhu" (Health). Short forms are written out:
+    // "Sto. Nino" = "Santo Nino", "Brgy." = "Barangay".
+    const ABBR = { sto: "santo", sta: "santa", brgy: "barangay", bgy: "barangay", pob: "poblacion", natl: "national", elem: "elementary", nhs: "national high school" };
+    const STOP = new Set(["of", "the", "ng", "sa", "in", "at", "and", "near", "a", "an"]);
+    function words(s) {
+      return norm(s).replace(/[^a-z0-9]+/g, " ").trim().split(" ").filter(Boolean)
+        .flatMap((w) => (ABBR[w] || w).split(" "));
+    }
+    const qWords = (q) => words(q).filter((w) => !STOP.has(w));
+    const hasPhrase = (text, phrase) => (" " + words(text).join(" ") + " ").includes(" " + words(phrase).join(" ") + " ");
     function categoryFromQuery(q) {
-      const n = norm(q);
-      if (!n) return null;
-      return CATEGORIES.find((c) => norm(c.label).includes(n) || c.words.some((w) => n.includes(norm(w)) || norm(w).startsWith(n))) || null;
+      const ws = qWords(q);
+      if (!ws.length) return null;
+      const one = ws.length === 1 && ws[0].length >= 3 ? ws[0] : "";
+      return CATEGORIES.find((c) => c.id !== "other" && (
+        hasPhrase(q, c.label) || c.words.some((w) => hasPhrase(q, w)) ||
+        (one && [c.label, ...c.words].some((w) => words(w).some((x) => x.startsWith(one))))
+      )) || null;
     }
 
     // ---------------- chips ----------------
@@ -490,12 +507,48 @@
         const id = (location.hash.match(/place=(\d+)/) || [])[1];
         const m = id && markerById.get(id);
         if (m) { map.setView(m.getLatLng(), 18); setTimeout(() => m.openPopup(), 200); }
+        else openBarangayFromLink();
       }
     }
 
+    // A link from the About Us page (…/tunga-map/#barangay=San%20Roque) opens
+    // that barangay's hall pin. No hall pin: the barangay itself is shown.
+    function openBarangayFromLink() {
+      const raw = (location.hash.match(/barangay=([^&]+)/) || [])[1];
+      if (!raw) return;
+      let wanted = "";
+      try { wanted = decodeURIComponent(raw.replace(/\+/g, " ")); } catch (e) { wanted = raw; }
+      const key = brgyKey(wanted);
+      if (!key) return;
+      const sameBrgy = (p) => p.barangay && brgyKey(p.barangay) === key;
+      const isHall = (p) => /barangay hall|brgy\.? hall/.test(norm(p.name));
+      const hall = places.find((p) => sameBrgy(p) && isHall(p))
+        || places.find((p) => isHall(p) && brgyKey(p.name).includes(key));
+      const m = hall && markerById.get(String(hall.id));
+      if (m) {
+        map.setView(m.getLatLng(), 17);
+        setTimeout(() => m.openPopup(), 250);
+        return;
+      }
+      const name = matchBarangay(wanted);
+      if (name) {
+        toast("Barangay " + name + " has no barangay hall pin yet.");
+        brgy = name;
+        highlightBarangay(name);
+      }
+    }
+
+    // every search word is found in the place (start of a word counts:
+    // "sch" finds "School"; "schools" finds "school")
     function matches(p, q) {
-      const hay = norm([p.name, p.barangay, p.description, (CAT[p.category] || CAT.other).label].join(" "));
-      return norm(q).split(/\s+/).every((w) => hay.includes(w));
+      const ws = qWords(q);
+      if (!ws.length) return false;
+      const c = CAT[p.category] || CAT.other;
+      const hay = words([p.name, p.barangay, p.barangay && "barangay", p.description, c.label].join(" "));
+      return ws.every((w) => {
+        const alt = w.length > 3 && w.endsWith("s") ? w.slice(0, -1) : w;
+        return hay.some((h) => h.startsWith(w) || h.startsWith(alt));
+      });
     }
 
     function popupHtml(p) {
@@ -516,6 +569,7 @@
 
     function drawOwn(list, pop) {
       ownLayer.clearLayers(); markerById.clear();
+      if (hallMarker) markerById.set("hall", hallMarker);
       list.forEach((p) => {
         const c = CAT[p.category] || CAT.other;
         let m;
@@ -606,8 +660,13 @@
       activeCat = cat; activeQuery = q;
       renderChips(); locLayer.clearLayers();
 
-      const own = places.filter(inBrgy).filter((p) => (typeOnly ? p.category === cat : matches(p, q) || (cat && p.category === cat)));
-      drawOwn(own, true);
+      const pool = places.filter(inBrgy).concat(hallPlace && !brgy ? [hallPlace] : []);
+      const own = pool.filter((p) => (typeOnly ? p.category === cat : matches(p, q) || (cat && p.category === cat)))
+        .map((p, i) => [p, matches(p, q) ? 0 : 1, i]).sort((a, b) => a[1] - b[1] || a[2] - b[2]).map((x) => x[0]);  // exact matches first
+      // a name typed in that isn't one of the Tunga Map's places: look it up as
+      // a place / street instead (the public map has no OpenStreetMap extras)
+      if (q && !own.length && !typeOnly && !$("osmToggle").checked) return runLocationSearch(q, true);
+      drawOwn(own.filter((p) => p.id !== "hall"), true);
       renderResults(own, [], labelFor(q, cat), true);
       fit(own);
       $("legend").hidden = false;
@@ -661,7 +720,7 @@
 
     // ---------------- place / street search (Nominatim) ----------------
     let lastLocations = [];
-    async function runLocationSearch(q) {
+    async function runLocationSearch(q, fromEst = false) {
       activeQuery = q; activeCat = ""; renderChips();
       osmLayer.clearLayers(); locLayer.clearLayers(); $("legend").hidden = true;
       drawOwn(places.filter(inBrgy), false);
@@ -674,9 +733,11 @@
         if (!list.length) list = await (await fetch(`${base}&limit=8&q=${encodeURIComponent(q + ", Leyte")}`)).json();
         if (activeQuery !== q) return;
         lastLocations = list;
-        $("resultsLabel").textContent = `Places for “${q}” · ${list.length}`;
+        $("resultsLabel").textContent = (fromEst ? `No establishment found — places for “${q}”` : `Places for “${q}”`) + ` · ${list.length}`;
         if (!list.length) {
-          $("results").innerHTML = `<li class="tm-empty">No place called “${esc(q)}” found. Try a barangay (e.g. <b>San Roque</b>) or a street name.</li>`;
+          $("results").innerHTML = fromEst
+            ? `<li class="tm-empty">Nothing called “${esc(q)}” on the map yet. Try another word, like <b>school</b>, <b>health center</b> or a barangay name.</li>`
+            : `<li class="tm-empty">No place called “${esc(q)}” found. Try a barangay (e.g. <b>San Roque</b>) or a street name.</li>`;
           return;
         }
         $("results").innerHTML = list.map((r, i) => `<li class="tm-result" tabindex="0" data-loc="${i}" style="--c:var(--tmap-warn)">

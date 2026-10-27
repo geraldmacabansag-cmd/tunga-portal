@@ -101,6 +101,8 @@ CLOUDINARY_API_SECRET=
 # Fill these, then run: bash $APP_DIR/deploy/update.sh
 RECAPTCHA_SITE_KEY=
 RECAPTCHA_SECRET_KEY=
+BREVO_SENDER_EMAIL=
+BREVO_API_KEY=
 EOF
   chown $APP_USER:$APP_USER "$ENV_FILE"; chmod 600 "$ENV_FILE"
   echo "    created. Django admin address: https://$DOMAIN/$ADMINURL/  (write it down)"

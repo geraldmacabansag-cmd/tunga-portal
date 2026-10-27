@@ -501,6 +501,12 @@
     if (document.body.dataset.page === 'office-services-editor') return;
     var ic = e.target.closest('.ic, .dl');
     if (!ic) return;
+    // A real link (View in a new tab, Download, ...) always works normally:
+    // only the old placeholder icons without an address are handled below.
+    if (ic.tagName === 'A') {
+      var href = ic.getAttribute('href') || '';
+      if (href && href !== '#' && href.indexOf('javascript:') !== 0) return;
+    }
     var icon = ic.querySelector('i');
     var cls = icon ? icon.className : '';
     var row = ic.closest(ROW_SELECTOR);

@@ -122,7 +122,7 @@ def office_detail(request, slug):
         requirements = list(s.requirements.all())
         general_requirements, grouped_requirements = _group_requirements_for_charter(requirements)
         s.charter_steps = steps
-        s.charter_total_processing_time = _compute_total_processing_time(steps)
+        s.charter_total_processing_time = s.processing_time or "—"   # typed by the office
         s.charter_general_requirements = general_requirements
         s.charter_grouped_requirements = grouped_requirements
         s.charter_has_requirements = bool(requirements)

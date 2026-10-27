@@ -82,6 +82,17 @@ always the first slide.
     </div>
 
     <div class="form-group">
+      <label class="form-label" for="slider-loops">Number of loops</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <span style="font-size:13px;color:var(--gray-600);">Go through all the slides</span>
+        <input class="form-input" type="number" name="slider_loops" id="slider-loops" min="0" max="100" step="1" required value="{{ slider_info.hero_slider_loops }}" style="width:96px;">
+        <span style="font-size:13px;color:var(--gray-600);">time(s), then stop on the welcome slide</span>
+        <button type="button" class="btn btn-secondary" id="slider-loops-reset" title="Use the default (2 loops)" onclick="document.getElementById('slider-loops').value = 2;"><i class="fa-solid fa-rotate-left"></i> Reset to default</button>
+      </div>
+      <span class="form-help">One loop = every slide is shown once. Default: 2 loops. Type <b>0</b> to keep sliding without stopping. Visitors can still use the arrows and dots after it stops.</span>
+    </div>
+
+    <div class="form-group">
       <span class="form-label">What should the banner show?</span>
       <div class="hs-mode">
         <label class="hs-mode__opt">

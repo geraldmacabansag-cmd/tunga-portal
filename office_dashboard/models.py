@@ -88,11 +88,18 @@ class PhotoGalleryMixin:
 
 class Announcement(PhotoGalleryMixin, models.Model):
 
+    # "expired": the expiration date passed while it was still waiting for
+    # approval (pending / returned), so it was never published. The office can
+    # edit it and set a new expiration date; it then goes back to "pending".
+    # A PUBLISHED announcement keeps "published" after its date passes (see
+    # is_past_expiration / status_label) and only the Super Admin can edit it.
+    # Set by office_dashboard/announcement_rules.expire_overdue().
     STATUS_CHOICES = [
         ("pending", "Pending Approval"),
         ("published", "Published"),
         ("reject", "Reject"),
         ("returned", "Returned"),
+        ("expired", "Expired (not published)"),
         ("archive", "Archived"),
     ]
 
@@ -169,6 +176,37 @@ class Announcement(PhotoGalleryMixin, models.Model):
     # optional YouTube video shown in the post (office_dashboard/video.py)
     video_url = models.URLField(max_length=300, blank=True)
 
+    @property
+    def is_past_expiration(self):
+        return bool(self.expiration_date and self.expiration_date <= timezone.now())
+
+    @property
+    def is_expired(self):
+        """Expired = not published in time ("expired" status) or published but
+        its expiration date has passed. These show in the "Expired" tab."""
+        return self.status == "expired" or (self.status == "published" and self.is_past_expiration)
+
+    @property
+    def status_label(self):
+        """The status shown in the dashboards' lists."""
+        if self.status == "published" and self.is_past_expiration:
+            return "Expired"
+        if self.status == "expired":
+            return "Expired (not published)"
+        return self.get_status_display()
+
+    @property
+    def status_badge(self):
+        if self.is_expired:
+            return "badge-expired"
+        return {"published": "badge-green", "pending": "badge-amber", "archive": "badge-gray"}.get(self.status, "badge-red")
+
+    @classmethod
+    def expired_q(cls):
+        """Filter for the "Expired" tab."""
+        return Q(status="expired") | Q(status="published", expiration_date__isnull=False,
+                                       expiration_date__lte=timezone.now())
+
     @classmethod
     def public(cls):
         """Announcements the public may see: published and not past their
@@ -227,12 +265,17 @@ class NewsUpdate(PhotoGalleryMixin, models.Model):
 class Event(PhotoGalleryMixin, models.Model):
     cover_field = "poster"
 
-
+    # "past": the event date passed while it was still waiting for approval
+    # (pending / returned), so it was never published. The office can edit it
+    # and give it a new date; it then goes back to "pending". A PUBLISHED event
+    # keeps "published" after its date (see is_past / status_label) and only
+    # the Super Admin can edit it. Set by announcement_rules.expire_overdue().
     STATUS_CHOICES = [
         ("pending", "Pending Approval"),
         ("published", "Published"),
         ("reject", "Reject"),
         ("returned", "Returned"),
+        ("past", "Past (not published)"),
         ("archive", "Archived"),
     ]
 
@@ -271,6 +314,35 @@ class Event(PhotoGalleryMixin, models.Model):
 
     def __str__(self):
         return self.title
+
+    @property
+    def is_past_date(self):
+        """The event's day is over (an event happening today is not past yet)."""
+        return bool(self.event_date and self.event_date < timezone.localdate())
+
+    @property
+    def is_past(self):
+        """Shown in the "Past" tab: never published in time ("past" status),
+        or published and its date is over."""
+        return self.status == "past" or (self.status == "published" and self.is_past_date)
+
+    @property
+    def status_label(self):
+        if self.status == "published" and self.is_past_date:
+            return "Past"
+        if self.status == "past":
+            return "Past (not published)"
+        return self.get_status_display()
+
+    @property
+    def status_badge(self):
+        if self.is_past:
+            return "badge-past"
+        return {"published": "badge-green", "pending": "badge-amber", "archive": "badge-gray"}.get(self.status, "badge-red")
+
+    @classmethod
+    def past_q(cls):
+        return Q(status="past") | Q(status="published", event_date__lt=timezone.localdate())
 
 class Album(models.Model):
     representative = models.ForeignKey(
@@ -469,7 +541,9 @@ class Service(models.Model):
     reminders = models.TextField(blank=True)  # one reminder per line
 
     availability = models.CharField(max_length=150, blank=True)  # e.g. "Monday - Friday, 8:00 AM - 5:00 PM"
-    processing_time = models.CharField(max_length=100, blank=True)  # e.g. "3-5 business days"
+    # TOTAL processing time of the Client Steps, typed by the office in the
+    # Client Steps window (no longer added up automatically), e.g. "3 days, 1 hour"
+    processing_time = models.CharField(max_length=100, blank=True)
 
     division = models.CharField(max_length=150, blank=True)  # office or division that handles this service
     classification = models.CharField(max_length=50, blank=True)  # e.g. "Simple" or "Complex"
@@ -559,6 +633,12 @@ class DownloadableForm(models.Model):
 
     office = models.ForeignKey(Office, on_delete=models.CASCADE, related_name="downloadable_forms")
     service = models.ForeignKey(Service, on_delete=models.SET_NULL, related_name="forms", null=True, blank=True)
+    # True = uploaded from the service's own page while making the service:
+    # it is approved / returned / rejected TOGETHER with the service and is
+    # not listed on its own in the Approval Center (until the service is
+    # published). False = uploaded on the Downloadable Forms page: approved
+    # on its own. admin_dashboard/views.py (forms_in_queue, approval details)
+    bundled_with_service = models.BooleanField(default=False)
 
     title = models.CharField(max_length=150)
     description = models.TextField(blank=True)
@@ -871,6 +951,10 @@ class OrgChartNode(models.Model):
 
     office = models.ForeignKey(Office, on_delete=models.CASCADE, related_name="org_chart_nodes")
     parent = models.ForeignKey("self", on_delete=models.SET_NULL, null=True, blank=True, related_name="children")
+    # Optional second box: the box then hangs from the middle of a line that
+    # joins `parent` and `parent2` (e.g. under the line between the Mayor and
+    # the Vice Mayor). Empty = the usual line from `parent` only.
+    parent2 = models.ForeignKey("self", on_delete=models.SET_NULL, null=True, blank=True, related_name="joined_children")
     kind = models.CharField(max_length=10, choices=KIND_CHOICES, default=KIND_PERSON)
     name = models.CharField(max_length=150)                # person's name, or the section title
     position = models.CharField(max_length=200, blank=True)  # e.g. "Municipal Administrator"
@@ -884,6 +968,11 @@ class OrgChartNode(models.Model):
     # shape (circle/rounded/square/none), border, fill, text (#rrggbb colors),
     # line (#rrggbb), line_style (solid/dashed/dotted), size (s/m/l), case (upper/normal)
     style = models.JSONField(default=dict, blank=True)
+    # Only on the LGU chart (Super Admin): the Municipal Official card on the
+    # About Us page that this box belongs to. Name, position and photo are
+    # kept the same on both (office_dashboard/org_officials.py).
+    official = models.OneToOneField("admin_dashboard.AboutOfficial", on_delete=models.SET_NULL,
+                                    null=True, blank=True, related_name="chart_node")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -101,7 +101,11 @@ class EmailProviderSettingsAdmin(admin.ModelAdmin):
 
     @admin.display(description="Status")
     def brevo_status(self, obj):
-        return f"✔ Configured — sending from {obj.email_address}" if obj.is_configured else "✖ Not configured yet"
+        if obj.has_saved_brevo:
+            return f"✔ Configured — sending from {obj.email_address}"
+        if obj.using_default_brevo:
+            return f"✔ Using the default account — sending from {obj.default_brevo_email}"
+        return "✖ Not configured yet"
 
     @admin.display(description="Status")
     def backup_status(self, obj):

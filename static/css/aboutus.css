@@ -424,6 +424,31 @@
   border-bottom: none;
 }
 
+/* each barangay opens the Tunga Map on its barangay hall */
+.barangays-group__item--link {
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color .15s ease, color .15s ease;
+}
+.barangays-group__item--link span { flex: 1; }
+.barangays-group__item--link:hover,
+.barangays-group__item--link:focus-visible {
+  background: #f1f5fb;
+  color: var(--navy);
+}
+.barangays-group__item .barangays-group__go {
+  margin-left: auto;
+  color: var(--text-light, #9ca3af) !important;
+  opacity: .55;
+  transition: opacity .15s ease, transform .15s ease;
+}
+.barangays-group__item--link:hover .barangays-group__go,
+.barangays-group__item--link:focus-visible .barangays-group__go {
+  opacity: 1;
+  color: var(--navy) !important;
+  transform: translateX(2px);
+}
+
 .barangays-group__item i {
   font-size: 0.85rem;
   width: 16px;

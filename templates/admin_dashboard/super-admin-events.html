@@ -24,23 +24,24 @@
           <div class="stat-label">Published events</div>
           <div class="stat-sub">Live on the website</div>
         </div>
-        <div class="stat-card">
-          <div class="top"><span class="stat-icon gray"><i class="fa-regular fa-clock"></i></span></div>
+        <a class="stat-card ev-stat-link" href="?tab=past">
+          <div class="top"><span class="stat-icon ev-past-ico"><i class="fa-solid fa-clock-rotate-left"></i></span></div>
           <div class="stat-value">{{ past_count }}</div>
           <div class="stat-label">Past</div>
           <div class="stat-sub">Already held</div>
-        </div>
+        </a>
       </div>
 
-      <div class="panel">
+      {# search, upcoming / past, category and pages work without reloading (static/js/list-filter.js) #}
+      <div class="panel" data-lf data-lf-strict data-lf-param="tab" data-lf-size="10" data-lf-noun="events">
+        <div class="tabs ev-tabs" style="padding:0 20px;">
+          <a class="tab{% if current_tab != 'past' %} active{% endif %}" data-lf-tab="" href="?">Upcoming <span class="count">{{ upcoming_tab_count }}</span></a>
+          <a class="tab{% if current_tab == 'past' %} active{% endif %}" data-lf-tab="past" href="?tab=past"><i class="fa-solid fa-clock-rotate-left"></i> Past <span class="count">{{ past_count }}</span></a>
+        </div>
+        <p class="ev-past-help" data-lf-only="past"{% if current_tab != 'past' %} hidden{% endif %}><i class="fa-solid fa-circle-info"></i> <span>Published events whose date is over. Offices can't edit them; you can.</span></p>
         <form method="get" class="filters-row">
-          <label class="field search" style="flex:1;"><i class="fa-solid fa-magnifying-glass"></i><input type="text" name="q" value="{{ current_q }}" placeholder="Search events..." onchange="this.form.submit()"></label>
-          <select class="field" name="when" onchange="this.form.submit()">
-            <option value="all" {% if current_when == "all" %}selected{% endif %}>All</option>
-            <option value="upcoming" {% if current_when == "upcoming" %}selected{% endif %}>Upcoming</option>
-            <option value="past" {% if current_when == "past" %}selected{% endif %}>Past</option>
-          </select>
-          <select class="field" name="category" onchange="this.form.submit()">
+          <label class="field search" style="flex:1;"><i class="fa-solid fa-magnifying-glass"></i><input type="text" name="q" value="{{ current_q }}" placeholder="Search events..." data-lf-q autocomplete="off"></label>
+          <select class="field" name="category" data-lf-category>
             <option value="">All categories</option>
             {% for cat in categories %}
               <option value="{{ cat }}" {% if current_category == cat %}selected{% endif %}>{{ cat }}</option>
@@ -63,7 +64,7 @@
             </thead>
             <tbody>
               {% for e in events %}
-              <tr>
+              <tr data-lf-row data-category="{{ e.category }}" data-tab="{% if e.is_past %}past{% endif %}" data-title="{{ e.title }} {{ e.location }} {{ e.representative.office.name }}">
                 <td>
                   <div class="row-icon-name">
                     {% if e.poster %}<img class="list-thumb" src="{{ e.poster.url }}" alt="">{% else %}<span class="row-thumb" style="background:var(--blue-50);color:var(--blue-600);"><i class="fa-regular fa-calendar"></i></span>{% endif %}
@@ -76,7 +77,7 @@
                 <td><span class="tag tag-gray">{{ e.category|default:"—" }}</span></td>
                 <td>{{ e.representative.office.name|default:"—" }}</td>
                 <td>{{ e.event_date|date:"M j, Y"|default:"—" }}</td>
-                <td><span class="badge {{ e.badge_class }}">{{ e.get_status_display }}</span></td>
+                <td><span class="badge {{ e.badge_class }}">{% if e.is_past %}<i class="fa-solid fa-clock-rotate-left"></i> {% endif %}{{ e.status_label }}</span></td>
                 <td>{{ e.location|default:"—" }}</td>
                 <td>
                   {% if e.is_featured %}
@@ -99,7 +100,7 @@
                       data-organizer="{{ e.organizer }}"
                       data-contact-person="{{ e.contact_person }}"
                       data-contact-info="{{ e.contact_info }}"
-                      data-status="{{ e.get_status_display }}"
+                      data-status="{{ e.status_label }}"
                       data-status-class="{{ e.badge_class }}"
                       data-image="{% if e.poster %}{{ e.poster.url }}{% endif %}" data-gallery="{{ e.gallery_urls_json }}" data-gallery-target="ve-image-wrap" data-video-id="{{ e.youtube_id }}" data-video-target="ve-video-wrap"
                       data-created="{{ e.created_at|date:'F j, Y g:i A' }}"
@@ -129,8 +130,13 @@
               {% empty %}
               <tr class="no-results-row"><td colspan="8">No events yet.</td></tr>
               {% endfor %}
+              {% if events %}<tr class="no-results-row" data-lf-empty hidden><td colspan="8">No events match this tab or search.</td></tr>{% endif %}
             </tbody>
           </table>
+        </div>
+        <div class="pagination">
+          <span data-lf-info></span>
+          <div class="page-nums" data-lf-pager></div>
         </div>
       </div>
 
@@ -476,4 +482,17 @@
   }, true);
 })();
 </script>
+<script src="{% static 'js/list-filter.js' %}?v=4"></script>
+<style>
+  .badge-past { background: #e0e7ff; color: #3730a3; }
+  .badge-past i { margin-right: 3px; }
+  .stat-icon.ev-past-ico { background: #4f46e5; }
+  a.ev-stat-link { color: inherit; text-decoration: none; transition: border-color .15s; }
+  a.ev-stat-link:hover { border-color: #4f46e5; }
+  .ev-tabs { overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+  .ev-tabs .tab { text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+  .ev-past-help, .ev-past-note { display: flex; gap: 8px; align-items: flex-start; margin: 12px 20px 0; padding: 10px 12px; border-radius: 10px; background: #eef2ff; border: 1px solid #c7d2fe; color: #312e81; font-size: 12.5px; line-height: 1.5; }
+  .ev-past-note { margin: 0 0 14px; }
+  .ev-past-help > i, .ev-past-note > i { margin-top: 3px; }
+</style>
 {% endblock %}

@@ -121,6 +121,11 @@ def style_for(target, style, kind):
     """The style to copy onto another box (used by "apply to everyone under
     it / whole chart"). Fill and text colors only go to boxes of the same kind,
     so sections don't turn dark when people's name boxes are dark."""
+    own = {k: v for k, v in (target.style or {}).items() if k in LINE_KEYS}   # its own line moves stay
     if target.kind == kind:
-        return dict(style)
-    return {k: v for k, v in style.items() if k in SHARED_KEYS}
+        return {**{k: v for k, v in style.items() if k not in LINE_KEYS}, **own}
+    return {**{k: v for k, v in style.items() if k in SHARED_KEYS}, **own}
+
+
+# where the box's line was dragged on the chart (not part of the look)
+LINE_KEYS = {"bend", "hang"}

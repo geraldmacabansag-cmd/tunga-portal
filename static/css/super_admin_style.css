@@ -1383,8 +1383,15 @@ textarea.note-input{
   .page-heading{min-width:0;overflow:hidden;}
   .page-heading h1{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .page-heading p{font-size:11px;margin:1px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .field.search{display:none !important;}
+  /* only the TOPBAR search folds into an icon; the search boxes inside the
+     pages (Approval Center, Downloadable Forms, Users…) stay visible */
+  .topbar .field.search{display:none !important;}
   .mobile-search-btn{display:flex !important;}
+  /* filter rows: search box on its own full-width line, the dropdowns below it */
+  .filters-row{flex-wrap:wrap;padding:12px 14px;gap:8px;}
+  .filters-row .field.search{flex:1 1 100% !important;min-width:0;}
+  .filters-row .field.search input{min-width:0;width:100%;}
+  .filters-row select.field{flex:1 1 140px;min-width:0;}
   .topbar-right{gap:8px;flex-shrink:0;}
   .user-chip{padding:3px;gap:0;border:0;background:transparent;}
   .user-chip .who,

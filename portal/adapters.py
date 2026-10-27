@@ -34,12 +34,19 @@ class SocialAccountAdapter(DefaultSocialAccountAdapter):
 
     def pre_social_login(self, request, sociallogin):
         intent = request.session.get('google_intent')
+        from portal import account_deletion
+
+        email = sociallogin.user.email
+        existing_user = (sociallogin.user if sociallogin.is_existing
+                         else (User.objects.filter(email=email).first() if email else None))
+        # Account scheduled for deletion: don't log in yet; the login page
+        # asks "Proceed anyway?" (portal.views.account_restore).
+        if existing_user is not None and account_deletion.pending_for(existing_user):
+            account_deletion.remember_pending(request, existing_user, method="google")
+            raise ImmediateHttpResponse(redirect('login'))
 
         if sociallogin.is_existing:
             return
-
-        email = sociallogin.user.email
-        existing_user = User.objects.filter(email=email).first() if email else None
 
         if intent == 'login':
             if existing_user:

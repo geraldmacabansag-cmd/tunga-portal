@@ -64,11 +64,41 @@ Home | Digital Governance Portal
 
         <p class="auth-switch">Don't have an account? <a href="{% url 'signup' %}">Create one now</a></p>
       </form>
+      {% if pending_deletion %}
+      {% comment %}Popup: the account is waiting to be deleted (30 days after "Delete my account").
+         "Proceed anyway" cancels the deletion and logs in (portal.views.account_restore);
+         "Not now" / X / Esc closes it and forgets the login (?not_now=1).{% endcomment %}
+      <dialog class="pd-modal" id="pendingDeletionModal" aria-labelledby="pdTitle" data-not-now="{% url 'login' %}?not_now=1">
+        <div class="pd-modal__box">
+          <a href="{% url 'login' %}?not_now=1" class="pd-modal__x" aria-label="Close"><i class="fa-solid fa-xmark"></i></a>
+          <div class="pd-modal__icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+          <h2 id="pdTitle">This account is scheduled for deletion</h2>
+          <p>The account <b>{{ pending_email }}</b> will be deleted for good on
+             <b>{{ pending_deletion.delete_after|date:"F j, Y" }}</b>
+             ({{ pending_deletion.days_left }} day{{ pending_deletion.days_left|pluralize }} left).</p>
+          <p>If you proceed, your request to delete the account is cancelled and you are logged in.</p>
+          <form method="post" action="{% url 'account_restore' %}" class="pd-modal__actions">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primary" autofocus><i class="fa-solid fa-rotate-left"></i> Proceed anyway</button>
+            <a href="{% url 'login' %}?not_now=1" class="btn btn-outline">Not now</a>
+          </form>
+        </div>
+      </dialog>
+      {% endif %}
     </div>
   </div>
 </main>
 
 <script>
+// "Scheduled for deletion" popup: opens by itself; closing it = "Not now".
+(function () {
+  var dlg = document.getElementById('pendingDeletionModal');
+  if (!dlg) return;
+  if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', '');
+  var notNow = dlg.getAttribute('data-not-now');
+  dlg.addEventListener('cancel', function (e) { e.preventDefault(); location.href = notNow; });   // Esc
+  dlg.addEventListener('click', function (e) { if (e.target === dlg) location.href = notNow; });  // outside the box
+})();
 document.querySelectorAll('.toggle-password').forEach(function (icon) {
   icon.addEventListener('click', function () {
     var input = document.getElementById(icon.dataset.target);

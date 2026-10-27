@@ -12,7 +12,7 @@ from django.utils import timezone
 from office_dashboard.models import Announcement, NewsUpdate, Event, DownloadableForm, Photo, Album, Service, OfficeRepresentative, Notification, ServiceEditSettings, ActivityLog, Message
 from office_dashboard.models import log_activity
 from office_dashboard.notifications import notify, notify_all_reps
-from office_dashboard.announcement_rules import clean_announcement
+from office_dashboard.announcement_rules import clean_announcement, expire_overdue
 from offices.models import Office
 from django.http import Http404, FileResponse, HttpResponse, JsonResponse
 from offices.pdf_serve import pdf_response
@@ -22,9 +22,12 @@ import csv
 from office_dashboard.views import FORM_CATEGORY_CHOICES, serialize_chat_message, MESSAGE_MAX_LENGTH
 from office_dashboard.views import org_chart_page
 from office_dashboard.content_photos import save_content_photos
-from office_dashboard.models import OrgChartNode
+from office_dashboard.models import OrgChartNode, OrgChartSettings
+from office_dashboard import org_officials
+from office_dashboard.org_chart import build_tree as build_org_tree, parent_choices as org_parent_choices
 import json
 import re
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.urls import reverse
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.password_validation import validate_password
@@ -39,6 +42,15 @@ def _parse_leading_number(text):
         return None
     match = re.match(r"\s*(\d+(?:\.\d+)?)", text)
     return float(match.group(1)) if match else None
+
+
+def forms_in_queue():
+    """Forms the Approval Center lists on their own. A form uploaded from a
+    service's page while making the service (bundled_with_service) is part
+    of that service: it is approved together with it and only shows on its
+    own once the service is already published."""
+    return DownloadableForm.objects.exclude(
+        Q(bundled_with_service=True, service__isnull=False) & ~Q(service__status="published"))
 
 
 def _compute_total_processing_time(steps):
@@ -232,8 +244,63 @@ DASH_APPROVAL_META = {
 }
 
 
+# how many rows each Dashboard panel lists ("View all" opens the full page)
+DASH_LIMIT_APPROVALS = 5
+DASH_LIMIT_OFFICES = 5
+DASH_LIMIT_ACTIVITY = 6
+
+
+def _dashboard_stat_cards(today, week_start, month_start, offices, n):
+    """The number cards at the top of the Dashboard. Each one opens the page
+    it is about (url). n = numbers the dashboard view already counted."""
+    from office_dashboard.models import FormSubmission
+    reps = OfficeRepresentative.objects.exclude(office__slug=LGU_SUPER_ADMIN_SLUG)
+    reps_active = reps.filter(user__is_active=True).count()
+    reps_inactive = reps.count() - reps_active
+    offices_total = offices.count()
+    offices_with_rep = offices.filter(representative__isnull=False).count()
+    news = NewsUpdate.objects.filter(status="published")
+    events = Event.objects.filter(status="published")
+    upcoming = events.filter(event_date__gte=today).count()
+    forms = DownloadableForm.objects.filter(status="published")
+    photos = Photo.objects.filter(status="published")
+    subs = FormSubmission.objects.all()
+    subs_new = subs.filter(status=FormSubmission.STATUS_SUBMITTED).count()
+    unread = Message.objects.filter(sender=Message.SENDER_REP, read_at__isnull=True, hidden_for_admin=False).count()
+    u = lambda name: reverse(f"admin_dashboard:{name}")
+    plural = lambda k, word: f"{k} {word}{'' if k == 1 else 's'}"
+    return [
+        {"label": "Pending approvals", "value": n["pending_total"], "sub": f"{n['pending_today']} submitted today",
+         "icon": "fa-solid fa-square-check", "color": "blue", "url": u("approval_center"), "alert": n["pending_total"] > 0},
+        {"label": "Offices", "value": offices_total, "sub": f"{offices_with_rep} with a representative",
+         "icon": "fa-solid fa-building-columns", "color": "purple", "url": u("ad_offices")},
+        {"label": "Active office reps", "value": reps_active,
+         "sub": (f"{reps_inactive} deactivated" if reps_inactive else "All accounts active"),
+         "icon": "fa-solid fa-user-tie", "color": "teal", "url": u("ad_office_rep")},
+        {"label": "Registered residents", "value": n["residents_total"], "sub": f"{n['residents_new_this_month']} new this month",
+         "icon": "fa-solid fa-users", "color": "green", "url": u("ad_users")},
+        {"label": "Active services", "value": n["services_total"], "sub": f"Across {plural(n['services_office_count'], 'office')}",
+         "icon": "fa-solid fa-list-check", "color": "gray", "url": u("ad_services")},
+        {"label": "Announcements", "value": n["announcements_total"], "sub": f"{n['announcements_this_week']} posted this week",
+         "icon": "fa-solid fa-bullhorn", "color": "amber", "url": u("ad_announcement")},
+        {"label": "News & updates", "value": news.count(), "sub": f"{news.filter(created_at__date__gte=week_start).count()} posted this week",
+         "icon": "fa-regular fa-newspaper", "color": "blue", "url": u("ad_news_update")},
+        {"label": "Upcoming events", "value": upcoming, "sub": f"{events.count()} published in all",
+         "icon": "fa-regular fa-calendar", "color": "green", "url": u("ad_events")},
+        {"label": "Downloadable forms", "value": forms.count(), "sub": f"{plural(forms.aggregate(t=Sum('download_count'))['t'] or 0, 'download')}",
+         "icon": "fa-solid fa-file-arrow-down", "color": "amber", "url": u("ad_forms")},
+        {"label": "Online submissions", "value": subs.count(), "sub": f"{subs_new} new, {subs.filter(submitted_at__date__gte=month_start).count()} this month",
+         "icon": "fa-solid fa-inbox", "color": "purple", "url": u("ad_submissions"), "alert": subs_new > 0},
+        {"label": "Gallery photos", "value": photos.count(), "sub": f"{photos.filter(created_at__date__gte=month_start).count()} added this month",
+         "icon": "fa-regular fa-image", "color": "red", "url": u("ad_gallery")},
+        {"label": "Unread messages", "value": unread, "sub": "From office representatives",
+         "icon": "fa-regular fa-comments", "color": "teal", "url": u("ad_messages"), "alert": unread > 0},
+    ]
+
+
 @super_admin_required
 def dashboard(request):
+    expire_overdue(force=True)   # expired before approval: not "waiting" any more
     today = timezone.localdate()
     week_start = today - timedelta(days=today.weekday())
     month_start = today.replace(day=1)
@@ -244,7 +311,7 @@ def dashboard(request):
     pending_announcements = Announcement.objects.filter(status__in=["pending", "returned"])
     pending_news = NewsUpdate.objects.filter(status__in=["pending", "returned"])
     pending_events = Event.objects.filter(status__in=["pending", "returned"])
-    pending_forms = DownloadableForm.objects.filter(status__in=["pending", "returned"])
+    pending_forms = forms_in_queue().filter(status__in=["pending", "returned"])
     pending_photos = Photo.objects.filter(status__in=["pending", "returned"])
     pending_services = Service.objects.filter(status__in=["pending", "returned"])
  
@@ -317,7 +384,7 @@ def dashboard(request):
         item['icon'] = meta.get('icon', 'fa-solid fa-file')
 
     recent_pending.sort(key=lambda i: i['date'] or timezone.now(), reverse=True)
-    recent_pending = recent_pending[:4]
+    recent_pending = recent_pending[:DASH_LIMIT_APPROVALS]
 
     # ---- Registered residents (ordinary citizen accounts only) ----
     resident_qs = User.objects.filter(is_staff=False, is_superuser=False, office_rep__isnull=True)
@@ -325,7 +392,7 @@ def dashboard(request):
     residents_new_this_month = resident_qs.filter(date_joined__date__gte=month_start).count()
  
     # ---- Published announcements ----
-    published_announcements = Announcement.objects.filter(status="published")
+    published_announcements = Announcement.objects.filter(status="published").exclude(Announcement.expired_q())   # on the website now
     announcements_total = published_announcements.count()
     announcements_this_week = published_announcements.filter(created_at__date__gte=week_start).count()
  
@@ -342,7 +409,7 @@ def dashboard(request):
             Announcement.objects.filter(status__in=["pending", "returned"], representative__office=office).count()
             + NewsUpdate.objects.filter(status__in=["pending", "returned"], representative__office=office).count()
             + Event.objects.filter(status__in=["pending", "returned"], representative__office=office).count()
-            + DownloadableForm.objects.filter(status__in=["pending", "returned"], office=office).count()
+            + forms_in_queue().filter(status__in=["pending", "returned"], office=office).count()
             + Photo.objects.filter(status__in=["pending", "returned"], representative__office=office).count()
             + Service.objects.filter(status__in=["pending", "returned"], office=office).count()
         )
@@ -361,11 +428,13 @@ def dashboard(request):
     # Busiest offices first: whoever needs the most attention, then whoever
     # has the most services listed.
     office_rows.sort(key=lambda r: (-r["pending_count"], -r["services_count"]))
-    office_rows = office_rows[:5]
+    office_rows_total = len(office_rows)
+    office_rows = office_rows[:DASH_LIMIT_OFFICES]
 
-    # ---- Recent activity (latest 8 entries from all offices + Super Admin) ----
+    # ---- Recent activity (latest entries from all offices + Super Admin) ----
     recent_activity = []
-    for log in ActivityLog.objects.select_related("representative__user", "representative__office")[:8]:
+    activity_total = ActivityLog.objects.count()
+    for log in ActivityLog.objects.select_related("representative__user", "representative__office")[:DASH_LIMIT_ACTIVITY]:
         name, office_label = activity_actor(log)
         recent_activity.append({
             "log": log, "name": name, "office": office_label, "dot": activity_dot(log.icon_color),
@@ -376,8 +445,18 @@ def dashboard(request):
     from .backup import backup_health
     backup_warning = backup_health()
 
+    stat_cards = _dashboard_stat_cards(today, week_start, month_start, offices, {
+        "pending_total": pending_total, "pending_today": pending_today,
+        "residents_total": residents_total, "residents_new_this_month": residents_new_this_month,
+        "announcements_total": announcements_total, "announcements_this_week": announcements_this_week,
+        "services_total": services_total, "services_office_count": services_office_count,
+    })
+
     return render(request, "admin_dashboard/super-admin-dashboard.html", {
         "backup_warning": backup_warning,
+        "stat_cards": stat_cards,
+        "office_rows_total": office_rows_total,
+        "activity_total": activity_total,
         "recent_activity": recent_activity,
         "pending_total": pending_total,
         "pending_today": pending_today,
@@ -505,6 +584,7 @@ STATUS_BADGE = {"pending": "badge-amber", "returned": "badge-red"}
 
 @super_admin_required
 def admin_approval_center(request):
+    expire_overdue(force=True)   # announcements whose date passed while waiting leave the queue
     q = request.GET.get('q', '').strip()
     status_filter = request.GET.get('status', '')
     type_filter = request.GET.get('type', 'all')
@@ -526,7 +606,7 @@ def admin_approval_center(request):
                        'office': e.representative.office.name if e.representative.office else '—',
                        'date': e.created_at, 'status': e.status})
 
-    for f in DownloadableForm.objects.filter(status__in=['pending', 'returned']).select_related('office'):
+    for f in forms_in_queue().filter(status__in=['pending', 'returned']).select_related('office'):
         items.append({'pk': f.pk, 'title': f.title, 'type': 'Form',
                        'office': f.office.name if f.office else '—',
                        'date': f.date_uploaded, 'status': f.status})
@@ -584,6 +664,55 @@ MODEL_MAP = {
     'Gallery': Photo,
     'Service': Service,
 }
+
+# model -> (word used in notices, the office representative's page for it)
+OWNER_LABELS = {
+    Announcement: ("announcement", "office_dashboard:rep_announce"),
+    NewsUpdate: ("news update", "office_dashboard:news_update"),
+    Event: ("event", "office_dashboard:event"),
+    DownloadableForm: ("form", "office_dashboard:downloadable_form"),
+    Photo: ("photo", "office_dashboard:gallery"),
+    Service: ("service", "office_dashboard:services"),
+}
+
+
+def _content_owner(obj):
+    """The Office Representative of the office that created this content
+    (None for the Super Admin's own posts)."""
+    rep = getattr(obj, "representative", None)
+    if rep is None:
+        office = getattr(obj, "office", None)
+        rep = getattr(office, "representative", None) if office else None
+    if rep is None or (rep.office and rep.office.slug == LGU_SUPER_ADMIN_SLUG):
+        return None
+    return rep
+
+
+def _tell_owner_removed(obj, permanently=False):
+    """Bell notice to the office whose content the Super Admin deleted.
+    Always sent (no preference switch can turn it off)."""
+    rep = _content_owner(obj)
+    if rep is None:
+        return
+    label, url_name = OWNER_LABELS.get(type(obj), ("content", "office_dashboard:dashboard"))
+    name = getattr(obj, "title", None) or getattr(obj, "name", "") or "Untitled"
+    if permanently:
+        title = f'Your {label} "{name}" was permanently deleted'
+        desc = f"The Super Admin permanently deleted this {label}. It can no longer be restored."
+    elif getattr(obj, "status", None) == "archive":
+        title = f'Your {label} "{name}" was deleted by the Super Admin'
+        desc = (f"The Super Admin removed this {label} from the public website. It now shows as "
+                "Archived in your list. Send the Super Admin a message if you have questions.")
+    else:
+        title = f'Your {label} "{name}" was deleted by the Super Admin'
+        desc = (f"The Super Admin deleted this {label}, so it is no longer on the public website "
+                "or in your list. Send the Super Admin a message if you have questions.")
+    try:
+        link = reverse(url_name)
+    except Exception:
+        link = ""
+    notify(rep, "content_removed", title[:255], desc, level="danger", link_url=link)
+
 
 def _stamp_published_date(obj):
     """Sets the "date published" field to today, the moment the Super Admin
@@ -645,32 +774,66 @@ def admin_approval_details(request, item_type, pk):
 
         display_name = getattr(obj, 'title', None) or getattr(obj, 'name', '')
 
+        # A service's own forms (uploaded on the service page) follow the service.
+        bundled_forms = None
+        if model is Service:
+            bundled_forms = obj.forms.filter(bundled_with_service=True, status__in=['pending', 'returned'])
+        n_forms = bundled_forms.count() if bundled_forms is not None else 0
+        with_forms = f" with its {n_forms} form{'s' if n_forms != 1 else ''}" if n_forms else ""
+
+        if action == 'approve' and model is Event and obj.is_past_date:
+            # the event is over: it can't be published any more
+            obj.status = 'past'
+            obj.save()
+            messages.error(request, f'"{display_name}" was not published: its date '
+                           f'({obj.event_date:%B %d, %Y}) has already passed. It is now in the office\'s Past tab, '
+                           'where they can set a new date.')
+            if notify_rep:
+                notify(notify_rep, 'approvals', title=f'"{display_name}" passed before it was approved',
+                       description="It was not published. Set a new date in the Past tab and save to send it again.",
+                       level='warning', link_url=(content_link_url + '?status=past') if content_link_url else '')
+            return redirect('admin_dashboard:approval_center')
+
+        if action == 'approve' and model is Announcement and obj.is_past_expiration:
+            # it can't go on the website any more: the office must set a new date
+            obj.status = 'expired'
+            obj.save()
+            messages.error(request, f'"{display_name}" was not published: its expiration date '
+                           f'({timezone.localtime(obj.expiration_date):%B %d, %Y %I:%M %p}) has already passed. '
+                           'It is now in the office\'s Expired tab, where they can set a new date.')
+            if notify_rep:
+                notify(notify_rep, 'approvals', title=f'"{display_name}" expired before it was approved',
+                       description="It was not published. Set a new expiration date in the Expired tab and save to send it again.",
+                       level='warning', link_url=(content_link_url + '?status=expired') if content_link_url else '')
+            return redirect('admin_dashboard:approval_center')
+
         if action == 'approve':
             obj.status = 'published'
             _stamp_published_date(obj)
-            messages.success(request, f'"{display_name}" was approved and published.')
+            messages.success(request, f'"{display_name}" was approved and published{with_forms}.')
             if notify_rep:
                 notify(
                     notify_rep, 'approvals',
                     link_url=content_link_url,
                     title=f'"{display_name}" was approved',
-                    description=f'Your {item_type.lower()} submission is now published on the public website.',
+                    description=f'Your {item_type.lower()} submission{with_forms} is now published on the public website.',
                     level='success',
                 )
         elif action == 'return':
             obj.status = 'returned'
-            messages.success(request, f'"{display_name}" was returned for revision.')
+            messages.success(request, f'"{display_name}" was returned for revision{with_forms}. The office was notified.')
             if notify_rep:
                 notify(
                     notify_rep, 'approvals',
-                    link_url=content_link_url,
+                    link_url=(content_link_url + '?status=returned') if content_link_url else '',
                     title=f'"{display_name}" was returned for revision',
-                    description=note or f'Your {item_type.lower()} submission needs changes before it can be published. Check the admin note for details.',
+                    description=(f"Super Admin's note: {note} — " if note else '')
+                                + f'Edit your {item_type.lower()} and save it to send it back for approval.',
                     level='warning',
                 )
         elif action == 'reject':
             obj.status = 'reject'
-            messages.success(request, f'"{display_name}" was rejected.')
+            messages.success(request, f'"{display_name}" was rejected{with_forms}.')
             if notify_rep:
                 notify(
                     notify_rep, 'approvals',
@@ -680,6 +843,9 @@ def admin_approval_details(request, item_type, pk):
                     level='danger',
                 )
         obj.save()
+        if n_forms and action in ('approve', 'return', 'reject'):
+            new_status = {'approve': 'published', 'return': 'returned', 'reject': 'reject'}[action]
+            bundled_forms.update(status=new_status, admin_note=obj.admin_note)
         return redirect('admin_dashboard:approval_center')
 
     date_submitted = getattr(obj, 'created_at', None) or getattr(obj, 'date_uploaded', None) or getattr(obj, 'published_at', None)
@@ -690,7 +856,7 @@ def admin_approval_details(request, item_type, pk):
         reminder_lines = [line.strip() for line in (obj.reminders or '').splitlines() if line.strip()]
         extra_context = {
             "service_steps": steps,
-            "service_total_processing_time": _compute_total_processing_time(steps),
+            "service_total_processing_time": obj.processing_time or "—",   # typed by the office
             "service_requirements": obj.requirements.all(),
             "service_forms": obj.forms.all(),
             "service_reminder_lines": reminder_lines,
@@ -715,39 +881,52 @@ ANNOUNCEMENT_STATUS_BADGE = {
     "archive": "badge-gray",
 }
 
+def _back_to_list(request, url_name, *args):
+    """After saving / deleting, go back to the list exactly as it was (same tab,
+    search and page — they are in the address, see static/js/list-filter.js)."""
+    from urllib.parse import urlparse
+    page = reverse(url_name, args=args)
+    ref = request.META.get("HTTP_REFERER", "")
+    parts = urlparse(ref)
+    if ref and parts.path == page and (not parts.netloc or parts.netloc == request.get_host()):
+        return redirect(page + ("?" + parts.query if parts.query else ""))
+    return redirect(page)
+
+
 @super_admin_required
 def admin_announcement(request):
+    expire_overdue(force=True)
     q = request.GET.get('q', '').strip()
     category = request.GET.get('category', '').strip()
     sort = request.GET.get('sort', 'newest')
+    # tabs: "Published" (on the website now) / "Expired" (was published, its
+    # expiration date has passed). Announcements that expired BEFORE they were
+    # approved are never published, so they are not listed here (only in the
+    # office's own Expired tab) and not in the Approval Center either.
+    tab = 'expired' if request.GET.get('tab') == 'expired' else ''
 
-    qs = (Announcement.objects
-          .select_related('representative__office')
-          .filter(status='published'))
-
-    if q:
-        qs = qs.filter(title__icontains=q)
-    if category:
-        qs = qs.filter(category=category)
-
-    if sort == 'oldest':
-        qs = qs.order_by('date_posted', 'created_at')
-    elif sort == 'most_viewed':
-        qs = qs.order_by('-views')
-    else:
+    base = Announcement.objects.select_related('representative__office').filter(status='published')
+    active_qs = base.exclude(Announcement.expired_q())
+    expired_qs = base.filter(Announcement.expired_q())
+    # Both tabs are sent to the page: the tabs, category, search, sort and
+    # page numbers work in the browser without reloading (static/js/list-filter.js).
+    qs = base.order_by('-date_posted', '-created_at')
+    if sort not in ('oldest', 'most_viewed'):
         sort = 'newest'
-        qs = qs.order_by('-date_posted', '-created_at')
 
-    total_count = qs.count()
-    total_views = qs.aggregate(total=Sum('views'))['total'] or 0
+    total_count = active_qs.count()
+    expired_count = expired_qs.count()
+    total_views = active_qs.aggregate(total=Sum('views'))['total'] or 0
 
     announcements = list(qs)
     for a in announcements:
-        a.badge_class = ANNOUNCEMENT_STATUS_BADGE.get(a.status, 'badge-gray')
+        a.badge_class = a.status_badge if a.is_expired else ANNOUNCEMENT_STATUS_BADGE.get(a.status, 'badge-gray')
 
     return render(request, "admin_dashboard/super-admin-announcements.html", {
         "announcements": announcements,
         "total_count": total_count,
+        "expired_count": expired_count,
+        "current_tab": tab,
         "total_views": total_views,
         "current_q": q,
         "current_category": category,
@@ -798,7 +977,7 @@ def admin_create_announcement(request):
                     link_url=reverse('announcement'),
                 )
 
-    return redirect('admin_dashboard:ad_announcement')
+    return _back_to_list(request, 'admin_dashboard:ad_announcement')
 
 @super_admin_required
 def admin_edit_announcement(request, pk):
@@ -814,13 +993,17 @@ def admin_edit_announcement(request, pk):
             office = Office.objects.filter(pk=office_choice).select_related('representative').first() if office_choice and office_choice.isdigit() else None
             rep = getattr(office, 'representative', None) if office else None
 
-        errors, data = clean_announcement(request.POST, is_new=False, current_expiration=announcement.expiration_date)
+        was_expired = announcement.status == 'expired'   # expired before it was approved
+        errors, data = clean_announcement(request.POST, is_new=False, current_expiration=announcement.expiration_date,
+                                          must_be_future=was_expired)
         if errors:
             for err in errors:
                 messages.error(request, err)
         elif not rep:
             messages.error(request, "Please select an office with an assigned representative.")
         else:
+            if was_expired:
+                announcement.status = 'pending'   # new date: back to the Approval Center
             announcement.representative = rep
             for field, value in data.items():
                 setattr(announcement, field, value)
@@ -832,9 +1015,13 @@ def admin_edit_announcement(request, pk):
             announcement.save()
             for problem in save_content_photos(request, announcement):   # "More photos": add / remove
                 messages.warning(request, problem)
-            messages.success(request, f'"{title}" was updated.')
+            if was_expired:
+                messages.success(request, f'"{title}" has a new expiration date and is back in the Approval Center.')
+            else:
+                messages.success(request, f'"{title}" was updated.' + (" It is still expired, so it stays hidden from the website."
+                                                                         if announcement.is_expired else ""))
 
-    return redirect('admin_dashboard:ad_announcement')
+    return _back_to_list(request, 'admin_dashboard:ad_announcement')
 
 @super_admin_required
 def admin_delete_announcement(request, pk):
@@ -844,9 +1031,10 @@ def admin_delete_announcement(request, pk):
         title = announcement.title
         announcement.status = 'archive'
         announcement.save()
+        _tell_owner_removed(announcement)
         messages.success(request, f'"{title}" was archived.')
 
-    return redirect('admin_dashboard:ad_announcement')
+    return _back_to_list(request, 'admin_dashboard:ad_announcement')
 
 @super_admin_required
 def admin_announcement_toggle_pin(request, pk):
@@ -860,7 +1048,7 @@ def admin_announcement_toggle_pin(request, pk):
             f'"{announcement.title}" was {"pinned as the notice" if announcement.is_pinned else "unpinned"}.'
         )
 
-    return redirect('admin_dashboard:ad_announcement')
+    return _back_to_list(request, 'admin_dashboard:ad_announcement')
 
 NEWS_STATUS_BADGE = {
     "pending": "badge-amber",
@@ -882,11 +1070,8 @@ def admin_news_update(request):
 
     categories = list(qs.exclude(category='').values_list('category', flat=True).distinct().order_by('category'))
 
-    if category:
-        qs = qs.filter(category=category)
-    if q:
-        qs = qs.filter(Q(title__icontains=q) | Q(summary__icontains=q) | Q(content__icontains=q))
-
+    # everything goes to the page; the filters, search, sort and page numbers
+    # work in the browser without reloading (static/js/list-filter.js)
     total_count = NewsUpdate.objects.filter(status='published').count()
     total_views = NewsUpdate.objects.filter(status='published').aggregate(total=Sum('views'))['total'] or 0
 
@@ -908,7 +1093,7 @@ def admin_news_update(request):
 @super_admin_required
 def admin_news_save(request, pk):
     if request.method != "POST":
-        return redirect('admin_dashboard:ad_news_update')
+        return _back_to_list(request, 'admin_dashboard:ad_news_update')
 
     title = request.POST.get('title', '').strip()
     rep_choice = request.POST.get('representative')
@@ -924,7 +1109,7 @@ def admin_news_save(request, pk):
         problem = (problem + " " if problem else "") + "Please choose the posting office."
     if problem:
         messages.error(request, problem)
-        return redirect('admin_dashboard:ad_news_update')
+        return _back_to_list(request, 'admin_dashboard:ad_news_update')
 
     if pk:
         n = get_object_or_404(NewsUpdate, pk=pk)
@@ -953,7 +1138,7 @@ def admin_news_save(request, pk):
     for problem in save_content_photos(request, n):   # "More photos": add / remove
         messages.warning(request, problem)
     messages.success(request, f'"{title}" was published.')
-    return redirect('admin_dashboard:ad_news_update')
+    return _back_to_list(request, 'admin_dashboard:ad_news_update')
 
 @super_admin_required
 def admin_news_delete(request, pk):
@@ -962,8 +1147,9 @@ def admin_news_delete(request, pk):
         title = n.title
         n.status = 'archive'
         n.save()
+        _tell_owner_removed(n)
         messages.success(request, f'"{title}" was archived.')
-    return redirect('admin_dashboard:ad_news_update')
+    return _back_to_list(request, 'admin_dashboard:ad_news_update')
 
 EVENT_STATUS_BADGE = {
     "pending": "badge-amber",
@@ -975,9 +1161,10 @@ EVENT_STATUS_BADGE = {
 
 @super_admin_required
 def admin_events(request):
+    expire_overdue(force=True)   # events whose date passed while waiting -> "past" (office only)
     q = request.GET.get('q', '').strip()
     category = request.GET.get('category', '').strip()
-    when = request.GET.get('when', 'all')
+    when = request.GET.get('when', '')
 
     today = timezone.localdate()
 
@@ -985,22 +1172,19 @@ def admin_events(request):
 
     categories = list(qs.exclude(category='').values_list('category', flat=True).distinct().order_by('category'))
 
-    if when == 'upcoming':
-        qs = qs.filter(event_date__gte=today)
-    elif when == 'past':
-        qs = qs.filter(event_date__lt=today)
-
-    if category:
-        qs = qs.filter(category=category)
-    if q:
-        qs = qs.filter(Q(title__icontains=q) | Q(description__icontains=q) | Q(location__icontains=q))
+    # everything goes to the page; the filters, search, sort and page numbers
+    # work in the browser without reloading (static/js/list-filter.js)
 
     total_count = Event.objects.filter(status='published').count()
     past_count = Event.objects.filter(status='published', event_date__lt=today).count()
 
+    # tabs: "Upcoming" (today and later) / "Past" (published, date is over).
+    # Events that passed BEFORE they were approved were never published, so
+    # they are only in the office's own Past tab, not here.
     events = list(qs)
     for e in events:
-        e.badge_class = EVENT_STATUS_BADGE.get(e.status, 'badge-gray')
+        e.badge_class = e.status_badge if e.is_past else EVENT_STATUS_BADGE.get(e.status, 'badge-gray')
+    upcoming_tab_count = sum(1 for e in events if not e.is_past)
 
     office_reps = OfficeRepresentative.objects.select_related('office', 'user').order_by('office__name')
 
@@ -1013,13 +1197,16 @@ def admin_events(request):
         "current_q": q,
         "current_category": category,
         "current_when": when,
+        "current_tab": 'past' if request.GET.get('tab') == 'past' else '',
+        "upcoming_tab_count": upcoming_tab_count,
+        "today": today,
         "lgu_office_name": Office.objects.filter(slug=LGU_SUPER_ADMIN_SLUG).values_list('name', flat=True).first() or "LGU Super Admin",
     })
 
 @super_admin_required
 def admin_event_save(request, pk):
     if request.method != "POST":
-        return redirect('admin_dashboard:ad_events')
+        return _back_to_list(request, 'admin_dashboard:ad_events')
 
     title = request.POST.get('title', '').strip()
     rep_choice = request.POST.get('representative')
@@ -1035,7 +1222,7 @@ def admin_event_save(request, pk):
         problem = (problem + " " if problem else "") + "Please choose the organizing office."
     if problem:
         messages.error(request, problem)
-        return redirect('admin_dashboard:ad_events')
+        return _back_to_list(request, 'admin_dashboard:ad_events')
 
     if pk:
         e = get_object_or_404(Event, pk=pk)
@@ -1064,8 +1251,8 @@ def admin_event_save(request, pk):
     e.save()
     for problem in save_content_photos(request, e):   # "More photos": add / remove
         messages.warning(request, problem)
-    messages.success(request, f'"{title}" was published.')
-    return redirect('admin_dashboard:ad_events')
+    messages.success(request, f'"{title}" was published.' + (" Its date is over, so it is listed in the Past tab." if e.is_past_date else ""))
+    return _back_to_list(request, 'admin_dashboard:ad_events')
 
 @super_admin_required
 def admin_event_delete(request, pk):
@@ -1074,28 +1261,20 @@ def admin_event_delete(request, pk):
         title = e.title
         e.status = 'archive'
         e.save()
+        _tell_owner_removed(e)
         messages.success(request, f'"{title}" was archived.')
-    return redirect('admin_dashboard:ad_events')
+    return _back_to_list(request, 'admin_dashboard:ad_events')
 
 @super_admin_required
 def admin_download_forms(request):
-    qs = DownloadableForm.objects.select_related('office').filter(status='published')
+    qs = DownloadableForm.objects.select_related('office', 'service').filter(status='published')
 
+    # everything goes to the page; the filters, search, sort and page numbers
+    # work in the browser without reloading (static/js/list-filter.js)
     q = request.GET.get('q', '').strip()
-    if q:
-        qs = qs.filter(title__icontains=q)
-
     category = request.GET.get('category', '')
-    if category:
-        qs = qs.filter(category=category)
-
     sort = request.GET.get('sort', 'newest')
-    if sort == 'oldest':
-        qs = qs.order_by('date_uploaded')
-    elif sort == 'downloads':
-        qs = qs.order_by('-download_count')
-    else:
-        qs = qs.order_by('-date_uploaded')
+    qs = qs.order_by('-date_uploaded')
 
     published = DownloadableForm.objects.filter(status='published')
 
@@ -1110,29 +1289,47 @@ def admin_download_forms(request):
         "category_choices": FORM_CATEGORY_CHOICES,
         "offices_with_reps": Office.objects.exclude(slug=LGU_SUPER_ADMIN_SLUG).filter(representative__isnull=False).order_by('name'),
         "lgu_office_name": Office.objects.filter(slug=LGU_SUPER_ADMIN_SLUG).values_list('name', flat=True).first() or "LGU Super Admin",
+        # "Linked service" dropdown: every office's services (the list is
+        # narrowed to the chosen office in the page)
+        "service_choices": _form_service_choices(),
+        "unlinked_count": published.filter(service__isnull=True).count(),
     })
+
+
+def _form_service_choices():
+    """Services a downloadable form can be linked to (not archived or rejected)."""
+    return (Service.objects.exclude(status__in=['archive', 'reject'])
+            .exclude(office__slug=LGU_SUPER_ADMIN_SLUG)
+            .select_related('office').order_by('office__name', 'name'))
 
 @super_admin_required
 def admin_form_save(request, pk):
     if request.method != "POST":
-        return redirect('admin_dashboard:ad_forms')
+        return _back_to_list(request, 'admin_dashboard:ad_forms')
 
     title = request.POST.get('title', '').strip()
     office_choice = request.POST.get('office')
     uploaded_file = request.FILES.get('file')
 
-    if office_choice == 'super_admin':
-        office = get_or_create_lgu_rep(request.user).office
-    else:
-        office = Office.objects.filter(pk=office_choice).first() if office_choice and office_choice.isdigit() else None
+    # a form always belongs to an office's service, so only real offices can
+    # post it (not the LGU Super Admin)
+    office = (Office.objects.exclude(slug=LGU_SUPER_ADMIN_SLUG).filter(pk=office_choice).first()
+              if office_choice and office_choice.isdigit() else None)
 
     if pk:
         f = get_object_or_404(DownloadableForm, pk=pk)
     else:
         f = None
 
+    # the service of that office the form belongs to (required)
+    service_id = request.POST.get('service', '')
+    service = (_form_service_choices().filter(pk=service_id, office=office).first()
+               if office and service_id.isdigit() else None)
+
     if not title or not office:
-        messages.error(request, "Form name and posting office are required.")
+        messages.error(request, "Form name and the office are required. Choose the office whose service uses this form.")
+    elif service is None:
+        messages.error(request, "Please choose the service this form is for. It must be a service of the office that posts the form.")
     elif not f and not uploaded_file:
         messages.error(request, "Please attach a PDF file.")
     elif uploaded_file and not uploaded_file.name.lower().endswith('.pdf'):
@@ -1141,15 +1338,16 @@ def admin_form_save(request, pk):
         if f is None:
             f = DownloadableForm(uploaded_by=office.name, status='published')
         f.office = office
+        f.service = service
         f.title = title
         f.description = request.POST.get('description', '').strip()
         f.category = request.POST.get('category', '').strip()
         if uploaded_file:
             f.file = uploaded_file
         f.save()
-        messages.success(request, f'"{title}" was published.')
+        messages.success(request, f'"{title}" was published and linked to the service "{service.name}".')
 
-    return redirect('admin_dashboard:ad_forms')
+    return _back_to_list(request, 'admin_dashboard:ad_forms')
 
 @super_admin_required
 def admin_form_delete(request, pk):
@@ -1158,20 +1356,19 @@ def admin_form_delete(request, pk):
         title = f.title
         f.status = 'archive'
         f.save()
+        _tell_owner_removed(f)
         messages.success(request, f'"{title}" was archived.')
-    return redirect('admin_dashboard:ad_forms')
+    return _back_to_list(request, 'admin_dashboard:ad_forms')
 
 @super_admin_required
 def admin_download_form_file(request, pk):
     form = get_object_or_404(DownloadableForm, pk=pk)
 
     # (not counted in download_count: that number is citizens' downloads)
-
-    try:
-        filename = form.file.name.rsplit('/', 1)[-1]
-        return FileResponse(form.file.open('rb'), as_attachment=True, filename=filename)
-    except FileNotFoundError:
-        raise Http404("File not found.")
+    # Read through pdf_response, which works for local disk and Cloudinary
+    # alike, and named after the form, e.g. "Burial Permit Form.pdf".
+    safe = re.sub(r'[^A-Za-z0-9 ._-]+', '', form.title or '').strip() or 'form'
+    return pdf_response(request, form.file, filename=f"{safe[:80]}.pdf", as_attachment=True)
 
 
 @super_admin_required
@@ -1181,6 +1378,7 @@ def admin_view_form_file(request, pk):
     return pdf_response(request, form.file, filename="form.pdf")
 
 
+@xframe_options_sameorigin   # also shown inside the Approval Details page
 @super_admin_required
 def admin_preview_form(request, pk):
     """Page that shows the PDF with pdf.js (works even when Chrome is set to
@@ -1224,19 +1422,11 @@ def admin_gallery(request):
               .filter(photo_count__gt=0)
               .select_related('representative__office'))
 
+    # everything goes to the page; the filters, search, sort and page numbers
+    # work in the browser without reloading (static/js/list-filter.js)
     q = request.GET.get('q', '').strip()
-    if q:
-        albums = albums.filter(name__icontains=q)
-
     sort = request.GET.get('sort', 'newest')
-    if sort == 'oldest':
-        albums = albums.order_by('created_at')
-    elif sort == 'photos':
-        albums = albums.order_by('-photo_count')
-    elif sort == 'name':
-        albums = albums.order_by('name')
-    else:
-        albums = albums.order_by('-created_at')
+    albums = albums.order_by('-created_at')
 
     albums = list(albums)
     for a in albums:
@@ -1269,7 +1459,7 @@ def admin_gallery(request):
 @super_admin_required
 def admin_photo_save(request, pk):
     if request.method != "POST":
-        return redirect('admin_dashboard:ad_gallery')
+        return _back_to_list(request, 'admin_dashboard:ad_gallery')
 
     title = request.POST.get('title', '').strip()
     image = request.FILES.get('image')
@@ -1287,8 +1477,8 @@ def admin_photo_save(request, pk):
             photo.save()
             messages.success(request, f'"{title}" was saved.')
         if photo.album_id:
-            return redirect('admin_dashboard:ad_album_detail', pk=photo.album_id)
-        return redirect('admin_dashboard:ad_gallery')
+            return _back_to_list(request, 'admin_dashboard:ad_album_detail', photo.album_id)
+        return _back_to_list(request, 'admin_dashboard:ad_gallery')
 
     office_choice = request.POST.get('office')
     album_choice = request.POST.get('album')
@@ -1322,18 +1512,18 @@ def admin_photo_save(request, pk):
         )
         messages.success(request, f'"{title}" was published.')
 
-    return redirect('admin_dashboard:ad_gallery')
+    return _back_to_list(request, 'admin_dashboard:ad_gallery')
 
 @super_admin_required
 def admin_album_detail(request, pk):
     album = get_object_or_404(Album.objects.select_related('representative__office'), pk=pk)
     photos = album.photos.filter(status__in=['published', 'archive']).order_by('-created_at')
 
+    # everything goes to the page; the filters, search, sort and page numbers
+    # work in the browser without reloading (static/js/list-filter.js)
     tab = request.GET.get('tab', 'active')
-    if tab == 'active':
-        photos = photos.filter(status='published')
-    elif tab == 'archived':
-        photos = photos.filter(status='archive')
+    if tab not in ('all', 'active', 'archived'):
+        tab = 'active'
 
     return render(request, "admin_dashboard/super-admin-album-detail.html", {
         "album": album,
@@ -1386,6 +1576,7 @@ def admin_photo_delete(request, pk):
         title = photo.title
         photo.status = 'archive'
         photo.save()
+        _tell_owner_removed(photo)
         messages.success(request, f'"{title}" was archived.')
         return redirect('admin_dashboard:ad_archive')
     return _back_to_album(photo)
@@ -1395,8 +1586,8 @@ def _back_to_album(photo):
     """The photo's album page, or the Gallery when it has no album
     (redirecting to an album page with no album used to crash)."""
     if photo.album_id:
-        return redirect('admin_dashboard:ad_album_detail', pk=photo.album_id)
-    return redirect('admin_dashboard:ad_gallery')
+        return _back_to_list(request, 'admin_dashboard:ad_album_detail', photo.album_id)
+    return _back_to_list(request, 'admin_dashboard:ad_gallery')
 
 @super_admin_required
 def admin_offices(request):
@@ -1691,10 +1882,9 @@ SERVICE_STATUS_BADGE = {
 def admin_services(request):
     q = request.GET.get('q', '').strip()
 
+    # everything goes to the page; the filters, search, sort and page numbers
+    # work in the browser without reloading (static/js/list-filter.js)
     services = Service.objects.filter(status='published').select_related('office').order_by('name')
-
-    if q:
-        services = services.filter(Q(name__icontains=q) | Q(office__name__icontains=q))
 
     total_count = Service.objects.filter(status='published').count()
     archived_count = Service.objects.filter(status='archive').count()
@@ -1703,11 +1893,8 @@ def admin_services(request):
     for s in services:
         s.badge_class = SERVICE_STATUS_BADGE.get(s.status, 'badge-gray')
 
-    paginator = Paginator(services, 10)
-    page_obj = paginator.get_page(request.GET.get('page'))
-
     return render(request, "admin_dashboard/super-admin-services.html", {
-        "page_obj": page_obj,
+        "services": services,
         "total_count": total_count,
         "archived_count": archived_count,
         "current_q": q,
@@ -1741,7 +1928,7 @@ def admin_service_detail(request, pk):
     return render(request, "admin_dashboard/super-admin-service-detail.html", {
         "service": service,
         "steps": steps,
-        "total_processing_time": _compute_total_processing_time(steps),
+        "total_processing_time": service.processing_time or "—",   # typed by the office
         "general_requirements": general_requirements,
         "grouped_requirements": grouped_requirements,
         "has_requirements": bool(requirements),
@@ -1753,9 +1940,10 @@ def admin_service_delete(request, pk):
     service = get_object_or_404(Service, pk=pk)
     if request.method == "POST":
         name = service.name
+        _tell_owner_removed(service)
         service.delete()
         messages.success(request, f'"{name}" was deleted.')
-    return redirect('admin_dashboard:ad_services')
+    return _back_to_list(request, 'admin_dashboard:ad_services')
 
 def _tell_reps_service_editing(title, description, level="info"):
     """Bell notification to every office representative (not the LGU's own record)."""
@@ -1784,7 +1972,7 @@ def admin_toggle_service_editing(request):
             messages.success(request, "Service editing was turned off for all offices. Office representatives can only view their services until you turn it back on.")
             _tell_reps_service_editing("Service editing is turned off",
                                        "The Super Admin turned off service editing. You can view your services but can't add, change or delete anything for now.", "warning")
-    return redirect('admin_dashboard:ad_services')
+    return _back_to_list(request, 'admin_dashboard:ad_services')
 
 @super_admin_required
 def admin_users(request):
@@ -1936,6 +2124,11 @@ def admin_hero_slider_save(request):
     if amount > 0:
         seconds = amount * 60 if request.POST.get('slider_unit') == 'minutes' else amount
         info.hero_slider_seconds = max(3, min(seconds, 3600))
+    # loops: how many rounds before it stops on the welcome slide (0 = never stops)
+    try:
+        info.hero_slider_loops = max(0, min(int(request.POST.get('slider_loops', '') or 0), 100))
+    except ValueError:
+        pass
     mode = request.POST.get('slider_mode', 'auto')
     info.hero_slider_mode = mode if mode in dict(SiteContactInfo.HERO_SLIDER_MODE_CHOICES) else 'auto'
     # the ticked posts, in the order they are listed on the page; only real,
@@ -1949,7 +2142,7 @@ def admin_hero_slider_save(request):
         messages.error(request, f"Only the first {PICK_MAX} posts were kept — the slider can show up to {PICK_MAX}.")
         picked = picked[:PICK_MAX]
     info.hero_slider_items = picked
-    info.save(update_fields=['hero_slider_seconds', 'hero_slider_mode', 'hero_slider_items'])
+    info.save(update_fields=['hero_slider_seconds', 'hero_slider_loops', 'hero_slider_mode', 'hero_slider_items'])
     if info.hero_slider_mode == 'pick' and not picked:
         messages.warning(request, "Banner Slider saved. No posts are ticked, so the homepage banner shows only the welcome slide.")
     else:
@@ -2107,7 +2300,7 @@ def admin_about_page(request):
         "item_sections": item_sections,
         "item_by_tab": {s["conf"]["tab"]: s for s in item_sections},
         "milestones": HistoryMilestone.objects.all(),
-        "officials": AboutOfficial.objects.all(),
+        **_officials_chart_context(),
         "heritage_items": HeritageItem.objects.all(),
         "barangays_poblacion": Barangay.objects.filter(group='poblacion'),
         "barangays_rural": Barangay.objects.filter(group='rural'),
@@ -2292,6 +2485,75 @@ def admin_about_item_move(request, section, pk):
     return redirect(reverse('admin_dashboard:ad_about_page') + '#' + conf['tab'])
 
 
+def _officials_chart_context():
+    """Municipal Officials tab: each official with its box on the LGU's org
+    chart (o.box), plus the choices for "Connect to the org chart"."""
+    officials = list(AboutOfficial.objects.all())
+    lgu = Office.objects.filter(slug=LGU_SUPER_ADMIN_SLUG).first()
+    nodes = build_org_tree(lgu)[1] if lgu else []
+    box_of = {n.official_id: n for n in nodes if n.official_id}
+    for o in officials:
+        o.box = box_of.get(o.pk)
+    return {
+        "officials": officials,
+        "chart_parent_choices": org_parent_choices(nodes),
+        "chart_free_boxes": [n for n in nodes if n.kind == OrgChartNode.KIND_PERSON and not n.official_id],
+        "org_chart_shown": bool(lgu and OrgChartSettings.objects.filter(office=lgu, show_on_office_page=True).exists()),
+        "org_chart_box_count": len(nodes),
+    }
+
+
+
+def _official_chart_link(request, o, photo_changed):
+    """Applies the "Organizational chart" choice of the Add / Edit Official
+    window. chart_mode: none = official only, new = new box in the chart,
+    existing = connect to a box already in the chart. Returns a note for the
+    success message."""
+    mode = request.POST.get('chart_mode')
+    current = org_officials.linked_box(o)
+    if mode == 'none':
+        if current:
+            current.official = None
+            current.save(update_fields=['official', 'updated_at'])
+            return " It is no longer connected to the org chart (its box stays on the chart)."
+        return ""
+    lgu = get_or_create_lgu_rep(request.user).office
+    if mode == 'existing':
+        node = (OrgChartNode.objects.filter(pk=_int_or_zero(request.POST.get('chart_node')), office=lgu,
+                                            kind=OrgChartNode.KIND_PERSON)
+                .filter(Q(official__isnull=True) | Q(official=o)).first())
+        if node is None:
+            messages.error(request, "Choose the box in the org chart to connect this official to.")
+            return ""
+        if current and current.pk != node.pk:
+            current.official = None
+            current.save(update_fields=['official', 'updated_at'])
+        is_new_link = node.official_id != o.pk
+        node.official = o
+        node.save(update_fields=['official', 'updated_at'])
+        org_officials.official_to_box(o, photo_changed=photo_changed or is_new_link)
+        return f' It is connected to the box "{node.name}" in the org chart.' if is_new_link else " Its box in the org chart was updated too."
+    if mode == 'new':
+        if current:
+            current.official = None
+            current.save(update_fields=['official', 'updated_at'])
+        parent = OrgChartNode.objects.filter(pk=_int_or_zero(request.POST.get('chart_parent')), office=lgu).first()
+        org_officials.new_box_for_official(o, lgu, parent)
+        return " A box was also added to the org chart" + (f' under "{parent.name}".' if parent else " (at the top).")
+    # no choice sent: keep a connected box the same as the official
+    if current:
+        org_officials.official_to_box(o, photo_changed=photo_changed)
+        return " Its box in the org chart was updated too."
+    return ""
+
+
+def _int_or_zero(value):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 0
+
+
 @super_admin_required
 def admin_about_official_save(request, pk):
     o = get_object_or_404(AboutOfficial, pk=pk) if pk else AboutOfficial()
@@ -2320,17 +2582,19 @@ def admin_about_official_save(request, pk):
                 o.term_start, o.term_end = start, end
             else:
                 messages.error(request, "The term years were not saved: use years like 2025 and 2028, with the end year not before the start year.")
-            if request.FILES.get('photo'):
+            photo_changed = bool(request.FILES.get('photo'))
+            if photo_changed:
                 o.photo = request.FILES.get('photo')
             if is_create:
                 o.order = AboutOfficial.objects.count()
             o.save()
+            chart_note = _official_chart_link(request, o, photo_changed)
             # "Use this term for all officials"
             if term_ok and request.POST.get('term_all') == 'on':
                 AboutOfficial.objects.exclude(pk=o.pk).update(term_start=start, term_end=end)
-                messages.success(request, f'"{name}" was saved, and the term was set for all officials.')
+                messages.success(request, f'"{name}" was saved, and the term was set for all officials.' + chart_note)
             else:
-                messages.success(request, f'"{name}" was saved.')
+                messages.success(request, f'"{name}" was saved.' + chart_note)
     return redirect(reverse('admin_dashboard:ad_about_page') + '#officials')
 
 
@@ -2339,8 +2603,14 @@ def admin_about_official_delete(request, pk):
     o = get_object_or_404(AboutOfficial, pk=pk)
     if request.method == "POST":
         name = o.name
+        box = org_officials.linked_box(o)
+        if box and request.POST.get('remove_box') == 'on':
+            org_officials.remove_box(box)
+            note = " Their box was also removed from the org chart."
+        else:
+            note = " Their box in the org chart was kept." if box else ""
         o.delete()
-        messages.success(request, f'"{name}" was removed.')
+        messages.success(request, f'"{name}" was removed.' + note)
     return redirect(reverse('admin_dashboard:ad_about_page') + '#officials')
 
 
@@ -2554,6 +2824,8 @@ def admin_org_chart(request, office_id=None):
             "publish_view_url": reverse("about") + "#org-chart",
             "publish_show_label": "Show on About Us page",
             "publish_hide_label": "Hide from About Us page",
+            "link_officials": True,
+            "officials_url": reverse("admin_dashboard:ad_about_page") + "#officials",
         }
     else:
         office = get_object_or_404(Office.objects.exclude(slug=LGU_SUPER_ADMIN_SLUG), pk=office_id)
@@ -2903,7 +3175,7 @@ def admin_analytics(request):
             Announcement.objects.filter(status__in=["pending", "returned"], representative__office=office).count()
             + NewsUpdate.objects.filter(status__in=["pending", "returned"], representative__office=office).count()
             + Event.objects.filter(status__in=["pending", "returned"], representative__office=office).count()
-            + DownloadableForm.objects.filter(status__in=["pending", "returned"], office=office).count()
+            + forms_in_queue().filter(status__in=["pending", "returned"], office=office).count()
             + Photo.objects.filter(status__in=["pending", "returned"], representative__office=office).count()
             + Service.objects.filter(status__in=["pending", "returned"], office=office).count()
         )
@@ -3045,7 +3317,7 @@ def admin_export_office_activity(request):
             Announcement.objects.filter(status__in=["pending", "returned"], representative__office=office).count()
             + NewsUpdate.objects.filter(status__in=["pending", "returned"], representative__office=office).count()
             + Event.objects.filter(status__in=["pending", "returned"], representative__office=office).count()
-            + DownloadableForm.objects.filter(status__in=["pending", "returned"], office=office).count()
+            + forms_in_queue().filter(status__in=["pending", "returned"], office=office).count()
             + Photo.objects.filter(status__in=["pending", "returned"], representative__office=office).count()
             + Service.objects.filter(status__in=["pending", "returned"], office=office).count()
         )
@@ -3469,12 +3741,31 @@ def admin_system_setting(request):
             messages.error(request, f"{name} could not send the test email: {err}")
         return redirect('admin_dashboard:ad_system_settings')
 
+    # "Use the default account": forget the account saved here, so the default
+    # Brevo account from the server settings is used again
+    if action == 'brevo_default':
+        if not email_settings.default_brevo_email:
+            messages.error(request, "There is no default Brevo account on this server.")
+        else:
+            email_settings.email_address = ''
+            email_settings.api_key_encrypted = ''
+            email_settings.is_configured = False
+            email_settings.save()
+            messages.success(request, f"Now using the default Brevo account ({email_settings.default_brevo_email}).")
+        return redirect('admin_dashboard:ad_system_settings')
+
     if request.method == "POST":
         email_address = request.POST.get('email_address', '').strip()
         api_key = request.POST.get('api_key', '').strip()
 
         if not email_address:
             messages.error(request, "Sender email is required.")
+        elif not api_key and not email_settings.api_key_encrypted and email_settings.using_default_brevo:
+            # nothing new to save: a different account needs its own API key
+            if email_address.lower() == email_settings.default_brevo_email.lower():
+                messages.success(request, "You are already using the default Brevo account.")
+            else:
+                messages.error(request, "To send from a different Brevo account, paste its API key too.")
         else:
             email_settings.email_address = email_address
             if api_key:
@@ -3583,6 +3874,7 @@ def admin_archive_delete_permanent(request, item_type, pk):
         image_field = getattr(obj, 'image', None) or getattr(obj, 'poster', None) or getattr(obj, 'file', None)
         if image_field:
             image_field.delete(save=False)
+        _tell_owner_removed(obj, permanently=True)
         obj.delete()
         messages.success(request, f'"{title}" was permanently deleted.')
 

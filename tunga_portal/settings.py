@@ -154,6 +154,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'allauth.account.middleware.AccountMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'portal.account_deletion.PendingDeletionMiddleware',      # 30-day account deletion (log out + delete when due)
     'admin_dashboard.maintenance.MaintenanceModeMiddleware',   # Website Settings → Maintenance
     'portal.upload_check.UploadCheckMiddleware',               # uploaded files must really be what their name says
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -357,6 +358,15 @@ _RECAPTCHA_TEST_SITE_KEY = '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'
 _RECAPTCHA_TEST_SECRET_KEY = '6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe'
 RECAPTCHA_SITE_KEY = os.environ.get('RECAPTCHA_SITE_KEY') or (_RECAPTCHA_TEST_SITE_KEY if DEBUG else '')
 RECAPTCHA_SECRET_KEY = os.environ.get('RECAPTCHA_SECRET_KEY') or (_RECAPTCHA_TEST_SECRET_KEY if DEBUG else '')
+
+# ---------------------------------------------------------------------------
+# Default Brevo account for OTP and system emails. Set both on the server (or
+# in .env on your computer). Super Admin -> System Settings shows it and uses
+# it automatically until a different account is saved there.
+# The key stays in the environment only: never put it in the code or GitHub.
+# ---------------------------------------------------------------------------
+BREVO_SENDER_EMAIL = os.environ.get('BREVO_SENDER_EMAIL', '').strip()
+BREVO_API_KEY = os.environ.get('BREVO_API_KEY', '').strip()
 
 # ---------------------------------------------------------------------------
 # Errors on the live site are written to the server log (DigitalOcean →

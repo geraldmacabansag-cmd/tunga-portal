@@ -21,45 +21,19 @@
 </a>
 {% endif %}
 
-<div class="stat-grid">
-  <div class="stat-card">
-    <div class="top">
-      <span class="stat-icon blue"><i class="fa-solid fa-square-check"></i></span>
-    </div>
-    <div class="stat-value">{{ pending_total }}</div>
-    <div class="stat-label">Pending approvals</div>
-    <div class="stat-sub">{{ pending_today }} submitted today</div>
-  </div>
-
-  <div class="stat-card">
-    <div class="top">
-      <span class="stat-icon green"><i class="fa-solid fa-users"></i></span>
-    </div>
-    <div class="stat-value">{{ residents_total }}</div>
-    <div class="stat-label">Registered residents</div>
-    <div class="stat-sub">{{ residents_new_this_month }} new this month</div>
-  </div>
-
-  <div class="stat-card">
-    <div class="top">
-      <span class="stat-icon amber"><i class="fa-solid fa-bullhorn"></i></span>
-    </div>
-    <div class="stat-value">{{ announcements_total }}</div>
-    <div class="stat-label">Published announcements</div>
-    <div class="stat-sub">{{ announcements_this_week }} posted this week</div>
-  </div>
-
-  <div class="stat-card">
-    <div class="top">
-      <span class="stat-icon gray"><i class="fa-solid fa-building"></i></span>
-    </div>
-    <div class="stat-value">{{ services_total }}</div>
-    <div class="stat-label">Active services listed</div>
-    <div class="stat-sub">Across {{ services_office_count }} office{{ services_office_count|pluralize }}</div>
-  </div>
+{# Number cards: each one opens the page it is about (admin_dashboard.views._dashboard_stat_cards) #}
+<div class="stat-grid dash-stats">
+  {% for c in stat_cards %}
+  <a class="stat-card dash-stat{% if c.alert %} is-alert{% endif %}" href="{{ c.url }}" title="{{ c.label }}: {{ c.sub }} — click to open">
+    <span class="stat-icon {{ c.color }}"><i class="{{ c.icon }}"></i></span>
+    <span class="dash-stat__text">
+      <span class="dash-stat__row"><span class="stat-value">{{ c.value }}</span><span class="stat-label">{{ c.label }}</span></span>
+      <span class="stat-sub">{{ c.sub }}</span>
+    </span>
+  </a>
+  {% endfor %}
 </div>
-
-<div class="grid-3">
+<div class="grid-3 dash-panels">
   <div class="stack">
 
     <div class="panel">
@@ -82,15 +56,18 @@
       {% empty %}
       <div class="approval-row" style="justify-content:center;color:var(--gray-400);padding:18px 0;">Nothing is awaiting your approval right now.</div>
       {% endfor %}
+      {% if pending_total > recent_pending|length %}
+      <a class="dash-more" href="{% url 'admin_dashboard:approval_center' %}">Showing {{ recent_pending|length }} of {{ pending_total }} · Open the Approval Center <i class="fa-solid fa-arrow-right"></i></a>
+      {% endif %}
     </div>
 
     <div class="panel">
       <div class="panel-header">
         <h2>Office activity</h2>
-        <a class="link" href="super-admin-office-overview.html">Manage offices</a>
+        <a class="link" href="{% url 'admin_dashboard:ad_offices' %}">Manage offices</a>
       </div>
       <div class="table-wrap" style="border:none;border-radius:0;">
-        <table class="data-table">
+        <table class="data-table dash-office-table">
           <thead>
             <tr>
               <th>Office</th>
@@ -102,10 +79,10 @@
           <tbody>
             {% for row in office_rows %}
             <tr>
-              <td><p class="cell-primary">{{ row.office.name }}</p></td>
-              <td>{{ row.services_count }}</td>
-              <td>{{ row.pending_count }}</td>
-              <td>
+              <td class="dot-name"><p class="cell-primary">{{ row.office.name }}</p></td>
+              <td class="dot-num" data-label="Services">{{ row.services_count }}</td>
+              <td class="dot-num" data-label="Pending">{{ row.pending_count }}</td>
+              <td class="dot-badge">
                 {% if row.pending_count > 0 %}
                 <span class="badge badge-amber">Needs review</span>
                 {% else %}
@@ -121,6 +98,9 @@
           </tbody>
         </table>
       </div>
+      {% if office_rows_total > office_rows|length %}
+      <a class="dash-more" href="{% url 'admin_dashboard:ad_offices' %}">Showing {{ office_rows|length }} of {{ office_rows_total }} active offices · See all offices <i class="fa-solid fa-arrow-right"></i></a>
+      {% endif %}
     </div>
 
   </div>
@@ -145,9 +125,77 @@
         <div class="list-row" style="justify-content:center;color:var(--gray-400);padding:18px 0;">No activity yet.</div>
         {% endfor %}
       </div>
+      {% if activity_total > recent_activity|length %}
+      <a class="dash-more" href="{% url 'admin_dashboard:ad_activity_log' %}">Showing the latest {{ recent_activity|length }} of {{ activity_total }} · Open the activity log <i class="fa-solid fa-arrow-right"></i></a>
+      {% endif %}
     </div>
 
   </div>
 </div>
+
+
+<style>
+  /* ---------- number cards (each one is a link): small, icon on the left ---------- */
+  .dash-stats { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin-bottom: 16px; }
+  .dash-stat { display: flex; align-items: center; gap: 10px; padding: 10px 12px; min-width: 0; color: inherit; text-decoration: none; transition: border-color .15s, box-shadow .15s; }
+  .dash-stat:hover, .dash-stat:focus-visible { border-color: var(--blue-600); box-shadow: 0 4px 12px rgba(15, 23, 42, .08); }
+  .dash-stat:focus-visible { outline: 2px solid var(--blue-600); outline-offset: 2px; }
+  .dash-stat .stat-icon { width: 32px; height: 32px; font-size: 13px; border-radius: 8px; }
+  .dash-stat__text { display: flex; flex-direction: column; min-width: 0; }
+  .dash-stat__row { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+  .dash-stat .stat-value { font-size: 18px; flex: none; }
+  .dash-stat .stat-label { font-size: 11.5px; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dash-stat .stat-sub { font-size: 10.5px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dash-stat.is-alert { border-color: #fcd34d; background: #fffbeb; }
+  .stat-icon.purple { background: #7c3aed; }
+  .stat-icon.teal { background: #0d9488; }
+  .stat-icon.red { background: var(--red-600, #dc2626); }
+
+  /* ---------- the three panels ---------- */
+  .dash-panels > .stack, .dash-panels .panel { min-width: 0; }
+  .dash-panels .ar-title { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+  .dash-panels .activity-text { overflow-wrap: anywhere; }
+  .dash-more { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 11px 16px; border-top: 1px solid var(--gray-100); font-size: 12.5px; font-weight: 600; color: var(--blue-600); text-decoration: none; text-align: center; }
+  .dash-more:hover { background: var(--blue-50, #eff6ff); }
+  .dash-office-table td.dot-num { font-variant-numeric: tabular-nums; }
+
+  @media (max-width: 1400px) {
+    .dash-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+  @media (max-width: 860px) {
+    .dash-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  }
+  @media (max-width: 600px) {
+    .dash-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .dash-stat { padding: 8px 10px; gap: 8px; }
+    .dash-stat .stat-icon { width: 28px; height: 28px; font-size: 12px; }
+    .dash-stat .stat-value { font-size: 16px; }
+    .dash-stat__row { flex-direction: column; align-items: flex-start; gap: 0; }
+    .dash-stat .stat-label { font-size: 11px; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    .dash-stat .stat-sub { display: none; }
+    /* waiting for approval: icon, title and a small Review button on one line */
+    .dash-panels .approval-row { flex-wrap: nowrap; gap: 10px; padding: 12px 14px; align-items: center; }
+    .dash-panels .approval-row .ar-actions { width: auto; flex: none; }
+    .dash-panels .approval-row .ar-icon { width: 32px; height: 32px; font-size: 13px; flex: none; }
+    .dash-panels .ar-title { font-size: 13px; }
+    .dash-panels .ar-meta { font-size: 11.5px; }
+    .dash-panels .ar-actions .btn-sm { padding: 6px 10px; font-size: 12px; }
+    /* office activity: one small card per office instead of a wide table */
+    .dash-office-table thead { display: none; }
+    .dash-office-table, .dash-office-table tbody { display: block; width: 100%; }
+    .dash-office-table tr { display: grid; grid-template-columns: max-content max-content minmax(0, 1fr); gap: 4px 16px; padding: 12px 14px; border-bottom: 1px solid var(--gray-100); }
+    .dash-office-table tr:last-child { border-bottom: none; }
+    .dash-office-table td { display: block; padding: 0 !important; border: none !important; }
+    .dash-office-table td.dot-name { grid-column: 1 / 3; grid-row: 1; min-width: 0; }
+    .dash-office-table td.dot-badge { grid-column: 3; grid-row: 1; justify-self: end; align-self: center; }
+    .dash-office-table td.dot-num { grid-row: 2; font-size: 12px; color: var(--gray-700); }
+    .dash-office-table td.dot-num::before { content: attr(data-label) ": "; color: var(--gray-400); }
+    .dash-office-table td[colspan] { grid-column: 1 / -1; }
+    /* recent activity: a bit smaller */
+    .dash-panels .activity-feed .list-row { padding: 10px 0; }
+    .dash-panels .activity-text { font-size: 12.5px; line-height: 1.45; }
+    .dash-panels .activity-time { font-size: 11px; }
+  }
+</style>
 
 {% endblock %}

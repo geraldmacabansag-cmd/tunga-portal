@@ -1203,30 +1203,54 @@
 }
 .hero-carousel__progress span { display: block; width: 0; height: 100%; background: var(--gold, #f4c531); }
 
-/* tablets and phones: height follows the text; details at the bottom over a
-   fade from below; dots only */
+/* tablets and phones: the text sits at the bottom over a fade from below,
+   with a clear gap above the arrows bar; every slide has the same height */
 @media (max-width: 900px) {
-  .hero.hc { height: auto; padding: 0; }
-  .hc__caption.container { padding-top: 60px; padding-bottom: 56px; height: auto; min-height: 100%; justify-content: flex-end; }
-  .hc__slide--post .hc__caption.container { padding-top: 120px; align-items: flex-start; }
+  .hero.hc { height: auto; min-height: 420px; padding: 0; }
+  .hc__caption.container {
+    padding-top: 56px;
+    padding-bottom: 78px;        /* arrows bar (16px from the bottom, 32px tall) + a 30px gap */
+    height: auto; min-height: 100%;
+    justify-content: flex-end;
+  }
+  .hc__slide--post .hc__caption.container { padding-top: 56px; align-items: flex-start; }
+  .hc__slide--post .hc__caption > * { max-width: 600px; }
+  .hc__title--big { font-size: clamp(2rem, 6.4vw, 2.9rem); }
   .hc__slide--post .hc__shade {
     background: linear-gradient(0deg, rgba(10, 47, 110, 0.95) 0%, rgba(10, 47, 110, 0.75) 55%, rgba(10, 47, 110, 0.2) 100%);
   }
   .hc__slide--welcome .hc__shade {
     background: linear-gradient(0deg, rgba(8, 30, 72, 0.9) 0%, rgba(8, 30, 72, 0.6) 55%, rgba(8, 30, 72, 0.25) 100%);
   }
-  .hc__controls { bottom: 12px; }
+  .hc__controls { bottom: 16px; }
 }
 @media (max-width: 600px) {
-  .hc__caption.container { padding-top: 70px; padding-bottom: 46px; }
-  .hc__slide--post .hc__caption.container { padding-top: 110px; }
-  .hc__eyebrow { font-size: 0.72rem; }
-  .hc__title { font-size: 1.3rem; }
-  .hc__title--big { font-size: 2rem; }
-  .hc__sub { font-size: 0.86rem; margin-bottom: 14px; }
+  .hero.hc { min-height: 400px; }
+  .hc__caption.container { padding-top: 48px; padding-bottom: 72px; }
+  .hc__slide--post .hc__caption.container { padding-top: 48px; }
+  .hc__eyebrow { font-size: 0.72rem; letter-spacing: 0.05em; }
+  .hc__title { font-size: 1.35rem; margin-bottom: 8px; }
+  .hc__title--big { font-size: clamp(1.85rem, 8.6vw, 2.3rem); margin-bottom: 10px; }
+  .hc__sub { font-size: 0.88rem; margin-bottom: 16px; }
+  .hc__tags { gap: 6px; margin-bottom: 10px; }
+  .hc__kind, .hc__cat { font-size: 0.66rem; padding: 4px 9px; }
   .hc__meta { font-size: 0.78rem; margin-bottom: 14px; }
-  .hc__actions { gap: 10px; }
-  .hc .hc__btn { padding: 11px 18px; font-size: 0.86rem; }
+  .hc__meta span { margin: 0 6px; }
+  /* welcome: the two buttons side by side, same width */
+  .hc__slide--welcome .hc__actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+    max-width: 420px;
+  }
+  .hc .hc__btn { padding: 12px 14px; font-size: 0.86rem; white-space: nowrap; }
+  .hc__slide--post .hc__btn { padding: 11px 20px; font-size: 0.86rem; }
+}
+/* very narrow phones: the two welcome buttons one under the other */
+@media (max-width: 400px) {
+  .hc__slide--welcome .hc__actions { grid-template-columns: 1fr; gap: 8px; }
+  .hc__slide--welcome .hc__btn { padding: 11px 14px; }
 }
 
 /* ==========================================================================

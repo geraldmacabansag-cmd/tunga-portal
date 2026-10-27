@@ -63,9 +63,10 @@
     </div>
   </div>
 
-  <section class="panel">
+  {# search and pages work without reloading (static/js/list-filter.js) #}
+  <section class="panel" data-lf data-lf-size="10" data-lf-noun="services">
     <form method="get" class="filters-row">
-      <label class="field search" style="flex:1;"><i class="fa-solid fa-magnifying-glass"></i><input type="text" name="q" value="{{ current_q }}" placeholder="Search services or offices..." onchange="this.form.submit()"></label>
+      <label class="field search" style="flex:1;"><i class="fa-solid fa-magnifying-glass"></i><input type="text" name="q" value="{{ current_q }}" placeholder="Search services or offices..." data-lf-q autocomplete="off"></label>
     </form>
 
     <div class="table-wrap" style="border:none;border-radius:0;">
@@ -81,8 +82,8 @@
           </tr>
         </thead>
         <tbody>
-        {% for service in page_obj %}
-        <tr>
+        {% for service in services %}
+        <tr data-lf-row data-title="{{ service.name }} {{ service.office.name }} {{ service.get_category_display }}">
           <td class="row-icon-name">
             <span class="row-thumb tag-blue"><i class="{{ service.icon }}"></i></span>
             <div><div class="cell-primary">{{ service.name }}</div><div class="cell-sub">{{ service.processing_time|default:"—" }}</div></div>
@@ -100,39 +101,20 @@
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--gray-400);">No services{% if current_q %} match "{{ current_q }}"{% endif %}.</td></tr>
+        <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--gray-400);">No services yet.</td></tr>
         {% endfor %}
+        {% if services %}<tr data-lf-empty hidden><td colspan="6" style="text-align:center;padding:24px;color:var(--gray-400);">No services match this search.</td></tr>{% endif %}
         </tbody>
       </table>
     </div>
 
-    {% if page_obj.paginator.count > 0 %}
     <div class="pagination">
-      <span>Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} services</span>
-      <div class="page-nums">
-        {% if page_obj.has_previous %}
-          <a class="page-btn" href="?q={{ current_q }}&status={{ current_status }}&page={{ page_obj.previous_page_number }}"><i class="fa-solid fa-chevron-left"></i></a>
-        {% else %}
-          <span class="page-btn disabled"><i class="fa-solid fa-chevron-left"></i></span>
-        {% endif %}
-        {% for num in page_obj.paginator.page_range %}
-          {% if num == page_obj.number %}
-            <span class="page-btn active">{{ num }}</span>
-          {% else %}
-            <a class="page-btn" href="?q={{ current_q }}&status={{ current_status }}&page={{ num }}">{{ num }}</a>
-          {% endif %}
-        {% endfor %}
-        {% if page_obj.has_next %}
-          <a class="page-btn" href="?q={{ current_q }}&status={{ current_status }}&page={{ page_obj.next_page_number }}"><i class="fa-solid fa-chevron-right"></i></a>
-        {% else %}
-          <span class="page-btn disabled"><i class="fa-solid fa-chevron-right"></i></span>
-        {% endif %}
-      </div>
+      <span data-lf-info></span>
+      <div class="page-nums" data-lf-pager></div>
     </div>
-    {% endif %}
   </section>
 
-  {% for service in page_obj %}
+  {% for service in services %}
   <div class="modal-backdrop" id="delete-service-modal-{{ service.pk }}">
     <div class="modal-box" style="max-width:400px;">
       <div class="modal-head">
@@ -211,4 +193,5 @@
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { set(false); } });
 })();
 </script>
+<script src="{% static 'js/list-filter.js' %}?v=4"></script>
 {% endblock %}

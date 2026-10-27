@@ -38,16 +38,21 @@
       </div>
     </div>
 
-      <div class="panel">
+      {% if unlinked_count %}
+      <div class="df-unlinked"><i class="fa-solid fa-triangle-exclamation"></i> <span><b>{{ unlinked_count }} form{{ unlinked_count|pluralize }}</b> {{ unlinked_count|pluralize:"is,are" }} not linked to a service yet. Click <i class="fa-regular fa-pen-to-square"></i> Edit on {{ unlinked_count|pluralize:"it,each one" }} and choose its service.</span></div>
+      {% endif %}
+
+      {# search, category, sort and pages work without reloading (static/js/list-filter.js) #}
+      <div class="panel" data-lf data-lf-size="10" data-lf-noun="forms">
         <form method="get" class="filters-row">
-          <label class="field search"><i class="fa-solid fa-magnifying-glass"></i><input type="text" name="q" value="{{ current_q }}" placeholder="Search forms..." onchange="this.form.submit()"></label>
-          <select class="field" name="category" onchange="this.form.submit()">
+          <label class="field search"><i class="fa-solid fa-magnifying-glass"></i><input type="text" name="q" value="{{ current_q }}" placeholder="Search forms..." data-lf-q autocomplete="off"></label>
+          <select class="field" name="category" data-lf-category>
             <option value="" {% if current_category == "" %}selected{% endif %}>All categories</option>
             {% for cat in category_choices %}
               <option value="{{ cat }}" {% if current_category == cat %}selected{% endif %}>{{ cat }}</option>
             {% endfor %}
           </select>
-          <select class="field" name="sort" onchange="this.form.submit()">
+          <select class="field" name="sort" data-lf-sort>
             <option value="newest" {% if current_sort == "newest" %}selected{% endif %}>Newest first</option>
             <option value="oldest" {% if current_sort == "oldest" %}selected{% endif %}>Oldest first</option>
             <option value="downloads" {% if current_sort == "downloads" %}selected{% endif %}>Most downloaded</option>
@@ -69,7 +74,7 @@
             </thead>
           <tbody>
             {% for f in forms %}
-            <tr>
+            <tr data-lf-row data-category="{{ f.category }}" data-title="{{ f.title }} {{ f.office.name }} {{ f.service.name }}" data-date="{{ f.date_uploaded|date:'YmdHis' }}" data-views="{{ f.download_count }}">
               <td>
                 <div class="row-icon-name">
                   <div class="row-thumb" style="background:#eaf1ff;color:var(--blue-600);"><i class="fa-solid fa-file-lines"></i></div>
@@ -79,7 +84,14 @@
                   </div>
                 </div>
               </td>
-              <td>{{ f.office.name }}</td>
+              <td>
+                <p class="cell-primary" style="font-size:13px;">{{ f.office.name }}</p>
+                {% if f.service %}
+                  <p class="cell-sub df-service" title="Linked service: {{ f.service.name }}"><i class="fa-solid fa-link"></i> {{ f.service.name|truncatechars:40 }}</p>
+                {% else %}
+                  <p class="cell-sub df-service df-service--none"><i class="fa-solid fa-triangle-exclamation"></i> No service linked</p>
+                {% endif %}
+              </td>
               <td><span class="tag">{{ f.category|default:"General" }}</span></td>
               <td>
                 <p class="cell-primary" style="font-size:13px;">{{ f.uploaded_by|default:"—" }}</p>
@@ -94,6 +106,7 @@
                     data-category="{{ f.category|default:'General' }}"
                     data-description="{{ f.description }}"
                     data-office="{{ f.office.name|default:'—' }}"
+                    data-service="{{ f.service.name|default:'No service linked' }}"
                     data-uploaded-by="{{ f.uploaded_by|default:'—' }}"
                     data-date-uploaded="{{ f.date_uploaded|date:'F j, Y g:i A' }}"
                     data-downloads="{{ f.download_count }}"
@@ -106,7 +119,8 @@
                     data-title="{{ f.title }}"
                     data-category="{{ f.category }}"
                     data-description="{{ f.description }}"
-                    data-office-id="{% if f.office.slug == 'lgu-super-admin' %}super_admin{% else %}{{ f.office.id }}{% endif %}"
+                    data-office-id="{% if f.office.slug != 'lgu-super-admin' %}{{ f.office.id }}{% endif %}"
+                    data-service-id="{{ f.service_id|default_if_none:'' }}"
                   ><i class="fa-regular fa-pen-to-square"></i></button>
                   <a class="ic" href="{% url 'admin_dashboard:admin_form_fields_builder' f.pk %}" title="Make Fillable / Edit Fields"><i class="fa-solid fa-pen-ruler"></i></a>
                   <button type="button" class="ic delete-form-btn" title="Delete"
@@ -119,8 +133,13 @@
             {% empty %}
             <tr><td colspan="7" style="text-align:center;color:var(--gray-400);padding:24px;">No published forms yet.</td></tr>
             {% endfor %}
+            {% if forms %}<tr data-lf-empty hidden><td colspan="7" style="text-align:center;color:var(--gray-400);padding:24px;">No forms match this search or category.</td></tr>{% endif %}
           </tbody>
           </table>
+        </div>
+        <div class="pagination">
+          <span data-lf-info></span>
+          <div class="page-nums" data-lf-pager></div>
         </div>
 
         <div style="padding:14px 20px 0;">
@@ -160,13 +179,23 @@
           <div class="form-group">
             <label class="form-label">Posted by (office)<span class="req">*</span></label>
             <select class="form-input" id="form-office" name="office" required>
-              <option value="">Select office</option>
-              <option value="super_admin" selected>{{ lgu_office_name }}</option>
+              <option value="" selected>Select office</option>
               {% for o in offices_with_reps %}
                 <option value="{{ o.id }}">{{ o.name }}</option>
               {% endfor %}
             </select>
           </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="form-service">Linked service <span class="req">*</span></label>
+          <select class="form-input" id="form-service" name="service" required>
+            <option value="">Select the service this form is for</option>
+            {% for s in service_choices %}
+              <option value="{{ s.id }}" data-office="{{ s.office_id }}">{{ s.name }}{% if s.status != 'published' %} ({{ s.get_status_display }}){% endif %}</option>
+            {% endfor %}
+          </select>
+          <span class="form-help" id="form-service-help">Only the services of the office chosen above are listed. Residents will see this form in that service's requirements.</span>
         </div>
 
         <div class="form-group">
@@ -227,6 +256,7 @@
       <div class="field-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:14px 20px;margin:16px 0;">
         <div><div class="fl-label" style="font-size:11px;color:var(--gray-400);text-transform:uppercase;font-weight:700;">Category</div><div id="vf-category" class="fl-value"></div></div>
         <div><div class="fl-label" style="font-size:11px;color:var(--gray-400);text-transform:uppercase;font-weight:700;">Office</div><div id="vf-office" class="fl-value"></div></div>
+        <div><div class="fl-label" style="font-size:11px;color:var(--gray-400);text-transform:uppercase;font-weight:700;">Linked Service</div><div id="vf-service" class="fl-value"></div></div>
         <div><div class="fl-label" style="font-size:11px;color:var(--gray-400);text-transform:uppercase;font-weight:700;">Uploaded By</div><div id="vf-uploaded-by" class="fl-value"></div></div>
         <div><div class="fl-label" style="font-size:11px;color:var(--gray-400);text-transform:uppercase;font-weight:700;">Date Uploaded</div><div id="vf-date-uploaded" class="fl-value"></div></div>
         <div><div class="fl-label" style="font-size:11px;color:var(--gray-400);text-transform:uppercase;font-weight:700;">Downloads</div><div id="vf-downloads" class="fl-value"></div></div>
@@ -252,6 +282,15 @@
 
 <div class="toast-host" id="toastHost"></div>
 
+<style>
+  .df-service { display: flex; align-items: flex-start; min-width: 160px; gap: 5px; margin-top: 2px; color: var(--blue-600); }
+  .df-service i { font-size: 11px; margin-top: 3px; }
+  .df-service--none { color: var(--amber-600, #b45309); }
+  .df-unlinked { display: flex; align-items: flex-start; gap: 10px; margin: 0 0 14px; padding: 12px 14px; border-radius: 10px; background: #fffbeb; border: 1px solid #fde68a; color: #92400e; font-size: 13px; line-height: 1.5; }
+  .df-unlinked > i { margin-top: 3px; }
+  .df-help-warn { color: var(--amber-600, #b45309); font-weight: 600; }
+</style>
+
 
 
 <script>
@@ -268,6 +307,31 @@
     var fileInput = document.getElementById('form-file');
     var fileReq = document.getElementById('form-file-req');
     var fileHelp = document.getElementById('form-file-help');
+    var officeSel = document.getElementById('form-office');
+    var serviceSel = document.getElementById('form-service');
+    var serviceHelp = document.getElementById('form-service-help');
+    var serviceHelpText = serviceHelp.textContent;
+
+    // "Linked service": show only the services of the chosen office
+    function filterServices(keep) {
+      var office = officeSel.value, count = 0;
+      Array.prototype.forEach.call(serviceSel.options, function (opt) {
+        if (!opt.value) return;
+        var mine = opt.dataset.office === office;
+        opt.hidden = !mine;
+        opt.disabled = !mine;
+        if (mine) count++;
+      });
+      var chosen = serviceSel.querySelector('option[value="' + (keep || '') + '"]');
+      serviceSel.value = chosen && !chosen.disabled ? keep : '';
+      serviceSel.options[0].textContent = !office ? 'Choose the office first'
+        : (count ? 'Select the service this form is for' : 'This office has no services yet');
+      serviceHelp.textContent = office && !count
+        ? 'This office has no services yet. Add the service first (Services page), then upload its form.'
+        : serviceHelpText;
+      serviceHelp.classList.toggle('df-help-warn', !!office && !count);
+    }
+    officeSel.addEventListener('change', function () { filterServices(''); });
 
     function openModal() {
       modal.classList.add('open');
@@ -279,7 +343,8 @@
         form.reset();
         form.action = form.dataset.urlTemplate;
         titleEl.textContent = 'Upload Form';
-        document.getElementById('form-office').value = 'super_admin';
+        document.getElementById('form-office').value = '';
+        filterServices('');
         fileInput.setAttribute('required', 'required');
         fileReq.style.display = '';
         fileHelp.textContent = 'Only PDF files are accepted.';
@@ -310,6 +375,7 @@
         document.getElementById('form-category').value = d.category || '';
         document.getElementById('form-description').value = d.description || '';
         document.getElementById('form-office').value = d.officeId || '';
+        filterServices(d.serviceId || '');
         fileInput.value = '';
         fileInput.removeAttribute('required');
         fileReq.style.display = 'none';
@@ -361,6 +427,7 @@
         document.getElementById('vf-status').textContent = d.status || '';
         document.getElementById('vf-category').textContent = d.category || '—';
         document.getElementById('vf-office').textContent = d.office || '—';
+        document.getElementById('vf-service').textContent = d.service || '—';
         document.getElementById('vf-uploaded-by').textContent = d.uploadedBy || '—';
         document.getElementById('vf-date-uploaded').textContent = d.dateUploaded || '—';
         document.getElementById('vf-downloads').textContent = d.downloads || '0';
@@ -387,4 +454,5 @@
   })();
 </script>
 
+<script src="{% static 'js/list-filter.js' %}?v=4"></script>
 {% endblock %}

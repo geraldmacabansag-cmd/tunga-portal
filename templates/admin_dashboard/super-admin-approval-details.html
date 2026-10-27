@@ -35,6 +35,12 @@
             <span class="ov-k">Status</span>
             <span class="ov-v"><span class="badge {% if obj.status == 'returned' %}badge-red{% else %}badge-amber{% endif %}">{{ obj.get_status_display }}</span></span>
           </div>
+          {% if obj.admin_note %}
+          <div class="ov-row">
+            <span class="ov-k">Your last note</span>
+            <span class="ov-v" style="white-space:pre-line;">{{ obj.admin_note }}</span>
+          </div>
+          {% endif %}
         </div>
       </section>
 
@@ -51,13 +57,17 @@
                 {% include "includes/_view_photos.html" with item=obj %}
               </div>
               {% endif %}
+              <div class="full"><div class="fl-label">Title</div><div class="fl-value"><strong>{{ obj.title }}</strong></div></div>
               <div class="full"><div class="fl-label">Content</div><div class="fl-value muted">{{ obj.content|linebreaksbr|default:"—" }}</div></div>
+              {% if obj.video_url %}<div class="full"><div class="fl-label">Video link</div><div class="fl-value"><a href="{{ obj.video_url }}" target="_blank" rel="noopener">{{ obj.video_url }}</a></div></div>{% endif %}
               <div><div class="fl-label">Subtitle</div><div class="fl-value">{{ obj.subtitle|default:"—" }}</div></div>
               <div><div class="fl-label">Category</div><div class="fl-value">{{ obj.category|default:"—" }}</div></div>
               <div><div class="fl-label">Author</div><div class="fl-value">{{ obj.author|default:"—" }}</div></div>
               <div><div class="fl-label">Priority</div><div class="fl-value">{{ obj.priority }}</div></div>
               <div><div class="fl-label">Date Posted</div><div class="fl-value">{{ obj.date_posted|date:"F j, Y"|default:"—" }}</div></div>
               <div><div class="fl-label">Expiration Date</div><div class="fl-value">{{ obj.expiration_date|date:"F j, Y, g:i A"|default:"—" }}</div></div>
+              <div><div class="fl-label">Pinned as the notice</div><div class="fl-value">{{ obj.is_pinned|yesno:"Yes,No" }}</div></div>
+              <div><div class="fl-label">Created</div><div class="fl-value">{{ obj.created_at|date:"F j, Y, g:i A" }}</div></div>
               <div><div class="fl-label">Last Updated</div><div class="fl-value">{{ obj.last_updated|date:"F j, Y, g:i A" }}</div></div>
               <div><div class="fl-label">Views</div><div class="fl-value">{{ obj.views }}</div></div>
 
@@ -69,13 +79,16 @@
                 {% include "includes/_view_photos.html" with item=obj %}
               </div>
               {% endif %}
+              <div class="full"><div class="fl-label">Headline</div><div class="fl-value"><strong>{{ obj.title }}</strong></div></div>
               <div class="full"><div class="fl-label">Summary</div><div class="fl-value muted">{{ obj.summary|default:"—" }}</div></div>
               <div class="full"><div class="fl-label">Content</div><div class="fl-value muted">{{ obj.content|linebreaksbr|default:"—" }}</div></div>
+              {% if obj.video_url %}<div class="full"><div class="fl-label">Video link</div><div class="fl-value"><a href="{{ obj.video_url }}" target="_blank" rel="noopener">{{ obj.video_url }}</a></div></div>{% endif %}
               <div><div class="fl-label">Category</div><div class="fl-value">{{ obj.category|default:"—" }}</div></div>
               <div><div class="fl-label">Author</div><div class="fl-value">{{ obj.author|default:"—" }}</div></div>
               <div><div class="fl-label">Source</div><div class="fl-value">{{ obj.source|default:"—" }}</div></div>
               <div><div class="fl-label">Tags</div><div class="fl-value">{{ obj.tags|default:"—" }}</div></div>
               <div><div class="fl-label">Date Published</div><div class="fl-value">{{ obj.date_published|date:"F j, Y"|default:"—" }}</div></div>
+              <div><div class="fl-label">Created</div><div class="fl-value">{{ obj.created_at|date:"F j, Y, g:i A" }}</div></div>
               <div><div class="fl-label">Last Updated</div><div class="fl-value">{{ obj.last_updated|date:"F j, Y, g:i A" }}</div></div>
               <div><div class="fl-label">Views</div><div class="fl-value">{{ obj.views }}</div></div>
 
@@ -87,7 +100,9 @@
                 {% include "includes/_view_photos.html" with item=obj %}
               </div>
               {% endif %}
+              <div class="full"><div class="fl-label">Event Title</div><div class="fl-value"><strong>{{ obj.title }}</strong></div></div>
               <div class="full"><div class="fl-label">Description</div><div class="fl-value muted">{{ obj.description|linebreaksbr|default:"—" }}</div></div>
+              {% if obj.video_url %}<div class="full"><div class="fl-label">Video link</div><div class="fl-value"><a href="{{ obj.video_url }}" target="_blank" rel="noopener">{{ obj.video_url }}</a></div></div>{% endif %}
               <div><div class="fl-label">Category</div><div class="fl-value">{{ obj.category|default:"—" }}</div></div>
               <div><div class="fl-label">Location</div><div class="fl-value">{{ obj.location|default:"—" }}</div></div>
               <div><div class="fl-label">Event Date</div><div class="fl-value">{{ obj.event_date|date:"F j, Y"|default:"—" }}</div></div>
@@ -95,9 +110,12 @@
               <div><div class="fl-label">Organizer</div><div class="fl-value">{{ obj.organizer|default:"—" }}</div></div>
               <div><div class="fl-label">Contact Person</div><div class="fl-value">{{ obj.contact_person|default:"—" }}</div></div>
               <div><div class="fl-label">Contact Info</div><div class="fl-value">{{ obj.contact_info|default:"—" }}</div></div>
+              <div><div class="fl-label">Featured</div><div class="fl-value">{{ obj.is_featured|yesno:"Yes,No" }}</div></div>
+              <div><div class="fl-label">Created</div><div class="fl-value">{{ obj.created_at|date:"F j, Y, g:i A" }}</div></div>
               <div><div class="fl-label">Last Updated</div><div class="fl-value">{{ obj.last_updated|date:"F j, Y, g:i A" }}</div></div>
 
             {% elif item_type == 'Service' %}
+              <div class="full"><div class="fl-label">Service Name</div><div class="fl-value"><strong>{{ obj.name }}</strong></div></div>
               <div class="full"><div class="fl-label">Description</div><div class="fl-value muted">{{ obj.description|linebreaksbr|default:"—" }}</div></div>
               <div><div class="fl-label">Office / Division</div><div class="fl-value">{{ obj.division|default:office.name|default:"—" }}</div></div>
               <div><div class="fl-label">Classification</div><div class="fl-value">{{ obj.classification|default:"—" }}</div></div>
@@ -105,13 +123,39 @@
               <div><div class="fl-label">Who May Avail</div><div class="fl-value">{{ obj.who_may_avail|default:"—" }}</div></div>
               <div><div class="fl-label">Internal/External</div><div class="fl-value">{{ obj.get_service_scope_display|default:"None" }}</div></div>
               <div><div class="fl-label">Icon</div><div class="fl-value"><i class="{{ obj.icon }}"></i>&nbsp; {{ obj.get_icon_display }}</div></div>
-              <div class="full"><div class="fl-label">Published</div><div class="fl-value">{{ obj.published_at|date:"F j, Y, g:i A" }}</div></div>
+              <div><div class="fl-label">Total Processing Time</div><div class="fl-value">{{ obj.processing_time|default:"—" }}</div></div>
+              {% if obj.availability %}<div><div class="fl-label">Availability</div><div class="fl-value">{{ obj.availability }}</div></div>{% endif %}
+              <div><div class="fl-label">Submitted</div><div class="fl-value">{{ obj.published_at|date:"F j, Y, g:i A" }}</div></div>
+              <div><div class="fl-label">Last Updated</div><div class="fl-value">{{ obj.updated_at|date:"F j, Y, g:i A" }}</div></div>
+              <div><div class="fl-label">Requirements / Steps / Forms</div><div class="fl-value">{{ service_requirements|length }} / {{ service_steps|length }} / {{ service_forms|length }}</div></div>
 
             {% elif item_type == 'Form' %}
+              <div class="full"><div class="fl-label">Form Name</div><div class="fl-value"><strong>{{ obj.title }}</strong></div></div>
               <div class="full"><div class="fl-label">Description</div><div class="fl-value muted">{{ obj.description|linebreaksbr|default:"—" }}</div></div>
-              <div class="full"><div class="fl-label">Attachment</div><div class="fl-value"><a href="{% url 'admin_dashboard:admin_preview_form' obj.pk %}" target="_blank">{{ obj.file.name|slice:"18:" }}</a></div></div>
               <div><div class="fl-label">Category</div><div class="fl-value">{{ obj.category|default:"—" }}</div></div>
-              <div><div class="fl-label">Last Update</div><div class="fl-value">{{ obj.date_uploaded|date:"F j, Y, g:i A" }}</div></div>
+              <div><div class="fl-label">Service</div><div class="fl-value">{% if obj.service %}{{ obj.service.name }} <span class="sub">({{ obj.service.get_status_display }})</span>{% else %}—{% endif %}</div></div>
+              <div><div class="fl-label">Uploaded By</div><div class="fl-value">{{ obj.uploaded_by|default:office.name|default:"—" }}</div></div>
+              <div><div class="fl-label">Date Uploaded</div><div class="fl-value">{{ obj.date_uploaded|date:"F j, Y, g:i A" }}</div></div>
+              <div><div class="fl-label">Fill out online</div><div class="fl-value">{% with n=obj.fields.count %}{% if n %}Yes &mdash; {{ n }} field{{ n|pluralize }}{% else %}No (download only){% endif %}{% endwith %}</div></div>
+              <div><div class="fl-label">Downloads</div><div class="fl-value">{{ obj.download_count }}</div></div>
+              <div class="full">
+                <div class="fl-label">File</div>
+                <div class="fl-value">
+                  <a href="{% url 'admin_dashboard:admin_preview_form' obj.pk %}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm"><i class="fa-regular fa-eye"></i> View in a new tab</a>
+                  <a href="{% url 'admin_dashboard:admin_download_form_file' obj.pk %}" download class="btn btn-secondary btn-sm"><i class="fa-solid fa-download"></i> Download</a>
+                  <span class="sub" style="margin-left:6px;">{{ obj.file.name|cut:"downloadable_forms/" }}</span>
+                </div>
+              </div>
+              <div class="full"><iframe class="ad-form-preview" src="{% url 'admin_dashboard:admin_preview_form' obj.pk %}" title="Preview of {{ obj.title }}" loading="lazy"></iframe></div>
+              {% if obj.fields.exists %}
+              <div class="full">
+                <div class="fl-label">Online form fields</div>
+                <div class="table-wrap"><table class="data-table">
+                  <thead><tr><th>Field</th><th>Type</th><th>Required</th></tr></thead>
+                  <tbody>{% for f in obj.fields.all %}<tr><td>{{ f.label }}</td><td>{{ f.get_field_type_display }}</td><td>{{ f.required|yesno:"Yes,No" }}</td></tr>{% endfor %}</tbody>
+                </table></div>
+              </div>
+              {% endif %}
 
             {% elif item_type == 'Gallery' %}
               {% if obj.image %}
@@ -122,7 +166,11 @@
               {% else %}
               <div class="full"><div class="fl-label">Photo</div><div class="fl-value">No image</div></div>
               {% endif %}
+              <div class="full"><div class="fl-label">Caption / Title</div><div class="fl-value"><strong>{{ obj.title|default:"—" }}</strong></div></div>
+              <div><div class="fl-label">Category</div><div class="fl-value">{{ obj.category|default:"—" }}</div></div>
               <div><div class="fl-label">Album</div><div class="fl-value">{{ obj.album.name|default:"—" }}</div></div>
+              {% if obj.album.description %}<div class="full"><div class="fl-label">Album Description</div><div class="fl-value muted">{{ obj.album.description|linebreaksbr }}</div></div>{% endif %}
+              <div><div class="fl-label">Uploaded</div><div class="fl-value">{{ obj.created_at|date:"F j, Y, g:i A" }}</div></div>
               <div><div class="fl-label">Last Update</div><div class="fl-value">{{ obj.last_updated|date:"F j, Y, g:i A" }}</div></div>
 
             {% endif %}
@@ -217,15 +265,22 @@
         <div class="panel-header"><h2>Downloadable Forms <span class="count">{{ service_forms|length }}</span></h2></div>
         <div class="panel-body">
           {% if service_forms %}
+            <p class="form-help" style="margin:0 0 10px;">Forms uploaded together with this service are approved, returned or rejected with it &mdash; they are not listed separately in the Approval Center.</p>
             <div class="table-wrap">
-              <table class="data-table">
-                <thead><tr><th>Form</th><th>Status</th><th>Actions</th></tr></thead>
+              <table class="data-table ad-svc-forms">
+                <thead><tr><th>Form Name</th><th>Description</th><th>Category</th><th>Status</th><th>Actions</th></tr></thead>
                 <tbody>
                   {% for form in service_forms %}
                   <tr>
-                    <td>{{ form.title }}</td>
-                    <td><span class="badge {% if form.status == 'published' %}badge-green{% else %}badge-amber{% endif %}">{{ form.get_status_display }}</span></td>
-                    <td><a class="ic" href="{% url 'office_dashboard:download_form' form.pk %}" title="Download"><i class="fa-solid fa-download"></i></a></td>
+                    <td><strong>{{ form.title }}</strong>
+                        {% if form.status != 'published' %}<div class="ad-form-how">{% if form.bundled_with_service %}<i class="fa-solid fa-link"></i> Approved with this service{% else %}<i class="fa-solid fa-arrow-up-right-from-square"></i> Approved on its own (Approval Center){% endif %}</div>{% endif %}
+                        {% if form.fields.exists %}<div class="ad-form-how">Fill out online &middot; {{ form.fields.count }} field{{ form.fields.count|pluralize }}</div>{% endif %}</td>
+                    <td style="white-space:pre-line;overflow-wrap:anywhere;">{{ form.description|default:"—" }}</td>
+                    <td>{{ form.category|default:"—" }}</td>
+                    <td><span class="badge {% if form.status == 'published' %}badge-green{% elif form.status == 'returned' or form.status == 'reject' %}badge-red{% else %}badge-amber{% endif %}">{% if form.status == "pending" %}Pending{% elif form.status == "reject" %}Rejected{% else %}{{ form.get_status_display }}{% endif %}</span>
+</td>
+                    <td><a class="ic" href="{% url 'admin_dashboard:admin_preview_form' form.pk %}" target="_blank" rel="noopener" title="View (opens in a new tab)"><i class="fa-regular fa-eye"></i></a>
+                        <a class="ic" href="{% url 'admin_dashboard:admin_download_form_file' form.pk %}" download title="Download"><i class="fa-solid fa-download"></i></a></td>
                   </tr>
                   {% endfor %}
                 </tbody>
@@ -327,4 +382,16 @@
     })();
   </script>
 
+  <style>
+    /* the form itself, shown right on the page (pdf.js viewer) */
+    .ad-form-preview { width: 100%; height: 560px; border: 1px solid var(--gray-100, #e9ebf2); border-radius: 10px; background: #eef0f4; }
+    @media (max-width: 700px) { .ad-form-preview { height: 420px; } }
+    .fl-value .btn-sm { margin: 0 6px 6px 0; }
+    .ad-svc-forms { min-width: 520px; }
+    .ad-svc-forms td:nth-child(4) { width: 130px; }
+    .ad-svc-forms td:nth-child(4) .badge { white-space: nowrap; }
+    .ad-form-how { font-size: 11.5px; color: var(--gray-500, #6b7286); margin-top: 3px; font-weight: 500; }
+    .ad-form-how i { font-size: 10px; margin-right: 3px; }
+    .ad-svc-forms td:last-child, .ad-svc-forms th:last-child { white-space: nowrap; width: 64px; padding-left: 4px; padding-right: 8px; }
+  </style>
 {% endblock %}

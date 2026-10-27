@@ -87,6 +87,21 @@ class Editor:
     def editing_enabled(self):
         return True if self.is_admin else ServiceEditSettings.get_solo().editing_enabled
 
+    def revised(self, service, save=False):
+        """An Office Representative changed a pending / returned service:
+        it goes (back) to "pending" and the Super Admin is told
+        (notifications.resubmit). Nothing happens for the Super Admin's own edits."""
+        if self.is_admin:
+            return
+        from .notifications import resubmit
+        was_returned = service.status == "returned"
+        resubmit(service)
+        if save and getattr(service, "_rep_revised", False):
+            service.save(update_fields=["status"])
+        if was_returned:
+            # its forms were returned with it: they go back for approval with it
+            service.forms.filter(bundled_with_service=True, status="returned").update(status="pending")
+
     def tell_office(self, title, description):
         """Lets the office's representative know the Super Admin changed
         their services (shown in their Notifications)."""
@@ -113,17 +128,11 @@ def render_list(request, ed, template, extra=None):
     pending_count = all_services.filter(status='pending').count()
     returned_count = all_services.filter(status='returned').count()
 
-    services_qs = all_services
-
+    # every service goes to the page; search and status work in the browser
+    # without reloading (static/js/list-filter.js)
     q = request.GET.get('q', '').strip()
-    if q:
-        services_qs = services_qs.filter(name__icontains=q)
-
     status = request.GET.get('status', '')
-    if status:
-        services_qs = services_qs.filter(status=status)
-
-    services_qs = list(services_qs)
+    services_qs = list(all_services)
     for service in services_qs:
         service.steps_json = json.dumps([
             {
@@ -278,6 +287,7 @@ def edit_service(request, ed, pk):
             service.transaction_type = transaction_type
             service.who_may_avail = who_may_avail
             service.service_scope = service_scope
+            ed.revised(service)
             service.save()
             messages.success(request, f'"{name}" was updated.')
 
@@ -379,7 +389,11 @@ def save_process_steps(request, ed, service_pk):
         if not created_any:
             messages.error(request, "Add at least one step with a name. Nothing was changed.")
         else:
+            # Total Processing Time: typed by the office (not added up)
+            service.processing_time = request.POST.get('total_processing_time', '').strip()[:100]
+            service.save(update_fields=["processing_time"])
             messages.success(request, "Client steps updated.")
+            ed.revised(service, save=True)
 
     return redirect(ed.list_url(service.pk))
 
@@ -393,6 +407,7 @@ def save_reminders(request, ed, service_pk):
         items_raw = request.POST.get('items', '')
         lines = [line.strip() for line in items_raw.splitlines() if line.strip()]
         service.reminders = "\n".join(lines)
+        ed.revised(service)
         service.save()
 
     return redirect(ed.list_url())
@@ -437,6 +452,7 @@ def save_requirements(request, ed, service_pk):
             messages.error(request, "Add at least one requirement with a name. Nothing was changed.")
         else:
             messages.success(request, "Requirements updated.")
+            ed.revised(service, save=True)
 
     return redirect(ed.list_url(service.pk))
 
@@ -448,6 +464,7 @@ def save_legal_basis(request, ed, service_pk):
         if ed.locked(service):
             return HttpResponse(LOCKED_MESSAGE, status=403)
         service.legal_basis = request.POST.get('legal_basis', '').strip()
+        ed.revised(service)
         service.save()
 
     return redirect(ed.list_url())
@@ -460,6 +477,7 @@ def save_schedule_of_service(request, ed, service_pk):
         if ed.locked(service):
             return HttpResponse(LOCKED_MESSAGE, status=403)
         service.schedule_of_service = request.POST.get('schedule_of_service', '').strip()[:255]
+        ed.revised(service)
         service.save()
 
     return redirect(ed.list_url())

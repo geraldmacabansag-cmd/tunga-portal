@@ -38,16 +38,16 @@
     <meta name="twitter:card" content="summary_large_image">
 
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=10">
-    <link rel="stylesheet" href="{% static 'css/homepage.css' %}?v=10">
+    <link rel="stylesheet" href="{% static 'css/homepage.css' %}?v=11">
     <link rel="stylesheet" href="{% static 'css/offices.css' %}">
     <link rel="stylesheet" href="{% static 'css/announcements.css' %}?v=2">
     <link rel="stylesheet" href="{% static 'css/photo-collage.css' %}?v=1">
     <link rel="stylesheet" href="{% static 'css/gallery.css' %}">
-    <link rel="stylesheet" href="{% static 'css/aboutus.css' %}?v=7">
+    <link rel="stylesheet" href="{% static 'css/aboutus.css' %}?v=8">
     <link rel="stylesheet" href="{% static 'css/history.css' %}">
     <link rel="stylesheet" href="{% static 'css/contactus.css' %}">
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=10">
-    <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+    <link rel="stylesheet" href="{% static 'css/auth.css' %}?v=3">
     <link rel="stylesheet" href="{% static 'css/mayorsoffice.css' %}">
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -348,7 +348,7 @@
       {% if is_super_admin or user.office_rep or user.is_staff %}
         <p>Office Representative and Super Admin accounts can't be deleted here. Please contact the Super Admin.</p>
       {% else %}
-        <p>This permanently deletes your account and your personal data from the Tunga Portal. It can't be undone.</p>
+        <p>Your account and your personal data are deleted from the Tunga Portal <strong>30 days</strong> after you ask. You are logged out on all your devices right away. Changed your mind? Log in again within the 30 days to keep your account.</p>
         <button type="button" class="btn-danger-outline" id="deleteAccountStart">Delete my account…</button>
         <form method="post" action="{% url 'account_delete' %}" id="deleteAccountForm" hidden>
           {% csrf_token %}
@@ -356,6 +356,7 @@
           <ul>
             <li>Your name, email, mobile number and profile picture</li>
             <li>The forms you filled out online, and their status. Offices can no longer process requests that aren't finished yet.</li>
+            <li>Everything is deleted for good after 30 days. Until then, logging in again cancels the deletion.</li>
             <li>You can create a new account later with the same email.</li>
           </ul>
           {% if user.has_usable_password %}
@@ -370,7 +371,7 @@
           </div>
           {% endif %}
           <label class="checkbox-label" style="display:flex;gap:8px;align-items:flex-start;font-size:.8rem;margin:4px 0 12px;">
-            <input type="checkbox" name="confirm" value="yes" required style="margin-top:2px;"> I understand that my account and data will be permanently deleted.
+            <input type="checkbox" name="confirm" value="yes" required style="margin-top:2px;"> I understand that my account and data will be permanently deleted after 30 days.
           </label>
           <div class="account-modal__actions" style="justify-content:flex-start;gap:8px;">
             <button type="submit" class="btn-danger"><i class="fa-solid fa-trash-can"></i> Delete my account</button>

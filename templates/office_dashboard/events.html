@@ -35,92 +35,84 @@
         <div class="stat-card"><div class="top"><span class="stat-icon amber"><i class="fa-solid fa-hourglass-half"></i></span></div><div class="stat-value">{{ pending_count }}</div><div class="stat-label">Pending Approval</div></div>
       </div>
 
-      <section class="panel">
+      <section class="panel" data-lf data-lf-param="status" data-lf-size="5" data-lf-noun="events">
         <div class="panel-header">
           <h2>All Events</h2>
           <button class="btn btn-primary" id="open-add-event"><i class="fa-solid fa-plus"></i> Add Event</button>
         </div>
+          {# tabs: same as the Status filter #}
+          <div class="tabs ev-tabs" style="padding:0 20px;">
+            <a class="tab{% if not current_status %} active{% endif %}" data-lf-tab="" href="?">All <span class="count">{{ tab_counts.all }}</span></a>
+            <a class="tab{% if current_status == 'published' %} active{% endif %}" data-lf-tab="published" href="?status=published">Published <span class="count">{{ tab_counts.published }}</span></a>
+            <a class="tab{% if current_status == 'pending' %} active{% endif %}" data-lf-tab="pending" href="?status=pending">Pending <span class="count">{{ tab_counts.pending }}</span></a>
+            <a class="tab{% if current_status == 'returned' %} active{% endif %}" data-lf-tab="returned" href="?status=returned">Returned <span class="count">{{ tab_counts.returned }}</span></a>
+            <a class="tab{% if current_status == 'past' %} active{% endif %}" data-lf-tab="past" href="?status=past"><i class="fa-solid fa-clock-rotate-left"></i> Past <span class="count">{{ tab_counts.past }}</span></a>
+          </div>
+          <p class="ev-past-help" data-lf-only="past"{% if current_status != 'past' %} hidden{% endif %}><i class="fa-solid fa-circle-info"></i> <span><b>Past (not published)</b>: the event date passed before it was approved. Click <i class="fa-regular fa-pen-to-square"></i>, set a new date and save — it goes back to <b>Pending</b> for approval. <b>Past</b> (published): it already happened; only the Super Admin can edit it.</span></p>
           <form method="get" class="filters-row">
             <label class="field search" style="flex:1;">
               <i class="fa-solid fa-magnifying-glass"></i>
-              <input type="text" name="q" value="{{ current_q }}" placeholder="Search events..." onchange="this.form.submit()">
+              <input type="text" name="q" value="{{ current_q }}" placeholder="Search events..." data-lf-q autocomplete="off">
             </label>
 
-            <select class="field" name="status" onchange="this.form.submit()">
+            <select class="field" name="status" data-lf-tabselect>
               <option value="" {% if current_status == "" %}selected{% endif %}>All Status</option>
               <option value="pending" {% if current_status == "pending" %}selected{% endif %}>Pending Approval</option>
               <option value="published" {% if current_status == "published" %}selected{% endif %}>Published</option>
               <option value="completed" {% if current_status == "completed" %}selected{% endif %}>Completed</option>
               <option value="returned" {% if current_status == "returned" %}selected{% endif %}>Returned</option>
+              <option value="past" {% if current_status == "past" %}selected{% endif %}>Past</option>
             </select>
 
-            <select class="field" name="when" onchange="this.form.submit()">
-              <option value="all" {% if current_when == "all" %}selected{% endif %}>All</option>
+            <select class="field" name="when" data-lf-filter="when">
+              <option value="" {% if not current_when or current_when == "all" %}selected{% endif %}>All</option>
               <option value="upcoming" {% if current_when == "upcoming" %}selected{% endif %}>Upcoming</option>
               <option value="past" {% if current_when == "past" %}selected{% endif %}>Past</option>
 
             </select>
           </form>
-          <div class="panel-body" style="padding-top:6px;">
-            {% for e in events %}
-            <div class="list-row">
-              <span class="event-date" {% if e.status == 'completed' %}style="background:var(--gray-100);color:var(--gray-500);"{% endif %}>
-                <span class="mon">{{ e.event_date|date:"M"|upper }}</span><span class="day">{{ e.event_date|date:"d" }}</span>
-              </span>
-              <div style="flex:1;">
-                <div class="list-title">{{ e.title }}</div>
-                <div class="list-meta">
-                  <i class="fa-regular fa-clock"></i> {{ e.start_time|time:"g:i A" }}{% if e.end_time %} – {{ e.end_time|time:"g:i A" }}{% endif %}
-                  &nbsp; · &nbsp; <i class="fa-solid fa-location-dot"></i> {{ e.location|default:"—" }}
-                </div>
-              </div>
-              <span class="badge {% if e.status == 'published' %}badge-green{% elif e.status == 'pending' %}badge-amber{% elif e.status == 'completed' %}badge-gray{% else %}badge-red{% endif %}">
-                {{ e.get_status_display }}
-              </span>
-              <div class="action-icons">
-                <span class="ic" data-view-target="view-event-modal-{{ e.id }}"><i class="fa-regular fa-eye"></i></span>
-                {% if e.status == 'published' %}
-                  <span class="ic" style="opacity:.35;cursor:not-allowed;" title="Published content cannot be edited"><i class="fa-regular fa-pen-to-square"></i></span>
-                {% else %}
-                <span class="ic" data-edit-target="edit-event-modal-{{ e.id }}"><i class="fa-regular fa-pen-to-square"></i></span>
-                {% endif %}
-                <span class="ic" data-delete-target="delete-event-modal-{{ e.id }}"><i class="fa-regular fa-trash-can"></i></span>
-              </div>
-            </div>
-            {% empty %}
-            <p style="text-align:center;color:var(--gray-400);padding:24px;">No events yet.</p>
-            {% endfor %}
+          {# one row per event: same table layout as Announcements / News #}
+          <div class="table-wrap">
+            <table class="data-table ev-table">
+              <thead><tr><th>Event</th><th>Date</th><th>Time</th><th>Location</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody>
+              {% for e in events %}
+              <tr data-lf-row data-tab="{% if e.is_past %}past{% else %}{{ e.status }}{% endif %}" data-when="{% if e.event_date and e.event_date >= today %}upcoming{% else %}past{% endif %}" data-title="{{ e.title }} {{ e.location }} {{ e.category }}">
+                <td><div class="row-icon-name">
+                  {% if e.poster %}
+                    <img src="{{ e.poster.url }}" alt="" class="ev-thumb">
+                  {% else %}
+                    <span class="row-thumb" style="background:var(--blue-50);color:var(--blue-600);"><i class="fa-regular fa-calendar"></i></span>
+                  {% endif %}
+                  <div><div class="cell-primary">{{ e.title }}</div><div class="cell-sub">{{ e.category|default:"—" }}</div></div>
+                </div></td>
+                <td class="ev-nowrap">{% if e.event_date %}{{ e.event_date|date:"M j, Y" }}<div class="cell-sub">{{ e.event_date|date:"l" }}</div>{% else %}<span class="ev-missing">No date set</span>{% endif %}</td>
+                <td class="ev-nowrap">{% if e.start_time %}{{ e.start_time|time:"g:i A" }}{% if e.end_time %} – {{ e.end_time|time:"g:i A" }}{% endif %}{% else %}<span class="ev-missing">—</span>{% endif %}</td>
+                <td>{{ e.location|default:"—" }}</td>
+                <td><span class="badge {{ e.status_badge }}">{% if e.is_past %}<i class="fa-solid fa-clock-rotate-left"></i> {% endif %}{{ e.status_label }}</span></td>
+                <td>
+                  <div class="action-icons">
+                    <span class="ic" data-view-target="view-event-modal-{{ e.id }}" title="View"><i class="fa-regular fa-eye"></i></span>
+                    {% if e.status == 'published' %}
+                      <span class="ic" style="opacity:.35;cursor:not-allowed;" title="{% if e.is_past %}Published and past — only the Super Admin can edit it{% else %}Published content cannot be edited{% endif %}"><i class="fa-regular fa-pen-to-square"></i></span>
+                    {% else %}
+                    <span class="ic" data-edit-target="edit-event-modal-{{ e.id }}" title="Edit"><i class="fa-regular fa-pen-to-square"></i></span>
+                    {% endif %}
+                    <span class="ic" data-delete-target="delete-event-modal-{{ e.id }}" title="Delete"><i class="fa-regular fa-trash-can"></i></span>
+                  </div>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="6" style="text-align:center;color:var(--gray-400);padding:24px;">No events yet.</td></tr>
+              {% endfor %}
+              {% if events %}<tr data-lf-empty hidden><td colspan="6" style="text-align:center;color:var(--gray-400);padding:24px;">No events match this search or filter.</td></tr>{% endif %}
+              </tbody>
+            </table>
           </div>
 
           <div class="pagination">
-            <span>
-              {% if page_obj.paginator.count == 0 %}
-                No events found
-              {% else %}
-                Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} events
-              {% endif %}
-            </span>
-            <div class="page-nums">
-              {% if page_obj.has_previous %}
-                <a class="page-btn" href="?page={{ page_obj.previous_page_number }}&q={{ current_q }}&status={{ current_status }}&when={{ current_when }}"><i class="fa-solid fa-chevron-left"></i></a>
-              {% else %}
-                <span class="page-btn"><i class="fa-solid fa-chevron-left"></i></span>
-              {% endif %}
-
-              {% for num in page_obj.paginator.page_range %}
-                {% if num == page_obj.number %}
-                  <span class="page-btn active">{{ num }}</span>
-                {% else %}
-                  <a class="page-btn" href="?page={{ num }}&q={{ current_q }}&status={{ current_status }}&when={{ current_when }}">{{ num }}</a>
-                {% endif %}
-              {% endfor %}
-
-              {% if page_obj.has_next %}
-                <a class="page-btn" href="?page={{ page_obj.next_page_number }}&q={{ current_q }}&status={{ current_status }}&when={{ current_when }}"><i class="fa-solid fa-chevron-right"></i></a>
-              {% else %}
-                <span class="page-btn"><i class="fa-solid fa-chevron-right"></i></span>
-              {% endif %}
-            </div>
+            <span data-lf-info></span>
+            <div class="page-nums" data-lf-pager></div>
           </div>
       </section>
 
@@ -216,7 +208,7 @@
       <div class="modal-view-row"><span class="k">Organizer</span><span class="v">{{ e.organizer|default:"—" }}</span></div>
       <div class="modal-view-row"><span class="k">Contact Person</span><span class="v">{{ e.contact_person|default:"—" }}</span></div>
       <div class="modal-view-row"><span class="k">Contact Info</span><span class="v">{{ e.contact_info|default:"—" }}</span></div>
-      <div class="modal-view-row"><span class="k">Status</span><span class="v">{{ e.get_status_display }}</span></div>
+      <div class="modal-view-row"><span class="k">Status</span><span class="v">{{ e.status_label }}</span></div>
       <div class="modal-view-row"><span class="k">Last Updated</span><span class="v">{{ e.last_updated|date:"F j, Y, g:i A" }}</span></div>
 
       {% if e.admin_note %}
@@ -243,6 +235,9 @@
     <div class="modal-body">
       <form method="post" enctype="multipart/form-data" action="{% url 'office_dashboard:edit_event' e.id %}">
         {% csrf_token %}
+        {% if e.status == 'past' %}
+        <div class="ev-past-note"><i class="fa-solid fa-clock-rotate-left"></i> <span>This event's date (<b>{{ e.event_date|date:"F j, Y" }}</b>) passed before it was approved, so it was not published. Set a new <b>Event Date</b> (today or later) and save — it will go back to <b>Pending</b> for the Super Admin's approval.</span></div>
+        {% endif %}
 
         <div class="form-group">
           <label class="form-label" for="ev-title-{{ e.id }}">Event Title <span class="req">*</span></label>
@@ -348,4 +343,21 @@
   }, true);
 })();
 </script>
+<script src="{% static 'js/list-filter.js' %}?v=4"></script>
+<style>
+  .badge-past { background: #e0e7ff; color: #3730a3; }
+  .badge-past i { margin-right: 3px; }
+  .stat-icon.ev-past-ico { background: #4f46e5; }
+  a.ev-stat-link { color: inherit; text-decoration: none; transition: border-color .15s; }
+  a.ev-stat-link:hover { border-color: #4f46e5; }
+  .ev-tabs { overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+  .ev-tabs .tab { text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+  .ev-past-help, .ev-past-note { display: flex; gap: 8px; align-items: flex-start; margin: 12px 20px 0; padding: 10px 12px; border-radius: 10px; background: #eef2ff; border: 1px solid #c7d2fe; color: #312e81; font-size: 12.5px; line-height: 1.5; }
+  .ev-past-note { margin: 0 0 14px; }
+  .ev-past-help > i, .ev-past-note > i { margin-top: 3px; }
+  .ev-table .ev-thumb { width: 44px; height: 44px; border-radius: 9px; object-fit: cover; flex: none; }
+  .ev-table .ev-nowrap { white-space: nowrap; }
+  .ev-table .ev-missing { color: var(--gray-400); font-style: italic; }
+  .ev-table .badge { white-space: nowrap; }
+</style>
 {% endblock %}

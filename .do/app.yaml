@@ -1,6 +1,8 @@
 # DigitalOcean App Platform: the whole app in one file.
-# How to use it (details in DEPLOY.md, part A):
-#   1. Change the 3 lines marked  <-- CHANGE  (GitHub repo and your domain)
+# How to use it (details in DEPLOY.md, part A, and in the Deployment Manual):
+#   0. Create first: the Managed PostgreSQL cluster "tunga-db" and the Spaces
+#      bucket with its access key (both in Singapore).
+#   1. Change the lines marked  <-- CHANGE  (GitHub repo, domain, bucket, cluster)
 #   2. Either: DigitalOcean -> Create -> Apps -> pick the GitHub repo -> finish,
 #      then your app -> Settings -> App Spec -> Edit -> paste this file -> Save.
 #      Or with the doctl command line:  doctl apps create --spec .do/app.yaml
@@ -29,16 +31,8 @@ envs:
     type: SECRET
     value: CHANGE-ME             # secret Django admin address, e.g. lgu-panel-x7k29q
   - key: MEDIA_STORAGE
-    value: cloudinary            # or "spaces" (then fill the SPACES_* values below)
-  - key: CLOUDINARY_CLOUD_NAME
-    type: SECRET
-    value: CHANGE-ME
-  - key: CLOUDINARY_API_KEY
-    type: SECRET
-    value: CHANGE-ME
-  - key: CLOUDINARY_API_SECRET
-    type: SECRET
-    value: CHANGE-ME
+    value: spaces                # photos, PDFs and logos go to the Spaces bucket below
+                                 # (Cloudinary is only used on the temporary Render site)
   - key: RECAPTCHA_SITE_KEY
     type: SECRET
     value: CHANGE-ME
@@ -54,9 +48,9 @@ envs:
   - key: DJANGO_SUPERUSER_PASSWORD
     type: SECRET
     value: CHANGE-ME
-  # DigitalOcean Spaces: REQUIRED here, because this is where the backups are
-  # kept (App Platform erases its own disk on every deploy). Also holds the
-  # uploaded files when MEDIA_STORAGE is "spaces".
+  # DigitalOcean Spaces: REQUIRED here. Holds the uploaded files (public
+  # "media" folder) and the backups (private "backups" folder), because App
+  # Platform erases its own disk on every deploy.
   - key: SPACES_BUCKET
     value: tunga-files             # <-- CHANGE: your Spaces bucket name
   - key: SPACES_REGION
@@ -82,8 +76,17 @@ services:
     build_command: python manage.py collectstatic --noinput
     run_command: gunicorn tunga_portal.wsgi --config gunicorn.conf.py
     http_port: 8080
-    instance_count: 1
-    instance_size_slug: apps-s-1vcpu-1gb
+    # Dedicated CPU, 1 vCPU / 2 GiB (about US$39 a month) - the recommended
+    # tier in "Tunga Portal Cost of Deployment". Autoscaling adds a second
+    # container while the CPU stays above 80% (e.g. during an urgent
+    # announcement); each extra container is billed only while it runs.
+    instance_size_slug: apps-d-1vcpu-2gb
+    autoscaling:
+      min_instance_count: 1
+      max_instance_count: 2
+      metrics:
+        cpu:
+          percent: 80
     health_check:
       http_path: /healthz/
       initial_delay_seconds: 20
@@ -101,10 +104,16 @@ jobs:
     instance_size_slug: apps-s-1vcpu-0.5gb
 
 databases:
+  # DigitalOcean Managed PostgreSQL (single node, 1 GiB, about US$15 a month,
+  # daily backups + point-in-time recovery). Create the cluster first:
+  # Databases -> Create -> PostgreSQL 16, Singapore, name "tunga-db".
   - name: db
     engine: PG
     version: "16"
-    production: false        # small "dev" database; change to a managed cluster later
+    production: true
+    cluster_name: tunga-db         # <-- CHANGE if you named the cluster differently
+    db_name: defaultdb
+    db_user: doadmin
 
 domains:
   - domain: tungaleyte.com          # <-- CHANGE (same as SITE_DOMAIN)

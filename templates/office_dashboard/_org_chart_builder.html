@@ -31,6 +31,10 @@ All requests go back to the page it's on (request.path).
               <button type="button" class="btn btn-secondary" id="orgZoomFit" title="Fit the whole chart" aria-label="Fit the whole chart"><i class="fa-solid fa-arrows-to-dot"></i></button>
               <button type="button" class="btn btn-secondary org-grid-btn" id="orgGridBtn" title="Show / hide the grid" aria-pressed="false"><i class="fa-solid fa-border-all"></i> <span class="org-btn-text">Grid</span></button>
               {% if node_count %}
+              <button type="button" class="btn btn-secondary org-icon-btn" id="orgUndo" title="Undo (Ctrl+Z)" aria-label="Undo" disabled><i class="fa-solid fa-rotate-left"></i></button>
+              <button type="button" class="btn btn-secondary org-icon-btn" id="orgRedo" title="Redo (Ctrl+Y)" aria-label="Redo" disabled><i class="fa-solid fa-rotate-right"></i></button>
+              {% endif %}
+              {% if node_count %}
               <button type="button" class="btn btn-secondary" id="orgFullscreen" title="Full screen" aria-pressed="false"><i class="fa-solid fa-expand"></i> <span class="org-fs-label org-btn-text">Full screen</span></button>
               <button type="submit" form="orgAutoForm" class="btn btn-secondary" title="Put every box back in its automatic place"><i class="fa-solid fa-wand-magic-sparkles"></i> <span class="org-btn-text">Auto-arrange</span></button>
               <button type="button" class="btn btn-secondary" id="orgPrint" title="Print or save as PDF"><i class="fa-solid fa-print"></i> <span class="org-btn-text">Print</span></button>
@@ -53,7 +57,7 @@ All requests go back to the page it's on (request.path).
               {% if org_settings.show_on_office_page and publish_view_url %}
                 <a class="btn btn-secondary" href="{{ publish_view_url }}" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i> View</a>
               {% endif %}
-              <form method="post">
+              <form method="post" id="orgPublishForm">
                 {% csrf_token %}<input type="hidden" name="action" value="publish">
                 <input type="hidden" name="back" value="{% if editing %}?edit={{ editing.id }}{% endif %}">
                 {% if org_settings.show_on_office_page %}
@@ -66,6 +70,27 @@ All requests go back to the page it's on (request.path).
               </form>
             </div>
           </div>
+
+          <!-- Asked before the chart is shown on / hidden from the public website -->
+          <dialog class="org-confirm" id="orgPublishConfirm" aria-labelledby="orgPublishConfirmTitle">
+            {% if org_settings.show_on_office_page %}
+              <div class="org-confirm__icon is-hide"><i class="fa-regular fa-eye-slash"></i></div>
+              <h3 id="orgPublishConfirmTitle">Hide the organizational chart?</h3>
+              <p>It will be removed from <b>{{ publish_place }}</b>, so visitors of the public website will no longer see it. The chart stays here and you can show it again any time.</p>
+            {% else %}
+              <div class="org-confirm__icon"><i class="fa-solid fa-globe"></i></div>
+              <h3 id="orgPublishConfirmTitle">Show the organizational chart?</h3>
+              <p>It will appear on <b>{{ publish_place }}</b>, and anyone visiting the public website can see it. Please check the names, positions and photos first.</p>
+            {% endif %}
+            <div class="org-confirm__actions">
+              <button type="button" class="btn btn-secondary" data-org-cancel>Cancel</button>
+              {% if org_settings.show_on_office_page %}
+                <button type="button" class="btn btn-primary org-confirm__hide" data-org-ok><i class="fa-regular fa-eye-slash"></i> Yes, hide it</button>
+              {% else %}
+                <button type="button" class="btn btn-primary" data-org-ok><i class="fa-solid fa-globe"></i> Yes, show it</button>
+              {% endif %}
+            </div>
+          </dialog>
           {% endif %}
 
           <div class="org-viewport org-fs-viewport" id="orgViewport">
@@ -85,7 +110,7 @@ All requests go back to the page it's on (request.path).
               </div>
             {% endif %}
           </div>
-          <p class="org-hint"><i class="fa-regular fa-hand-pointer"></i> Click a box to edit it. Drag a box to move it, or drag its blue corner to resize it — changes are saved right away. <span class="org-hint-keys">Turn on <b>Grid</b> to line things up — a dragged box also lines up by itself with the box above it when it gets close. To place a box exactly: click it, then use the <kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd> arrow keys (one grid square per press; hold <kbd>Shift</kbd> to jump 5 squares). Every box's centre sits on a grid line, so boxes on the same line are joined by a straight line.</span> <span class="org-hint-touch">On a phone: press and hold a box, then drag.</span></p>
+          <p class="org-hint"><i class="fa-regular fa-hand-pointer"></i> Click a box to edit it. Drag a box to move it, or drag its blue corner to resize it — changes are saved right away. <b>Click a line</b> to add a box under it. <b>Drag a line</b> to move it. Point at a line to see its two round ends: drag the <b>top end</b> onto another person, section or line, or the <b>bottom end</b> onto another box, to connect it there — the line follows as you move it. Click an empty spot to unselect. <i class="fa-solid fa-rotate-left"></i> undoes and <i class="fa-solid fa-rotate-right"></i> redoes. <span class="org-hint-keys">Turn on <b>Grid</b> to line things up — a dragged box also lines up by itself with the box above it when it gets close. To place a box exactly: click it, then use the <kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd> arrow keys (one grid square per press; hold <kbd>Shift</kbd> to jump 5 squares). Every box's centre sits on a grid line, so boxes on the same line are joined by a straight line.</span> <span class="org-hint-touch">On a phone: press and hold a box, then drag.</span></p>
           <form method="post" id="orgAutoForm" hidden onsubmit="return confirm('Put every box back in its automatic place? Positions you dragged will be cleared.');">
             {% csrf_token %}<input type="hidden" name="action" value="auto_layout">
           </form>
@@ -96,6 +121,7 @@ All requests go back to the page it's on (request.path).
           <div class="panel-header">
             <h2>
               {% if editing %}Edit box
+              {% elif add_under and add_join %}Add under the line “{{ add_under.name }}” – “{{ add_join.name }}”
               {% elif add_under %}Add under “{{ add_under.name }}”
               {% else %}Add to the chart{% endif %}
             </h2>
@@ -142,6 +168,20 @@ All requests go back to the page it's on (request.path).
                 {% endif %}
               </div>
 
+              {% if link_officials %}
+              <div class="org-official-note only-person">
+                <i class="fa-solid fa-users"></i>
+                <div>
+                  {% if editing.official %}
+                    <b>Also in Municipal Officials.</b> Changes to the name, position and photo update the official's card on the About Us page.
+                    <a class="org-link" href="{{ officials_url }}">Open Municipal Officials</a>
+                  {% else %}
+                    <b>Also added to Municipal Officials.</b> This person's name, position and photo are shown in the Municipal Officials of the About Us page too.
+                  {% endif %}
+                </div>
+              </div>
+              {% endif %}
+
               <div class="form-group">
                 <label class="form-label" for="org-parent">Reports to</label>
                 <select class="form-input" id="org-parent" name="parent">
@@ -151,6 +191,17 @@ All requests go back to the page it's on (request.path).
                   {% endfor %}
                 </select>
                 <span class="form-help">The person or section directly above this box on the chart.</span>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="org-parent2">…and <span class="org-optional">(optional) — hang it on the line between two boxes</span></label>
+                <select class="form-input" id="org-parent2" name="parent2">
+                  <option value="">— No, just under the box above —</option>
+                  {% for value, label in parent_choices %}
+                    <option value="{{ value }}"{% if editing and editing.parent2_id == value %} selected{% elif not editing and add_join and add_join.id == value %} selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+                <span class="form-help">Example: <b>Reports to</b> the Municipal Mayor <b>…and</b> the Vice Mayor — a line joins the two and this box hangs from the middle of it.</span>
               </div>
 
               <details class="org-style" open>
@@ -229,7 +280,7 @@ All requests go back to the page it's on (request.path).
                 <div class="org-actions__title">Move it</div>
                 <p class="org-drag-tip"><i class="fa-solid fa-up-down-left-right"></i> Drag the box anywhere on the chart, or use the arrow keys on your keyboard (one grid square a step; hold Shift for 5); the line to the box above it follows. Boxes under it that you haven't moved yourself come along. To change who it reports to, use <b>Reports to</b> above.</p>
 
-                <form method="post" onsubmit="return confirm('Remove “{{ editing.name|escapejs }}” from the chart? Anyone under it moves up one level.');">
+                <form method="post" onsubmit="return confirm('Remove “{{ editing.name|escapejs }}” from the chart?{% if link_officials and editing.official %} It is also removed from the Municipal Officials.{% endif %} Anyone under it moves up one level.');">
                   {% csrf_token %}<input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="{{ editing.id }}">
                   <button type="submit" class="btn btn-secondary org-wide org-danger"><i class="fa-regular fa-trash-can"></i> Remove from chart</button>
                 </form>
@@ -302,6 +353,28 @@ All requests go back to the page it's on (request.path).
   #orgViewport.show-grid .org-person { background: transparent; }   /* see the grid behind the photo */
   .org-grid-btn[aria-pressed="true"] { background: #eff6ff; border-color: #93c5fd; color: #1d4ed8; }
   /* a short guide line while a box lines up with the box above it */
+  /* the lines can be clicked (add a box under it) and dragged (move its bend) */
+  #orgLines .org-hit { fill: none; stroke: transparent; stroke-width: 14; pointer-events: stroke; cursor: pointer; }
+  #orgLines .org-hit:hover, #orgLines .org-hit.is-active { stroke: rgba(37, 99, 235, .22); }
+  body.org-line-dragging, body.org-line-dragging * { cursor: grabbing !important; user-select: none; }
+  #orgBoard .org-box.org-drop-target { outline: 3px dashed #2563eb; outline-offset: 4px; }
+  /* the round ends of a line: only shown when the line is pointed at or clicked */
+  #orgLines .org-end { fill: #fff; stroke: #2563eb; stroke-width: 2; pointer-events: all; cursor: grab; opacity: 0; transition: opacity .12s; }
+  #orgLines .org-end.is-shown { opacity: 1; }
+  #orgLines .org-end:hover { opacity: 1; fill: #dbeafe; }
+  #orgLines .org-hit.org-drop-line { stroke: rgba(37, 99, 235, .45); }
+  #orgBoard .org-box.org-drop-bad { outline: 3px dashed #dc2626; outline-offset: 4px; }
+  .org-drop-tip { position: fixed; z-index: 1300; padding: 5px 9px; border-radius: 7px; background: #1f2937; color: #fff; font-size: 12px; pointer-events: none; white-space: nowrap; }
+  .org-drop-tip[hidden] { display: none; }
+  .org-tools .org-icon-btn { width: 36px; justify-content: center; padding-left: 0; padding-right: 0; }
+  .org-tools .org-icon-btn:disabled { opacity: .45; cursor: not-allowed; }
+  .org-line-menu { position: fixed; z-index: 1200; min-width: 220px; padding: 6px; background: #fff; border: 1px solid var(--gray-200, #e5e7eb); border-radius: 12px; box-shadow: 0 14px 36px rgba(15, 23, 42, .2); }
+  .org-line-menu[hidden] { display: none; }
+  .org-line-menu__title { padding: 6px 10px 8px; font-size: 11.5px; color: var(--gray-500, #6b7280); border-bottom: 1px solid var(--gray-100, #f3f4f6); margin-bottom: 4px; }
+  .org-line-menu button { display: flex; align-items: center; gap: 9px; width: 100%; padding: 9px 10px; border: 0; border-radius: 8px; background: none; font: inherit; font-size: 13px; color: var(--gray-800, #1f2937); text-align: left; cursor: pointer; }
+  .org-line-menu button:hover { background: var(--blue-50, #eff6ff); color: var(--blue-700, #1d4ed8); }
+  .org-line-menu button i { width: 16px; text-align: center; color: var(--blue-600, #2563eb); }
+  .org-line-menu__hint { padding: 6px 10px 4px; font-size: 11px; color: var(--gray-400, #9ca3af); }
   #orgBoard .org-guide { position: absolute; z-index: 4; width: 0; border-left: 2px dashed #2563eb; pointer-events: none; }
 
   /* "Show on office page" bar */
@@ -312,6 +385,19 @@ All requests go back to the page it's on (request.path).
   .org-publish__actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
   .org-publish__actions form { margin: 0; }
   .org-publish .btn { padding: 6px 12px; font-size: 12.5px; }
+  .org-confirm { width: min(420px, calc(100vw - 32px)); padding: 26px 24px 20px; border: none; border-radius: 16px; box-shadow: 0 24px 60px rgba(15, 23, 42, .28); text-align: center; color: var(--gray-700, #374151); }
+  .org-confirm::backdrop { background: rgba(15, 23, 42, .45); }
+  .org-confirm__icon { width: 52px; height: 52px; margin: 0 auto 12px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; background: #dcfce7; color: #16a34a; }
+  .org-confirm__icon.is-hide { background: #fef3c7; color: #b45309; }
+  .org-confirm h3 { margin: 0 0 8px; font-size: 17px; color: var(--gray-900, #111827); }
+  .org-confirm p { margin: 0 0 18px; font-size: 13.5px; line-height: 1.55; }
+  .org-confirm__actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .org-confirm__actions .btn { min-width: 120px; justify-content: center; }
+  .org-confirm__hide { background: #b45309; border-color: #b45309; }
+  .org-optional { font-weight: 500; color: var(--gray-500, #6b7280); }
+  .org-official-note { display: flex; gap: 10px; margin: 0 0 16px; padding: 10px 12px; border-radius: 10px; background: #eff6ff; border: 1px solid #dbeafe; font-size: 12.5px; line-height: 1.5; color: #1e3a8a; }
+  .org-official-note > i { margin-top: 3px; color: #2563eb; }
+  .org-official-note .org-link { display: inline-block; margin-top: 4px; }
 
   /* full screen (mainly for phones) */
   .org-chart-panel.org-is-fullscreen .org-publish, .org-chart-panel.org-is-fullscreen .org-hint { display: none; }
@@ -412,7 +498,7 @@ All requests go back to the page it's on (request.path).
   }
 </style>
 
-<script src="{% static 'js/org-chart.js' %}?v=5"></script>
+<script src="{% static 'js/org-chart.js' %}?v=9"></script>
 <script>
 (function () {
   var viewport = document.getElementById('orgViewport'), canvas = document.getElementById('orgCanvas');
@@ -423,7 +509,7 @@ All requests go back to the page it's on (request.path).
   var smallScreen = function () { return window.innerWidth <= 1100; };
 
   // ---------- Layout (static/js/org-chart.js): tidy tree, dragged spots, lines ----------
-  var chart = board ? OC.setup(board, svg, canvas) : null;
+  var chart = board ? OC.setup(board, svg, canvas, { hits: true }) : null;
   var byId = chart ? chart.byId : {};
   function layout(keepBoard) { if (chart) { chart.layout(keepBoard); gridOffset(); } }
   // keep the grid lined up with the 10px steps boxes snap to (the board shifts to fit the boxes)
@@ -544,6 +630,7 @@ All requests go back to the page it's on (request.path).
       relayoutKeepingView();
       post({ action: 'resize', id: d.n.id, w: d.w });
       if (d.oldX !== null) save(d.n);
+      remember(d.n.id, { w: d.startWasSet ? d.startW : 0, sx: d.oldX, sy: d.oldY }, { w: d.w, sx: d.n.sx, sy: d.n.sy });
       // keep the edit box in step if this box is open in it
       if (d.n.el === selected) {
         var input = document.querySelector('#orgForm [name="style_w"]');
@@ -652,6 +739,7 @@ All requests go back to the page it's on (request.path).
       if (d.n.sx === d.oldX && d.n.sy === d.oldY) return;
       relayoutKeepingView();                             // grow / shrink the board to fit
       save(d.n);
+      remember(d.n.id, { sx: d.oldX, sy: d.oldY }, { sx: d.n.sx, sy: d.n.sy });
     });
     document.addEventListener('pointercancel', function () {
       if (drag && drag.mode === 'resize') { var d = drag; stop(); endResize(d); return; }
@@ -663,12 +751,383 @@ All requests go back to the page it's on (request.path).
     board.addEventListener('contextmenu', function (e) { if (drag) e.preventDefault(); });
     board.addEventListener('click', function (e) { if (suppressClick) { e.preventDefault(); e.stopPropagation(); } }, true);
     board.addEventListener('dragstart', function (e) { e.preventDefault(); });
+
+    // ---------- Undo / Redo (moves, resizes, line moves and reconnected lines) ----------
+    // Kept for this browser tab, so it still works after the page reloads
+    // (saving a box, or connecting a line to another box).
+    var HKEY = 'orgChartUndo:' + location.pathname, hist = [], redo = [];
+    try {
+      var saved = JSON.parse(sessionStorage.getItem(HKEY) || '{}');
+      var known = function (h) { return h.items ? h.items.every(function (i) { return byId[i.id]; }) : byId[h.id]; };
+      hist = (saved.undo || []).filter(known); redo = (saved.redo || []).filter(known);
+    } catch (e) { hist = []; redo = []; }
+    var undoBtn = document.getElementById('orgUndo'), redoBtn = document.getElementById('orgRedo');
+    function storeHist() {
+      try { sessionStorage.setItem(HKEY, JSON.stringify({ undo: hist.slice(-80), redo: redo.slice(-80) })); } catch (e) {}
+      if (undoBtn) undoBtn.disabled = !hist.length;
+      if (redoBtn) redoBtn.disabled = !redo.length;
+    }
+    window.remember = remember;
+    function remember(id, before, after) { hist.push({ id: String(id), before: before, after: after }); redo = []; storeHist(); }
+    function rememberGroup(items) { hist.push({ items: items }); redo = []; storeHist(); }   // several boxes as one step
+    function reloadKeepingView() {
+      try {
+        sessionStorage.setItem('orgChartScroll', JSON.stringify({ path: location.pathname, y: window.scrollY,
+          vx: viewport.scrollLeft, vy: viewport.scrollTop }));
+      } catch (e) {}
+      location.reload();
+    }
+    function applyState(id, st) {             // put one box in that state and save it
+      var n = byId[id], waits = [];
+      if (!n) return waits;
+      if ('parent' in st) {                   // the box it's connected to: saved, then the page reloads
+        waits.push(post({ action: 'reparent', id: id, parent: st.parent || '', parent2: st.parent2 || '',
+                          bend: st.bend || 0, hang: st.hang || 0 }));
+        return waits;
+      }
+      if ('w' in st) {
+        setWidth(n.el, st.w || 0); n.el.dataset.w = st.w || '';
+        waits.push(post({ action: 'resize', id: id, w: st.w || '' }));
+      }
+      if ('sx' in st) {
+        n.sx = st.sx; n.sy = st.sy;
+        waits.push(post({ action: 'position', id: id, x: st.sx === null ? '' : st.sx, y: st.sy === null ? '' : st.sy }));
+      }
+      if ('bend' in st) {
+        n.el.dataset.bend = st.bend || ''; n.el.dataset.hang = st.hang || '';
+        waits.push(post({ action: 'line', id: id, bend: st.bend || 0, hang: st.hang || 0 }));
+      }
+      return waits;
+    }
+    function step(from, to, which) {
+      var h = from.pop();
+      if (!h) return;
+      to.push(h); storeHist();
+      var items = h.items || [h], waits = [], reload = false;
+      items.forEach(function (it) {
+        var st = it[which];
+        waits = waits.concat(applyState(it.id, st));
+        if ('parent' in st) reload = true;
+      });
+      if (reload) { Promise.all(waits).then(reloadKeepingView); return; }
+      relayoutKeepingView();
+    }
+    function undo() { step(hist, redo, 'before'); }
+    function redoIt() { step(redo, hist, 'after'); }
+    if (undoBtn) undoBtn.addEventListener('click', undo);
+    if (redoBtn) redoBtn.addEventListener('click', redoIt);
+    document.addEventListener('keydown', function (e) {
+      var t = e.target, k = (e.key || '').toLowerCase();
+      if (!(e.ctrlKey || e.metaKey) || (k !== 'z' && k !== 'y')) return;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      e.preventDefault();
+      if (k === 'y' || (k === 'z' && e.shiftKey)) redoIt(); else undo();
+    });
+    var autoForm = document.getElementById('orgAutoForm');
+    if (autoForm) autoForm.addEventListener('submit', function () { hist = []; redo = []; storeHist(); });   // every spot is cleared then
+    storeHist();
+
+    // ---------- The lines: click = add a box under it, drag = move it ----------
+    var menu = document.createElement('div');
+    menu.className = 'org-line-menu'; menu.hidden = true;
+    document.body.appendChild(menu);
+    function closeMenu() {
+      menu.hidden = true;
+      svg.querySelectorAll('.org-hit.is-active').forEach(function (p) { p.classList.remove('is-active'); });
+      if (chart.shownEnds) { var id = chart.shownEnds; chart.shownEnds = null; showEnds(id, false); }
+    }
+    function lineMenu(hit, x, y) {
+      var a = byId[hit.dataset.a], b = byId[hit.dataset.b], n = hit.dataset.id && byId[hit.dataset.id];
+      if (!a || !b) return;
+      var nameOf = function (k) { return (k.el.querySelector('.org-name, .org-section-text') || {}).textContent || 'box'; };
+      var bend = n ? (parseInt(n.el.dataset.bend, 10) || 0) : 0, hang = n ? (parseInt(n.el.dataset.hang, 10) || 0) : 0;
+      menu.innerHTML = '';
+      var title = document.createElement('div');
+      title.className = 'org-line-menu__title';
+      title.textContent = 'Line: ' + nameOf(a) + ' — ' + nameOf(b);
+      menu.appendChild(title);
+      function item(icon, text, fn) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.innerHTML = '<i class="fa-solid ' + icon + '"></i>';
+        btn.appendChild(document.createTextNode(text));
+        btn.addEventListener('click', function () { closeMenu(); fn(); });
+        menu.appendChild(btn);
+      }
+      item('fa-user-plus', 'Add a person under this line', function () {
+        location.href = location.pathname + '?add_under=' + a.id + '&join=' + b.id + '&kind=person';
+      });
+      item('fa-square-plus', 'Add a section under this line', function () {
+        location.href = location.pathname + '?add_under=' + a.id + '&join=' + b.id + '&kind=section';
+      });
+      if (n && (bend || hang)) {
+        item('fa-rotate-left', 'Put this line back in its normal place', function () {
+          applyLine(n, 0, 0, bend, hang);
+        });
+      }
+      var hint = document.createElement('div');
+      hint.className = 'org-line-menu__hint';
+      hint.textContent = hit.dataset.kind === 'join' ? 'Tip: drag the line going down to a box to move it, or drop it on another box.' : 'Tip: drag this line to move it, or drop it on another person or section to connect it there.';
+      menu.appendChild(hint);
+      menu.hidden = false;
+      var r = menu.getBoundingClientRect();
+      menu.style.left = Math.max(8, Math.min(x + 6, window.innerWidth - r.width - 8)) + 'px';
+      menu.style.top = Math.max(8, Math.min(y + 6, window.innerHeight - r.height - 8)) + 'px';
+      hit.classList.add('is-active');
+      if (hit.dataset.id) { chart.shownEnds = hit.dataset.id; showEnds(hit.dataset.id, true); }
+    }
+    function applyLine(n, bend, hang, oldBend, oldHang) {
+      n.el.dataset.bend = bend || ''; n.el.dataset.hang = hang || '';
+      paint(false);
+      post({ action: 'line', id: n.id, bend: bend || 0, hang: hang || 0 });
+      remember(n.id, { bend: oldBend, hang: oldHang }, { bend: bend, hang: hang });
+    }
+    // ---------- Drag the END of a line (the round handle) ----------
+    // The line follows the pointer. Let go on a person / section: the box
+    // reports to it. Let go on a line: the box hangs from that line (between
+    // the two boxes it joins). Anywhere else: nothing changes.
+    var endDrag = null;
+    function nameOf(k) { return (k.el.querySelector('.org-name, .org-section-text') || {}).textContent || 'this box'; }
+    function endTarget(x, y, d) {
+      var el = document.elementFromPoint(x, y), t;
+      svg.querySelectorAll('.org-drop-line').forEach(function (h) { h.classList.remove('org-drop-line'); });
+      clearDrop();
+      if (!el) return null;
+      if (d.which === 'bottom') {              // the bottom end connects to a box only
+        var bx = el.closest && el.closest('#orgBoard .org-box');
+        if (!bx) return null;
+        var y = byId[bx.dataset.id], top = byId[d.n.parent];
+        // the new box can't be the box above the line, or anyone above it
+        var okY = y !== d.n && y !== top && !below(y)[top.id] && !(d.n.parent2 && below(y)[d.n.parent2]);
+        bx.classList.add(okY ? 'org-drop-target' : 'org-drop-bad');
+        return { kind: 'bottom', ok: okY, a: y, label: okY ? 'Connect this line to “' + nameOf(y) + '”' : "Can't connect here" };
+      }
+      if (!d.blocked) d.blocked = below(d.n);
+      var box = el.closest && el.closest('#orgBoard .org-box');
+      if (box) {
+        t = byId[box.dataset.id];
+        var okBox = !d.blocked[t.id];
+        box.classList.add(okBox ? 'org-drop-target' : 'org-drop-bad');
+        return { kind: 'box', ok: okBox, a: t, label: okBox ? 'Connect to “' + nameOf(t) + '”' : "Can't connect here" };
+      }
+      var hit = el.closest && el.closest('.org-hit');
+      if (hit && hit.dataset.id !== d.n.id) {
+        var a = byId[hit.dataset.a], b = byId[hit.dataset.b];
+        if (!a || !b) return null;
+        var okLine = !d.blocked[a.id] && !d.blocked[b.id] && a !== b;
+        if (okLine) hit.classList.add('org-drop-line');
+        return { kind: 'line', ok: okLine, a: a, b: b,
+                 label: okLine ? 'Hang under the line “' + nameOf(a) + '” – “' + nameOf(b) + '”' : "Can't connect here" };
+      }
+      return null;
+    }
+    svg.addEventListener('pointerdown', function (e) {
+      var end = e.target.closest('.org-end');
+      if (!end || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      e.preventDefault(); e.stopPropagation();
+      closeMenu();
+      var n = byId[end.dataset.id];
+      if (!n) return;
+      endDrag = { n: n, which: end.dataset.end, x0: +end.getAttribute('cx'), y0: +end.getAttribute('cy'), x: e.clientX, y: e.clientY,
+                  ax: +end.dataset.ax, ay: +end.dataset.ay };
+      n.el.dataset.detached = '1';            // its own line is drawn by the drag for now
+      document.body.classList.add('org-line-dragging');
+      drawEnd(endDrag.x0, endDrag.y0);
+    }, true);
+    function drawEnd(px, py) {                 // the line from the pointer to the box, with its usual bend
+      var n = endDrag.n, sx = chart.shiftX, sy = chart.shiftY;
+      if (endDrag.which === 'bottom') {        // the bottom end: from the line's start to the pointer
+        var ax = endDrag.ax, ay = endDrag.ay, bm = ay + (py - ay) / 2;
+        chart.extra = '<path d="M' + ax + ',' + ay + 'V' + bm + 'H' + px + 'V' + py + '" style="stroke:#2563eb;stroke-width:2.5" stroke-dasharray="6 5"/>'
+                    + '<circle cx="' + px + '" cy="' + py + '" r="7" style="fill:#2563eb;stroke:#fff;stroke-width:2"/>';
+        paint(false);
+        return;
+      }
+      var cx = n.x + n.w / 2 + sx, top = n.y + sy, bottom = top + n.h, d;
+      if (py <= top) { var mid = py + Math.max(10, (top - py) / 2); if (mid > top) mid = (py + top) / 2; d = 'M' + px + ',' + py + 'V' + mid + 'H' + cx + 'V' + top; }
+      else if (py >= bottom) { var mid2 = py - Math.max(10, (py - bottom) / 2); if (mid2 < bottom) mid2 = (py + bottom) / 2; d = 'M' + px + ',' + py + 'V' + mid2 + 'H' + cx + 'V' + bottom; }
+      else { var side = px < cx ? n.x + sx : n.x + n.w + sx; d = 'M' + px + ',' + py + 'H' + side; }
+      chart.extra = '<path d="' + d + '" style="stroke:#2563eb;stroke-width:2.5" stroke-dasharray="6 5"/>'
+                  + '<circle cx="' + px + '" cy="' + py + '" r="7" style="fill:#2563eb;stroke:#fff;stroke-width:2"/>';
+      paint(false);
+    }
+    document.addEventListener('pointermove', function (e) {
+      if (!endDrag) return;
+      e.preventDefault();
+      var px = endDrag.x0 + (e.clientX - endDrag.x) / z(), py = endDrag.y0 + (e.clientY - endDrag.y) / z();
+      drawEnd(px, py);
+      var t = endTarget(e.clientX, e.clientY, endDrag);
+      endDrag.target = t && t.ok ? t : null;
+      if (t) {
+        dropTip.textContent = t.label; dropTip.hidden = false;
+        dropTip.style.left = (e.clientX + 14) + 'px'; dropTip.style.top = (e.clientY + 14) + 'px';
+      }
+    });
+    function endEndDrag(apply) {
+      var d = endDrag; endDrag = null;
+      if (!d) return;
+      document.body.classList.remove('org-line-dragging');
+      clearDrop();
+      svg.querySelectorAll('.org-drop-line').forEach(function (h) { h.classList.remove('org-drop-line'); });
+      chart.extra = '';
+      delete d.n.el.dataset.detached;
+      paint(false);
+      var t = apply && d.target;
+      justDragged();
+      if (!t) return;
+      var n = d.n;
+      if (t.kind === 'bottom') {               // the line now goes to another box; the old one is let go
+        var y = t.a, lineTo = { parent: n.parent || '', parent2: n.parent2 || '', bend: 0, hang: 0 };
+        var yBefore = { parent: y.parent || '', parent2: y.parent2 || '', bend: parseInt(y.el.dataset.bend, 10) || 0, hang: parseInt(y.el.dataset.hang, 10) || 0 };
+        var nBefore = { parent: n.parent || '', parent2: n.parent2 || '', bend: parseInt(n.el.dataset.bend, 10) || 0, hang: parseInt(n.el.dataset.hang, 10) || 0 };
+        var nAfter = { parent: '', parent2: '', bend: 0, hang: 0 };
+        post({ action: 'reparent', id: y.id, parent: lineTo.parent, parent2: lineTo.parent2 })
+          .then(function () { return post({ action: 'reparent', id: n.id, parent: '', parent2: '' }); })
+          .then(function () {
+            rememberGroup([{ id: y.id, before: yBefore, after: lineTo }, { id: n.id, before: nBefore, after: nAfter }]);
+            reloadKeepingView();
+          });
+        return;
+      }
+      var before = { parent: n.parent || '', parent2: n.parent2 || '', bend: parseInt(n.el.dataset.bend, 10) || 0, hang: parseInt(n.el.dataset.hang, 10) || 0 };
+      var after = t.kind === 'box' ? { parent: t.a.id, parent2: '', bend: 0, hang: 0 }
+                                   : { parent: t.a.id, parent2: t.b.id, bend: 0, hang: 0 };
+      if (after.parent === before.parent && after.parent2 === before.parent2) return;
+      post({ action: 'reparent', id: n.id, parent: after.parent, parent2: after.parent2 }).then(function () {
+        remember(n.id, before, after);
+        reloadKeepingView();
+      });
+    }
+    document.addEventListener('pointerup', function () { if (endDrag) endEndDrag(true); });
+    // show the round ends while the line (or one of its ends) is pointed at;
+    // a clicked line keeps them until something else is clicked
+    function showEnds(id, on) {
+      svg.querySelectorAll('.org-end[data-id="' + id + '"]').forEach(function (c) { c.classList.toggle('is-shown', on); });
+    }
+    svg.addEventListener('mouseover', function (e) {
+      var t = e.target.closest('.org-hit, .org-end');
+      if (t && t.dataset.id) showEnds(t.dataset.id, true);
+    });
+    svg.addEventListener('mouseout', function (e) {
+      var t = e.target.closest('.org-hit, .org-end');
+      if (!t || !t.dataset.id || t.dataset.id === chart.shownEnds) return;
+      var to = e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest('.org-hit, .org-end');
+      if (to && to.dataset.id === t.dataset.id) return;
+      showEnds(t.dataset.id, false);
+    });
+    var dragJustEnded = false;
+    function justDragged() { dragJustEnded = true; setTimeout(function () { dragJustEnded = false; }, 80); }
+    // click the empty part of the chart: nothing is selected any more
+    viewport.addEventListener('click', function (e) {
+      if (dragJustEnded || e.target.closest('.org-box, .org-hit, .org-end')) return;
+      closeMenu();
+      if (chart.shownEnds) { chart.shownEnds = null; paint(false); }
+      var q = new URLSearchParams(location.search);
+      if (q.has('edit') || q.has('add_under')) openEditor(location.pathname, true);
+    });
+    document.addEventListener('pointercancel', function () { if (endDrag) endEndDrag(false); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && endDrag) endEndDrag(false); });
+
+    var lineDrag = null;
+    svg.addEventListener('pointerdown', function (e) {
+      var hit = e.target.closest('.org-hit');
+      if (!hit || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      e.preventDefault(); e.stopPropagation();
+      closeMenu();
+      var n = hit.dataset.id && byId[hit.dataset.id], p = byId[hit.dataset.a];
+      var vertical = true;
+      if (n && p && hit.dataset.kind === 'tree') {     // the box beside the box above it: the bend moves sideways
+        vertical = (n.y >= p.y + p.h) || (n.y + n.h <= p.y);
+      }
+      lineDrag = { hit: hit, n: n, kind: hit.dataset.kind, x: e.clientX, y: e.clientY, started: false, vertical: vertical,
+                   bend: n ? (parseInt(n.el.dataset.bend, 10) || 0) : 0, hang: n ? (parseInt(n.el.dataset.hang, 10) || 0) : 0 };
+    });
+    // the boxes a line can't be connected to: the box itself and everyone under it
+    function below(n) {
+      var out = {}, stack = [n];
+      while (stack.length) { var k = stack.pop(); out[k.id] = 1; k.kids.forEach(function (c) { stack.push(c); }); }
+      return out;
+    }
+    var dropTip = document.createElement('div');
+    dropTip.className = 'org-drop-tip'; dropTip.hidden = true;
+    document.body.appendChild(dropTip);
+    function clearDrop() {
+      board.querySelectorAll('.org-drop-target, .org-drop-bad').forEach(function (b) { b.classList.remove('org-drop-target', 'org-drop-bad'); });
+      dropTip.hidden = true;
+    }
+    function dropTargetAt(x, y, d) {          // the box under the pointer while a line is dragged
+      var el = document.elementFromPoint(x, y);
+      el = el && el.closest && el.closest('#orgBoard .org-box');
+      if (!el) return null;
+      var t = byId[el.dataset.id];
+      if (!d.blocked) d.blocked = below(d.n);
+      return { n: t, ok: !d.blocked[t.id] && !(t.id === d.n.parent && !d.n.parent2) };
+    }
+    document.addEventListener('pointermove', function (e) {
+      if (!lineDrag) return;
+      var dx = (e.clientX - lineDrag.x) / z(), dy = (e.clientY - lineDrag.y) / z();
+      if (!lineDrag.started) {
+        if (dx * dx + dy * dy < 25 || !lineDrag.n) return;   // a click (or the joining line, which can't be dragged)
+        lineDrag.started = true;
+        document.body.classList.add('org-line-dragging');
+      }
+      e.preventDefault();
+      var n = lineDrag.n, bend = lineDrag.bend, hang = lineDrag.hang;
+      // over another box: connect the line there when it's let go
+      clearDrop();
+      var t = dropTargetAt(e.clientX, e.clientY, lineDrag);
+      lineDrag.target = t && t.ok ? t.n : null;
+      if (t) {
+        t.n.el.classList.add(t.ok ? 'org-drop-target' : 'org-drop-bad');
+        var nm = function (k) { return (k.el.querySelector('.org-name, .org-section-text') || {}).textContent || 'this box'; };
+        dropTip.textContent = t.ok ? 'Connect “' + nm(n) + '” to “' + nm(t.n) + '”' : "Can't connect here";
+        dropTip.hidden = false;
+        dropTip.style.left = (e.clientX + 14) + 'px'; dropTip.style.top = (e.clientY + 14) + 'px';
+        n.el.dataset.bend = lineDrag.bend || ''; n.el.dataset.hang = lineDrag.hang || '';
+        lineDrag.newBend = lineDrag.bend; lineDrag.newHang = lineDrag.hang;
+        paint(false);
+        if (t.ok) {                            // preview of the new line
+          var sx = chart.shiftX, sy = chart.shiftY, a = t.n;
+          var x1 = a.x + a.w / 2 + sx, y1 = a.y + a.h + sy, x2 = n.x + n.w / 2 + sx, y2 = n.y + sy;
+          svg.insertAdjacentHTML('beforeend', '<path d="M' + x1 + ',' + y1 + 'L' + x2 + ',' + y2 + '" style="stroke:#2563eb;stroke-width:2.5" stroke-dasharray="6 5"/>');
+        }
+        return;
+      }
+      if (lineDrag.kind === 'hang') { bend += Math.round(dy / GRID) * GRID; hang += Math.round(dx / GRID) * GRID; }
+      else bend += Math.round((lineDrag.vertical ? dy : dx) / GRID) * GRID;
+      n.el.dataset.bend = bend || ''; n.el.dataset.hang = hang || '';
+      lineDrag.newBend = bend; lineDrag.newHang = hang;
+      paint(false);
+    });
+    document.addEventListener('pointerup', function (e) {
+      if (!lineDrag) return;
+      var d = lineDrag; lineDrag = null;
+      document.body.classList.remove('org-line-dragging');
+      if (!d.started) { lineMenu(d.hit, e.clientX, e.clientY); return; }
+      justDragged();
+      clearDrop();
+      if (d.target) {                          // dropped on another box: connect it there
+        var n = d.n, before = { parent: n.parent || '', parent2: n.parent2 || '', bend: d.bend, hang: d.hang };
+        var after = { parent: d.target.id, parent2: '', bend: 0, hang: 0 };
+        post({ action: 'reparent', id: n.id, parent: after.parent, parent2: '' }).then(function () {
+          remember(n.id, before, after);
+          reloadKeepingView();
+        });
+        return;
+      }
+      if (d.newBend === d.bend && d.newHang === d.hang) return;
+      post({ action: 'line', id: d.n.id, bend: d.newBend || 0, hang: d.newHang || 0 });
+      remember(d.n.id, { bend: d.bend, hang: d.hang }, { bend: d.newBend, hang: d.newHang });
+    });
+    document.addEventListener('pointerdown', function (e) { if (!menu.hidden && !menu.contains(e.target) && !e.target.closest('.org-hit')) closeMenu(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeMenu(); });
+    viewport.addEventListener('scroll', closeMenu, { passive: true });
   }
 
   // ---------- Arrow keys: nudge the selected box (10px = one grid square; Shift = 50px) ----------
   // Works on the box that's open in the edit box, or the box that has keyboard
   // focus. Typing in the form is never affected. Saved shortly after the last key.
-  var nudgeTimer = null, nudged = null;
+  var nudgeTimer = null, nudged = null, nudgeBefore = null;
   document.addEventListener('keydown', function (e) {
     var dir = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
     if (!dir || !board || e.ctrlKey || e.metaKey || e.altKey) return;
@@ -680,6 +1139,7 @@ All requests go back to the page it's on (request.path).
     if (!n) return;
     e.preventDefault();                          // don't scroll the page
     var step = e.shiftKey ? 50 : GRID;          // whole grid steps, so the box stays on the grid
+    if (nudged !== n) nudgeBefore = { sx: n.sx, sy: n.sy };
     if (n.sx === null) { n.sx = Math.round(n.x); n.sy = Math.round(n.y); }   // from now on it keeps its own spot
     n.sx += dir[0] * step; n.sy += dir[1] * step;
     paint(false);
@@ -687,7 +1147,7 @@ All requests go back to the page it's on (request.path).
     clearTimeout(nudgeTimer);
     nudgeTimer = setTimeout(function () {
       relayoutKeepingView();
-      if (nudged) save(nudged);
+      if (nudged) { save(nudged); remember(nudged.id, nudgeBefore, { sx: nudged.sx, sy: nudged.sy }); }
       nudged = null;
     }, 450);
   });
@@ -871,5 +1331,28 @@ All requests go back to the page it's on (request.path).
     window.print();
     canvas.style.zoom = before;
   };
+})();
+
+// "Show on / Hide from the public website": ask first
+(function () {
+  var form = document.getElementById('orgPublishForm');
+  var dlg = document.getElementById('orgPublishConfirm');
+  if (!form || !dlg) return;
+  form.addEventListener('submit', function (e) {
+    if (form.dataset.confirmed === '1') return;
+    e.preventDefault();
+    if (typeof dlg.showModal === 'function') dlg.showModal();
+    else if (window.confirm(dlg.querySelector('h3').textContent)) { form.dataset.confirmed = '1'; form.submit(); }
+  });
+  dlg.querySelector('[data-org-cancel]').addEventListener('click', function () { dlg.close(); });
+  dlg.querySelector('[data-org-ok]').addEventListener('click', function () {
+    form.dataset.confirmed = '1';
+    dlg.close();
+    form.submit();
+  });
+  dlg.addEventListener('click', function (e) {   // click outside the window = cancel
+    var r = dlg.getBoundingClientRect();
+    if (e.target === dlg && (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom)) dlg.close();
+  });
 })();
 </script>

@@ -14,6 +14,13 @@
           <button type="button" class="btn btn-secondary btn-sm" id="step-add-btn" style="margin-bottom:16px;">
             <i class="fa-solid fa-plus"></i> Add Another Step
           </button>
+        {% comment %}Typed by the office: it is NOT added up from the steps (Service.processing_time){% endcomment %}
+        <div class="form-group step-total-field">
+          <label class="form-label" for="step-total-time-input">Total Processing Time</label>
+          <input class="form-input" type="text" id="step-total-time-input" name="total_processing_time" maxlength="100"
+                 placeholder="e.g. 3 days, 2 hours and 10 minutes" autocomplete="off">
+          <span class="form-help">Type the total time of all the client steps, as it should appear in the Citizen's Charter.</span>
+        </div>
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" data-act="cancel">Cancel</button>
           <button type="submit" class="btn btn-primary">Save Steps</button>
@@ -389,6 +396,8 @@
   var currentServicePk = null;
   var currentServiceData = null;   // new
   var currentSteps = [];
+  var currentTotalTime = '';   // Total Processing Time, typed by the office
+  var stepTotalInput = document.getElementById('step-total-time-input');
   var currentRequirements = [];
   var currentLegalBasis = '';
   var currentScheduleOfService = '';
@@ -554,6 +563,7 @@
         stepsData.append('processing_time[]', s.processing_time || '');
         stepsData.append('person[]', s.person_responsible || '');
       });
+      stepsData.append('total_processing_time', currentTotalTime || '');
       requests.push(fetch(addStepForm.dataset.urlTemplate.replace('/0/', '/' + currentServicePk + '/'), { method: 'POST', body: stepsData, credentials: 'same-origin' }));
 
       var reqData = new FormData();
@@ -580,6 +590,7 @@
         var fd = new FormData();
         fd.append('csrfmiddlewaretoken', csrf);
         fd.append('service', currentServicePk);
+        fd.append('from_service', '1');   // approved together with the service
         fd.append('file', pf.file);
         fd.append('title', pf.title);
         fd.append('description', pf.description);
@@ -598,25 +609,6 @@
         saveChangesBtn.disabled = false;
       });
     });
-  }
-
-  function parseLeadingNumber(text) {
-    if (!text) return null;
-    var m = String(text).match(/(\d+(?:\.\d+)?)/);
-    return m ? parseFloat(m[1]) : null;
-  }
-
-  function computeTotalProcessingTime(steps) {
-    var sum = 0, hasNumeric = false, textParts = [];
-    steps.forEach(function (s) {
-      var n = parseLeadingNumber(s.processing_time);
-      if (n !== null) { sum += n; hasNumeric = true; }
-      else if (s.processing_time) { textParts.push(s.processing_time); }
-    });
-    var parts = [];
-    if (hasNumeric) parts.push(sum % 1 === 0 ? String(sum) : sum.toFixed(2));
-    parts = parts.concat(textParts);
-    return parts.length ? parts.join(' + ') : '—';
   }
 
   function renderSteps(stepsJson) {
@@ -658,7 +650,7 @@
       cells[5].textContent = s.person_responsible || '—';
     });
 
-    document.getElementById('steps-total-time').textContent = computeTotalProcessingTime(sorted);
+    document.getElementById('steps-total-time').textContent = currentTotalTime || '—';
   }
 
   function updateStepButton(steps) {
@@ -778,7 +770,7 @@
     return '<table class="charter-table">' +
       '<thead><tr><th>Client Steps</th><th>Agency Actions</th><th>Fees to be Paid</th><th>Processing Time</th><th>Person Responsible</th></tr></thead>' +
       '<tbody>' + rows + '</tbody>' +
-      '<tfoot><tr><td colspan="3" style="text-align:right;">TOTAL</td><td>' + escapeHtml(computeTotalProcessingTime(sorted)) + '</td><td></td></tr></tfoot>' +
+      '<tfoot><tr><td colspan="3" style="text-align:right;">TOTAL</td><td>' + escapeHtml(currentTotalTime || '—') + '</td><td></td></tr></tfoot>' +
       '</table>';
   }
 
@@ -1029,6 +1021,7 @@
       noteBox.style.display = 'none';
     }
 
+    currentTotalTime = data.totalTime || '';
     renderSteps(data.steps);
 
     try { currentSteps = JSON.parse(data.steps || '[]'); } catch (e) { currentSteps = []; }
@@ -1447,6 +1440,7 @@
   if (stepModalTrigger) {
     stepModalTrigger.addEventListener('click', function () {
       populateStepRows(currentSteps);
+      if (stepTotalInput) stepTotalInput.value = currentTotalTime || '';
       stepModalTitle.textContent = currentSteps.length ? 'Edit Client Steps' : 'Add Client Step';
       addStepModal.classList.add('open');
       document.body.classList.add('modal-open');
@@ -1486,6 +1480,7 @@
       });
 
       currentSteps = newSteps;
+      if (stepTotalInput) currentTotalTime = stepTotalInput.value.trim();
       renderSteps(JSON.stringify(newSteps));
       updateStepButton(newSteps);
       closeAddStepModal();
@@ -1714,6 +1709,8 @@
   .step-edit-row__body { flex: 1; min-width: 0; }
   .step-edit-row__body .form-input { margin-bottom: 8px; }
   .step-edit-row__body .form-input:last-child { margin-bottom: 0; }
+  .step-total-field { margin: 0 0 16px; padding: 12px 14px; border-radius: 8px; background: var(--gray-25, #f6f7fb); border: 1px solid var(--gray-100, #e9ebf2); }
+  .step-total-field .form-input { max-width: 420px; }
 
   /* Add Client Step modal: on small screens only, widen the modal (landscape)
      and lay the fields out two-per-row so the person can see what they're typing. */

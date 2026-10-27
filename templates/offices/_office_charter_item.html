@@ -1,0 +1,15 @@
+{% load charter_text %}{% comment %}
+One column of the office's Service Pledge / Mandate / Vision / Mission /
+Goal / Objective panel (office_detail.html). Same look as the About Us
+page's Vision / Mission: round icon, title, text. On phones the title is a
+button that opens and closes the text.
+  title = heading, text = what the office typed, icon = Font Awesome class
+{% endcomment %}
+<div class="ofc-item js-ofc-item">
+  <button type="button" class="ofc-item__head js-ofc-toggle" aria-expanded="false">
+    <span class="ofc-item__icon"><i class="{{ icon }}" aria-hidden="true"></i></span>
+    <h3>{{ title }}</h3>
+    <i class="fa-solid fa-chevron-down ofc-item__chevron" aria-hidden="true"></i>
+  </button>
+  <div class="ofc-item__body charter-text">{{ text|charter_html }}</div>
+</div>

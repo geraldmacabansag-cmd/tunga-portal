@@ -51,7 +51,8 @@
         </div>
       </div>
 
-      <section class="panel">
+      {# search, status, sort and pages work without reloading (static/js/list-filter.js) #}
+      <section class="panel" data-lf data-lf-param="status" data-lf-size="4" data-lf-noun="stories">
         <div class="panel-header">
           <h2>All News &amp; Updates</h2>
           <button class="btn btn-primary" id="open-add-news"><i class="fa-solid fa-plus"></i> Add News</button>
@@ -59,10 +60,10 @@
           <form method="get" class="filters-row">
             <label class="field search" style="flex:1;">
               <i class="fa-solid fa-magnifying-glass"></i>
-              <input type="text" name="q" value="{{ current_q }}" placeholder="Search news..." onchange="this.form.submit()">
+              <input type="text" name="q" value="{{ current_q }}" placeholder="Search news..." data-lf-q autocomplete="off">
             </label>
 
-            <select class="field" name="status" onchange="this.form.submit()">
+            <select class="field" name="status" data-lf-tabselect>
               <option value="" {% if current_status == "" %}selected{% endif %}>All Status</option>
               <option value="pending" {% if current_status == "pending" %}selected{% endif %}>Pending Approval</option>
               <option value="published" {% if current_status == "published" %}selected{% endif %}>Published</option>
@@ -70,7 +71,7 @@
               <option value="returned" {% if current_status == "returned" %}selected{% endif %}>Returned</option>
             </select>
 
-            <select class="field" name="sort" onchange="this.form.submit()">
+            <select class="field" name="sort" data-lf-sort>
               <option value="newest" {% if current_sort == "newest" %}selected{% endif %}>Newest First</option>
               <option value="oldest" {% if current_sort == "oldest" %}selected{% endif %}>Oldest First</option>
             </select>
@@ -80,7 +81,7 @@
             <thead><tr><th>Story</th><th>Date Published</th><th>Views</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
               {% for n in news_items %}
-              <tr>
+              <tr data-lf-row data-tab="{{ n.status }}" data-title="{{ n.title }} {{ n.summary }} {{ n.category }}" data-date="{{ n.created_at|date:'YmdHis' }}" data-views="{{ n.views }}">
                 <td class="row-icon-name">
                   {% if n.image %}
                     <img src="{{ n.image.url }}" style="width:44px;height:44px;border-radius:9px;object-fit:cover;">
@@ -109,39 +110,14 @@
               {% empty %}
               <tr><td colspan="5" style="text-align:center;color:var(--gray-400);">No news yet.</td></tr>
               {% endfor %}
+              {% if news_items %}<tr data-lf-empty hidden><td colspan="5" style="text-align:center;color:var(--gray-400);padding:22px;">No stories match this search or status.</td></tr>{% endif %}
             </tbody>
 
           </table>
         </div>
         <div class="pagination">
-          <span>
-            {% if page_obj.paginator.count == 0 %}
-              No stories found
-            {% else %}
-              Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} stories
-            {% endif %}
-          </span>
-          <div class="page-nums">
-            {% if page_obj.has_previous %}
-              <a class="page-btn" href="?page={{ page_obj.previous_page_number }}&q={{ current_q }}&status={{ current_status }}&sort={{ current_sort }}"><i class="fa-solid fa-chevron-left"></i></a>
-            {% else %}
-              <span class="page-btn"><i class="fa-solid fa-chevron-left"></i></span>
-            {% endif %}
-
-            {% for num in page_obj.paginator.page_range %}
-              {% if num == page_obj.number %}
-                <span class="page-btn active">{{ num }}</span>
-              {% else %}
-                <a class="page-btn" href="?page={{ num }}&q={{ current_q }}&status={{ current_status }}&sort={{ current_sort }}">{{ num }}</a>
-              {% endif %}
-            {% endfor %}
-
-            {% if page_obj.has_next %}
-              <a class="page-btn" href="?page={{ page_obj.next_page_number }}&q={{ current_q }}&status={{ current_status }}&sort={{ current_sort }}"><i class="fa-solid fa-chevron-right"></i></a>
-            {% else %}
-              <span class="page-btn"><i class="fa-solid fa-chevron-right"></i></span>
-            {% endif %}
-          </div>
+          <span data-lf-info></span>
+          <div class="page-nums" data-lf-pager></div>
         </div>
       </section>
 
@@ -369,4 +345,5 @@ document.querySelectorAll('select[name="category"][data-current]').forEach(funct
   sel.value = cur;
 });
 </script>
+<script src="{% static 'js/list-filter.js' %}?v=4"></script>
 {% endblock %}

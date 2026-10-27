@@ -35,6 +35,19 @@ def notify(rep, kind, title, description="", level="info", link_url=""):
     )
 
 
+def resubmit(obj):
+    """Call right BEFORE saving an Office Representative's edit of an
+    announcement, news, event, form or service. Content that the Super Admin
+    returned for revision goes back to "pending" (the Super Admin gets
+    "Revised ... resubmitted for approval"); content that is still pending
+    stays pending (the Super Admin gets "... was updated"). Published content
+    is not touched. Notices: admin_dashboard/signals.py."""
+    if getattr(obj, "status", None) in ("returned", "pending", "expired", "past"):
+        obj._rep_revised = True
+        obj.status = "pending"
+    return obj
+
+
 def notify_all_reps(kind, title, description="", level="info", link_url="", exclude_slug="lgu-super-admin"):
     """Sends to every office representative who has this kind switched on
     (not the Super Admin's own internal "LGU Super Admin" record)."""

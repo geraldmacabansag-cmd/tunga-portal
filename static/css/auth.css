@@ -243,3 +243,30 @@
     padding: 30px;
   }
 }
+
+/* "This account is scheduled for deletion" popup on the login page
+   (templates/account/login.html, portal/account_deletion.py) */
+.pd-modal {
+  border: 0; padding: 0; background: transparent;
+  width: min(440px, calc(100vw - 32px)); max-height: calc(100vh - 32px); margin: auto;
+}
+.pd-modal::backdrop { background: rgba(10, 20, 45, .55); backdrop-filter: blur(2px); }
+.pd-modal__box {
+  position: relative; background: #fff; border-radius: 16px; padding: 28px 26px 22px;
+  text-align: center; box-shadow: 0 24px 60px rgba(10, 20, 45, .35); border-top: 5px solid #d97706;
+  color: #334155; font-size: .9rem; line-height: 1.55;
+}
+.pd-modal__x {
+  position: absolute; top: 10px; right: 10px; width: 34px; height: 34px; border-radius: 50%;
+  display: grid; place-items: center; color: #64748b; text-decoration: none;
+}
+.pd-modal__x:hover { background: #f1f5f9; color: #0f172a; }
+.pd-modal__icon {
+  width: 58px; height: 58px; margin: 0 auto 12px; border-radius: 50%;
+  display: grid; place-items: center; background: #fff3dc; color: #d97706; font-size: 1.5rem;
+}
+.pd-modal h2 { font-size: 1.15rem; color: #7c4a03; margin: 0 0 10px; }
+.pd-modal p { margin: 0 0 8px; overflow-wrap: anywhere; }
+.pd-modal__actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.pd-modal__actions .btn { flex: 1 1 160px; justify-content: center; text-align: center; }
+@media (max-width: 420px) { .pd-modal__box { padding: 24px 18px 18px; } }

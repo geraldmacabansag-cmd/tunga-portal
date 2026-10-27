@@ -28,13 +28,27 @@
       <div class="top"><span class="stat-icon gray"><i class="fa-regular fa-eye"></i></span></div>
       <div class="stat-value">{{ total_views }}</div>
       <div class="stat-label">Total views</div>
-      <div class="stat-sub">Across all announcements</div>
+      <div class="stat-sub">Across published announcements</div>
     </div>
+    <a class="stat-card ann-stat-link" href="?tab=expired">
+      <div class="top"><span class="stat-icon ann-expired-ico"><i class="fa-regular fa-calendar-xmark"></i></span></div>
+      <div class="stat-value">{{ expired_count }}</div>
+      <div class="stat-label">Expired</div>
+      <div class="stat-sub">Hidden from the website</div>
+    </a>
   </div>
 
+  {# tabs, category, search, sort and pages work without reloading (static/js/list-filter.js) #}
+  <div data-lf data-lf-strict data-lf-param="tab" data-lf-size="10" data-lf-noun="announcements">
+  <div class="tabs ann-tabs">
+    <a class="tab{% if current_tab != 'expired' %} active{% endif %}" data-lf-tab="" href="?">Published <span class="count">{{ total_count }}</span></a>
+    <a class="tab{% if current_tab == 'expired' %} active{% endif %}" data-lf-tab="expired" href="?tab=expired"><i class="fa-regular fa-calendar-xmark"></i> Expired <span class="count">{{ expired_count }}</span></a>
+  </div>
+  <p class="ann-expired-help" data-lf-only="expired"{% if current_tab != 'expired' %} hidden{% endif %}><i class="fa-solid fa-circle-info"></i> <span>These were published and their expiration date has passed, so they are hidden from the website. Offices can't edit them; you can (give one a new expiration date to show it again).</span></p>
+
   <form method="get" class="filters-row">
-    <label class="field search"><i class="fa-solid fa-magnifying-glass"></i><input type="text" name="q" value="{{ current_q }}" placeholder="Search announcements..." onchange="this.form.submit()"></label>
-    <select class="field" name="category" onchange="this.form.submit()">
+    <label class="field search"><i class="fa-solid fa-magnifying-glass"></i><input type="text" name="q" value="{{ current_q }}" placeholder="Search announcements..." data-lf-q autocomplete="off"></label>
+    <select class="field" name="category" data-lf-category>
       <option value="">All categories</option>
       <option value="Community Engagement" {% if current_category == "Community Engagement" %}selected{% endif %}>Community Engagement</option>
       <option value="Public Notice" {% if current_category == "Public Notice" %}selected{% endif %}>Public Notice</option>
@@ -42,7 +56,7 @@
       <option value="Government Service" {% if current_category == "Government Service" %}selected{% endif %}>Government Service</option>
       <option value="Emergency" {% if current_category == "Emergency" %}selected{% endif %}>Emergency</option>
     </select>
-    <select class="field" name="sort" onchange="this.form.submit()">
+    <select class="field" name="sort" data-lf-sort>
       <option value="newest" {% if current_sort == "newest" %}selected{% endif %}>Newest first</option>
       <option value="oldest" {% if current_sort == "oldest" %}selected{% endif %}>Oldest first</option>
       <option value="most_viewed" {% if current_sort == "most_viewed" %}selected{% endif %}>Most viewed</option>
@@ -64,7 +78,7 @@
         </thead>
         <tbody id="annTableBody">
           {% for a in announcements %}
-          <tr>
+          <tr data-lf-row data-tab="{% if a.is_expired %}expired{% endif %}" data-category="{{ a.category }}" data-title="{{ a.title }} {{ a.subtitle }} {{ a.representative.office.name }}" data-date="{% if a.date_posted %}{{ a.date_posted|date:'Ymd' }}{% else %}{{ a.created_at|date:'Ymd' }}{% endif %}{{ a.created_at|date:'His' }}" data-views="{{ a.views }}">
             <td>
               <div class="row-icon-name">
                 {% if a.image %}<img class="list-thumb" src="{{ a.image.url }}" alt="">{% else %}<span class="row-thumb" style="background:var(--blue-50);color:var(--blue-600);"><i class="fa-solid fa-bullhorn"></i></span>{% endif %}
@@ -77,7 +91,7 @@
             <td><span class="tag tag-gray">{{ a.category|default:"—" }}</span></td>
             <td>{{ a.representative.office.name|default:"—" }}</td>
             <td>{{ a.date_posted|default:a.created_at|date:"M j, Y" }}</td>
-            <td><span class="badge {{ a.badge_class }}">{{ a.get_status_display }}</span></td>
+            <td><span class="badge {{ a.badge_class }}">{% if a.is_expired %}<i class="fa-regular fa-calendar-xmark"></i> {% endif %}{{ a.status_label }}</span>{% if a.is_expired and a.expiration_date %}<p class="cell-sub">Expired {{ a.expiration_date|date:"M j, Y g:i A" }}</p>{% endif %}</td>
             <td>{{ a.views }}</td>
             <td>
               <div class="action-icons">
@@ -91,7 +105,7 @@
                   data-date-posted="{{ a.date_posted|date:'F j, Y'|default:'—' }}"
                   data-expiration="{{ a.expiration_date|date:'F j, Y g:i A'|default:'—' }}"
                   data-priority="{{ a.priority|default:'Normal' }}"
-                  data-status="{{ a.get_status_display }}"
+                  data-status="{{ a.status_label }}"
                   data-status-class="{{ a.badge_class }}"
                   data-views="{{ a.views }}"
                   data-image="{% if a.image %}{{ a.image.url }}{% endif %}" data-gallery="{{ a.gallery_urls_json }}" data-gallery-target="va-image-wrap" data-video-id="{{ a.youtube_id }}" data-video-target="va-video-wrap"
@@ -127,19 +141,17 @@
           {% empty %}
           <tr class="no-results-row"><td colspan="7">No announcements yet.</td></tr>
           {% endfor %}
+          {% if announcements %}<tr class="no-results-row" data-lf-empty hidden><td colspan="7">No announcements match this tab or search.</td></tr>{% endif %}
         </tbody>
       </table>
     </div>
 
     <div class="pagination">
-      <span id="annPageInfo">Showing {{ announcements|length }} of {{ total_count }} announcement{{ total_count|pluralize }}</span>
-      <div class="page-nums">
-        <button class="page-btn"><i class="fa-solid fa-chevron-left"></i></button>
-        <button class="page-btn active">1</button>
-        <button class="page-btn"><i class="fa-solid fa-chevron-right"></i></button>
-      </div>
+      <span id="annPageInfo" data-lf-info>{{ announcements|length }} announcements</span>
+      <div class="page-nums" data-lf-pager></div>
     </div>
   </div>
+  </div>{# end data-lf #}
 
   <!-- Create / Edit Announcement modal -->
 <div class="modal-backdrop cf-modal" id="annModal">
@@ -446,4 +458,17 @@
 </script>
 
 
+<style>
+  .badge-expired { background: #f3e8ff; color: #6b21a8; }
+  .badge-expired i { margin-right: 3px; }
+  .stat-icon.ann-expired-ico { background: #7c3aed; }
+  a.ann-stat-link { color: inherit; text-decoration: none; transition: border-color .15s; }
+  a.ann-stat-link:hover { border-color: #7c3aed; }
+  .ann-tabs { margin-bottom: 0; overflow-x: auto; white-space: nowrap; }
+  .ann-tabs .tab { text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+  .ann-expired-help { display: flex; gap: 8px; align-items: flex-start; margin: 12px 0; padding: 10px 12px; border-radius: 10px; background: #faf5ff; border: 1px solid #e9d5ff; color: #581c87; font-size: 12.5px; line-height: 1.5; }
+  .ann-expired-help > i { margin-top: 3px; }
+</style>
+
+<script src="{% static 'js/list-filter.js' %}?v=4"></script>
 {% endblock %}

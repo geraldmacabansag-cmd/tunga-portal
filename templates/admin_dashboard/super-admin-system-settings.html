@@ -24,8 +24,11 @@
             The API key is encrypted before it's stored — it's never shown back to you after saving, only whether one is currently on file.
           </p>
 
-          {% if email_settings.is_configured %}
+          {% if email_settings.has_saved_brevo %}
             <div class="badge badge-green" style="margin-bottom:16px;"><i class="fa-solid fa-circle-check"></i> Configured — currently sending from {{ email_settings.email_address }}</div>
+          {% elif email_settings.using_default_brevo %}
+            <div class="badge badge-green" style="margin-bottom:8px;"><i class="fa-solid fa-circle-check"></i> Using the default Brevo account — sending from {{ email_settings.default_brevo_email }}</div>
+            <p class="form-help" style="margin:0 0 16px;">This account comes from the server settings, so OTP emails work without setting anything up here. To send from a different Brevo account, enter its sender email and API key below.</p>
           {% else %}
             <div class="badge badge-amber" style="margin-bottom:16px;"><i class="fa-solid fa-triangle-exclamation"></i> Not configured yet — OTP emails will not send until this is set up</div>
           {% endif %}
@@ -36,24 +39,28 @@
 
             <div class="form-group">
               <label class="form-label">Sender Email <span class="req">*</span></label>
-              <input class="form-input" type="email" name="email_address" value="{{ email_settings.email_address }}" placeholder="e.g. tungalgu.webapps@gmail.com" required>
+              <input class="form-input" type="email" name="email_address" value="{{ email_settings.brevo_sender }}" placeholder="e.g. tungalgu.webapps@gmail.com" required>
               <span class="form-help">Must be a sender you've verified in your Brevo account.</span>
             </div>
 
             <div class="form-group">
-              <label class="form-label">Brevo API Key {% if not email_settings.api_key_encrypted %}<span class="req">*</span>{% endif %}</label>
-              <input class="form-input" type="password" name="api_key" autocomplete="new-password" placeholder="{% if email_settings.api_key_encrypted %}•••••••••••••••• (saved — leave blank to keep it){% else %}Paste your Brevo API key here{% endif %}">
+              <label class="form-label">Brevo API Key {% if not email_settings.brevo_ready %}<span class="req">*</span>{% endif %}</label>
+              <input class="form-input" type="password" name="api_key" autocomplete="new-password" placeholder="{% if email_settings.api_key_encrypted %}•••••••••••••••• (saved — leave blank to keep it){% elif email_settings.using_default_brevo %}•••••••••••••••• (default key — paste one only to use a different account){% else %}Paste your Brevo API key here{% endif %}">
               <span class="form-help">Found under your Brevo account → SMTP &amp; API → API Keys. <a href="https://app.brevo.com/settings/keys/api" target="_blank" rel="noopener">Open Brevo API Keys</a>.</span>
             </div>
 
             <div class="modal-actions" style="justify-content:flex-start;border-top:none;padding-top:4px;">
               <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Email Provider</button>
-              {% if email_settings.is_configured %}
+              {% if email_settings.brevo_ready %}
               <button type="submit" form="test-brevo-form" class="btn btn-secondary"><i class="fa-regular fa-paper-plane"></i> Send test email</button>
+              {% endif %}
+              {% if email_settings.has_saved_brevo and email_settings.default_brevo_email %}
+              <button type="submit" form="default-brevo-form" class="btn btn-secondary"><i class="fa-solid fa-rotate-left"></i> Use the default account ({{ email_settings.default_brevo_email }})</button>
               {% endif %}
             </div>
           </form>
           <form method="post" id="test-brevo-form">{% csrf_token %}<input type="hidden" name="action" value="test"><input type="hidden" name="which" value="brevo"></form>
+          <form method="post" id="default-brevo-form">{% csrf_token %}<input type="hidden" name="action" value="brevo_default"></form>
         </div>
       </section>
 

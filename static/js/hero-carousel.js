@@ -1,6 +1,8 @@
 /* Home page banner slider (templates/portal/home.html, styles in
    static/css/homepage.css, "Banner slider"). Moves to the next slide by itself
    every data-interval milliseconds (set on the <section>, 6000 = 6 seconds).
+   After data-loops rounds through all the slides it stops on the first
+   (welcome) slide (0 = never stops; Super Admin -> Homepage -> Banner Slider).
    It waits while the mouse is over the banner, while someone moves through it
    with the Tab key, and while the browser tab is hidden.
    Every element with data-slide-to="N" (the dots) shows slide N when clicked.
@@ -17,7 +19,10 @@
   var mainBar = root.querySelector('.hero-carousel__progress span');
   var interval = parseInt(root.getAttribute('data-interval'), 10) || 6000;
   var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var loops = parseInt(root.getAttribute('data-loops'), 10);
+  if (isNaN(loops) || loops < 0) loops = 2;
   var current = 0, timer = null, started = 0, left = interval, paused = false;
+  var loopsDone = 0, stopped = false;
 
   // timer bars: the one at the bottom of the picture + the one in the
   // selected "Highlights" item
@@ -83,10 +88,23 @@
   function schedule(ms) {
     clearTimeout(timer);
     started = Date.now(); left = ms;
-    timer = setTimeout(function () { show(current + 1); }, ms);
+    timer = setTimeout(autoNext, ms);
     runBar(ms);
   }
-  function restart() { left = interval; if (!paused) schedule(interval); else freezeBar(); }
+  // the timer moved it on: count the rounds, and stop on the welcome slide
+  // when the set number of loops is done
+  function autoNext() {
+    if (current === slides.length - 1) {
+      loopsDone++;
+      if (loops > 0 && loopsDone >= loops) stopped = true;
+    }
+    show(current + 1);
+  }
+  function restart() {
+    left = interval;
+    if (stopped) { clearTimeout(timer); return; }
+    if (!paused) schedule(interval); else freezeBar();
+  }
   function pause() {
     if (paused) return;
     paused = true;
@@ -97,6 +115,7 @@
   function resume() {
     if (!paused) return;
     paused = false;
+    if (stopped) return;
     schedule(left || interval);
   }
 

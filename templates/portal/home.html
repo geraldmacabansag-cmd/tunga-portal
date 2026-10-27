@@ -18,7 +18,7 @@ waits while the mouse is over it.
 Script: static/js/hero-carousel.js. Styles: static/css/homepage.css ("Banner slider").
 {% endcomment %}
 {% with total=hero_slides|length|add:1 %}
-<section class="hero hero-carousel hc" data-interval="{% widthratio site_contact.hero_slider_seconds|default:6 1 1000 %}" aria-roledescription="carousel" aria-label="Highlights">
+<section class="hero hero-carousel hc" data-interval="{% widthratio site_contact.hero_slider_seconds|default:6 1 1000 %}" data-loops="{{ site_contact.hero_slider_loops|default_if_none:2 }}" aria-roledescription="carousel" aria-label="Highlights">
   <div class="hero-slide hc__slide hc__slide--welcome is-active" aria-roledescription="slide" aria-label="1 of {{ total }}">
     <img src="{% if site_contact.hero_banner %}{{ site_contact.hero_banner.url }}{% else %}{% static 'images/lgu_tunga_bldg.jpeg' %}{% endif %}" alt="Tunga Municipal Hall" class="hc__bg">
     <div class="hc__shade"></div>
@@ -323,7 +323,7 @@ Script: static/js/hero-carousel.js. Styles: static/css/homepage.css ("Banner sli
 })();
 </script>
 
-<script src="{% static 'js/hero-carousel.js' %}?v=3"></script>
+<script src="{% static 'js/hero-carousel.js' %}?v=4"></script>
 
 <script>
 // Quick Links: when the links wrap onto a second row, the first link of

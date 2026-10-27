@@ -212,9 +212,13 @@
     <div class="settings-section" id="section-officials" style="display:none;">
       <div class="panel-header">
         <h2><i class="fa-solid fa-users" style="color:var(--amber-600,#c07f0a);margin-right:8px;"></i>Officials Strip</h2>
-        <span class="ic" onclick="document.getElementById('add-official-modal').classList.add('open')" style="background:var(--blue-600);color:#fff;padding:8px 14px;border-radius:8px;cursor:pointer;"><i class="fa-solid fa-plus"></i> Add Official</span>
+        <div class="oc-head-actions">
+          <a class="oc-toggle" href="{% url 'admin_dashboard:ad_org_chart' %}" title="Open the Organizational Chart"><i class="fa-solid fa-sitemap"></i> Show Org Chart</a>
+          <span class="ic" onclick="document.getElementById('add-official-modal').classList.add('open')" style="background:var(--blue-600);color:#fff;padding:8px 14px;border-radius:8px;cursor:pointer;"><i class="fa-solid fa-plus"></i> Add Official</span>
+        </div>
       </div>
-      <p class="form-help" style="margin:0 0 14px;">Photo cards shown in the "Our Officials" section of the About Us page, with each official's term of office.</p>
+      <p class="form-help" style="margin:0 0 14px;">Photo cards shown in the "Our Officials" section of the About Us page, with each official's term of office.
+        Org chart on the About Us page: <b class="oc-state{% if org_chart_shown %} is-on{% endif %}">{% if org_chart_shown %}shown{% else %}hidden{% endif %}</b> ({{ org_chart_box_count }} box{{ org_chart_box_count|pluralize:"es" }})</p>
       <div class="table-wrap">
         <table class="data-table">
           <thead>
@@ -223,6 +227,7 @@
               <th>Name</th>
               <th>Position</th>
               <th>Term</th>
+              <th>Org Chart</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -234,6 +239,14 @@
               <td>{{ o.position }}</td>
               <td>{{ o.term_label|default:"—" }}</td>
               <td>
+                {% if o.box %}
+                  <a class="oc-view" href="{% url 'admin_dashboard:ad_org_chart' %}?edit={{ o.box.id }}" title="Open this official's box in the Organizational Chart"><i class="fa-solid fa-sitemap"></i> View in chart</a>
+                {% else %}
+                  <span class="oc-none">Not in chart</span>
+                  <button type="button" class="oc-connect" onclick="document.getElementById('edit-official-modal-{{ o.pk }}').classList.add('open')"><i class="fa-solid fa-plus"></i> Add to chart</button>
+                {% endif %}
+              </td>
+              <td>
                 <div class="action-icons">
                   <span class="ic" title="Edit" onclick="document.getElementById('edit-official-modal-{{ o.pk }}').classList.add('open')"><i class="fa-regular fa-pen-to-square"></i></span>
                   <span class="ic" title="Delete" onclick="document.getElementById('delete-official-modal-{{ o.pk }}').classList.add('open')"><i class="fa-regular fa-trash-can"></i></span>
@@ -241,7 +254,7 @@
               </td>
             </tr>
             {% empty %}
-            <tr class="no-results-row"><td colspan="5">No officials yet. Click "Add Official" to create one.</td></tr>
+            <tr class="no-results-row"><td colspan="6">No officials yet. Click "Add Official" to create one.</td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -799,6 +812,24 @@
     .modal-box { max-height: 92vh; overflow-y: auto; }
     .ab-tab-help { font-size: 12px; }
   }
+  .oc-choice { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--gray-700); }
+  .oc-choice label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  .oc-sub { display: none; margin-top: 10px; padding: 10px 12px; border-radius: 8px; background: var(--gray-50, #f9fafb); border: 1px solid var(--gray-200); }
+  .oc-sub.is-on { display: block; }
+  .oc-sub .form-label { font-size: 12.5px; }
+  .oc-view { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 7px; font-size: 12.5px; font-weight: 600; color: var(--blue-700, #1d4ed8); background: var(--blue-50, #eff6ff); text-decoration: none; white-space: nowrap; }
+  .oc-view:hover { background: var(--blue-100, #dbeafe); }
+  .oc-none { display: block; font-size: 12px; color: var(--gray-400, #9ca3af); }
+  .oc-connect { margin-top: 3px; padding: 3px 8px; border: 1px solid var(--gray-300, #d1d5db); border-radius: 6px; background: #fff; font-size: 12px; color: var(--gray-600); cursor: pointer; white-space: nowrap; }
+  .oc-connect:hover { border-color: var(--blue-600); color: var(--blue-600); }
+  .oc-head-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  .oc-toggle { display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--blue-600); background: #fff; color: var(--blue-600); font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; }
+  .oc-toggle:hover { background: var(--blue-50, #eff6ff); }
+  .oc-state { color: var(--gray-500); }
+  .oc-state.is-on { color: var(--green-600, #16a34a); }
+  .oc-linked { margin: 0; padding: 10px 12px; border-radius: 8px; background: var(--blue-50, #eff6ff); font-size: 13px; color: var(--gray-700); line-height: 1.5; }
+  .oc-linked i { color: var(--blue-600); margin-right: 4px; }
+  .oc-remove-box { display: flex; align-items: center; gap: 8px; margin: 0 0 14px; font-size: 13px; color: var(--gray-700); }
   .heritage-preview { display: block; width: 100%; max-width: 320px; height: 150px; object-fit: cover; border-radius: 10px; border: 1px solid var(--gray-200); margin-bottom: 8px; }
 </style>
 
@@ -833,6 +864,21 @@
         <div class="form-group">
           <label class="form-label">Photo</label>
           <input class="form-input file-input" type="file" name="photo" accept="image/*">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Where to add this official</label>
+          <div class="oc-choice">
+            <label><input type="radio" name="chart_mode" value="new" checked> In the Municipal Officials <b>and</b> the organizational chart</label>
+            <label><input type="radio" name="chart_mode" value="none"> In the Municipal Officials page only</label>
+          </div>
+          <div class="oc-sub" data-mode="new">
+            <label class="form-label">In the chart, reports to</label>
+            <select class="form-input" name="chart_parent">
+              <option value="">— Top of the chart (no one above) —</option>
+              {% for value, label in chart_parent_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+            </select>
+            <span class="form-help">The box gets the same name, position and photo. You can move it and change its look in the Organizational Chart.</span>
+          </div>
         </div>
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" onclick="document.getElementById('add-official-modal').classList.remove('open')">Cancel</button>
@@ -876,6 +922,24 @@
           {% if o.photo %}<img src="{{ o.photo.url }}" alt="" style="width:48px;height:48px;border-radius:50%;object-fit:cover;margin-bottom:8px;display:block;">{% endif %}
           <input class="form-input file-input" type="file" name="photo" accept="image/*">
         </div>
+        <div class="form-group">
+          <label class="form-label">Organizational chart</label>
+          {% if o.box %}
+            <p class="oc-linked"><i class="fa-solid fa-sitemap"></i> In the chart as “{{ o.box.name }}”. Saving here updates its box too. <a href="{% url 'admin_dashboard:ad_org_chart' %}?edit={{ o.box.id }}">View in chart</a></p>
+          {% else %}
+            <div class="oc-choice">
+              <label><input type="radio" name="chart_mode" value="none" checked> Municipal Officials page only</label>
+              <label><input type="radio" name="chart_mode" value="new"> Also add to the organizational chart</label>
+            </div>
+            <div class="oc-sub" data-mode="new">
+              <label class="form-label">In the chart, reports to</label>
+              <select class="form-input" name="chart_parent">
+                <option value="">— Top of the chart (no one above) —</option>
+                {% for value, label in chart_parent_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+              </select>
+            </div>
+          {% endif %}
+        </div>
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" onclick="document.getElementById('edit-official-modal-{{ o.pk }}').classList.remove('open')">Cancel</button>
           <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Changes</button>
@@ -895,6 +959,9 @@
       <p class="confirm-msg">Are you sure you want to delete "{{ o.name }}"? This cannot be undone.</p>
       <form method="post" action="{% url 'admin_dashboard:admin_about_official_delete' o.pk %}">
         {% csrf_token %}
+        {% if o.box %}
+        <label class="oc-remove-box"><input type="checkbox" name="remove_box" checked> Also remove the box “{{ o.box.name }}” from the org chart</label>
+        {% endif %}
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" onclick="document.getElementById('delete-official-modal-{{ o.pk }}').classList.remove('open')">Cancel</button>
           <button type="submit" class="btn btn-danger"><i class="fa-regular fa-trash-can"></i> Delete</button>
@@ -1165,6 +1232,20 @@
       reader.onload = function(e){ preview.src = e.target.result; };
       reader.readAsDataURL(file);
     });
+  });
+
+  // Add / Edit Official: show the org chart fields of the chosen option
+  document.querySelectorAll('form').forEach(function(form){
+    var radios = form.querySelectorAll('input[name="chart_mode"]');
+    if (!radios.length) return;
+    function sync(){
+      var picked = form.querySelector('input[name="chart_mode"]:checked');
+      form.querySelectorAll('.oc-sub').forEach(function(box){
+        box.classList.toggle('is-on', !!picked && box.dataset.mode === picked.value);
+      });
+    }
+    radios.forEach(function(r){ r.addEventListener('change', sync); });
+    sync();
   });
 
   wireImagePreview('history-image-input', 'history-image-preview', 'history-image-preview-label', 'New image selected — not saved yet, click Save History Intro to apply it.');

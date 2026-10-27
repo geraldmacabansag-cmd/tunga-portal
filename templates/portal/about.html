@@ -528,7 +528,7 @@ Styles: static/css/aboutus.css ("Our Officials"). Script: extra_js below.
           </div>
           <div class="barangays-group__list">
             {% for b in barangays_poblacion %}
-            <div class="barangays-group__item"><i class="fa-solid fa-building"></i><span>{{ b.name }}</span></div>
+            <a class="barangays-group__item barangays-group__item--link" href="{% url 'tunga_map' %}#barangay={{ b.name|urlencode }}" title="See Barangay {{ b.name }} on the Tunga Map"><i class="fa-solid fa-building"></i><span>{{ b.name }}</span><i class="fa-solid fa-map-location-dot barangays-group__go" aria-hidden="true"></i></a>
             {% endfor %}
           </div>
         </div>
@@ -542,7 +542,7 @@ Styles: static/css/aboutus.css ("Our Officials"). Script: extra_js below.
           </div>
           <div class="barangays-group__list">
             {% for b in barangays_rural %}
-            <div class="barangays-group__item"><i class="fa-solid fa-location-dot"></i><span>{{ b.name }}</span></div>
+            <a class="barangays-group__item barangays-group__item--link" href="{% url 'tunga_map' %}#barangay={{ b.name|urlencode }}" title="See Barangay {{ b.name }} on the Tunga Map"><i class="fa-solid fa-location-dot"></i><span>{{ b.name }}</span><i class="fa-solid fa-map-location-dot barangays-group__go" aria-hidden="true"></i></a>
             {% endfor %}
           </div>
         </div>

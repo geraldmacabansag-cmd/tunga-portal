@@ -26,11 +26,12 @@
   </form>
 </div>
 
-<div class="panel">
+{# tabs work without reloading (static/js/list-filter.js) #}
+<div class="panel" data-lf data-lf-param="tab" data-lf-default-tab="active" data-lf-all="all" data-lf-noun="photos">
   <div class="tabs">
-    <a href="?tab=all" class="tab {% if current_tab == 'all' %}active{% endif %}" style="text-decoration:none;">All <span class="count">{{ all_count }}</span></a>
-    <a href="?tab=active" class="tab {% if current_tab == 'active' %}active{% endif %}" style="text-decoration:none;">Active <span class="count">{{ active_count }}</span></a>
-    <a href="?tab=archived" class="tab {% if current_tab == 'archived' %}active{% endif %}" style="text-decoration:none;">Archived <span class="count">{{ archived_count }}</span></a>
+    <a href="?tab=all" data-lf-tab="all" class="tab {% if current_tab == 'all' %}active{% endif %}" style="text-decoration:none;">All <span class="count">{{ all_count }}</span></a>
+    <a href="?tab=active" data-lf-tab="active" class="tab {% if current_tab == 'active' %}active{% endif %}" style="text-decoration:none;">Active <span class="count">{{ active_count }}</span></a>
+    <a href="?tab=archived" data-lf-tab="archived" class="tab {% if current_tab == 'archived' %}active{% endif %}" style="text-decoration:none;">Archived <span class="count">{{ archived_count }}</span></a>
   </div>
 
   <div class="table-wrap" style="border:none;border-radius:0;">
@@ -38,7 +39,7 @@
       <thead><tr><th>Photo</th><th>Uploaded by</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
       <tbody>
         {% for p in photos %}
-        <tr>
+        <tr data-lf-row data-tab="{% if p.status == 'archive' %}archived{% else %}active{% endif %}" data-title="{{ p.title }}">
           <td>
             <div class="row-icon-name">
               <img src="{{ p.image.url }}" alt="" style="width:44px;height:44px;border-radius:8px;object-fit:cover;">
@@ -64,6 +65,7 @@
         {% empty %}
         <tr><td colspan="5" style="text-align:center;color:var(--gray-400);padding:24px;">No photos here.</td></tr>
         {% endfor %}
+        {% if photos %}<tr data-lf-empty hidden><td colspan="5" style="text-align:center;color:var(--gray-400);padding:24px;">No photos in this tab.</td></tr>{% endif %}
       </tbody>
     </table>
   </div>
@@ -223,4 +225,5 @@ document.addEventListener('keydown', function (e) {
 })();
 </script>
 
+<script src="{% static 'js/list-filter.js' %}?v=4"></script>
 {% endblock %}

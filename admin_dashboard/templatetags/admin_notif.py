@@ -24,5 +24,7 @@ def pending_approvals():
     so they are not counted. Used for the Approval Center badge."""
     from office_dashboard.models import (Announcement, NewsUpdate, Event, Photo,
                                          DownloadableForm, Service)
+    from office_dashboard.announcement_rules import expire_overdue
+    expire_overdue()   # announcements that expired while waiting don't count
     return sum(m.objects.filter(status="pending").count()
                for m in (Announcement, NewsUpdate, Event, Photo, DownloadableForm, Service))

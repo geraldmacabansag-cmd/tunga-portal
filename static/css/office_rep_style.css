@@ -454,6 +454,14 @@ img{max-width:100%;display:block;}
   display:flex;align-items:center;gap:8px;color:var(--gray-400);
 }
 .field.search input{border:0;outline:0;flex:1;font:inherit;color:var(--gray-800);}
+/* phones: the search box gets its own full-width line, the dropdowns share
+   the line below it (they used to push the page wider than the screen) */
+@media (max-width:600px){
+  .filters-row{flex-wrap:wrap;padding:12px 14px;gap:8px;}
+  .filters-row .field.search{flex:1 1 100% !important;min-width:0;}
+  .filters-row .field.search input{min-width:0;width:100%;}
+  .filters-row select.field{flex:1 1 140px;min-width:0;}
+}
 select.field{min-width:130px;}
 
 /* ---------- Table ---------- */

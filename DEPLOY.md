@@ -2,7 +2,7 @@
 
 There are two ways. Pick one:
 
-| | **A. App Platform** (recommended) | **B. Droplet** (a virtual server) |
+| | **A. App Platform** (recommended: Dedicated CPU `apps-d-1vcpu-2gb`, Managed PostgreSQL, Spaces) | **B. Droplet** (a virtual server) |
 |---|---|---|
 | Setup | Click-through, no server to manage | One script on the server |
 | Updates | Automatic on every `git push` | Run `deploy/update.sh` |
@@ -33,14 +33,18 @@ Both use the same settings (all listed in `.env.example`).
 
 ## A. DigitalOcean App Platform
 
-1. Open `.do/app.yaml` and change the lines marked `<-- CHANGE`
-   (your GitHub repository and your domain). Commit and push.
+1. Create the **Managed PostgreSQL** cluster first (Databases -> Create ->
+   PostgreSQL 16, Singapore, 1 GiB single node, name `tunga-db`) and the
+   **Spaces** bucket with an access key (Singapore).
+   Then open `.do/app.yaml` and change the lines marked `<-- CHANGE`
+   (GitHub repository, domain, bucket, cluster). Commit and push.
 2. DigitalOcean → **Create → Apps** → GitHub → choose the repository → finish.
 3. Your app → **Settings → App Spec → Edit** → paste the whole `.do/app.yaml`
    → **Save**. This adds the PostgreSQL database, the setup job and the domain.
 4. Your app → **Settings → Environment Variables (App-Level)**: replace every
-   `CHANGE-ME` (SECRET_KEY, OTP_ENCRYPTION_KEY, ADMIN_URL, Cloudinary keys,
-   reCAPTCHA keys, first superuser). Save → the app deploys.
+   `CHANGE-ME` (SECRET_KEY, OTP_ENCRYPTION_KEY, ADMIN_URL, Spaces keys,
+   reCAPTCHA keys, first superuser) and add BREVO_SENDER_EMAIL / BREVO_API_KEY.
+   Save → the app deploys.
 5. Each deploy runs, in order: install packages → `collectstatic` →
    **setup job** (`migrate` + `setup_production`) → start the website.
    Check **Activity → Deploy logs**; `setup_production` lists any missing setting.
@@ -60,8 +64,8 @@ Or keep Namecheap DNS: Namecheap → Advanced DNS, add
 
 DNS changes take from a few minutes up to 24 hours.
 
-> Uploaded files: App Platform's own disk is erased on every deploy, so keep
-> `MEDIA_STORAGE=cloudinary` (or `spaces`). Backups made in Super Admin are
+> Uploaded files: App Platform's own disk is erased on every deploy, so the
+> app spec uses `MEDIA_STORAGE=spaces` (Cloudinary only for the Render site). Backups made in Super Admin are
 > kept in your Spaces bucket (private `backups/` folder) as soon as the
 > `SPACES_*` settings are filled in — even when photos stay on Cloudinary.
 > Without them the Backup page shows a red warning, because backups on the
