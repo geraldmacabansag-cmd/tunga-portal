@@ -1752,6 +1752,24 @@ def admin_office_rep(request):
 
         rows.append({"rep": rep, "status": status})
 
+    # numbers shown in each representative's View window
+    def _per(model, key):
+        return dict(model.objects.values_list(key).annotate(n=Count('id')).values_list(key, 'n'))
+    rep_counts = {
+        "announcements": _per(Announcement, 'representative'),
+        "news": _per(NewsUpdate, 'representative'),
+        "events": _per(Event, 'representative'),
+        "albums": _per(Album, 'representative'),
+    }
+    office_counts = {
+        "services": _per(Service, 'office'),
+        "forms": _per(DownloadableForm, 'office'),
+    }
+    for r in rows:
+        rep = r["rep"]
+        r["counts"] = {k: v.get(rep.id, 0) for k, v in rep_counts.items()}
+        r["counts"].update({k: v.get(rep.office_id, 0) for k, v in office_counts.items()})
+
     total_offices = Office.objects.exclude(slug=LGU_SUPER_ADMIN_SLUG).count()
     assigned_office_ids = {r["rep"].office_id for r in rows}
     offices_without_rep = total_offices - len(assigned_office_ids)

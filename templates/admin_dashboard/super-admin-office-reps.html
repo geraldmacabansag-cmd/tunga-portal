@@ -101,7 +101,7 @@
                 <td>{{ r.rep.user.last_login|date:"M d, Y, g:i A"|default:"Never" }}</td>
                 <td>
                   <div class="action-icons">
-                    <a class="ic" href="{% url 'admin:office_dashboard_officerepresentative_change' r.rep.id %}" title="View / edit"><i class="fa-regular fa-eye"></i></a>
+                    <button type="button" class="ic" data-own-action style="border:none;background:none;cursor:pointer;" title="View details" onclick="openModal('view-rep-modal-{{ r.rep.id }}')"><i class="fa-regular fa-eye"></i></button>
                     <button type="button" class="ic toggle-active-btn" style="border:none;background:none;cursor:pointer;"
                       title="{% if r.rep.user.is_active %}Deactivate{% else %}Activate{% endif %}"
                       data-name="{{ r.rep.user.get_full_name|default:r.rep.user.username }}"
@@ -203,6 +203,75 @@
       </div>
 
 
+
+<!-- View Representative details (one window per representative) -->
+{% for r in rows %}
+<div class="modal-backdrop" id="view-rep-modal-{{ r.rep.id }}">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Representative Details</h3>
+      <button type="button" class="modal-x" onclick="closeModal('view-rep-modal-{{ r.rep.id }}')"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="rep-view-top">
+        <img src="{% if r.rep.photo %}{{ r.rep.photo.url }}{% else %}{% static 'images/icon/profile_logo.jpeg' %}{% endif %}" alt="" loading="lazy">
+        <p class="rep-view-name">{{ r.rep.user.get_full_name|default:r.rep.user.username }}</p>
+        <p class="rep-view-sub">{{ r.rep.position|default:"Office Representative" }} · {{ r.rep.office.name }}</p>
+        <span class="badge {% if r.status == 'active' %}badge-green{% elif r.status == 'pending' %}badge-amber{% else %}badge-gray{% endif %}">
+          {% if r.status == 'active' %}Active{% elif r.status == 'pending' %}Pending{% else %}Inactive{% endif %}
+        </span>
+      </div>
+
+      <p class="rep-view-label">Account</p>
+      <div class="modal-view-row"><span class="k">Full Name</span><span class="v">{{ r.rep.user.get_full_name|default:"—" }}</span></div>
+      <div class="modal-view-row"><span class="k">Username</span><span class="v">{{ r.rep.user.username }}</span></div>
+      <div class="modal-view-row"><span class="k">Email</span><span class="v">{% if r.rep.user.email %}<a href="mailto:{{ r.rep.user.email }}">{{ r.rep.user.email }}</a>{% else %}—{% endif %}</span></div>
+      <div class="modal-view-row"><span class="k">Mobile Number</span><span class="v">{% if r.rep.mobile_number %}<a href="tel:{{ r.rep.mobile_number }}">{{ r.rep.mobile_number }}</a>{% else %}—{% endif %}</span></div>
+      <div class="modal-view-row"><span class="k">Account Status</span><span class="v">{% if r.rep.user.is_active %}Enabled{% else %}Deactivated{% endif %}</span></div>
+      <div class="modal-view-row"><span class="k">Account Created</span><span class="v">{{ r.rep.user.date_joined|date:"M d, Y" }}</span></div>
+      <div class="modal-view-row"><span class="k">Last Active</span><span class="v">{{ r.rep.user.last_login|date:"M d, Y, g:i A"|default:"Never logged in" }}</span></div>
+
+      <p class="rep-view-label">Office</p>
+      <div class="modal-view-row"><span class="k">Assigned Office</span><span class="v">{{ r.rep.office.name }}</span></div>
+      <div class="modal-view-row"><span class="k">Position</span><span class="v">{{ r.rep.position|default:"—" }}</span></div>
+      <div class="modal-view-row"><span class="k">Representative Since</span><span class="v">{{ r.rep.assigned_at|date:"M d, Y"|default:"—" }}</span></div>
+
+      <p class="rep-view-label">Content</p>
+      <div class="rep-view-stats">
+        <div><b>{{ r.counts.announcements }}</b><span>Announcements</span></div>
+        <div><b>{{ r.counts.news }}</b><span>News</span></div>
+        <div><b>{{ r.counts.events }}</b><span>Events</span></div>
+        <div><b>{{ r.counts.services }}</b><span>Services</span></div>
+        <div><b>{{ r.counts.forms }}</b><span>Forms</span></div>
+        <div><b>{{ r.counts.albums }}</b><span>Albums</span></div>
+      </div>
+
+      <p class="rep-view-label">Email Notifications</p>
+      <div class="modal-view-row"><span class="k">Approvals</span><span class="v">{{ r.rep.notify_approvals|yesno:"On,Off" }}</span></div>
+      <div class="modal-view-row"><span class="k">Messages</span><span class="v">{{ r.rep.notify_messages|yesno:"On,Off" }}</span></div>
+      <div class="modal-view-row"><span class="k">LGU Announcements</span><span class="v">{{ r.rep.notify_announcements|yesno:"On,Off" }}</span></div>
+      <div class="modal-view-row"><span class="k">Weekly Summary</span><span class="v">{{ r.rep.notify_weekly_summary|yesno:"On,Off" }}</span></div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-primary" onclick="closeModal('view-rep-modal-{{ r.rep.id }}')">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
+
+<style>
+.rep-view-top { text-align:center; margin-bottom:6px; }
+.rep-view-top img { width:76px; height:76px; border-radius:50%; object-fit:cover; display:block; margin:0 auto 10px; }
+.rep-view-name { margin:0; font-size:16px; font-weight:800; color:var(--gray-900); }
+.rep-view-sub { margin:2px 0 8px; font-size:12.5px; color:var(--gray-500); }
+.rep-view-label { margin:18px 0 2px; font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:var(--blue-600); }
+.rep-view-stats { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-top:8px; }
+.rep-view-stats div { background:var(--gray-50); border-radius:10px; padding:10px 6px; text-align:center; }
+.rep-view-stats b { display:block; font-size:18px; color:var(--gray-900); }
+.rep-view-stats span { font-size:11.5px; color:var(--gray-500); }
+.modal-view-row .v a { color:inherit; text-decoration:none; }
+</style>
 
 <!-- Add / Edit Representative modal -->
 <div class="modal-backdrop" id="assignRepModal">
@@ -442,6 +511,10 @@
     }, 2600);
   }
 
+  // View details windows: clicking outside the window closes it
+  document.querySelectorAll('[id^="view-rep-modal-"]').forEach(function (m) {
+    m.addEventListener('click', function (e) { if (e.target === m) closeModal(m.id); });
+  });
   document.getElementById('assignRepModal').addEventListener('click', function(e){
     if(e.target === this) closeModal('assignRepModal');
   });

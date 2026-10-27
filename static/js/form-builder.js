@@ -9,7 +9,8 @@
  * to hide the panel). Zoom buttons fit the page to any screen size. label, type, required,
  * left / center / right, top / middle / bottom, font size, bold, ALL CAPS,
  * color and hint text. Arrow keys nudge the selected field (Shift = bigger
- * steps), Delete removes it.
+ * steps), Delete removes it. Undo / Redo buttons (Ctrl+Z / Ctrl+Y) step back
+ * and forward through the changes.
  */
 (function () {
   var CFG = window.FORM_BUILDER;
@@ -37,6 +38,50 @@
   function selected() { return fields.filter(function (f) { return f._key === selectedKey; })[0] || null; }
   function markDirty() { dirty = true; setStatus('Unsaved changes', '#b45309'); }
   function setStatus(text, color) { var s = $('save-status'); s.textContent = text; s.style.color = color || '#555'; }
+  /* ---------------- Undo / Redo ---------------- */
+  // Each step is a copy of all the fields (and which one was selected),
+  // taken just BEFORE a change. Typing in one box / nudging one field with
+  // the arrow keys counts as one step.
+  var undoStack = [], redoStack = [], lastTag = null, lastTime = 0, HISTORY_MAX = 100;
+  function snap() { return JSON.stringify({ fields: fields, sel: selectedKey }); }
+  function pushUndo(s) {
+    undoStack.push(s);
+    if (undoStack.length > HISTORY_MAX) undoStack.shift();
+    redoStack = [];
+    updateHistoryBtns();
+  }
+  function checkpoint(tag) {
+    var now = Date.now();
+    if (tag && tag === lastTag && now - lastTime < 1500) { lastTime = now; return; }
+    lastTag = tag || null; lastTime = now;
+    pushUndo(snap());
+  }
+  function restore(s) {
+    var d = JSON.parse(s);
+    fields = d.fields.map(prep);
+    selectedKey = fields.some(function (f) { return f._key === d.sel; }) ? d.sel : null;
+    var f = selected();
+    if (f && f.page_number !== currentPage) { currentPage = f.page_number; loadPage(currentPage); }
+    else renderBoxes();
+    renderList(); renderEditor(); markDirty();
+  }
+  function undo() {
+    if (!undoStack.length) return;
+    redoStack.push(snap()); restore(undoStack.pop());
+    lastTag = null; updateHistoryBtns();
+  }
+  function redo() {
+    if (!redoStack.length) return;
+    undoStack.push(snap()); restore(redoStack.pop());
+    lastTag = null; updateHistoryBtns();
+  }
+  function updateHistoryBtns() {
+    if ($('fbUndo')) $('fbUndo').disabled = !undoStack.length;
+    if ($('fbRedo')) $('fbRedo').disabled = !redoStack.length;
+  }
+  if ($('fbUndo')) $('fbUndo').onclick = undo;
+  if ($('fbRedo')) $('fbRedo').onclick = redo;
+
   function esc(s) { return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
 
   /* ---------------- PDF ---------------- */
@@ -135,7 +180,7 @@
     var rect = stage.getBoundingClientRect();
     var startX = e.clientX, startY = e.clientY;
     var orig = { x: f.x, y: f.y, w: f.width, h: f.height };
-    var moved = false;
+    var moved = false, before = snap();
     function onMove(ev) {
       var dx = (ev.clientX - startX) / rect.width, dy = (ev.clientY - startY) / rect.height;
       if (Math.abs(dx) + Math.abs(dy) > 0.001) moved = true;
@@ -152,7 +197,7 @@
       document.removeEventListener('pointermove', onMove);
       document.removeEventListener('pointerup', onUp);
       document.removeEventListener('pointercancel', onUp);
-      if (moved) { suppressClick = true; markDirty(); }
+      if (moved) { suppressClick = true; pushUndo(before); lastTag = null; markDirty(); }
     }
     document.addEventListener('pointermove', onMove);
     document.addEventListener('pointerup', onUp);
@@ -175,6 +220,7 @@
       text_align: last.text_align, v_align: last.v_align, font_size: last.font_size,
       bold: last.bold, text_color: last.text_color, uppercase: last.uppercase,
     });
+    checkpoint();
     fields.push(f);
     markDirty();
     renderBoxes();
@@ -270,9 +316,10 @@
       '</div>' +
       '<p class="fb-muted fb-tip">Tip: arrow keys move the field, Shift + arrow moves faster, Delete removes it.</p>';
 
-    function change(prop, val) { f[prop] = val; markDirty(); refreshBox(f); }
+    // tag = changes that come one letter / one step at a time count as one undo step
+    function change(prop, val, tag) { checkpoint(tag ? prop + ':' + f._key : null); f[prop] = val; markDirty(); refreshBox(f); }
 
-    $('fe-label').oninput = function () { f.label = this.value; markDirty(); refreshBox(f); renderList(); };
+    $('fe-label').oninput = function () { checkpoint('label:' + f._key); f.label = this.value; markDirty(); refreshBox(f); renderList(); };
     $('fe-type').onchange = function () { change('field_type', this.value); renderEditor(); };
     $('fe-required').onchange = function () { change('required', this.checked); };
     box.querySelectorAll('.fb-seg[data-prop] button').forEach(function (b) {
@@ -280,15 +327,16 @@
     });
     if (isText) {
       $('fe-size').onchange = function () { change('font_size', parseInt(this.value, 10)); };
-      $('fe-color').oninput = function () { change('text_color', this.value); };
+      $('fe-color').oninput = function () { change('text_color', this.value, true); };
       $('fe-color').onchange = function () { renderEditor(); };
       box.querySelectorAll('.fb-swatch').forEach(function (s) {
         s.onclick = function () { change('text_color', s.dataset.color); renderEditor(); };
       });
       $('fe-bold').onclick = function () { change('bold', !f.bold); renderEditor(); };
       $('fe-caps').onclick = function () { change('uppercase', !f.uppercase); renderEditor(); };
-      $('fe-placeholder').oninput = function () { f.placeholder = this.value; markDirty(); };
+      $('fe-placeholder').oninput = function () { checkpoint('placeholder:' + f._key); f.placeholder = this.value; markDirty(); };
       $('fe-apply-all').onclick = function () {
+        checkpoint();
         fields.forEach(function (o) {
           ['text_align', 'v_align', 'font_size', 'bold', 'text_color', 'uppercase'].forEach(function (k) { o[k] = f[k]; });
         });
@@ -297,6 +345,7 @@
       };
     }
     $('fe-dup').onclick = function () {
+      checkpoint();
       var copy = prep(JSON.parse(JSON.stringify(f)));
       delete copy.id; copy._key = 'new' + (nextTemp++);
       copy.y = Math.min(1 - copy.height, f.y + f.height + 0.01);
@@ -307,18 +356,28 @@
 
   function removeSelected() {
     var f = selected(); if (!f) return;
+    checkpoint();
     fields = fields.filter(function (x) { return x !== f; });
     selectedKey = null; markDirty(); renderBoxes(); renderList(); renderEditor();
   }
 
   // Keyboard: nudge / delete the selected field (not while typing in a box).
   document.addEventListener('keydown', function (e) {
+    // Ctrl+Z = undo, Ctrl+Y / Ctrl+Shift+Z = redo (inside a text box the
+    // box's own undo is used instead)
+    var typing = /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName);
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && !typing) {
+      var k = e.key.toLowerCase();
+      if (k === 'z' && !e.shiftKey) { e.preventDefault(); return undo(); }
+      if (k === 'y' || (k === 'z' && e.shiftKey)) { e.preventDefault(); return redo(); }
+    }
     var f = selected();
     if (!f || /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return;
     var step = e.shiftKey ? 0.01 : 0.001;
     var moves = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
     if (moves[e.key]) {
       e.preventDefault();
+      checkpoint('nudge:' + f._key);
       f.x = Math.max(0, Math.min(1 - f.width, f.x + moves[e.key][0]));
       f.y = Math.max(0, Math.min(1 - f.height, f.y + moves[e.key][1]));
       markDirty(); refreshBox(f);
@@ -349,8 +408,24 @@
     }).then(function (r) { return r.json(); }).then(function (data) {
       if (!data.success) throw new Error(data.error || 'Could not save.');
       // Take the saved list back (new fields now have real ids).
-      var sel = selected();
+      var sel = selected(), before = fields;
       fields = data.fields.map(prep);
+      // new fields now have real ids: give the undo / redo steps the same
+      // ids, so undoing after saving doesn't make copies of them
+      var remap = {};
+      before.forEach(function (o) {
+        var n = fields.filter(function (f) {
+          return f.page_number === o.page_number && Math.abs(f.x - o.x) < 1e-6 && Math.abs(f.y - o.y) < 1e-6;
+        })[0];
+        if (n) remap[o._key] = n;
+      });
+      function fix(st) {
+        var d = JSON.parse(st);
+        d.fields.forEach(function (o) { var n = remap[o._key]; if (n) { o.id = n.id; o._key = n._key; } });
+        if (remap[d.sel]) d.sel = remap[d.sel]._key;
+        return JSON.stringify(d);
+      }
+      undoStack = undoStack.map(fix); redoStack = redoStack.map(fix);
       var again = sel && fields.filter(function (f) {
         return f.page_number === sel.page_number && Math.abs(f.x - sel.x) < 1e-6 && Math.abs(f.y - sel.y) < 1e-6;
       })[0];
@@ -369,4 +444,5 @@
 
   renderList();
   renderEditor();
+  updateHistoryBtns();
 })();

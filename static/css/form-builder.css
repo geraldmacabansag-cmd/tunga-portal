@@ -4,6 +4,10 @@
 .fb-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
 .fb-toolbar .form-builder-pager { margin: 0; }
 .fb-zoom { display: flex; align-items: center; gap: 6px; }
+/* Undo / Redo (icons only, same as the org chart builder) */
+.fb-history { display: flex; align-items: center; gap: 6px; }
+.fb-icon-btn { padding: 6px 10px; }
+.fb-icon-btn:disabled { opacity: .45; cursor: default; }
 .fb-zoom .btn { padding: 6px 10px; }
 #zoomLevel { min-width: 44px; text-align: center; font-size: 12.5px; color: var(--gray-600, #4b5563); }
 .fb-sample { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--gray-600, #4b5563); cursor: pointer; }

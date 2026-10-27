@@ -1458,9 +1458,14 @@ textarea.note-input{
   display:flex; align-items:center; justify-content:center;
   padding:20px; z-index:150;
   opacity:0; pointer-events:none;
-  transition:opacity .18s ease;
+  /* closed windows are not drawn at all (visibility:hidden). Before, every
+     closed window stayed drawn as a see-through full-screen layer; a page
+     with many of them (the Offices page has 3 per office) used up the
+     phone's memory while scrolling and the browser tab crashed. */
+  visibility:hidden;
+  transition:opacity .18s ease, visibility 0s linear .18s;
 }
-.modal-backdrop.open{opacity:1; pointer-events:auto;}
+.modal-backdrop.open{opacity:1; pointer-events:auto; visibility:visible; transition:opacity .18s ease, visibility 0s;}
 body.modal-open{overflow:hidden;}
 .modal-box{
   background:#fff; border-radius:var(--radius-lg); box-shadow:var(--shadow-md);

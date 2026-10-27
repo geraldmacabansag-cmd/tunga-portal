@@ -501,6 +501,8 @@
     if (document.body.dataset.page === 'office-services-editor') return;
     var ic = e.target.closest('.ic, .dl');
     if (!ic) return;
+    // buttons that open the page's own window (data-own-action) are left alone
+    if (ic.hasAttribute('data-own-action')) return;
     // A real link (View in a new tab, Download, ...) always works normally:
     // only the old placeholder icons without an address are handled below.
     if (ic.tagName === 'A') {
