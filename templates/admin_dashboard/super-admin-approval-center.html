@@ -16,22 +16,23 @@
     </div>
   </div>
 
-  <section class="panel">
+  {# tabs, status, search and page numbers work without reloading (static/js/list-filter.js) #}
+  <section class="panel" data-lf data-lf-param="type" data-lf-default-tab="all" data-lf-all="all" data-lf-size="10" data-lf-noun="submissions">
     <div class="tabs">
-      <a class="tab {% if current_type == 'all' %}active{% endif %}" style="text-decoration:none;" href="?type=all">All <span class="count">{{ total_count }}</span></a>
-      <a class="tab {% if current_type == 'Announcement' %}active{% endif %}" style="text-decoration:none;" href="?type=Announcement">Announcements <span class="count">{{ type_counts.Announcement|default:0 }}</span></a>
-      <a class="tab {% if current_type == 'Form' %}active{% endif %}" style="text-decoration:none;" href="?type=Form">Forms <span class="count">{{ type_counts.Form|default:0 }}</span></a>
-      <a class="tab {% if current_type == 'News' %}active{% endif %}" style="text-decoration:none;" href="?type=News">News <span class="count">{{ type_counts.News|default:0 }}</span></a>
-      <a class="tab {% if current_type == 'Event' %}active{% endif %}" style="text-decoration:none;" href="?type=Event">Events <span class="count">{{ type_counts.Event|default:0 }}</span></a>
-      <a class="tab {% if current_type == 'Gallery' %}active{% endif %}" style="text-decoration:none;" href="?type=Gallery">Gallery <span class="count">{{ type_counts.Gallery|default:0 }}</span></a>
-      <a class="tab {% if current_type == 'Service' %}active{% endif %}" style="text-decoration:none;" href="?type=Service">Services <span class="count">{{ type_counts.Service|default:0 }}</span></a>
+      <a class="tab {% if current_type == 'all' %}active{% endif %}" style="text-decoration:none;" data-lf-tab="all" href="?type=all">All <span class="count">{{ total_count }}</span></a>
+      <a class="tab {% if current_type == 'Announcement' %}active{% endif %}" style="text-decoration:none;" data-lf-tab="Announcement" href="?type=Announcement">Announcements <span class="count">{{ type_counts.Announcement|default:0 }}</span></a>
+      <a class="tab {% if current_type == 'Form' %}active{% endif %}" style="text-decoration:none;" data-lf-tab="Form" href="?type=Form">Forms <span class="count">{{ type_counts.Form|default:0 }}</span></a>
+      <a class="tab {% if current_type == 'News' %}active{% endif %}" style="text-decoration:none;" data-lf-tab="News" href="?type=News">News <span class="count">{{ type_counts.News|default:0 }}</span></a>
+      <a class="tab {% if current_type == 'Event' %}active{% endif %}" style="text-decoration:none;" data-lf-tab="Event" href="?type=Event">Events <span class="count">{{ type_counts.Event|default:0 }}</span></a>
+      <a class="tab {% if current_type == 'Gallery' %}active{% endif %}" style="text-decoration:none;" data-lf-tab="Gallery" href="?type=Gallery">Gallery <span class="count">{{ type_counts.Gallery|default:0 }}</span></a>
+      <a class="tab {% if current_type == 'Service' %}active{% endif %}" style="text-decoration:none;" data-lf-tab="Service" href="?type=Service">Services <span class="count">{{ type_counts.Service|default:0 }}</span></a>
 
     </div>
 
     <form method="get" class="filters-row">
       <input type="hidden" name="type" value="{{ current_type }}">
-      <label class="field search" style="flex:1;"><i class="fa-solid fa-magnifying-glass"></i><input type="text" name="q" value="{{ current_q }}" placeholder="Search submission..." onchange="this.form.submit()"></label>
-      <select class="field" name="status" onchange="this.form.submit()">
+      <label class="field search" style="flex:1;"><i class="fa-solid fa-magnifying-glass"></i><input type="text" name="q" value="{{ current_q }}" placeholder="Search submission..." data-lf-q autocomplete="off"></label>
+      <select class="field" name="status" data-lf-filter="status">
         <option value="" {% if current_status == "" %}selected{% endif %}>All Status</option>
         <option value="pending" {% if current_status == "pending" %}selected{% endif %}>Pending</option>
         <option value="returned" {% if current_status == "returned" %}selected{% endif %}>Returned</option>
@@ -51,8 +52,8 @@
           </tr>
         </thead>
         <tbody>
-        {% for item in page_obj %}
-        <tr class="row-clickable" data-href="{% url 'admin_dashboard:approval_details' item.type item.pk %}">
+        {% for item in items %}
+        <tr class="row-clickable" data-lf-row data-tab="{{ item.type }}" data-status="{{ item.status }}" data-title="{{ item.title }} {{ item.office }} {{ item.type }}" data-date="{{ item.date|date:'YmdHis' }}" data-href="{% url 'admin_dashboard:approval_details' item.type item.pk %}">
           
           <td class="row-icon-name">
             <span class="row-thumb {{ item.thumb_class }}"><i class="{{ item.icon }}"></i></span>
@@ -80,36 +81,17 @@
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--gray-400);">No submissions match your filters.</td></tr>
+        <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--gray-400);">No submissions are waiting for review.</td></tr>
         {% endfor %}
+        {% if items %}<tr data-lf-empty hidden><td colspan="6" style="text-align:center;padding:24px;color:var(--gray-400);">No submissions match your filters.</td></tr>{% endif %}
         </tbody>
       </table>
     </div>
 
-    {% if page_obj.paginator.count > 0 %}
     <div class="pagination">
-      <span>Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} submissions</span>
-      <div class="page-nums">
-        {% if page_obj.has_previous %}
-          <a class="page-btn" href="?type={{ current_type }}&q={{ current_q }}&status={{ current_status }}&page={{ page_obj.previous_page_number }}"><i class="fa-solid fa-chevron-left"></i></a>
-        {% else %}
-          <span class="page-btn disabled"><i class="fa-solid fa-chevron-left"></i></span>
-        {% endif %}
-        {% for num in page_obj.paginator.page_range %}
-          {% if num == page_obj.number %}
-            <span class="page-btn active">{{ num }}</span>
-          {% else %}
-            <a class="page-btn" href="?type={{ current_type }}&q={{ current_q }}&status={{ current_status }}&page={{ num }}">{{ num }}</a>
-          {% endif %}
-        {% endfor %}
-        {% if page_obj.has_next %}
-          <a class="page-btn" href="?type={{ current_type }}&q={{ current_q }}&status={{ current_status }}&page={{ page_obj.next_page_number }}"><i class="fa-solid fa-chevron-right"></i></a>
-        {% else %}
-          <span class="page-btn disabled"><i class="fa-solid fa-chevron-right"></i></span>
-        {% endif %}
-      </div>
+      <span data-lf-info>{{ items|length }} submissions</span>
+      <div class="page-nums" data-lf-pager></div>
     </div>
-    {% endif %}
   </section>
 
 <script>
@@ -151,4 +133,5 @@
   })();
 </script>
 
+<script src="{% static 'js/list-filter.js' %}?v=4"></script>
 {% endblock %}

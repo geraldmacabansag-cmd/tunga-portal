@@ -1,0 +1,26 @@
+{% comment %}
+Date filter / sort bar of one tab of the public Announcements page.
+f = ann_filter / news_filter / ev_filter (portal/views.py, _date_filter);
+tab = the tab's #hash; events = True for the Events tab (soonest / latest).
+Changing anything reloads the page on the same tab.
+{% endcomment %}
+<form class="panel date-filter" method="get" action="#{{ tab }}" aria-label="Filter by date">
+  {% for k, v in f.keep %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+  <span class="date-filter__label"><i class="fa-regular fa-calendar"></i> Date</span>
+  <select name="{{ f.prefix }}_when" class="date-filter__field js-df-when" aria-label="Date range">
+    {% for value, label in f.choices %}<option value="{{ value }}"{% if f.when == value and not f.month %} selected{% endif %}>{{ label }}</option>{% endfor %}
+    <option value="pick"{% if f.month %} selected{% endif %}>Choose a month…</option>
+  </select>
+  <input type="month" name="{{ f.prefix }}_month" value="{{ f.month }}" class="date-filter__field js-df-month" aria-label="Month"{% if not f.month %} hidden disabled{% endif %}>
+  <span class="date-filter__label"><i class="fa-solid fa-arrow-down-wide-short"></i> Sort</span>
+  <select name="{{ f.prefix }}_sort" class="date-filter__field" aria-label="Sort by date">
+    {% if events %}
+    <option value="">Soonest first</option>
+    <option value="latest"{% if f.sort == 'latest' %} selected{% endif %}>Latest first</option>
+    {% else %}
+    <option value="">Newest first</option>
+    <option value="oldest"{% if f.sort == 'oldest' %} selected{% endif %}>Oldest first</option>
+    {% endif %}
+  </select>
+  {% if f.active %}<a class="date-filter__clear" href="?{% for k, v in f.keep %}{{ k|urlencode }}={{ v|urlencode }}&amp;{% endfor %}#{{ tab }}"><i class="fa-solid fa-xmark"></i> Clear</a>{% endif %}
+</form>

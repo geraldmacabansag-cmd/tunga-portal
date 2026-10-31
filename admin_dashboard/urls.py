@@ -78,9 +78,11 @@ urlpatterns = [
 
     path('Admin-My-Account/', views.admin_my_account, name='admin_account'),
     path('Admin-Change-Password/', views.admin_change_password, name='admin_change_pass'),
+    path('Admin-Change-Password/send-code/', views.admin_send_password_otp, name='admin_send_password_otp'),
 
     path('Admin-Homepage/', views.admin_homepage, name='ad_homepage'),
     path('Admin-Homepage/banner-slider/save/', views.admin_hero_slider_save, name='admin_hero_slider_save'),
+    path('Admin-Homepage/video/save/', views.admin_home_video_save, name='admin_home_video_save'),
     path('Admin-Homepage/quick-link/<int:pk>/save/', views.admin_quicklink_save, name='admin_quicklink_save'),
     path('Admin-Homepage/quick-link/create/save/', lambda request: views.admin_quicklink_save(request, pk=0), name='admin_quicklink_create'),
     path('Admin-Homepage/quick-link/<int:pk>/delete/', views.admin_quicklink_delete, name='admin_quicklink_delete'),

@@ -172,6 +172,8 @@ Home | Digital Governance Portal
             </div>
           </div>
 
+          {% include "portal/_date_filter.html" with f=ann_filter tab="announcements" %}
+
           {% if pinned_announcement %}
           <div class="ann-pinned">
             <span class="ann-pinned__icon"><i class="fa-solid fa-bell"></i></span>
@@ -205,7 +207,7 @@ Home | Digital Governance Portal
             </div>
             {% include "portal/_ann_detail.html" %}
             {% empty %}
-            <div class="panel ann-placeholder">No published announcements yet. Check back soon.</div>
+            <div class="panel ann-placeholder">{% if ann_filter.active %}No announcements in the chosen dates.{% else %}No published announcements yet. Check back soon.{% endif %}</div>
             {% endfor %}
           </div>
 
@@ -291,10 +293,12 @@ Home | Digital Governance Portal
     <!-- ===================== TAB: News (now wired to real published NewsUpdate data) ===================== -->
     <div class="tab-panel" data-tab-panel="news">
 
+      {% include "portal/_date_filter.html" with f=news_filter tab="news" %}
+
       {% if news_filtering %}
       <div class="panel news-results-bar">
         <span><i class="fa-solid fa-magnifying-glass"></i>
-          <strong>{{ news_result_count }}</strong> result{{ news_result_count|pluralize }}{% if news_q %} for &ldquo;{{ news_q }}&rdquo;{% endif %}{% if news_topic %} in <strong>{{ news_topic }}</strong>{% endif %}
+          <strong>{{ news_result_count }}</strong> result{{ news_result_count|pluralize }}{% if news_q %} for &ldquo;{{ news_q }}&rdquo;{% endif %}{% if news_topic %} in <strong>{{ news_topic }}</strong>{% endif %}{% if news_filter.start or news_filter.end %} from <strong>{{ news_filter.start|date:"M j, Y" }}</strong> to <strong>{{ news_filter.end|date:"M j, Y" }}</strong>{% endif %}{% if news_filter.sort == 'oldest' %} (oldest first){% endif %}
         </span>
         <a href="?{{ news_office_qs|slice:'1:' }}#news" class="news-results-bar__clear"><i class="fa-solid fa-xmark"></i> Clear</a>
       </div>
@@ -441,6 +445,8 @@ Home | Digital Governance Portal
     <!-- ===================== TAB: Events (now wired to real published Event data) ===================== -->
     <div class="tab-panel" data-tab-panel="events">
 
+      {% include "portal/_date_filter.html" with f=ev_filter tab="events" events=True %}
+
       {% if featured_event %}
       <div class="panel event-hero" data-search-text="{{ featured_event.title|lower }}" data-search-category="{{ featured_event.category_label|lower }}" data-search-category-label="{{ featured_event.category_label }}">
         <div class="event-hero__img{% if featured_event.gallery_photos %} pcc-host{% endif %}" {% if featured_event.poster %}style="background-image:url('{{ featured_event.poster.url }}');background-size:cover;background-position:center;"{% endif %}>
@@ -471,7 +477,7 @@ Home | Digital Governance Portal
         </div>
       </div>
       <template id="tpl-event-{{ featured_event.id }}">{% include "portal/_event_detail.html" with e=featured_event %}</template>
-      {% else %}
+      {% elif not ev_filter.active %}
       <div class="panel ann-placeholder">No upcoming events scheduled yet.</div>
       {% endif %}
 
@@ -500,7 +506,9 @@ Home | Digital Governance Portal
             </a>
             <template id="tpl-event-{{ e.id }}">{% include "portal/_event_detail.html" %}</template>
             {% empty %}
-            {% if featured_event %}
+            {% if ev_filter.active %}
+            <div class="panel ann-placeholder">No upcoming events in the chosen dates.</div>
+            {% elif featured_event %}
             <div class="panel ann-placeholder">No other upcoming events right now.</div>
             {% endif %}
             {% endfor %}
@@ -523,7 +531,7 @@ Home | Digital Governance Portal
           </a>
           <template id="tpl-event-{{ e.id }}">{% include "portal/_event_detail.html" %}</template>
           {% empty %}
-          <div class="panel ann-placeholder">No past events yet.</div>
+          <div class="panel ann-placeholder">{% if ev_filter.active %}No past events in the chosen dates.{% else %}No past events yet.{% endif %}</div>
           {% endfor %}
 
           <p class="top-no-results panel" style="display:none;padding:30px;text-align:center;color:var(--text-muted);">No events match your search.</p>
@@ -711,15 +719,17 @@ Home | Digital Governance Portal
   // search box was removed — searching this tab is now done through the
   // shared top search bar above the tabs (see topSearchInput below), which
   // feeds its query into annSearchQuery.
-  var pills = document.querySelectorAll('.ann-pill');
-  var cards = document.querySelectorAll('.ann-card');
-  var noResults = document.getElementById('annNoResults');
+  // (read again each time: the tab's list can be replaced by the date filter)
+  var cards, noResults;
   var activeCategory = 'all';
   var annSearchQuery = '';
 
   function applyAnnFilters() {
     var query = annSearchQuery;
     var visibleCount = 0;
+    cards = document.querySelectorAll('.ann-card');
+    noResults = document.getElementById('annNoResults');
+    if (!noResults) return;
 
     cards.forEach(function (card) {
       var matchesCategory = activeCategory === 'all' || card.getAttribute('data-category') === activeCategory;
@@ -732,13 +742,13 @@ Home | Digital Governance Portal
     noResults.style.display = visibleCount === 0 ? 'block' : 'none';
   }
 
-  pills.forEach(function (pill) {
-    pill.addEventListener('click', function () {
-      pills.forEach(function (p) { p.classList.remove('active'); });
-      pill.classList.add('active');
-      activeCategory = pill.getAttribute('data-category');
-      applyAnnFilters();
-    });
+  document.addEventListener('click', function (e) {
+    var pill = e.target.closest('.ann-pill');
+    if (!pill) return;
+    document.querySelectorAll('.ann-pill').forEach(function (p) { p.classList.remove('active'); });
+    pill.classList.add('active');
+    activeCategory = pill.getAttribute('data-category');
+    applyAnnFilters();
   });
 
   // Announcement details modal: clicking a card's title or "Read more"
@@ -763,12 +773,12 @@ Home | Digital Governance Portal
       document.body.classList.add('lock');
     }
 
-    document.querySelectorAll('.js-ann-open').forEach(function (el) {
-      el.addEventListener('click', function (e) {
-        e.preventDefault();
-        var card = el.closest('.ann-card') || el;
-        openAnnDialog(el.getAttribute('data-ann'), card);
-      });
+    document.addEventListener('click', function (e) {
+      var el = e.target.closest('.js-ann-open');
+      if (!el) return;
+      e.preventDefault();
+      var card = el.closest('.ann-card') || el;
+      openAnnDialog(el.getAttribute('data-ann'), card);
     });
 
     function closeAnnDialog() {
@@ -806,11 +816,11 @@ Home | Digital Governance Portal
       document.body.classList.add('lock');
     }
 
-    document.querySelectorAll('.js-news-open').forEach(function (el) {
-      el.addEventListener('click', function (e) {
-        e.preventDefault();
-        openNewsDialog(el.getAttribute('data-news'), el);
-      });
+    document.addEventListener('click', function (e) {
+      var el = e.target.closest('.js-news-open');
+      if (!el) return;
+      e.preventDefault();
+      openNewsDialog(el.getAttribute('data-news'), el);
     });
 
     function closeNewsDialog() {
@@ -1050,6 +1060,7 @@ Home | Digital Governance Portal
   }
 
   rebuildTopFilterMenu(getActiveTabName());
+  window.annOnTabActivated = onTabActivated;   // used after a tab's list is swapped (date filter)
 
   // On load, restore whichever tab the URL points to — either from a link
   // like ?events_month=2026-11#events, or a direct #announcements link.
@@ -1090,6 +1101,109 @@ Home | Digital Governance Portal
     var deepEventEl = document.querySelector('.js-event-open[data-event="' + deepLinkEventId + '"]');
     if (deepEventEl) deepEventEl.click();
   }
+})();
+</script>
+
+<script>
+// Date filter / sort bars, the News search, topics and page numbers, and the
+// "Clear" links: the tab's list is fetched and swapped in place, so the page
+// does not reload and stays where it is.
+(function () {
+  var busy = {};
+  function panelOf(tab) { return document.querySelector('.tab-panel[data-tab-panel="' + tab + '"]'); }
+
+  function swap(tab, fresh) {
+    var panel = panelOf(tab);
+    if (tab === 'events') {
+      // keep the sidebar (the month calendar works on its own)
+      var grid = panel.querySelector('.announcements-grid'), newGrid = fresh.querySelector('.announcements-grid');
+      while (panel.firstChild && panel.firstChild !== grid) panel.removeChild(panel.firstChild);
+      Array.prototype.slice.call(fresh.childNodes).forEach(function (n) {
+        if (n === newGrid) return;
+        if (n.compareDocumentPosition(newGrid) & Node.DOCUMENT_POSITION_FOLLOWING) panel.insertBefore(document.importNode(n, true), grid);
+      });
+      grid.querySelector('.announcements-main').innerHTML = newGrid.querySelector('.announcements-main').innerHTML;
+    } else {
+      panel.innerHTML = fresh.innerHTML;
+    }
+    wire(panel);
+    if (window.annOnTabActivated) window.annOnTabActivated(tab);
+  }
+
+  function load(tab, url) {
+    var panel = panelOf(tab);
+    if (!panel || busy[tab]) return;
+    busy[tab] = true;
+    var keepY = window.scrollY;
+    panel.style.minHeight = panel.offsetHeight + 'px';   // no jump while it loads
+    panel.classList.add('is-loading');
+    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); })
+      .then(function (html) {
+        var doc = new DOMParser().parseFromString(html, 'text/html');
+        var fresh = doc.querySelector('.tab-panel[data-tab-panel="' + tab + '"]');
+        if (!fresh) throw new Error('no panel');
+        swap(tab, fresh);
+        history.replaceState(null, '', url.replace(/#.*$/, '') + '#' + tab);
+        window.scrollTo(0, keepY);
+        // if the list is now shorter, let the page shrink after a moment
+        setTimeout(function () { panel.style.minHeight = ''; }, 50);
+      })
+      .catch(function () { window.location.href = url.replace(/#.*$/, '') + '#' + tab; })
+      .then(function () { busy[tab] = false; panel.classList.remove('is-loading'); });
+  }
+
+  function formUrl(form) {
+    var params = new URLSearchParams();
+    new FormData(form).forEach(function (v, k) {
+      if (v === '' || v === 'pick') return;          // empty choices stay out of the address
+      params.append(k, v);
+    });
+    var qs = params.toString();
+    return location.pathname + (qs ? '?' + qs : '');
+  }
+
+  function wire(root) {
+    root.querySelectorAll('.date-filter').forEach(function (form) {
+      var when = form.querySelector('.js-df-when'), month = form.querySelector('.js-df-month');
+      var tab = form.closest('.tab-panel').getAttribute('data-tab-panel');
+      function send() { load(tab, formUrl(form)); }
+      when.addEventListener('change', function () {
+        var pick = when.value === 'pick';
+        month.hidden = !pick; month.disabled = !pick;
+        if (pick) { month.focus(); if (month.showPicker) { try { month.showPicker(); } catch (e) {} } return; }
+        month.value = ''; send();
+      });
+      month.addEventListener('change', function () { if (month.value) send(); });
+      form.querySelectorAll('select:not(.js-df-when)').forEach(function (s) {
+        s.addEventListener('change', function () {
+          if (when.value === 'pick' && !month.value) month.disabled = true;
+          send();
+        });
+      });
+      form.addEventListener('submit', function (e) { e.preventDefault(); send(); });
+    });
+    // News tab search box
+    root.querySelectorAll('form.ann-search').forEach(function (form) {
+      var tab = form.closest('.tab-panel').getAttribute('data-tab-panel');
+      form.addEventListener('submit', function (e) { e.preventDefault(); load(tab, formUrl(form)); });
+    });
+  }
+
+  // links inside a tab that only change that tab (?…#news / ?…#events …):
+  // page numbers, topics, Clear
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest('.tab-panel a[href]');
+    if (!a || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    var href = a.getAttribute('href');
+    var tab = a.closest('.tab-panel').getAttribute('data-tab-panel');
+    if (!/^\?/.test(href) || href.indexOf('#' + tab) === -1) return;
+    if (a.closest('#events-calendar-dynamic')) return;   // the calendar has its own handler
+    e.preventDefault();
+    load(tab, location.pathname + href);
+  });
+
+  wire(document);
 })();
 </script>
 

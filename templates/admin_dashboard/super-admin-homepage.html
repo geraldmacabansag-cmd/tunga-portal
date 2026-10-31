@@ -63,7 +63,8 @@ always the first slide.
   <div class="panel-header">
     <h2><i class="fa-solid fa-images" style="color:var(--blue-600);margin-right:8px;"></i>Banner Slider</h2>
   </div>
-  <p class="form-help" style="margin:0 0 14px;">The big banner at the top of the homepage. The welcome slide ("Building a Better Tunga") always comes first, then the posts below.</p>
+  <div class="panel-body hp-body">
+  <p class="hp-intro">The big banner at the top of the homepage. The welcome slide ("Building a Better Tunga") always comes first, then the posts below.</p>
 
   <form method="post" action="{% url 'admin_dashboard:admin_hero_slider_save' %}" id="sliderForm" data-max="{{ slider_pick_max }}">
     {% csrf_token %}
@@ -151,6 +152,55 @@ always the first slide.
       <a href="{% url 'home' %}" target="_blank" class="btn btn-secondary"><i class="fa-solid fa-up-right-from-square"></i> View on homepage</a>
     </div>
   </form>
+  </div>
+</div>
+
+{% comment %}
+Homepage Video: a YouTube link shown on the public homepage between News and
+the Photo Gallery. Saved by admin_home_video_save (admin_dashboard/views.py).
+{% endcomment %}
+<div class="panel" id="home-video">
+  <div class="panel-header">
+    <h2><i class="fa-brands fa-youtube" style="color:#e11d48;margin-right:8px;"></i>Homepage Video</h2>
+    {% if slider_info.home_video_id %}<span class="badge badge-green">Shown on homepage</span>{% else %}<span class="badge badge-gray">Not shown</span>{% endif %}
+  </div>
+  <div class="panel-body hp-body">
+    <p class="hp-intro">A YouTube video shown on the public homepage, between the News section and the Photo Gallery. Leave the link empty to hide the section.</p>
+    <div class="hv-grid">
+      <form method="post" action="{% url 'admin_dashboard:admin_home_video_save' %}" class="hv-form">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label" for="hv-url">YouTube video link</label>
+          <input class="form-input" type="url" name="home_video_url" id="hv-url" maxlength="300" value="{{ slider_info.home_video_url }}" placeholder="https://www.youtube.com/watch?v=… or https://youtu.be/…">
+          <span class="form-help">Public or unlisted YouTube videos only. Links to youtube.com, youtu.be, Shorts and Live are accepted.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="hv-title">Title <span style="color:var(--gray-400);font-weight:400;">(optional)</span></label>
+          <input class="form-input" type="text" name="home_video_title" id="hv-title" maxlength="150" value="{{ slider_info.home_video_title }}" placeholder="e.g. Discover Tunga, Leyte">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="hv-desc">Short description <span style="color:var(--gray-400);font-weight:400;">(optional)</span></label>
+          <textarea class="form-input" name="home_video_description" id="hv-desc" rows="3" maxlength="1000" placeholder="One or two sentences shown beside the video.">{{ slider_info.home_video_description }}</textarea>
+        </div>
+        <div class="hv-actions">
+          <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Video</button>
+          {% if slider_info.home_video_url %}
+          <button type="submit" name="remove" value="1" class="btn btn-secondary" formnovalidate onclick="return confirm('Remove the video from the homepage?');"><i class="fa-regular fa-trash-can"></i> Remove</button>
+          {% endif %}
+        </div>
+      </form>
+      <div class="hv-preview">
+        <span class="form-label">Preview</span>
+        <div class="hv-frame" id="hv-preview" data-embed="{{ slider_info.home_video_embed_url }}">
+          {% if slider_info.home_video_embed_url %}
+            <iframe src="{{ slider_info.home_video_embed_url }}" referrerpolicy="strict-origin-when-cross-origin" title="Homepage video" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>
+          {% else %}
+            <span class="hv-empty"><i class="fa-brands fa-youtube"></i> Paste a YouTube link to see the video here.</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="panel">
@@ -158,7 +208,7 @@ always the first slide.
     <h2><i class="fa-solid fa-link" style="color:var(--amber-600,#c07f0a);margin-right:8px;"></i>Quick Links</h2>
     <span class="ic" onclick="document.getElementById('add-link-modal').classList.add('open')" style="background:var(--blue-600);color:#fff;padding:8px 14px;border-radius:8px;cursor:pointer;"><i class="fa-solid fa-plus"></i> Add Quick Link</span>
   </div>
-  <p class="form-help" style="margin:0 0 14px;">Shortcut tiles shown in the strip near the top of the homepage, right below the banner (e.g. Business Permits, Cedula).</p>
+  <p class="hp-intro hp-intro--pad">Shortcut tiles shown in the strip near the top of the homepage, right below the banner (e.g. Business Permits, Cedula).</p>
   <div class="table-wrap">
     <table class="data-table">
       <thead>
@@ -377,6 +427,21 @@ always the first slide.
 {% endfor %}
 
 <style>
+/* spacing inside the panels of this page */
+.hp-body{padding:18px 20px 20px;}
+.hp-intro{margin:0 0 16px;font-size:12.5px;color:var(--gray-500);line-height:1.55;}
+.hp-intro--pad{margin:14px 20px;}
+body[data-page="homepage"] .panel{margin-bottom:18px;}
+body[data-page="homepage"] .hp-body .form-group{margin-bottom:18px;}
+/* Homepage Video panel */
+.hv-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start;}
+.hv-actions{display:flex;gap:10px;flex-wrap:wrap;}
+.hv-frame{position:relative;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#0f172a;margin-top:6px;}
+.hv-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0;}
+.hv-empty{position:absolute;inset:0;display:flex;flex-direction:column;gap:8px;align-items:center;justify-content:center;text-align:center;padding:16px;color:#cbd5e1;font-size:12.5px;}
+.hv-empty i{font-size:30px;color:#e11d48;}
+@media (max-width:900px){.hv-grid{grid-template-columns:1fr;}}
+@media (max-width:600px){.hp-body{padding:14px;}.hp-intro--pad{margin:12px 14px;}}
 /* Banner Slider panel */
 .hs-mode{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:6px;}
 .hs-mode__opt{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border:1.5px solid var(--gray-200,#e5e7eb);border-radius:10px;cursor:pointer;background:#fff;}
@@ -512,6 +577,49 @@ always the first slide.
   });
   search.addEventListener('input', filter);
   recount();
+})();
+</script>
+<script>
+// Homepage Video: live preview while a YouTube link is typed or pasted
+(function () {
+  var input = document.getElementById('hv-url'), box = document.getElementById('hv-preview');
+  if (!input || !box) return;
+  function idOf(url) {
+    url = (url || '').trim();
+    if (!url) return '';
+    if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+    try { var u = new URL(url); } catch (e) { return ''; }
+    var host = u.hostname.toLowerCase(), parts = u.pathname.split('/').filter(Boolean), id = '';
+    if (host === 'youtu.be' || host === 'www.youtu.be') id = parts[0] || '';
+    else if (/(^|\.)youtube(-nocookie)?\.com$/.test(host)) {
+      if (u.pathname === '/watch') id = u.searchParams.get('v') || '';
+      else if (parts.length >= 2 && ['shorts', 'live', 'embed', 'v'].indexOf(parts[0]) !== -1) id = parts[1];
+    }
+    return /^[A-Za-z0-9_-]{11}$/.test(id) ? id : '';
+  }
+  var shown = '';
+  function update() {
+    var id = idOf(input.value);
+    if (id === shown) return;
+    shown = id;
+    box.innerHTML = '';
+    if (id) {
+      var f = document.createElement('iframe');
+      f.src = 'https://www.youtube-nocookie.com/embed/' + id + '?rel=0&playsinline=1';
+      f.title = 'Homepage video';
+      f.referrerPolicy = 'strict-origin-when-cross-origin';   // without it YouTube shows "Error 153"
+      f.allow = 'accelerometer; encrypted-media; gyroscope; picture-in-picture';
+      f.allowFullscreen = true;
+      box.appendChild(f);
+    } else {
+      var s = document.createElement('span');
+      s.className = 'hv-empty';
+      s.innerHTML = '<i class="fa-brands fa-youtube"></i>' + (input.value.trim() ? 'This is not a YouTube video link.' : 'Paste a YouTube link to see the video here.');
+      box.appendChild(s);
+    }
+  }
+  shown = idOf(input.value);
+  input.addEventListener('input', update);
 })();
 </script>
 {% endblock %}

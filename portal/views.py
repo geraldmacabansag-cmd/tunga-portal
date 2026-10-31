@@ -222,6 +222,73 @@ def home(request):
         "quick_links": QuickLink.objects.filter(is_active=True),
     })
 
+# ---- Date filter / sort of the Announcements page tabs ---------------------
+# Each tab has its own ?<prefix>_when= / ?<prefix>_month= / ?<prefix>_sort=
+# (ann_, news_, ev_). Returns the chosen (start, end) dates (either may be
+# None = open) and the sort, plus the values for the form.
+DATE_WHEN_PAST = [("", "Any date"), ("week", "Last 7 days"), ("month", "Last 30 days"),
+                  ("3months", "Last 3 months"), ("year", "This year")]
+DATE_WHEN_EVENTS = [("", "Any date"), ("week", "This week"), ("month", "This month"),
+                    ("next30", "Next 30 days"), ("year", "This year")]
+
+
+def _date_filter(request, prefix, today, events=False):
+    from datetime import timedelta
+    when = request.GET.get(f"{prefix}_when", "")
+    month = request.GET.get(f"{prefix}_month", "")[:7]
+    sort = request.GET.get(f"{prefix}_sort", "")
+    choices = DATE_WHEN_EVENTS if events else DATE_WHEN_PAST
+    if when not in dict(choices):
+        when = ""
+    start = end = None
+    if month:
+        try:
+            y, m = (int(x) for x in month.split("-"))
+            start = date(y, m, 1)
+            end = date(y, m, cal_module.monthrange(y, m)[1])
+            when = ""
+        except (ValueError, TypeError):
+            month = ""
+    if not month and when:
+        if when == "week":
+            if events:
+                start = today - timedelta(days=today.weekday()); end = start + timedelta(days=6)
+            else:
+                start, end = today - timedelta(days=6), today
+        elif when == "month":
+            if events:
+                start = today.replace(day=1); end = today.replace(day=cal_module.monthrange(today.year, today.month)[1])
+            else:
+                start, end = today - timedelta(days=29), today
+        elif when == "3months":
+            start, end = today - timedelta(days=89), today
+        elif when == "next30":
+            start, end = today, today + timedelta(days=30)
+        elif when == "year":
+            start, end = date(today.year, 1, 1), date(today.year, 12, 31)
+    if sort not in ("oldest", "newest", "soonest", "latest"):
+        sort = ""
+    return {
+        "when": when, "month": month, "sort": sort, "start": start, "end": end,
+        "active": bool(start or end or sort), "choices": choices, "prefix": prefix,
+    }
+
+
+def _in_range(d, f):
+    """d is a date (None = no date): is it inside the chosen dates?"""
+    if not (f["start"] or f["end"]):
+        return True
+    if d is None:
+        return False
+    return (f["start"] is None or d >= f["start"]) and (f["end"] is None or d <= f["end"])
+
+
+def _keep_params(request, prefix):
+    """The other query values to keep when one tab's date form is sent."""
+    return [(k, v) for k, v in request.GET.items()
+            if v and not k.startswith(prefix + "_") and k not in ("news_page",)]
+
+
 def announcement(request):
     # ?office=<slug> (from an office page's "View All" links) narrows the
     # announcements, news and events on this page to that one office.
@@ -310,6 +377,20 @@ def announcement(request):
     # recently posted one wins; all_announcements is already newest-first.
     pinned_announcement = next((a for a in all_announcements if a.is_pinned), None)
 
+    # Announcements tab: date filter / sort (?ann_when= ?ann_month= ?ann_sort=)
+    today = timezone.localdate()
+    ann_filter = _date_filter(request, "ann", today)
+    ann_filter["keep"] = _keep_params(request, "ann")
+    if ann_filter["active"]:
+        all_announcements = [a for a in all_announcements if _in_range(a.display_date, ann_filter)]
+        expired_announcements = [a for a in expired_announcements if _in_range(a.display_date, ann_filter)]
+        if ann_filter["sort"] == "oldest":
+            expired_announcements.sort(key=lambda a: (a.display_date, a.created_at))
+        if pinned_announcement and pinned_announcement not in all_announcements:
+            pinned_announcement = None
+    # by the date shown on each card: newest first, or oldest first if chosen
+    all_announcements.sort(key=lambda a: (a.display_date, a.created_at), reverse=ann_filter["sort"] != "oldest")
+
     # Full list for the "News" tab — every published news post, newest
     # first. The featured row (1 big + 2 small cards) takes the 3 newest;
     # everything else goes in the "Latest News" grid below it (6 per page).
@@ -346,8 +427,13 @@ def announcement(request):
     # While either is used, the results are shown as one list (no featured row).
     news_q = request.GET.get('news_q', '').strip()[:100]
     news_topic = request.GET.get('news_topic', '').strip()[:100]
-    news_filtering = bool(news_q or news_topic)
-    news_results = all_news
+    news_filter = _date_filter(request, "news", timezone.localdate())
+    news_filter["keep"] = [(k, v) for k, v in request.GET.items()
+                           if v and k not in ("news_when", "news_month", "news_sort", "news_page")]
+    news_filtering = bool(news_q or news_topic or news_filter["active"])
+    news_results = [n for n in all_news if _in_range(n.display_date, news_filter)]
+    if news_filter["sort"] == "oldest":
+        news_results = sorted(news_results, key=lambda n: (n.display_date, n.created_at))
     if news_topic:
         news_results = [n for n in news_results if n.category_label.lower() == news_topic.lower()]
     if news_q:
@@ -363,7 +449,9 @@ def announcement(request):
     from urllib.parse import urlencode
     news_params = {k: v for k, v in (
         ('office', filter_office.slug if filter_office is not None else ''),
-        ('news_q', news_q), ('news_topic', news_topic)) if v}
+        ('news_q', news_q), ('news_topic', news_topic),
+        ('news_when', news_filter['when']), ('news_month', news_filter['month']),
+        ('news_sort', news_filter['sort'])) if v}
     news_qs = ('&' + urlencode(news_params)) if news_params else ''
     news_office_qs = ('&office=' + filter_office.slug) if filter_office is not None else ''
 
@@ -448,6 +536,28 @@ def announcement(request):
     upcoming_events = [e for e in upcoming_qs if e != featured_event][:6]
     past_events = past_qs
 
+    # Events tab: date filter / sort (?ev_when= ?ev_month= ?ev_sort=). While
+    # it is used, every matching event is listed (no Featured hero, no limits).
+    ev_filter = _date_filter(request, "ev", today, events=True)
+    ev_filter["keep"] = _keep_params(request, "ev")
+    if ev_filter["active"]:
+        all_past = list(
+            only_office(Event.objects.filter(status='published', event_date__lt=today))
+            .select_related('representative__office')
+            .order_by('-event_date', '-start_time')
+        )
+        for e in all_past:
+            e.category_label = e.category or "General"
+        upcoming_events = [e for e in upcoming_qs if _in_range(e.event_date, ev_filter)]
+        past_events = [e for e in all_past if _in_range(e.event_date, ev_filter)]
+        if ev_filter["sort"] == "latest":
+            upcoming_events.sort(key=lambda e: (e.event_date is not None, e.event_date or today), reverse=True)
+        if ev_filter["sort"] == "soonest":
+            past_events.sort(key=lambda e: e.event_date)
+    calendar_featured = featured_event
+    if ev_filter["active"]:
+        featured_event = None
+
     # "Up Next" sidebar panel on the Events tab — a quick-glance list of the
     # 4 soonest dated upcoming events (undated ones have no "OCT 10"-style
     # date to show here, so they're left to the main Upcoming Events grid).
@@ -459,7 +569,7 @@ def announcement(request):
     # AJAX (see that view + the Events tab's JS) instead of reloading the
     # whole page, but this same helper builds the calendar for the initial
     # page load too, so both stay in sync.
-    calendar_ctx = _build_month_calendar(request, today, featured_event)
+    calendar_ctx = _build_month_calendar(request, today, calendar_featured)
     month_events = calendar_ctx["month_events"]
     calendar_weeks = calendar_ctx["calendar_weeks"]
 
@@ -569,6 +679,9 @@ def announcement(request):
         "news_topic": news_topic,
         "news_filtering": news_filtering,
         "news_result_count": len(news_grid_items_all),
+        "ann_filter": ann_filter,
+        "news_filter": news_filter,
+        "ev_filter": ev_filter,
         "news_qs": news_qs,
         "news_office_qs": news_office_qs,
         "featured_event": featured_event,
@@ -869,8 +982,24 @@ def contact(request):
         office.card_color = color
         office.card_image = icon_image
 
+    # "Office Hours" box at the bottom: the Visit Us hours of the About Us
+    # page (one row per line) or, if those are empty, the office hours from
+    # Website Settings → General ("Monday – Friday, 8:00 AM – 5:00 PM").
+    from admin_dashboard.models import AboutPageContent, SiteContactInfo
+    hour_rows = AboutPageContent.get_solo().visit_hour_rows()
+    if not hour_rows:
+        raw = (SiteContactInfo.get_solo().office_hours or "").strip()
+        if raw:
+            day, sep, time = raw.partition(",")
+            hour_rows = [(day.strip(), time.strip())] if sep else [(raw, "")]
+    days_text = " ".join(d.lower() for d, _ in hour_rows)
+    closed_weekends = bool(hour_rows) and "sat" not in days_text and "sun" not in days_text
+
     from django.conf import settings as dj_settings
     return render(request, "portal/contactus.html", {
+        "hour_rows": hour_rows,
+        "closed_weekends": closed_weekends,
+        "contact_office_count": offices_for_contact.count(),
         "offices_for_contact": offices_for_contact,
         "directory_offices": directory_offices,
         # Google reCAPTCHA "I'm not a robot" (empty = plain checkbox instead)

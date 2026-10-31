@@ -204,6 +204,225 @@ Script: static/js/hero-carousel.js. Styles: static/css/homepage.css ("Banner sli
   </div>
 </section>
 
+{% comment %}Homepage video (Super Admin → Homepage → Homepage Video).
+It starts playing by itself, muted, when the visitor scrolls to it, and
+pauses when it scrolls out of view (the picture covers YouTube's centre icon). YouTube's own buttons, title and channel are
+hidden (controls=0 and the top/bottom of the player are cropped off); our own
+small control bar (play/pause, sound, progress, time, YouTube link) shows only
+while the mouse is over the video (or for a few seconds after a tap on phones).
+referrerpolicy is needed: the site sends no referrer to other websites
+(SECURE_REFERRER_POLICY), and YouTube refuses to play without one ("Error 153").{% endcomment %}
+{% if site_contact.home_video_id %}
+<section class="home-video" id="home-video">
+  <div class="container">
+    <div class="section-title--row">
+      <h2 class="section-title" style="margin-bottom:0;padding-bottom:0;">Featured Video</h2>
+      <a href="https://www.youtube.com/watch?v={{ site_contact.home_video_id }}" target="_blank" rel="noopener" class="view-all">Watch on YouTube</a>
+    </div>
+    <div class="home-video__card">
+      <div class="home-video__player js-home-video" data-video="{{ site_contact.home_video_id }}">
+        <div class="home-video__poster">
+          <img src="{{ site_contact.home_video_thumb_url }}" alt="" loading="lazy">
+        </div>
+        <div class="home-video__frame"></div>
+        <div class="home-video__shield"></div>
+        <div class="home-video__bar">
+          <button type="button" class="home-video__btn js-hv-toggle" aria-label="Play"><i class="fa-solid fa-play"></i></button>
+          <button type="button" class="home-video__btn js-hv-sound" aria-label="Turn sound on"><i class="fa-solid fa-volume-xmark"></i></button>
+          <div class="home-video__progress js-hv-progress" role="slider" tabindex="0" aria-label="Video progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <span class="home-video__progress-fill"></span>
+          </div>
+          <span class="home-video__time js-hv-time">0:00 / 0:00</span>
+          <a class="home-video__btn home-video__yt js-hv-yt" href="https://www.youtube.com/watch?v={{ site_contact.home_video_id }}" target="_blank" rel="noopener" aria-label="Watch on YouTube"><i class="fa-brands fa-youtube"></i></a>
+        </div>
+      </div>
+      {% if site_contact.home_video_title or site_contact.home_video_description %}
+      <div class="home-video__text">
+        <span class="home-video__tag"><i class="fa-brands fa-youtube"></i> Video</span>
+        {% if site_contact.home_video_title %}<h3>{{ site_contact.home_video_title }}</h3>{% endif %}
+        {% if site_contact.home_video_description %}<p>{{ site_contact.home_video_description|linebreaksbr }}</p>{% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+<script>
+(function () {
+  var box = document.querySelector('.js-home-video');
+  if (!box) return;
+  var id = box.getAttribute('data-video');
+  var holder = box.querySelector('.home-video__frame');
+  var poster = box.querySelector('.home-video__poster');
+  var shield = box.querySelector('.home-video__shield');
+  var btnToggle = box.querySelector('.js-hv-toggle');
+  var btnSound = box.querySelector('.js-hv-sound');
+  var bar = box.querySelector('.js-hv-progress');
+  var fill = box.querySelector('.home-video__progress-fill');
+  var timeEl = box.querySelector('.js-hv-time');
+  var ytLink = box.querySelector('.js-hv-yt');
+  var noHover = window.matchMedia && window.matchMedia('(hover: none)').matches;
+
+  var frame = null, visible = false, userPaused = false, wantSound = false;
+  var state = -1, muted = true, current = 0, duration = 0, hideTimer = null, clearTimer = null;
+
+  function send(func, args) {        // YouTube player commands (needs enablejsapi=1)
+    if (frame && frame.contentWindow) {
+      frame.contentWindow.postMessage(JSON.stringify({ event: 'command', func: func, args: args || [] }), '*');
+    }
+  }
+  function fmt(s) {
+    s = Math.max(0, Math.floor(s || 0));
+    var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+    var mm = h ? (m < 10 ? '0' + m : m) : m;
+    return (h ? h + ':' : '') + mm + ':' + (sec < 10 ? '0' + sec : sec);
+  }
+  function setIcon(btn, cls, label) {
+    btn.querySelector('i').className = 'fa-solid ' + cls;
+    btn.setAttribute('aria-label', label);
+  }
+  function isPlaying() { return state === 1 || state === 3; }
+  function render() {
+    var playing = isPlaying() && !userPaused;
+    setIcon(btnToggle, playing ? 'fa-pause' : 'fa-play', playing ? 'Pause' : 'Play');
+    setIcon(btnSound, wantSound ? 'fa-volume-high' : 'fa-volume-xmark', wantSound ? 'Mute' : 'Turn sound on');
+    var pct = duration ? Math.min(100, current / duration * 100) : 0;
+    fill.style.width = pct + '%';
+    bar.setAttribute('aria-valuenow', Math.round(pct));
+    timeEl.textContent = fmt(current) + ' / ' + fmt(duration);
+    ytLink.href = 'https://www.youtube.com/watch?v=' + id + (current > 5 ? '&t=' + Math.floor(current) + 's' : '');
+  }
+
+  // YouTube draws its own pause/play icon in the middle whenever the video is
+  // paused or starts again, and we cannot change what is inside its player.
+  // So the picture covers the player while it is not playing, and stays a
+  // moment after it starts again, until YouTube's icon has gone.
+  function cover() { clearTimeout(clearTimer); clearTimer = null; box.classList.remove('is-clear'); }
+  function uncover() {
+    if (box.classList.contains('is-clear') || clearTimer) return;
+    clearTimer = setTimeout(function () { clearTimer = null; box.classList.add('is-clear'); }, 1200);
+  }
+
+  // The player reports its state, time and sound through messages.
+  window.addEventListener('message', function (e) {
+    if (!frame || e.source !== frame.contentWindow) return;
+    var d; try { d = JSON.parse(e.data); } catch (err) { return; }
+    var info = d && d.info;
+    if (!info || typeof info !== 'object') return;
+    if (typeof info.currentTime === 'number') current = info.currentTime;
+    if (typeof info.duration === 'number' && info.duration > 0) duration = info.duration;
+    if (typeof info.muted === 'boolean') muted = info.muted;
+    if (typeof info.playerState === 'number') {
+      state = info.playerState;
+      if (state === 1 && !userPaused && visible) uncover();
+      if (state === 0) {                       // ended: picture again, not YouTube's suggestions
+        cover();
+        userPaused = true;
+        send('seekTo', [0, true]); send('pauseVideo');
+        current = 0;
+      }
+    }
+    render();
+  });
+
+  function load(withSound) {
+    if (frame) return;
+    wantSound = !!withSound;
+    frame = document.createElement('iframe');
+    frame.src = 'https://www.youtube-nocookie.com/embed/' + id
+      + '?rel=0&playsinline=1&autoplay=1&enablejsapi=1&controls=0&disablekb=1&fs=0&iv_load_policy=3'
+      + (wantSound ? '' : '&mute=1') + '&origin=' + encodeURIComponent(location.origin);
+    frame.title = 'Video';
+    frame.tabIndex = -1;
+    frame.allow = 'accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture';
+    frame.referrerPolicy = 'strict-origin-when-cross-origin';
+    holder.appendChild(frame);
+    box.classList.add('is-playing');
+    render();
+    frame.addEventListener('load', function () {     // ask the player to report its state
+      frame.contentWindow.postMessage(JSON.stringify({ event: 'listening', id: 'home-video' }), '*');
+    });
+  }
+
+  function play() {
+    if (!frame) { load(true); return; }
+    userPaused = false;
+    if (state === 0) send('seekTo', [0, true]);
+    send('playVideo');
+    render();
+  }
+  function pause() {
+    userPaused = true;
+    cover();                                         // hide YouTube's centre icon
+    send('pauseVideo');
+    render();
+  }
+  function togglePlay() { if (isPlaying() && !userPaused) pause(); else play(); }
+
+  // show the control bar for a few seconds (phones have no mouse to hover with)
+  function showBar() {
+    box.classList.add('is-active');
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(function () { box.classList.remove('is-active'); }, 3000);
+  }
+
+  // clicking the picture (before it starts, while paused, or after it ends): play
+  poster.addEventListener('click', function () { play(); if (noHover) showBar(); });
+
+  // clicking on the video itself does NOT pause it (only the pause button in
+  // the bar does). On phones a tap on the video just shows the bar.
+  shield.addEventListener('click', function () {
+    if (noHover) showBar();
+  });
+  btnToggle.addEventListener('click', function () { togglePlay(); if (noHover) showBar(); });
+  btnSound.addEventListener('click', function () {
+    if (!frame) { load(true); return; }
+    wantSound = !wantSound;
+    if (wantSound) { send('unMute'); send('setVolume', [100]); } else { send('mute'); }
+    render();
+    if (noHover) showBar();
+  });
+
+  // click on the progress line to jump to that part of the video
+  bar.addEventListener('click', function (e) {
+    if (!duration) return;
+    var r = bar.getBoundingClientRect();
+    var t = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * duration;
+    send('seekTo', [t, true]); current = t; render();
+    if (noHover) showBar();
+  });
+  bar.addEventListener('keydown', function (e) {
+    if (!duration) return;
+    var step = e.key === 'ArrowRight' ? 5 : e.key === 'ArrowLeft' ? -5 : 0;
+    if (!step) return;
+    e.preventDefault();
+    current = Math.max(0, Math.min(duration, current + step));
+    send('seekTo', [current, true]); render();
+  });
+
+  // Plays (muted at first) when at least half of the video is on screen and
+  // pauses when the visitor scrolls away. The picture covers the player before
+  // it pauses and until it has started again, so YouTube's centre icon is
+  // never seen. A video the visitor paused with the button stays paused.
+  if ('IntersectionObserver' in window) {
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        visible = en.isIntersecting && en.intersectionRatio >= 0.5;
+        if (!frame) { if (visible && !reduce) load(false); return; }
+        if (visible) {
+          if (!userPaused && state !== 0) { send('playVideo'); state = 3; render(); }
+        } else {
+          cover();
+          send('pauseVideo');
+          if (isPlaying()) { state = 2; render(); }
+        }
+      });
+    }, { threshold: [0, 0.5] }).observe(box);
+  }
+})();
+</script>
+{% endif %}
+
 <section class="gallery-section">
   <div class="container">
     <div class="section-title--row">

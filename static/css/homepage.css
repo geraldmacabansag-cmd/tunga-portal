@@ -1295,3 +1295,112 @@
 @media (max-width: 600px) {
   .event-highlight__img { height: 160px; max-height: 160px; }
 }
+
+/* ---- Homepage video (between News and the Photo Gallery) ---- */
+.home-video { padding: 40px 0 8px; }
+.home-video__card {
+  max-width: 980px;
+  margin: 16px auto 0;
+  background: #fff;
+  border: 1px solid var(--border-light, #e5e9f0);
+  border-radius: 16px;
+  box-shadow: 0 6px 22px rgba(13, 58, 134, 0.07);
+  overflow: hidden;
+}
+.home-video__player {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #0f172a;
+}
+.home-video__player { overflow: hidden; }
+.home-video__poster { position: absolute; inset: 0; z-index: 4; }
+.home-video__poster img { width: 100%; height: 100%; object-fit: cover; display: block; cursor: pointer; }
+/* the picture covers the player whenever it is not playing, so YouTube's
+   own pause/play icon in the middle is never seen */
+.home-video__poster { transition: opacity .3s ease; }
+.home-video__player.is-clear .home-video__poster { opacity: 0; pointer-events: none; }
+/* The player is taller than the box and centred, so YouTube's title bar
+   (top) and logo bar (bottom) fall outside and are cut off. The video itself
+   is 16:9 and keeps its full size. */
+.home-video__frame { position: absolute; inset: 0; z-index: 1; }
+.home-video__frame iframe {
+  position: absolute;
+  left: 0; top: -70px;
+  width: 100%; height: calc(100% + 140px);
+  border: 0;
+  pointer-events: none;
+}
+/* clear layer over the video: catches clicks, so YouTube never shows its own
+   pause/play button in the centre, and a click on the video does not pause it */
+.home-video__shield { position: absolute; inset: 0; z-index: 2; cursor: default; display: none; }
+.home-video__player.is-playing .home-video__shield { display: block; }
+
+/* our own control bar: only visible while the mouse is over the video */
+.home-video__bar {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 28px 12px 10px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0));
+  color: #fff;
+  opacity: 0;
+  transition: opacity .25s ease;
+}
+.home-video__player:hover .home-video__bar,
+.home-video__player.is-active .home-video__bar,
+.home-video__bar:has(:focus-visible) { opacity: 1; }  /* keyboard users only, not after a mouse click */
+.home-video__btn {
+  flex: 0 0 auto;
+  width: 36px; height: 36px;
+  display: grid; place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  text-decoration: none;
+}
+.home-video__btn:hover { background: rgba(255, 255, 255, 0.16); color: #fff; }
+.home-video__btn:focus-visible { outline: 2px solid #fff; outline-offset: 1px; }
+.home-video__yt { font-size: 22px; }
+.home-video__yt:hover { color: #ff0033; }
+.home-video__progress {
+  position: relative;
+  flex: 1 1 auto;
+  height: 5px;
+  margin: 0 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+}
+.home-video__progress::before { content: ""; position: absolute; left: 0; right: 0; top: -8px; bottom: -8px; }  /* bigger click area */
+.home-video__progress:focus-visible { outline: 2px solid #fff; outline-offset: 4px; }
+.home-video__progress-fill {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 0;
+  border-radius: inherit;
+  background: #ff0033;
+}
+.home-video__time { flex: 0 0 auto; font-size: .8rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.home-video__text { padding: 18px 22px 22px; }
+.home-video__tag { display: inline-flex; align-items: center; gap: 6px; font-size: .75rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #e11d48; }
+.home-video__text h3 { margin: 6px 0 8px; font-size: 1.3rem; color: var(--text-dark, #1c2733); line-height: 1.3; }
+.home-video__text p { margin: 0; color: var(--text-muted, #6b7684); line-height: 1.65; font-size: .95rem; }
+@media (max-width: 860px) {
+  .home-video { padding: 28px 0 4px; }
+  .home-video__text { padding: 14px 16px 18px; }
+  .home-video__text h3 { font-size: 1.12rem; }
+  .home-video__bar { gap: 2px; padding: 22px 6px 6px; }
+  .home-video__btn { width: 32px; height: 32px; font-size: 14px; }
+  .home-video__yt { font-size: 19px; }
+  .home-video__time { font-size: .72rem; }
+  .home-video__frame iframe { top: -60px; height: calc(100% + 120px); }
+}

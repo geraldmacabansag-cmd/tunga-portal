@@ -638,6 +638,10 @@
       nums.addEventListener('click', function (e) {
         var btn = e.target.closest('.page-btn');
         if (!btn) return;
+        // real pagers: links to another page, or lists that page themselves
+        // (list-filter.js) — this old demo code must not touch them
+        if (nums.hasAttribute('data-lf-pager') || nums.closest('[data-lf]') || btn.tagName === 'A' && (btn.getAttribute('href') || '#') !== '#' && !btn.closest('[data-lf]')) return;
+        if (btn.classList.contains('disabled') || btn.classList.contains('active')) return;
         var buttons = $$('.page-btn', nums);
         var numeric = buttons.filter(function (b) { return /^\d+$/.test(b.textContent.trim()); });
         if (/^\d+$/.test(btn.textContent.trim())) {

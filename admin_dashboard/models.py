@@ -55,6 +55,27 @@ class SiteContactInfo(models.Model):
     # how many times the banner goes through all its slides by itself before
     # it stops on the first (welcome) slide; 0 = it never stops
     hero_slider_loops = models.PositiveSmallIntegerField(default=2)
+    # Homepage video (Super Admin → Homepage → Homepage Video): a YouTube
+    # link shown on the public homepage between News and the Photo Gallery.
+    # Empty link = the section is not shown.
+    home_video_url = models.CharField(max_length=300, blank=True)
+    home_video_title = models.CharField(max_length=150, blank=True)
+    home_video_description = models.TextField(blank=True)
+
+    @property
+    def home_video_id(self):
+        from office_dashboard.video import youtube_id
+        return youtube_id(self.home_video_url)
+
+    @property
+    def home_video_embed_url(self):
+        vid = self.home_video_id
+        return f"https://www.youtube-nocookie.com/embed/{vid}?rel=0&playsinline=1" if vid else ""
+
+    @property
+    def home_video_thumb_url(self):
+        vid = self.home_video_id
+        return f"https://i.ytimg.com/vi/{vid}/hqdefault.jpg" if vid else ""
     # Home page News slider: seconds before the next news story slides in
     # (Website Settings → Appearance).
     news_slider_seconds = models.PositiveIntegerField(default=6)

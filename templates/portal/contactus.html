@@ -160,12 +160,16 @@ Home | Digital Governance Portal
         <i class="fa-regular fa-clock"></i>
         <div>
           <strong>Office Hours</strong>
-          <p>Monday &ndash; Friday<br>8:00 AM &ndash; 5:00 PM<br>Closed on Saturdays, Sundays and Holidays.</p>
+          {% if hour_rows %}
+            <p>{% for day, time in hour_rows %}{{ day }}{% if time %}<br>{{ time }}{% endif %}{% if not forloop.last %}<br>{% endif %}{% endfor %}{% if closed_weekends %}<br>Closed on Saturdays, Sundays and Holidays.{% endif %}</p>
+          {% else %}
+            <p>Please call or email the Municipal Hall for our office hours.</p>
+          {% endif %}
         </div>
       </div>
       <div class="contact-bottom__help">
         <strong>How Can We Help You?</strong>
-        <p>Choose a topic below so we can direct your inquiry to the right office.</p>
+        <p>Choose a topic below so we can direct your inquiry to the right office.{% if contact_office_count %} {{ contact_office_count }} office{{ contact_office_count|pluralize }} can receive your message online.{% endif %}</p>
       </div>
       <div class="help-topics">
         <div class="help-topic"><i class="fa-regular fa-comment-dots"></i><span>General Inquiry</span></div>

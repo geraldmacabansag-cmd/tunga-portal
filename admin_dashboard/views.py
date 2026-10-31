@@ -538,36 +538,75 @@ def admin_my_account(request):
 
 @super_admin_required
 def admin_change_password(request):
+    """Change password with the current password, or — "Forgot your current
+    password?" — with a 6-digit code sent to the account's email (same as
+    the Office Representative's Change Password page)."""
+    from portal import security
+    from office_dashboard.views import password_problems, mask_email
     if request.method == "POST":
+        mode = request.POST.get('mode', 'current')
         current_password = request.POST.get('current_password', '')
+        otp_code = request.POST.get('otp_code', '').strip()
         new_password = request.POST.get('new_password', '')
         confirm_password = request.POST.get('confirm_password', '')
+        email = request.user.email
 
-        from portal import security
         minutes = security.locked_minutes("password", request, request.user.username)
         if minutes:
             messages.error(request, security.lock_message(minutes))
-        elif not request.user.check_password(current_password):
+        elif mode == 'otp' and not email:
+            messages.error(request, "Your account has no email address. Add one in My Account, then try again.")
+        elif mode != 'otp' and not request.user.check_password(current_password):
             security.record_failure("password", request, request.user.username)
             messages.error(request, security.wrong_message("Current password is incorrect.", "password", request, request.user.username))
         elif new_password != confirm_password:
             messages.error(request, "New password and confirmation do not match.")
+        elif mode != 'otp' and new_password == current_password:
+            messages.error(request, "Your new password must be different from your current password.")
+        elif password_problems(new_password, request.user):
+            for err in password_problems(new_password, request.user):
+                messages.error(request, err)
+        # The code is checked last, so a typo in the new password doesn't use it up.
+        elif mode == 'otp' and (code_error := security.check_code(request, email, otp_code, kind="reset-code")):
+            messages.error(request, code_error)   # 5 wrong codes = blocked 15 minutes
         else:
             security.clear_failures("password", request.user.username)
-            try:
-                validate_password(new_password, user=request.user)
-            except ValidationError as e:
-                for err in e.messages:
-                    messages.error(request, err)
-            else:
-                request.user.set_password(new_password)
-                request.user.save()
-                update_session_auth_hash(request, request.user)  # keeps them logged in
-                messages.success(request, "Password updated successfully.")
+            request.user.set_password(new_password)
+            request.user.save()
+            update_session_auth_hash(request, request.user)  # keeps them logged in here, signs out other devices
+            messages.success(request, "Password updated successfully.")
 
         return redirect('admin_dashboard:admin_change_pass')
 
-    return render(request, "admin_dashboard/super-admin-change-password.html")
+    return render(request, "admin_dashboard/super-admin-change-password.html", {
+        "masked_email": mask_email(request.user.email),
+    })
+
+
+@super_admin_required
+def admin_send_password_otp(request):
+    """Emails a 6-digit code to the Super Admin (Forgot your current password?)."""
+    from portal import security
+    from portal.models import EmailOTP
+    from portal.otp_utils import send_password_reset_otp
+    from office_dashboard.views import mask_email
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "Invalid request."}, status=400)
+    email = request.user.email
+    if not email:
+        return JsonResponse({"success": False, "error": "Your account has no email address. Add one in My Account."}, status=400)
+    # one code per minute, at most 5 an hour per email and 10 per device (portal/security.py)
+    recent = EmailOTP.objects.filter(email=email, created_at__gte=timezone.now() - timedelta(seconds=60)).order_by('-created_at').first()
+    if recent:
+        wait = 60 - int((timezone.now() - recent.created_at).total_seconds())
+        return JsonResponse({"success": False, "error": f"Please wait {max(wait, 1)} seconds before requesting a new code.", "wait": max(wait, 1)}, status=429)
+    limit = security.code_send_problem(request, email)
+    if limit:
+        return JsonResponse({"success": False, "error": limit}, status=429)
+    ok, error = send_password_reset_otp(email)
+    if not ok:
+        return JsonResponse({"success": False, "error": error or "Could not send the code. Please try again."}, status=500)
+    return JsonResponse({"success": True, "email": mask_email(email)})
 
 
 TYPE_META = {
@@ -625,14 +664,9 @@ def admin_approval_center(request):
     for item in items:
         type_counts[item['type']] = type_counts.get(item['type'], 0) + 1
 
-    filtered = items
-    if type_filter != 'all':
-        filtered = [i for i in filtered if i['type'] == type_filter]
-    if status_filter:
-        filtered = [i for i in filtered if i['status'] == status_filter]
-    if q:
-        ql = q.lower()
-        filtered = [i for i in filtered if ql in i['title'].lower()]
+    # every item goes to the page: the tabs, status, search and page numbers
+    # work in the browser without reloading (static/js/list-filter.js)
+    filtered = list(items)
 
     filtered.sort(key=lambda i: i['date'] or timezone.now(), reverse=True)
 
@@ -644,11 +678,8 @@ def admin_approval_center(request):
         item['badge_class'] = STATUS_BADGE.get(item['status'], 'badge-gray')
         item['status_label'] = 'Returned' if item['status'] == 'returned' else 'Pending'
 
-    paginator = Paginator(filtered, 10)
-    page_obj = paginator.get_page(request.GET.get('page'))
-
     return render(request, "admin_dashboard/super-admin-approval-center.html", {
-        "page_obj": page_obj,
+        "items": filtered,
         "total_count": len(items),
         "type_counts": type_counts,
         "current_q": q,
@@ -1861,9 +1892,25 @@ def admin_rep_replace_user(request, pk):
                 ended_by=request.user.get_full_name() or request.user.username,
                 remarks=request.POST.get('remarks', '').strip()[:1000],
             )
+            # the new person starts fresh: nothing of the old representative's
+            # own details is passed on (the photo file itself is kept for the
+            # Past Representatives record, so it is only unlinked here)
             rep.user = new_user
             rep.assigned_at = timezone.now()
+            rep.photo = request.FILES.get('photo') or None
+            rep.position = request.POST.get('position', '').strip()[:100]
+            mobile = request.POST.get('mobile_number', '').strip()[:20]
+            if not mobile:
+                from portal.models import CitizenProfile
+                profile = CitizenProfile.objects.filter(user=new_user).first()
+                mobile = (getattr(profile, 'mobile_number', '') or '')[:20]
+            rep.mobile_number = mobile
+            for f in ('notify_approvals', 'notify_messages', 'notify_weekly_summary', 'notify_announcements'):
+                setattr(rep, f, OfficeRepresentative._meta.get_field(f).default)
+            rep.last_weekly_summary_at = None
             rep.save()
+            # the old person's own notifications stay with them, not the new person
+            rep.notifications.all().delete()
             messages.success(request, f'{rep.office.name} is now represented by {new_label} (replacing {old_label}). All content stays linked to this office.')
 
     return redirect('admin_dashboard:ad_office_rep')
@@ -2127,6 +2174,31 @@ def admin_homepage(request):
     })
  
  
+@super_admin_required
+def admin_home_video_save(request):
+    """Homepage → Homepage Video: a YouTube link shown on the public homepage
+    between News and the Photo Gallery (empty link = not shown)."""
+    from office_dashboard.video import clean_video_url
+    if request.method != "POST":
+        return redirect('admin_dashboard:ad_homepage')
+    info = SiteContactInfo.get_solo()
+    if request.POST.get('remove') == '1':
+        info.home_video_url = ''
+        info.save(update_fields=['home_video_url'])
+        messages.success(request, "The homepage video was removed.")
+        return redirect(reverse('admin_dashboard:ad_homepage') + '#home-video')
+    link, problem = clean_video_url(request.POST.get('home_video_url'))
+    if problem:
+        messages.error(request, problem)
+        return redirect(reverse('admin_dashboard:ad_homepage') + '#home-video')
+    info.home_video_url = link
+    info.home_video_title = request.POST.get('home_video_title', '').strip()[:150]
+    info.home_video_description = request.POST.get('home_video_description', '').strip()[:1000]
+    info.save(update_fields=['home_video_url', 'home_video_title', 'home_video_description'])
+    messages.success(request, "The homepage video was saved." if link else "Saved. No video link, so the video section is hidden on the homepage.")
+    return redirect(reverse('admin_dashboard:ad_homepage') + '#home-video')
+
+
 @super_admin_required
 def admin_hero_slider_save(request):
     """Homepage → Banner Slider: slide speed and which posts show."""

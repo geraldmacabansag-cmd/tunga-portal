@@ -2,7 +2,14 @@ from .models import SiteContactInfo, SuperAdmin
 
 
 def site_contact_info(request):
-    return {"site_contact": SiteContactInfo.get_solo()}
+    from django.utils.functional import SimpleLazyObject
+    from portal.about_nav import about_menu
+    return {
+        "site_contact": SiteContactInfo.get_solo(),
+        # sections of the public About Us page, for the navbar's "About"
+        # dropdown (only looked up on pages that show the navbar)
+        "about_menu": SimpleLazyObject(about_menu),
+    }
 
 def is_super_admin(request):
     if not request.user.is_authenticated:

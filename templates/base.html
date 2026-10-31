@@ -38,9 +38,9 @@
     <meta name="twitter:card" content="summary_large_image">
 
     <link rel="stylesheet" href="{% static 'css/base.css' %}?v=10">
-    <link rel="stylesheet" href="{% static 'css/homepage.css' %}?v=11">
+    <link rel="stylesheet" href="{% static 'css/homepage.css' %}?v=18">
     <link rel="stylesheet" href="{% static 'css/offices.css' %}">
-    <link rel="stylesheet" href="{% static 'css/announcements.css' %}?v=2">
+    <link rel="stylesheet" href="{% static 'css/announcements.css' %}?v=3">
     <link rel="stylesheet" href="{% static 'css/photo-collage.css' %}?v=1">
     <link rel="stylesheet" href="{% static 'css/gallery.css' %}">
     <link rel="stylesheet" href="{% static 'css/aboutus.css' %}?v=8">
@@ -418,11 +418,11 @@
         <button type="button" class="nav-dropdown__trigger {% if request.resolver_match.url_name == 'about' %}active{% endif %}" aria-haspopup="true" aria-expanded="false">
           About <i class="fa-solid fa-chevron-down nav-dropdown__chevron"></i>
         </button>
-        <div class="nav-dropdown__menu">
-          <a href="{% url 'about' %}" class="nav-dropdown__item">About Us</a>
-          <a href="{% url 'about' %}#history" class="nav-dropdown__item">History</a>
-          <a href="{% url 'about' %}#officials" class="nav-dropdown__item">Municipal Officials</a>
-          <a href="{% url 'about' %}#barangays" class="nav-dropdown__item">Barangays</a>
+        {# every section the About Us page shows, in page order (portal/about_nav.py) #}
+        <div class="nav-dropdown__menu{% if about_menu|length > 7 %} nav-dropdown__menu--scroll{% endif %}">
+          {% for anchor, label in about_menu %}
+          <a href="{% url 'about' %}{% if anchor %}#{{ anchor }}{% endif %}" class="nav-dropdown__item">{{ label }}</a>
+          {% endfor %}
         </div>
       </div>
 

@@ -30,7 +30,7 @@
     <main class="content">
 
       {# search and category work without reloading (static/js/list-filter.js) #}
-      <section class="panel" data-lf data-lf-noun="forms">
+      <section class="panel" data-lf data-lf-size="10" data-lf-noun="forms">
         <div class="panel-header">
           <h2>Downloadable Forms</h2>
           <button type="button" class="btn btn-primary" id="open-add-form"><i class="fa-solid fa-plus"></i> Add Form</button>
@@ -85,6 +85,10 @@
               {% if forms %}<tr data-lf-empty hidden><td colspan="8" style="text-align:center;color:var(--gray-400);padding:24px 0;">No forms match this search or category.</td></tr>{% endif %}
             </tbody>
           </table>
+        </div>
+        <div class="pagination">
+          <span data-lf-info></span>
+          <div class="page-nums" data-lf-pager></div>
         </div>
       </section>
 
