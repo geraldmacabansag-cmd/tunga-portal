@@ -180,14 +180,18 @@ def _write_zip(path, include_files, created_by):
     tmpdir = tempfile.mkdtemp(prefix="tunga-backup-")
     try:
         data_path = os.path.join(tmpdir, "data.json")
-        call_command(
-            "dumpdata",
-            exclude=sorted(SKIP_MODELS),
-            natural_foreign=True,
-            use_base_manager=True,
-            output=data_path,
-            verbosity=0,
-        )
+        # Written as UTF-8 ourselves: dumpdata's own output= file uses the
+        # computer's default encoding, which on Windows ("charmap") can't hold
+        # characters like ₱ – • ñ or emoji and stops the backup.
+        with open(data_path, "w", encoding="utf-8") as fh:
+            call_command(
+                "dumpdata",
+                exclude=sorted(SKIP_MODELS),
+                natural_foreign=True,
+                use_base_manager=True,
+                stdout=fh,
+                verbosity=0,
+            )
 
         files, missing = [], []
         with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED, allowZip64=True) as zf:

@@ -16,7 +16,36 @@
 
       <section class="panel">
         <div class="panel-header">
-          <h2>Email Provider (for OTP &amp; system emails)</h2>
+          <div class="help-head">
+            <h2>Email Provider (for OTP &amp; system emails)</h2>
+            <div class="help-tip">
+              <button type="button" class="help-q" aria-expanded="false" aria-controls="help-email" aria-label="Help: the email that sends the codes">?</button>
+              <div class="help-pop" id="help-email" role="tooltip">
+                <p class="help-pop__title"><i class="fa-regular fa-envelope"></i> What is this?</p>
+                <ul>
+                  <li>The website sends some emails by itself. For example, the <b>6-digit code</b> people receive when they sign up or forget their password.</li>
+                  <li>This box tells the website <b>which email address</b> those emails come from.</li>
+                  <li>The emails are sent through a free service called <b>Brevo</b>. It can send up to <b>300 emails a day</b> for free.</li>
+                  <li><b>Sending from now:</b>
+                    {% if email_settings.has_saved_brevo %}{{ email_settings.email_address }}
+                    {% elif email_settings.using_default_brevo %}{{ email_settings.default_brevo_email }} (the account set up when the website was installed)
+                    {% else %}no email yet, so codes are <b>not</b> being sent{% endif %}</li>
+                  <li>The <b>Brevo API Key</b> is like a password. After you save it, it is hidden and locked. Nobody can see it again, not even you.</li>
+                  <li>If Brevo cannot send for a while (for example, too many emails in one day), the <b>Backup Email Sender</b> below sends them instead.</li>
+                </ul>
+                <p class="help-pop__title"><i class="fa-solid fa-arrow-right-arrow-left"></i> How to change the email that sends the codes</p>
+                <ol>
+                  <li>Go to <b>brevo.com</b> and log in with the LGU's account, or make a new free account.</li>
+                  <li>Add the LGU email address that the codes should come from. Brevo sends a message to that email. Open it and click the link to confirm.</li>
+                  <li>In Brevo, click the menu at the top right, then <b>SMTP &amp; API</b>, then <b>API Keys</b>, then <b>Generate a new API key</b>. Copy the long code it shows.</li>
+                  <li>Come back to this page. Type the LGU email in <b>Sender Email</b> and paste the long code in <b>Brevo API Key</b>. Click <b>Save Email Provider</b>.</li>
+                  <li>Click <b>Send test email</b>. Open the email inbox and check that the test email arrived.</li>
+                  <li>In the <b>old</b> Brevo account, delete the old key so it can no longer be used.</li>
+                </ol>
+                <p class="help-pop__note">The button <b>Use the default account</b> goes back to the email that was set up when the website was installed. If you get stuck, ask the person who set up the website. Using an email service other than Brevo, Mailjet or Gmail needs changes by a programmer.</p>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="panel-body">
           <p class="form-help" style="margin-top:0;">
@@ -68,7 +97,40 @@
          (daily limit used up, Brevo down). admin_dashboard/email_utils.py{% endcomment %}
       <section class="panel" style="margin-top:18px;">
         <div class="panel-header">
-          <h2>Backup Email Sender</h2>
+          <div class="help-head">
+            <h2>Backup Email Sender</h2>
+            <div class="help-tip">
+              <button type="button" class="help-q" aria-expanded="false" aria-controls="help-backup" aria-label="Help: the backup email sender">?</button>
+              <div class="help-pop" id="help-backup" role="tooltip">
+                <p class="help-pop__title"><i class="fa-solid fa-life-ring"></i> What is this?</p>
+                <ul>
+                  <li>A <b>second</b> email account, used <b>only</b> when Brevo cannot send. This way people still receive their codes.</li>
+                  <li><b>Now:</b>
+                    {% if email_settings.backup_ready %}ready, sending from {{ email_settings.backup_email }}
+                    {% elif email_settings.backup_provider %}not ready yet, a code or password is missing
+                    {% else %}no backup is set up{% endif %}</li>
+                  <li>There are two choices:<br>
+                    <b>Mailjet</b> (recommended): free, up to 200 emails a day.<br>
+                    <b>Gmail</b>: about 500 emails a day, but it does not work with some website hosting. Always send a test email.</li>
+                </ul>
+                <p class="help-pop__title"><i class="fa-solid fa-arrow-right-arrow-left"></i> How to set up or change the backup</p>
+                <p class="help-pop__sub">With Mailjet</p>
+                <ol>
+                  <li>Go to <b>mailjet.com</b> and make a free account. Add the LGU email and confirm it from the message Mailjet sends.</li>
+                  <li>In Mailjet open <b>Account</b>, then <b>API Keys</b>. Copy the two codes: the <b>API Key</b> and the <b>Secret Key</b>.</li>
+                  <li>On this page choose <b>Mailjet</b> in <b>Backup service</b>, type the email and paste both codes. Click <b>Save Backup Sender</b>.</li>
+                  <li>Click <b>Send test email through backup</b> and check the inbox.</li>
+                </ol>
+                <p class="help-pop__sub">With Gmail</p>
+                <ol>
+                  <li>In the Google account, turn on <b>2-Step Verification</b>. Then search for <b>App passwords</b> and make one. Google shows 16 letters. Copy them.</li>
+                  <li>On this page choose <b>Gmail</b>, type the Gmail address and paste the 16 letters. Click <b>Save Backup Sender</b>.</li>
+                  <li>Click <b>Send test email through backup</b> and check the inbox.</li>
+                </ol>
+                <p class="help-pop__note">To turn the backup off, choose <b>No backup</b> and click <b>Save Backup Sender</b>.</p>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="panel-body">
           <p class="form-help" style="margin-top:0;">
@@ -98,7 +160,7 @@
                 {% endfor %}
               </select>
               <span class="form-help" data-for="mailjet"><b>Recommended.</b> Free: 200 emails a day (6,000 a month). Sign up at <a href="https://www.mailjet.com" target="_blank" rel="noopener">mailjet.com</a>, add and verify your sender email, then copy the API Key and Secret Key from <a href="https://app.mailjet.com/account/apikeys" target="_blank" rel="noopener">Account → API Keys</a>.</span>
-              <span class="form-help" data-for="gmail">About 500 emails a day. <b>Render's free plan blocks this</b> (Gmail uses SMTP ports that free web services can't reach), so use it only on a paid plan or other hosting. Needs a Gmail account with 2-Step Verification and an <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">App Password</a>.</span>
+              <span class="form-help" data-for="gmail">About 500 emails a day. <b>Some hosting blocks this</b> (Gmail uses SMTP mail ports that many cloud hosts close), so always click <b>Send test email through backup</b> after saving. Needs a Gmail account with 2-Step Verification and an <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">App Password</a>.</span>
             </div>
 
             <div class="form-group" data-for="mailjet gmail">
@@ -128,7 +190,38 @@
         </div>
       </section>
 
-      <style>#backup-form [data-for][hidden] { display: none !important; }</style>
+      <style>
+        #backup-form [data-for][hidden] { display: none !important; }
+        /* long status labels wrap on a phone instead of making the page wider */
+        .panel-body > .badge { white-space: normal; max-width: 100%; height: auto; line-height: 1.45; align-items: flex-start; }
+        /* "?" help next to the panel titles: opens on hover (mouse) or click / tap */
+        .help-head { display: flex; align-items: center; gap: 8px; }
+        .help-tip { position: relative; }
+        .help-q {
+          width: 22px; height: 22px; padding: 0; border-radius: 50%;
+          border: 1.5px solid var(--blue-600, #2563eb); background: #fff; color: var(--blue-600, #2563eb);
+          font: 800 12.5px/1 inherit; cursor: pointer; display: grid; place-items: center;
+        }
+        .help-q:hover, .help-tip.is-open .help-q { background: var(--blue-600, #2563eb); color: #fff; }
+        .help-q:focus-visible { outline: 2px solid var(--blue-600, #2563eb); outline-offset: 2px; }
+        .help-pop {
+          display: none; position: absolute; z-index: 60; top: calc(100% + 8px); left: -12px;
+          width: 420px; max-width: calc(100vw - 40px); max-height: 70vh; overflow-y: auto;
+          padding: 14px 16px; background: #fff; border: 1px solid var(--gray-200, #e5e7eb); border-radius: 12px;
+          box-shadow: 0 12px 32px rgba(15, 23, 42, .18); font-size: 12.5px; font-weight: 400; line-height: 1.55; color: var(--gray-700, #374151);
+        }
+        .help-pop::before { content: ""; position: absolute; top: -8px; left: 0; right: 0; height: 8px; }  /* keeps the hover while moving down */
+        .help-tip.is-open .help-pop { display: block; }
+        @media (hover: hover) { .help-tip:hover .help-pop { display: block; } }
+        .help-pop__title { margin: 0 0 6px; font-weight: 800; color: var(--gray-900, #111827); font-size: 13px; }
+        .help-pop__title i { color: var(--blue-600, #2563eb); margin-right: 4px; }
+        .help-pop ul, .help-pop ol { margin: 0 0 12px; padding-left: 18px; }
+        .help-pop li { margin-bottom: 4px; }
+        .help-pop code { font-size: 11.5px; background: var(--gray-100, #f3f4f6); padding: 1px 5px; border-radius: 4px; }
+        .help-pop__sub { margin: 0 0 4px; font-weight: 700; color: var(--gray-800, #1f2937); }
+        .help-pop__note { margin: 0; padding: 8px 10px; background: var(--gray-50, #f9fafb); border-radius: 8px; color: var(--gray-600, #4b5563); }
+        @media (max-width: 600px) { .help-pop { position: fixed; left: 16px; right: 16px; top: 90px; width: auto; max-width: none; } }
+      </style>
       <script>
       (function () {
         var sel = document.getElementById('backup-provider');
@@ -141,6 +234,29 @@
         }
         sel.addEventListener('change', sync);
         sync();
+      })();
+
+      // "?" help: click / tap opens or closes it; click outside or Esc closes it
+      (function () {
+        var tips = document.querySelectorAll('.help-tip');
+        function closeAll(except) {
+          tips.forEach(function (t) {
+            if (t !== except) { t.classList.remove('is-open'); t.querySelector('.help-q').setAttribute('aria-expanded', 'false'); }
+          });
+        }
+        tips.forEach(function (tip) {
+          var btn = tip.querySelector('.help-q');
+          btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var open = !tip.classList.contains('is-open');
+            closeAll(tip);
+            tip.classList.toggle('is-open', open);
+            btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+          });
+          tip.querySelector('.help-pop').addEventListener('click', function (e) { e.stopPropagation(); });
+        });
+        document.addEventListener('click', function () { closeAll(null); });
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeAll(null); });
       })();
       </script>
 

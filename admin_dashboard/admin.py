@@ -93,8 +93,8 @@ class EmailProviderSettingsAdmin(admin.ModelAdmin):
         }),
         ("Backup sender (used automatically when Brevo can't send)", {
             "fields": ("backup_status", "backup_provider", "backup_email", "backup_api_key", "backup_secret"),
-            "description": "Mailjet works on Render's free plan (200 a day free). Gmail needs hosting that allows SMTP "
-                           "— Render's free plan blocks it.",
+            "description": "Mailjet works on any hosting (200 a day free). Gmail needs hosting that allows SMTP "
+                           "— many cloud hosts block it, so always send a test email.",
         }),
         (None, {"fields": ("last_updated",)}),
     )

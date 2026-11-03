@@ -216,7 +216,7 @@ class EmailProviderSettings(models.Model):
     sent through the BACKUP sender (Mailjet or Gmail). admin_dashboard/email_utils.py"""
     BACKUP_CHOICES = [
         ("", "No backup"),
-        ("mailjet", "Mailjet (works on Render's free plan)"),
+        ("mailjet", "Mailjet (recommended, works on any hosting)"),
         ("gmail", "Gmail (needs a host that allows SMTP)"),
     ]
 
